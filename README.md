@@ -39,9 +39,19 @@ are still to come.
 
 ## License
 
-NickelOS's own work is under the BSD 3-Clause License ([LICENSE](LICENSE)).
-Ebuilds are under the GNU GPL v2, as their headers say, and patches to other
-projects are under those projects' licenses; LICENSE lists what's what.
+NickelOS's own work in this repository (its scripts, programs,
+configuration, the new files in its Chrome patches, the website and guide)
+is under the BSD 3-Clause License ([LICENSE](LICENSE)). Some files are under
+other licenses, and say so:
+
+- Ebuilds (`*.ebuild`, `*.eclass`) are distributed under the GNU General
+  Public License v2, as their headers state, following Gentoo's convention;
+  many are ported from Gentoo's tree.
+- Patches to other projects (`patches/`, `*/files/*.patch`) are under the
+  license of the project they change: Chromium's and ChromiumOS's BSD-style
+  licenses, or the package's own.
+- Fonts, firmware and other third-party files keep their own licenses
+  (`licenses/`, `site/assets/fonts/OFL.txt`).
 
 ## Reporting problems
 
