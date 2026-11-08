@@ -37,6 +37,12 @@ root built beside the checkout (`scripts/unified/`). `scripts/README.md`
 describes the build tooling. Fuller instructions for building it yourself
 are still to come.
 
+## License
+
+NickelOS's own work is under the BSD 3-Clause License ([LICENSE](LICENSE)).
+Ebuilds are under the GNU GPL v2, as their headers say, and patches to other
+projects are under those projects' licenses; LICENSE lists what's what.
+
 ## Reporting problems
 
 See [Getting help](https://nickelos.dev/help/community/) for where to ask,

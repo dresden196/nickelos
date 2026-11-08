@@ -53,7 +53,7 @@ release_dir() {
 production() { [ "$(fpr "$CERT")" = "$(fpr "$PROD_CERT")" ]; }
 
 prepare() {
-	local dir img l m version track debug=no keyok=yes
+	local dir img l m version track btype debug=no keyok=yes
 	dir=$(readlink -f "${1:?the image directory}")
 	img=$dir/chromiumos_base_image.bin
 	[ -f "$img" ] || die "$dir has no base image (NICKEL_IMAGE=base)"
@@ -61,6 +61,7 @@ prepare() {
 	mount -o ro "${l}p3" "$m"
 	version=$(sed -n 's/^CHROMEOS_RELEASE_VERSION=//p' "$m/etc/lsb-release")
 	track=$(sed -n 's/^CHROMEOS_RELEASE_TRACK=//p' "$m/etc/lsb-release")
+	btype=$(sed -n 's/^CHROMEOS_RELEASE_BUILD_TYPE=//p' "$m/etc/lsb-release")
 	cmp -s "$m/usr/share/update_engine/update-payload-key.pub.pem" "$PROD_PUB" || keyok=no
 	umount "$m"
 	mount -o ro "${l}p12" "$m"
@@ -70,6 +71,8 @@ prepare() {
 	[ "$keyok" = yes ] || die "the image's update key isn't the production key (built with NICKEL_TEST_KEY=1?)"
 	[ "$debug" = no ] || die "the image boots with cros_debug (a test image?)"
 	[ "$track" = stable-channel ] || die "the image is on $track, not stable-channel"
+	[ "$btype" = "Release Build" ] ||
+		die "the image says \"$btype\", not \"Release Build\" (nickel-image-release-type; is /usr/local/bin/nickel-build-stock current?)"
 	R=$SRC/.nickel/release/$version
 	[ -e "$R" ] && die "$R exists already (remove it to start again)"
 	install -d -o nickel -g nickel "$SRC/.nickel/release" "$R" "$R/tosign"
