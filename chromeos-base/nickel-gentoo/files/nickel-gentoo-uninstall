@@ -1,0 +1,35 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# nickel-gentoo-uninstall NAME.desktop: remove the Gentoo package that
+# installed /usr/share/applications/NAME.desktop (your layer of the OS's Gentoo,
+# /mnt/stateful_partition/nickel-gentoo: the OS's own launcher entries
+# can't be removed). nickel-appd runs it under pkexec (polkit action
+# org.nickelos.gentoo.uninstall: an administrator's password) when the user
+# uninstalls the app from the launcher. depclean removes the package only if
+# nothing installed still needs it, and leaves what it pulled in.
+set -eu
+name=${1:-}
+case ${name} in
+  ""|*/*|.*|-*) echo "nickel-gentoo-uninstall: bad name: ${name}" >&2; exit 2 ;;
+  *.desktop) ;;
+  *) echo "nickel-gentoo-uninstall: not a .desktop file: ${name}" >&2; exit 2 ;;
+esac
+[ -e "/mnt/stateful_partition/nickel-gentoo/usr/share/applications/${name}" ] || {
+  echo "nickel-gentoo-uninstall: ${name} is not Gentoo's" >&2
+  exit 1
+}
+contents=$(grep -lF "obj /usr/share/applications/${name} " \
+  /var/db/pkg/*/*/CONTENTS 2>/dev/null | head -n1 || true)
+[ -n "${contents}" ] || {
+  echo "nickel-gentoo-uninstall: no package owns ${name}" >&2
+  exit 1
+}
+dir=${contents%/CONTENTS}
+pf=${dir##*/}
+category=$(basename "$(dirname "${dir}")")
+pn=$(echo "${pf}" | sed -E 's/-[0-9][0-9a-z._]*((_alpha|_beta|_pre|_rc|_p)[0-9]*)*(-r[0-9]+)?$//')
+export PATH=/usr/bin:/usr/sbin:/bin:/sbin
+cd /
+/usr/bin/emerge --deselect=y --quiet "${category}/${pn}"
+/usr/bin/emerge --depclean --quiet "${category}/${pn}"

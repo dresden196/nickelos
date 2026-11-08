@@ -1,0 +1,5 @@
+# NickelOS proof. Its Samba libraries' Python 3.13 line went
+# (2026-10-21): one Python now, Gentoo's 3.14, and a line naming several
+# packages and a USE_EXPAND isn't profile syntax (every emerge warned
+# "Invalid USE flag for 'sys-libs/ldb'" once these files moved here).
+sys-libs/libcap static-libs

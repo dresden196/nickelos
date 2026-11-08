@@ -1,0 +1,24 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] system_api: VM type NICKEL_HOST for apps on the device itself
+
+NickelOS's Linux apps run on the device itself, not in a VM. nickel-appd
+registers them with Chrome's GuestOS registry as their own type,
+NICKEL_HOST, instead of posing as a Crostini VM (docs/host-apps.md). Chrome
+carries the same value in its copy of system_api (Chrome patch 0012).
+
+The value is high, so a type ChromiumOS adds later does not take it.
+
+---
+diff -ruN a/system_api/dbus/vm_applications/apps.proto b/system_api/dbus/vm_applications/apps.proto
+--- a/system_api/dbus/vm_applications/apps.proto
++++ b/system_api/dbus/vm_applications/apps.proto
+@@ -77,6 +77,9 @@
+   UNKNOWN = 4;
+   ARCVM = 5;
+   BAGUETTE = 6;
++  // NickelOS: Linux apps on the device itself, no VM. A high value, so a
++  // type ChromiumOS adds later does not take it.
++  NICKEL_HOST = 100;
+ }
+ // LINT.ThenChange(/vm_tools/concierge/vm_util.cc,../vm_concierge/concierge_service.proto)
+ 

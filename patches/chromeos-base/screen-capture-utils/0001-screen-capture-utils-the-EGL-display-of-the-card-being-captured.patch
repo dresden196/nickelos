@@ -1,0 +1,87 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] screen-capture-utils: the EGL display of the card being
+ captured
+
+screenshot (and kmsvnc) asked EGL for EGL_DEFAULT_DISPLAY. With Gentoo's
+Mesa that means the platform Mesa was built for first, X11 or Wayland, and
+the tool runs with no display server: eglInitialize failed ("Could not
+initialize EGLDisplay") on every Intel and AMD machine. NVIDIA's EGL picked
+its device anyway.
+
+The tool now takes the EGL device whose DRM node is the CRTC's card
+(EGL_EXT_platform_device + EGL_EXT_device_drm), then Mesa's surfaceless
+platform, and only then the default display.
+---
+diff -ruN a/screen-capture-utils/egl_capture.cc b/screen-capture-utils/egl_capture.cc
+--- a/screen-capture-utils/egl_capture.cc
++++ b/screen-capture-utils/egl_capture.cc
+@@ -5,6 +5,7 @@
+ #include "screen-capture-utils/egl_capture.h"
+ 
+ #include <sys/mman.h>
++#include <sys/stat.h>
+ #include <xf86drm.h>
+ #include <xf86drmMode.h>
+ 
+@@ -85,6 +86,52 @@
+          extensions.end();
+ }
+ 
++// NickelOS: with Gentoo's Mesa, EGL_DEFAULT_DISPLAY means the platform Mesa
++// was built for first (X11 or Wayland), and this tool has no display server.
++// Take the EGL device that drives the CRTC's card, then Mesa's surfaceless
++// platform, and only then the default display.
++EGLDisplay GetDisplayForCard(int card_fd) {
++  std::vector<EGLDisplay> candidates;
++  const char* client = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
++  auto get_platform_display = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(
++      eglGetProcAddress("eglGetPlatformDisplayEXT"));
++  if (client && get_platform_display &&
++      DoesExtensionExist(client, "EGL_EXT_platform_device")) {
++    auto query_devices = reinterpret_cast<PFNEGLQUERYDEVICESEXTPROC>(
++        eglGetProcAddress("eglQueryDevicesEXT"));
++    auto query_device_string = reinterpret_cast<PFNEGLQUERYDEVICESTRINGEXTPROC>(
++        eglGetProcAddress("eglQueryDeviceStringEXT"));
++    struct stat card;
++    EGLDeviceEXT devices[16];
++    EGLint num_devices = 0;
++    if (query_devices && query_device_string && fstat(card_fd, &card) == 0 &&
++        query_devices(16, devices, &num_devices)) {
++      for (EGLint i = 0; i < num_devices; i++) {
++        const char* exts = query_device_string(devices[i], EGL_EXTENSIONS);
++        if (!exts || !DoesExtensionExist(exts, "EGL_EXT_device_drm"))
++          continue;
++        const char* path =
++            query_device_string(devices[i], EGL_DRM_DEVICE_FILE_EXT);
++        struct stat node;
++        if (!path || stat(path, &node) != 0 || node.st_rdev != card.st_rdev)
++          continue;
++        candidates.push_back(
++            get_platform_display(EGL_PLATFORM_DEVICE_EXT, devices[i], nullptr));
++      }
++    }
++  }
++  if (client && get_platform_display &&
++      DoesExtensionExist(client, "EGL_MESA_platform_surfaceless")) {
++    candidates.push_back(get_platform_display(EGL_PLATFORM_SURFACELESS_MESA,
++                                              EGL_DEFAULT_DISPLAY, nullptr));
++  }
++  for (EGLDisplay display : candidates) {
++    if (display != EGL_NO_DISPLAY && eglInitialize(display, nullptr, nullptr))
++      return display;
++  }
++  return eglGetDisplay(EGL_DEFAULT_DISPLAY);
++}
++
+ EGLImageKHR CreateImage(PFNEGLCREATEIMAGEKHRPROC CreateImageKHR,
+                         bool import_modifiers_exist,
+                         int drm_fd,
+@@ -203,7 +250,7 @@
+       width_(width),
+       height_(height),
+       device_(gbm_create_device(crtc_.file().GetPlatformFile())),
+-      display_(eglGetDisplay(EGL_DEFAULT_DISPLAY)),
++      display_(GetDisplayForCard(crtc_.file().GetPlatformFile())),
+       rotate_to_panel_orientation_(rotate_to_panel_orientation),
+       buffer_(width_ * height_) {
+   CHECK(device_) << "gbm_create_device failed";

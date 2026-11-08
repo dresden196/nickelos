@@ -1,0 +1,33 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] update_engine: scaled DLCs from NickelOS's update server
+
+Scaled DLCs (116 on NickelOS: handwriting, text-to-speech voices, extra
+fonts, ...) were downloaded from Google's CDN under the image's builder
+path. Google has none for NickelOS builds, so every install failed
+(kScaledInstallationError), and NickelOS asks Google for nothing by
+default. They now come from update.nickelos.dev/dlc, under the builder path
+nickel-build-stock sets (nickel-release/R<milestone>-<version>).
+---
+--- a/update_engine/cros/install_action.cc	2026-10-12 10:48:44.944109016 -0400
++++ b/update_engine/cros/install_action.cc	2026-10-12 10:48:44.946128879 -0400
+@@ -31,11 +31,16 @@
+ namespace chromeos_update_engine {
+ 
+ namespace {
+-constexpr char kBandaidUrl[] = "https://edgedl.me.gvt1.com/edgedl/dlc";
+-constexpr char kLorryUrl[] = "https://dl.google.com/dlc";
++// NickelOS: scaled DLCs (handwriting, voices, fonts, ...) come from
++// NickelOS's update server, not Google's: Google has no NickelOS builds, and
++// NickelOS asks Google for nothing by default. The path below them is the
++// image's builder path (nickel-release/R<milestone>-<version>, set by
++// nickel-build-stock), where push-dlc puts each build's DLC images.
++constexpr char kBandaidUrl[] = "https://update.nickelos.dev/dlc";
++constexpr char kLorryUrl[] = "https://update.nickelos.dev/dlc";
+ 
+-constexpr char kBandaidArtifactsMetaUrl[] = "https://edgedl.me.gvt1.com/edgedl";
+-constexpr char kLorryArtifactsMetaUrl[] = "https://dl.google.com";
++constexpr char kBandaidArtifactsMetaUrl[] = "https://update.nickelos.dev";
++constexpr char kLorryArtifactsMetaUrl[] = "https://update.nickelos.dev";
+ 
+ constexpr char kUrlNameBandaid[] = "<BANDAID>";
+ constexpr char kUrlNameLorry[] = "<LORRY>";

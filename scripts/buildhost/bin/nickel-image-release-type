@@ -1,0 +1,28 @@
+#!/bin/bash
+# Runs in the SDK (cros_sdk -- .../nickel-image-release-type IMAGE...): a
+# release image says it's one. chromite's cros_set_lsb_release names every
+# build not made on Google's builders "Developer Build - <user>", and Chrome
+# shows /etc/lsb-release's CHROMEOS_RELEASE_DESCRIPTION as the platform
+# version (Settings > About NickelOS, chrome://version): "16852.17.16
+# (Developer Build - root) stable-channel nickel". Base images get
+# "Release Build" instead. Not "Official Build", Google's word: platform2's
+# metrics daemon takes an official build as one that may report to Google.
+# Test images keep the developer wording.
+# nickel-build-stock runs it on base images. Images are built without
+# rootfs verification, so the system partition mounts read-write.
+set -euo pipefail
+mnt=$(mktemp -d)
+trap 'sudo umount "${mnt}" 2>/dev/null || true; rmdir "${mnt}"' EXIT
+for img in "$@"; do
+	start=$(cgpt show -i 3 -b "${img}")
+	size=$(cgpt show -i 3 -s "${img}")
+	sudo mount -o loop,offset=$((start * 512)),sizelimit=$((size * 512)) "${img}" "${mnt}"
+	sudo sed -i -E \
+		-e 's/^CHROMEOS_RELEASE_BUILD_TYPE=Developer Build - .*/CHROMEOS_RELEASE_BUILD_TYPE=Release Build/' \
+		-e '/^CHROMEOS_RELEASE_DESCRIPTION=/s/ \(Developer Build - [^)]*\) / (Release Build) /' \
+		"${mnt}/etc/lsb-release"
+	grep -E '^CHROMEOS_RELEASE_(BUILD_TYPE|DESCRIPTION)=' "${mnt}/etc/lsb-release" | sed "s|^|nickel-image-release-type: $(basename "${img}"): |"
+	grep -q '^CHROMEOS_RELEASE_BUILD_TYPE=Release Build$' "${mnt}/etc/lsb-release" ||
+		{ echo "nickel-image-release-type: the build type didn't change" >&2; exit 1; }
+	sudo umount "${mnt}"
+done

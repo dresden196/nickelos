@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Install Android app
+Comment=Install the app in Android
+NoDisplay=true
+MimeType=application/vnd.android.package-archive;
+Exec=/usr/libexec/nickel-waydroid/nickel-waydroid-apk %f
+Icon=waydroid

@@ -1,0 +1,21 @@
+NickelOS: build with -Dnss-elogind=false. src/shared/meson.build compiles
+user-record-nss.c only with the NSS module, but userdb.c (always built) calls
+nss_user_record_by_name() and friends from it, so libelogind-shared and
+pam_elogind failed to link. Always compile it; -Dnss-elogind=false then only
+leaves out the NSS module itself.
+
+diff -urN a/src/shared/meson.build b/src/shared/meson.build
+--- a/src/shared/meson.build
++++ b/src/shared/meson.build
+@@ -279,9 +279,8 @@
+         'xml.c',
+ )
+ 
+-if get_option('nss-elogind') != false
+-	shared_sources += files('user-record-nss.c')
+-endif
++# NickelOS: userdb.c always needs it, also without the NSS module.
++shared_sources += files('user-record-nss.c')
+ 
+ #endif // 0
+ 

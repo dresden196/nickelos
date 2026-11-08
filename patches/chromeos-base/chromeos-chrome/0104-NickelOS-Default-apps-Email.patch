@@ -1,0 +1,474 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Default apps: Email
+
+Settings > Apps > Default apps (0021) gets an Email row: the app mail
+links open with, a Linux mail app (Thunderbird, Evolution, Geary, ...: one
+whose desktop file takes x-scheme-handler/mailto) or a mail website
+registered with the browser (navigator.registerProtocolHandler). Until now
+mail links went to whichever Linux mail app had been launched last, or did
+nothing.
+
+- A Linux app chosen: prefs::kNickelMailApp, which
+  GuestOsRegistryService::GetHandler now prefers for mail links (the
+  browser's mail links, and links Linux apps hand ChromeOS); the browser's
+  mail website, if any, stops being the default; nickel-appd writes it to
+  nickelos-mimeapps.list, so Linux apps' xdg-open and the portals go
+  straight to the app.
+- A website chosen: the browser's protocol handler default, as
+  chrome://settings/handlers sets it; Linux apps' mail links come back to
+  ChromeOS (nickel-open), which opens the website.
+- VmApplicationsService's NickelOpenLink: nickel-open's mail links (the
+  website, else a Linux mail app, else Settings > Apps to choose one; a
+  tab left open, and a second link blocked by the external protocol
+  handler's guard, came with the old way through the browser).
+- A mail link a page hands an app loses attach= and attachment=: mail apps
+  attach the local files a link names.
+- No built-in mail website: ChromeOS predefines Gmail for mailto: (and
+  Google Calendar for webcal:), which the Email row showed as the default.
+
+---
+diff --git a/ash/ash_prefs.cc b/ash/ash_prefs.cc
+index 5c4d656..7f9da4a 100644
+--- a/ash/ash_prefs.cc
++++ b/ash/ash_prefs.cc
+@@ -180,6 +180,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry,
+   NickelDesktopController::RegisterProfilePrefs(registry);
+   registry->RegisterStringPref(prefs::kNickelSetupExperience, std::string());
+   registry->RegisterStringPref(prefs::kNickelScreenshotTool, std::string());
++  registry->RegisterStringPref(prefs::kNickelMailApp, std::string());
+   NightLightControllerImpl::RegisterProfilePrefs(registry);
+   OnboardingNudgeController::RegisterProfilePrefs(registry);
+   PaletteTray::RegisterProfilePrefs(registry);
+diff --git a/ash/constants/nickel_pref_names.h b/ash/constants/nickel_pref_names.h
+index 35dfdf9..0cc122a 100644
+--- a/ash/constants/nickel_pref_names.h
++++ b/ash/constants/nickel_pref_names.h
+@@ -28,6 +28,10 @@ inline constexpr char kNickelSetupPendingAvatars[] =
+ // (a Linux app's desktop file id; empty: the screen capture), chosen in
+ // Settings > Apps > Default apps.
+ inline constexpr char kNickelScreenshotTool[] = "nickel.tools.screenshot";
++// The Linux mail app mail links open with (Settings > Apps > Default apps,
++// Email): a desktop file id, or "" (none, or a website: ChromeOS's protocol
++// handlers keep that one).
++inline constexpr char kNickelMailApp[] = "nickel.default_apps.mailto";
+ 
+ }  // namespace ash::prefs
+ 
+diff --git a/chrome/app/os_settings_strings.grdp b/chrome/app/os_settings_strings.grdp
+index dbafa90..3d0850d 100644
+--- a/chrome/app/os_settings_strings.grdp
++++ b/chrome/app/os_settings_strings.grdp
+@@ -7245,6 +7245,12 @@ Press &amp; hold keyboard keys to see accent marks and special characters. This
+   <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT" desc="NickelOS: a kind of file in the Default apps card.">
+     Text files
+   </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL" desc="NickelOS: a row in the Default apps card: the app or website that opens email links (mailto:), from the browser and from Linux apps.">
++    Email
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE" desc="NickelOS: in the Default apps card's Email menu, a mail website the browser knows, by its domain.">
++    <ph name="DOMAIN">$1<ex>mail.proton.me</ex></ph> (website)
++  </message>
+   <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS" desc="NickelOS: a kind of file in the Default apps card: word processor documents (OpenDocument text, Word, RTF).">
+     Documents
+   </message>
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index 5a051dd..9ffa8bb 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -50,6 +50,8 @@ static_library("vm") {
+   ]
+ 
+   deps = [
++    "//chrome/browser/custom_handlers",
++    "//components/custom_handlers",
+     "//ash/constants",
+     "//ash/resources/vector_icons",
+     "//ash/webui/settings/public/constants:mojom",
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index bdc7f55..7e50834 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -24,7 +24,15 @@
+ #include "chrome/browser/ash/crostini/crostini_features.h"
+ #include "chrome/browser/ash/crostini/crostini_util.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_access.h"
++#include "ash/public/cpp/new_window_delegate.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_admin_auth.h"
++#include "chrome/browser/ash/guest_os/guest_os_external_protocol_handler.h"
++#include "chrome/browser/custom_handlers/protocol_handler_registry_factory.h"
++#include "chrome/browser/ui/settings_window_manager_chromeos.h"
++#include "components/custom_handlers/protocol_handler.h"
++#include "components/custom_handlers/protocol_handler_registry.h"
++#include "url/gurl.h"
++#include "url/url_constants.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_clipboard.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_desktop_tools.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h"
+@@ -155,6 +163,8 @@ void DialogListener::MultiFilesSelected(
+ constexpr char kNickelSessionEndingMethod[] = "NickelSessionEnding";
+ // NickelOS: called by nickel-open (see NickelOpenPath).
+ constexpr char kNickelOpenPathMethod[] = "NickelOpenPath";
++// NickelOS: called by nickel-open for mail links (NickelOpenLink).
++constexpr char kNickelOpenLinkMethod[] = "NickelOpenLink";
+ // NickelOS: called by the ScreenCast portal's backend (NickelScreenCast).
+ constexpr char kNickelScreenCastChooseMethod[] = "NickelScreenCastChoose";
+ constexpr char kNickelScreenCastPrimaryMethod[] = "NickelScreenCastPrimary";
+@@ -294,6 +304,12 @@ void VmApplicationsServiceProvider::Start(
+           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface, kNickelOpenLinkMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelOpenLink,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+   exported_object->ExportMethod(
+       vm_tools::apps::kVmApplicationsServiceInterface,
+       kNickelAdminAuthAskMethod,
+@@ -674,6 +690,47 @@ void VmApplicationsServiceProvider::NickelRemoteDesktopAsk(
+           method_call, std::move(response_sender)));
+ }
+ 
++// NickelOS: a mail link from a Linux app (nickel-open; Linux apps' xdg-open
++// reaches it only when no Linux mail app is the user's default): the mail
++// website chosen in Settings > Apps > Default apps, else a Linux mail app
++// (the registry's choice), else Settings > Apps, to choose one; a link
++// that goes nowhere would do nothing at all.
++void VmApplicationsServiceProvider::NickelOpenLink(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string spec;
++  if (!reader.PopString(&spec) || !GURL(spec).SchemeIs(url::kMailToScheme)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS, "Expected a mailto: link"));
++    return;
++  }
++  const GURL url(spec);
++  Profile* profile = ProfileManager::GetPrimaryUserProfile();
++  if (!profile) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(method_call, DBUS_ERROR_FAILED,
++                                                 "No session"));
++    return;
++  }
++  custom_handlers::ProtocolHandlerRegistry* handlers =
++      ProtocolHandlerRegistryFactory::GetForBrowserContext(profile);
++  if (handlers && handlers->IsHandledProtocol(url.GetScheme())) {
++    NewWindowDelegate::GetInstance()->OpenUrl(
++        handlers->GetHandlerFor(url.GetScheme()).TranslateUrl(url),
++        NewWindowDelegate::OpenUrlFrom::kUserInteraction,
++        NewWindowDelegate::Disposition::kNewForegroundTab);
++  } else if (std::optional<guest_os::GuestOsUrlHandler> handler =
++                 guest_os::GuestOsUrlHandler::GetForUrl(profile, url)) {
++    handler->Handle(profile, url);
++  } else {
++    chrome::SettingsWindowManager::GetInstance()->ShowOSSettings(profile,
++                                                                 "apps");
++  }
++  std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
++}
++
+ // NickelOS: nickel-polkit-agent asks for an administrator's password
+ // (request id, polkit's message, its icon name, its details, the
+ // administrators, an error to show when asking again); the answer is the
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index 4018539..2990ceb 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -86,6 +86,8 @@ class VmApplicationsServiceProvider
+   void NickelRemoteDesktopAsk(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelOpenLink(dbus::MethodCall* method_call,
++                      dbus::ExportedObject::ResponseSender response_sender);
+   void NickelAdminAuthAsk(dbus::MethodCall* method_call,
+                           dbus::ExportedObject::ResponseSender response_sender);
+   void NickelAdminAuthClose(
+diff --git a/chrome/browser/ash/guest_os/guest_os_registry_service.cc b/chrome/browser/ash/guest_os/guest_os_registry_service.cc
+index 217dd2c..d658903 100644
+--- a/chrome/browser/ash/guest_os/guest_os_registry_service.cc
++++ b/chrome/browser/ash/guest_os/guest_os_registry_service.cc
+@@ -10,6 +10,9 @@
+ #include <vector>
+ 
+ #include "ash/constants/ash_features.h"
++#include "ash/constants/nickel_pref_names.h"
++#include "base/strings/string_split.h"
++#include "url/url_constants.h"
+ #include "ash/public/cpp/app_list/app_list_config.h"
+ #include "ash/strings/grit/ash_strings.h"
+ #include "base/check_deref.h"
+@@ -83,10 +86,36 @@ std::vector<std::string> GetFallbackLocales(std::string_view app_locale) {
+   return locales;
+ }
+ 
++// NickelOS: a mail link a page gives an app loses its attachments (attach=,
++// attachment=): Evolution, KMail and Geary attach local files a page names.
++GURL WithoutAttachments(const GURL& url) {
++  if (!url.SchemeIs(url::kMailToScheme) || !url.has_query()) {
++    return url;
++  }
++  std::vector<std::string> kept;
++  for (const std::string& part : base::SplitString(
++           url.query(), "&", base::KEEP_WHITESPACE, base::SPLIT_WANT_ALL)) {
++    const std::string key =
++        base::ToLowerASCII(part.substr(0, part.find('=')));
++    if (key != "attach" && key != "attachment") {
++      kept.push_back(part);
++    }
++  }
++  const std::string query = base::JoinString(kept, "&");
++  GURL::Replacements replacements;
++  if (query.empty()) {
++    replacements.ClearQuery();
++  } else {
++    replacements.SetQueryStr(query);
++  }
++  return url.ReplaceComponents(replacements);
++}
++
+ void Launch(vm_tools::apps::VmType vm_type,
+             std::string app_id,
+             Profile* profile,
+-            const GURL& url) {
++            const GURL& link) {
++  const GURL url = WithoutAttachments(link);
+   switch (vm_type) {
+     case VmType::TERMINA:
+     // NickelOS host apps: crostini::LaunchCrostiniApp hands them to
+@@ -637,7 +666,18 @@ std::optional<GuestOsUrlHandler> GuestOsRegistryService::GetHandler(
+ 
+   std::map<std::string, Registration> apps = GetEnabledApps();
+   const Registration* result = nullptr;
++  // NickelOS: mail links go to the mail app chosen in Settings > Apps >
++  // Default apps, rather than the one launched last.
++  const std::string mail_app =
++      url.SchemeIs(url::kMailToScheme)
++          ? prefs_->GetString(ash::prefs::kNickelMailApp)
++          : std::string();
+   for (auto& [unused, registration] : apps) {
++    if (!mail_app.empty() && registration.DesktopFileId() == mail_app &&
++        AppHandlesProtocol(registration, url)) {
++      result = &registration;
++      break;
++    }
+     if (AppHandlesProtocol(registration, url) &&
+         (!result || registration.LastLaunchTime() > result->LastLaunchTime())) {
+       result = &registration;
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts b/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts
+index e95a451..1a22250 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts
++++ b/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts
+@@ -37,6 +37,7 @@ const KIND_NAMES: Record<string, string> = {
+   pdf: 'nickelDefaultAppsPdf',
+   text: 'nickelDefaultAppsText',
+   documents: 'nickelDefaultAppsDocuments',
++  email: 'nickelDefaultAppsEmail',
+   spreadsheets: 'nickelDefaultAppsSpreadsheets',
+   presentations: 'nickelDefaultAppsPresentations',
+   screenshot: 'nickelDefaultAppsScreenshots',
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
+index 804528a..265ad67 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
+@@ -32,6 +32,8 @@ static_library("apps") {
+   ]
+ 
+   deps = [
++    "//chrome/browser/custom_handlers",
++    "//components/custom_handlers",
+     "//ash/constants",
+     "//chrome/app:generated_resources",
+     "//chrome/browser/apps/app_service",
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+index c1d9946..c747560 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+@@ -265,6 +265,7 @@ void AddAppManagementStrings(content::WebUIDataSource* html_source) {
+       {"nickelDefaultAppsMusic", IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC},
+       {"nickelDefaultAppsPdf", IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF},
+       {"nickelDefaultAppsText", IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT},
++      {"nickelDefaultAppsEmail", IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL},
+       {"nickelDefaultAppsDocuments",
+        IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS},
+       {"nickelDefaultAppsSpreadsheets",
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc
+index 4c8c0f9..8fce7b3 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc
+@@ -12,17 +12,27 @@
+ 
+ #include "ash/constants/nickel_pref_names.h"
+ #include "base/functional/bind.h"
++#include "base/functional/callback_helpers.h"
+ #include "base/strings/string_split.h"
+ #include "base/strings/string_util.h"
++#include "base/strings/utf_string_conversions.h"
+ #include "chrome/browser/ash/file_manager/file_tasks.h"
+ #include "chrome/browser/ash/file_manager/fileapi_util.h"
+ #include "chrome/browser/ash/file_manager/path_util.h"
+ #include "chrome/browser/ash/guest_os/guest_os_registry_service.h"
+ #include "chrome/browser/ash/guest_os/guest_os_registry_service_factory.h"
++#include "chrome/browser/custom_handlers/protocol_handler_registry_factory.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/grit/generated_resources.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
++#include "components/custom_handlers/protocol_handler.h"
++#include "components/custom_handlers/protocol_handler_registry.h"
+ #include "components/prefs/pref_service.h"
+ #include "content/public/browser/web_ui.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_path.h"
++#include "dbus/object_proxy.h"
+ #include "extensions/browser/entry_info.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "url/gurl.h"
+@@ -108,6 +118,77 @@ bool IsScreenshotApp(
+   return false;
+ }
+ 
++// Email: the app mail links open with. A Linux mail app (one whose desktop
++// file takes x-scheme-handler/mailto) or a mail website registered with the
++// browser (navigator.registerProtocolHandler, Settings' protocol handlers);
++// the choice reaches the browser's mail links (the registry's default, or
++// prefs::kNickelMailApp for GuestOsRegistryService::GetHandler) and Linux
++// apps' (nickel-appd's SetDefaultHandler: nickelos-mimeapps.list).
++constexpr char kEmailKind[] = "email";
++constexpr char kMailScheme[] = "mailto";
++constexpr char kLinuxPrefix[] = "linux:";
++constexpr char kSitePrefix[] = "site:";
++
++base::DictValue EmailKind(Profile* profile) {
++  base::ListValue apps;
++  std::string default_id;
++  if (custom_handlers::ProtocolHandlerRegistry* handlers =
++          ProtocolHandlerRegistryFactory::GetForBrowserContext(profile)) {
++    for (const custom_handlers::ProtocolHandler& handler :
++         handlers->GetHandlersFor(kMailScheme)) {
++      apps.Append(base::DictValue()
++                      .Set("taskId", kSitePrefix + handler.url().spec())
++                      .Set("title", l10n_util::GetStringFUTF16(
++                                        IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE,
++                                        base::UTF8ToUTF16(handler.url().host()))));
++    }
++    if (handlers->IsHandledProtocol(kMailScheme)) {
++      default_id =
++          kSitePrefix + handlers->GetHandlerFor(kMailScheme).url().spec();
++    }
++  }
++  const std::string chosen =
++      profile->GetPrefs()->GetString(ash::prefs::kNickelMailApp);
++  if (auto* registry =
++          guest_os::GuestOsRegistryServiceFactory::GetForProfile(profile)) {
++    std::vector<std::pair<std::string, std::string>> found;  // Name, id.
++    for (const auto& [app_id, app] :
++         registry->GetRegisteredApps(guest_os::VmType::NICKEL_HOST)) {
++      if (!app.NoDisplay() &&
++          app.MimeTypes().contains("x-scheme-handler/mailto")) {
++        found.emplace_back(app.Name(), app.DesktopFileId());
++      }
++    }
++    std::sort(found.begin(), found.end());
++    for (const auto& [name, desktop_file_id] : found) {
++      apps.Append(base::DictValue()
++                      .Set("taskId", kLinuxPrefix + desktop_file_id)
++                      .Set("title", name));
++      if (default_id.empty() && desktop_file_id == chosen) {
++        default_id = kLinuxPrefix + desktop_file_id;
++      }
++    }
++  }
++  return base::DictValue()
++      .Set("id", kEmailKind)
++      .Set("apps", std::move(apps))
++      .Set("defaultTaskId", default_id);
++}
++
++// Tells nickel-appd which desktop file Linux apps' mail links go to ("":
++// ChromeOS, which opens the website chosen).
++void SetLinuxMailApp(const std::string& desktop_file_id) {
++  dbus::MethodCall method_call("org.nickelos.Apps", "SetDefaultHandler");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString("x-scheme-handler/mailto");
++  writer.AppendString(desktop_file_id);
++  ash::DBusThreadManager::Get()
++      ->GetSystemBus()
++      ->GetObjectProxy("org.nickelos.Apps", dbus::ObjectPath("/org/nickelos/Apps"))
++      ->CallMethod(&method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++                   base::DoNothing());
++}
++
+ base::DictValue ScreenshotKind(Profile* profile) {
+   base::ListValue apps;
+   apps.Append(base::DictValue()
+@@ -171,6 +252,7 @@ void NickelDefaultAppsHandler::FindApps(std::string callback_id,
+                                         base::ListValue categories,
+                                         size_t index) {
+   if (index == std::size(kKinds)) {
++    categories.Append(EmailKind(profile_));
+     categories.Append(ScreenshotKind(profile_));
+     ResolveJavascriptCallback(base::Value(callback_id),
+                               base::Value(std::move(categories)));
+@@ -232,6 +314,37 @@ void NickelDefaultAppsHandler::HandleSetDefaultApp(
+   AllowJavascript();
+   const base::Value& callback_id = args[0];
+   const std::string& kind_id = args[1].GetString();
++  if (kind_id == kEmailKind) {
++    const std::string& choice = args[2].GetString();
++    custom_handlers::ProtocolHandlerRegistry* handlers =
++        ProtocolHandlerRegistryFactory::GetForBrowserContext(profile_);
++    bool done = false;
++    if (choice.starts_with(kLinuxPrefix)) {
++      const std::string desktop_file_id =
++          choice.substr(std::string_view(kLinuxPrefix).size());
++      profile_->GetPrefs()->SetString(ash::prefs::kNickelMailApp,
++                                      desktop_file_id);
++      if (handlers) {
++        handlers->ClearDefault(kMailScheme);
++      }
++      SetLinuxMailApp(desktop_file_id);
++      done = true;
++    } else if (choice.starts_with(kSitePrefix) && handlers) {
++      const std::string site = choice.substr(std::string_view(kSitePrefix).size());
++      for (const custom_handlers::ProtocolHandler& handler :
++           handlers->GetHandlersFor(kMailScheme)) {
++        if (handler.url().spec() == site) {
++          handlers->OnAcceptRegisterProtocolHandler(handler);
++          profile_->GetPrefs()->SetString(ash::prefs::kNickelMailApp, "");
++          SetLinuxMailApp("");
++          done = true;
++          break;
++        }
++      }
++    }
++    ResolveJavascriptCallback(callback_id, base::Value(done));
++    return;
++  }
+   if (kind_id == kScreenshotKind) {
+     const std::string& tool = args[2].GetString();
+     profile_->GetPrefs()->SetString(ash::prefs::kNickelScreenshotTool,
+diff --git a/chrome/common/chrome_content_client.cc b/chrome/common/chrome_content_client.cc
+index 601ff3c..767effe 100644
+--- a/chrome/common/chrome_content_client.cc
++++ b/chrome/common/chrome_content_client.cc
+@@ -258,12 +258,10 @@ void ChromeContentClient::AddAdditionalSchemes(Schemes* schemes) {
+   schemes->csp_bypassing_schemes.push_back(extensions::kExtensionScheme);
+ #endif
+ 
+-#if BUILDFLAG(IS_CHROMEOS)
+-  schemes->predefined_handler_schemes.emplace_back(
+-      url::kMailToScheme, chrome::kChromeOSDefaultMailtoHandler);
+-  schemes->predefined_handler_schemes.emplace_back(
+-      url::kWebcalScheme, chrome::kChromeOSDefaultWebcalHandler);
+-#endif
++  // NickelOS: no built-in handlers for mail and calendar links (ChromeOS's
++  // send mailto: to Gmail and webcal: to Google Calendar). Mail links go to
++  // the app chosen in Settings > Apps > Default apps > Email, or to a mail
++  // website the user registered.
+ 
+ #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || \
+     BUILDFLAG(IS_CHROMEOS)

@@ -1,0 +1,318 @@
+#!/usr/bin/env python3
+"""What breaks if NickelOS moves to another ChromiumOS release.
+
+Runs on a build host with the source mirrors (nickel-mirror-refresh), as
+the user that owns them. Needs no checkout of the target release: for each
+package this overlay patches (patches/<category>/<package>/), it reads the
+commit the target release pins for that package (its stable ebuild in
+chromiumos-overlay; Chrome's version tag for chromeos-chrome), takes from
+the mirror just the files the patches touch, applies the patch series in
+order and sorts each patch:
+
+  clean     applies as it is
+  offset    applies, the lines moved
+  fuzz      applies only with fuzz: check the result
+  upstream  already in Google's code (reversed or previously applied)
+  FAILED    does not apply: the report shows Google's changes to the files
+            between the two releases, which is what the patch has to be
+            redone against
+
+It does the same at the current release first, so a patch that was already
+broken is not blamed on the new one. It also lists the packages this overlay
+replaces whose upstream version changed, and what changed in overlay-reven
+and the eclasses.
+
+  nickel-rebase-report [--from BRANCH] --to BRANCH [--out FILE.md] [--overlay DIR]
+
+BRANCH is a ChromiumOS manifest branch (release-R157-16880.B) or main.
+--from defaults to the branch the build checkout (/srv/nickel/src) is on.
+"""
+import argparse
+import collections
+import os
+import re
+import subprocess
+import sys
+import tempfile
+
+M = "/srv/nickel/mirror/chromiumos"
+CHROMIUM = "/srv/nickel/mirror/chromium/src.git"
+SRC = "/srv/nickel/src"
+OVERLAYS = {  # repo (in the mirror) -> path of overlays in it
+    "chromiumos/overlays/chromiumos-overlay": "",
+    "chromiumos/overlays/portage-stable": "",
+    "chromiumos/overlays/board-overlays": "overlay-reven/",
+}
+
+
+def git(repo, *args, check=True):
+    r = subprocess.run(["git", "-c", "safe.directory=*", f"--git-dir={repo}", *args],
+                       capture_output=True, text=True)
+    if check and r.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)} in {repo}: {r.stderr.strip()}")
+    return r.stdout
+
+
+def mirror(project):
+    return f"{M}/{project}.git"
+
+
+def project_ref(project, branch):
+    """The commit a project's branch points at in the mirror."""
+    out = git(mirror(project), "rev-parse", "--verify", "-q",
+              f"refs/heads/{branch}^{{commit}}", check=False).strip()
+    return out or None
+
+
+def current_branch():
+    out = subprocess.run(["git", "-c", "safe.directory=*", "-C", f"{SRC}/.repo/manifests",
+                          "config", "branch.default.merge"],
+                         capture_output=True, text=True).stdout.strip()
+    return out.replace("refs/heads/", "") or None
+
+
+def vkey(name):
+    return [int(x) if x.isdigit() else x for x in re.split(r"(\d+)", name)]
+
+
+def stable_ebuild(cp, branch):
+    """(repo, commit, path, text) of the newest non-9999 ebuild of cp."""
+    for repo, prefix in OVERLAYS.items():
+        ref = project_ref(repo, branch)
+        if not ref:
+            continue
+        names = git(mirror(repo), "ls-tree", "--name-only", f"{ref}:{prefix}{cp}",
+                    check=False).split()
+        ebuilds = [n for n in names if n.endswith(".ebuild") and "-9999" not in n]
+        if ebuilds:
+            name = sorted(ebuilds, key=vkey)[-1]
+            path = f"{prefix}{cp}/{name}"
+            return repo, ref, path, git(mirror(repo), "show", f"{ref}:{path}")
+    return None
+
+
+def ebuild_var(text, var):
+    m = re.search(rf'^{var}=\(\s*"([^"]*)"', text, re.M) or \
+        re.search(rf'^{var}="([^"]*)"', text, re.M)
+    return m.group(1) if m else None
+
+
+def source_of(cp, branch):
+    """(repo, commit, label) of the tree a package's patches apply to."""
+    eb = stable_ebuild(cp, branch)
+    if not eb:
+        return None, None, f"no stable ebuild of {cp} on {branch}"
+    _, _, path, text = eb
+    name = os.path.basename(path)
+    if cp == "chromeos-base/chromeos-chrome":
+        v = re.match(r"chromeos-chrome-([\d.]+)", name).group(1)
+        tag = git(CHROMIUM, "rev-parse", "--verify", "-q", f"refs/tags/{v}^{{commit}}",
+                  check=False).strip()
+        if not tag:
+            return None, None, f"Chrome {v}: tag not in the mirror (refresh it)"
+        return CHROMIUM, tag, f"Chrome {v}"
+    project = ebuild_var(text, "CROS_WORKON_PROJECT")
+    commit = ebuild_var(text, "CROS_WORKON_COMMIT")
+    if not project or not commit:
+        return None, None, f"{name}: not a cros-workon package, check by hand"
+    return mirror(project), commit, f"{project} {commit[:12]} ({name})"
+
+
+def deps_repos(commit):
+    """Chrome's DEPS: {path prefix: (mirror repo, commit)} for repos we mirror."""
+    out = {}
+    deps = git(CHROMIUM, "show", f"{commit}:DEPS", check=False)
+    for m in re.finditer(r"'src/([^']+)':\s*(?:\{\s*'url':\s*)?Var\('chromium_git'\)\s*\+\s*"
+                         r"'/([^']+?)(?:\.git)?'\s*\+\s*'@'\s*\+\s*'([0-9a-f]{40})'", deps):
+        path, project, rev = m.groups()
+        repo = mirror(project)
+        if os.path.isdir(repo):
+            out[path.rstrip("/") + "/"] = (repo, rev)
+    return out
+
+
+def locate(repo, commit, f, deps, strip):
+    """(repo, commit, path in it) for a file a patch names."""
+    for prefix, (drepo, drev) in deps.items():
+        if f.startswith(prefix):
+            return drepo, drev, f[len(prefix):]
+    return repo, commit, f[len(strip):] if strip and f.startswith(strip) else f
+
+
+def path_strip(repo, commit, files):
+    """A leading directory the patches have that the repo doesn't (adhd/...)."""
+    first = {f.split("/", 1)[0] + "/" for f in files if "/" in f}
+    if len(first) != 1:
+        return ""
+    prefix = first.pop()
+    exists = lambda p: subprocess.run(["git", "-c", "safe.directory=*", f"--git-dir={repo}",
+                                       "cat-file", "-e", f"{commit}:{p}"],
+                                      stderr=subprocess.DEVNULL).returncode == 0
+    if not any(exists(f) for f in files) and any(exists(f[len(prefix):]) for f in files):
+        return prefix
+    return ""
+
+
+def patch_files(patch):
+    files = []
+    with open(patch, errors="replace") as f:
+        for line in f:
+            m = re.match(r"^(?:\+\+\+|---) [ab]/(\S+)", line)
+            if m and m.group(1) not in files:
+                files.append(m.group(1))
+    return files
+
+
+def try_series(repo, commit, patches):
+    """Apply the series to the commit's files; [(patch, status, failed files)]."""
+    results = []
+    files = sorted({f for p in patches for f in patch_files(p)})
+    deps = deps_repos(commit) if repo == CHROMIUM else {}
+    strip = path_strip(repo, commit, files)
+    with tempfile.TemporaryDirectory(prefix="nickel-rebase.") as tmp:
+        for f in files:
+            frepo, fcommit, fpath = locate(repo, commit, f, deps, strip)
+            blob = subprocess.run(["git", "-c", "safe.directory=*", f"--git-dir={frepo}",
+                                   "show", f"{fcommit}:{fpath}"], capture_output=True)
+            if blob.returncode == 0:
+                os.makedirs(os.path.dirname(os.path.join(tmp, f)) or tmp, exist_ok=True)
+                with open(os.path.join(tmp, f), "wb") as out:
+                    out.write(blob.stdout)
+        for p in patches:
+            r = subprocess.run(["patch", "-p1", "-N", "-f", "--no-backup-if-mismatch",
+                                "-r", "-", "-i", p], cwd=tmp, capture_output=True, text=True)
+            out = r.stdout + r.stderr
+            failed, current = [], None
+            for line in out.splitlines():
+                m = re.match(r"patching file '?([^']+?)'?$", line)
+                if m:
+                    current = m.group(1)
+                elif ("FAILED" in line or "can't find file" in line) and current not in failed:
+                    failed.append(current)
+            if "Reversed (or previously applied)" in out:
+                status = "upstream"
+            elif r.returncode != 0 or failed:
+                status = "FAILED"
+            elif "with fuzz" in out:
+                status = "fuzz"
+            elif "(offset" in out:
+                status = "offset"
+            else:
+                status = "clean"
+            results.append((p, status, [f for f in failed if f]))
+    return results
+
+
+def shadowed(overlay, old, new):
+    """Overlay packages that replace an upstream one whose ebuilds changed."""
+    rows = []
+    for cat in sorted(os.listdir(overlay)):
+        d = os.path.join(overlay, cat)
+        if not os.path.isdir(d) or "-" not in cat and cat != "virtual":
+            continue
+        for pn in sorted(os.listdir(d)):
+            if not any(n.endswith(".ebuild") for n in os.listdir(os.path.join(d, pn))):
+                continue
+            cp = f"{cat}/{pn}"
+            a, b = stable_ebuild(cp, old), stable_ebuild(cp, new)
+            if a or b:
+                an = os.path.basename(a[2]) if a else "-"
+                bn = os.path.basename(b[2]) if b else "-"
+                rows.append((cp, an, bn))
+    return rows
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--from", dest="old")
+    ap.add_argument("--to", dest="new", required=True)
+    ap.add_argument("--out")
+    ap.add_argument("--overlay", default=os.path.realpath(
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "..")))
+    a = ap.parse_args()
+    old = a.old or current_branch()
+    if not old:
+        sys.exit("no --from and no build checkout to read it from")
+    pdir = os.path.join(a.overlay, "patches")
+    lines = [f"# Rebase report: {old} -> {a.new}", ""]
+    summary = collections.Counter()
+    problems = []
+
+    for cat in sorted(os.listdir(pdir)):
+        for pn in sorted(os.listdir(os.path.join(pdir, cat))):
+            cp = f"{cat}/{pn}"
+            patches = sorted(os.path.join(pdir, cp, f) for f in os.listdir(os.path.join(pdir, cp))
+                             if f.endswith(".patch"))
+            orepo, ocommit, olabel = source_of(cp, old)
+            nrepo, ncommit, nlabel = source_of(cp, a.new)
+            lines += [f"## {cp} ({len(patches)} patches)", "",
+                      f"- from: {olabel}", f"- to: {nlabel}", ""]
+            if not nrepo:
+                summary["unchecked"] += len(patches)
+                problems.append(f"{cp}: {nlabel}")
+                lines += ["Not checked.", ""]
+                continue
+            before = {p: s for p, s, _ in try_series(orepo, ocommit, patches)} if orepo else {}
+            if ocommit == ncommit:
+                lines += ["Same source on both: unchanged.", ""]
+                summary["clean"] += len(patches)
+                continue
+            for p, status, failed in try_series(nrepo, ncommit, patches):
+                name = os.path.basename(p)
+                was = before.get(p)
+                note = f" (already {was} on {old})" if was and was not in ("clean", "offset") else ""
+                summary[status] += 1
+                if status in ("clean", "offset"):
+                    continue
+                lines.append(f"- **{status}** {name}{note}")
+                if status == "FAILED":
+                    problems.append(f"{cp}: {name}")
+                    files = sorted({f for q in patches for f in patch_files(q)})
+                    odeps = deps_repos(ocommit) if nrepo == CHROMIUM else {}
+                    ndeps = deps_repos(ncommit) if nrepo == CHROMIUM else {}
+                    strip = path_strip(nrepo, ncommit, files)
+                    for f in failed:
+                        r1, c1, p1 = locate(orepo, ocommit, f, odeps, strip)
+                        r2, c2, p2 = locate(nrepo, ncommit, f, ndeps, strip)
+                        stat = git(r2, "diff", "--stat=100", c1, c2, "--", p2,
+                                   check=False).strip() if r1 == r2 else ""
+                        diff = git(r2, "diff", c1, c2, "--", p2, check=False) if r1 == r2 else ""
+                        dl = diff.splitlines()
+                        lines += [f"  - `{f}`: {stat.splitlines()[-1].strip() if stat else 'no upstream change'}",
+                                  "", "```diff", *dl[:160],
+                                  *([f"... ({len(dl) - 160} more lines)"] if len(dl) > 160 else []),
+                                  "```", ""]
+            lines.append("")
+
+    rows = shadowed(a.overlay, old, a.new)
+    moved = [r for r in rows if r[1] != r[2]]
+    lines += ["## Packages this overlay replaces", "",
+              "| package | upstream on " + old + " | upstream on " + a.new + " |",
+              "|---|---|---|", *[f"| {cp} | {x} | {y} |" for cp, x, y in rows], ""]
+
+    bo = "chromiumos/overlays/board-overlays"
+    co = "chromiumos/overlays/chromiumos-overlay"
+    for repo, path, title in ((bo, "overlay-reven", "overlay-reven"), (co, "eclass", "eclasses")):
+        o, n = project_ref(repo, old), project_ref(repo, a.new)
+        stat = git(mirror(repo), "diff", "--stat=100", o, n, "--", path, check=False) if o and n else ""
+        lines += [f"## Changes in {title}", "", "```", *(stat.splitlines()[-40:] or ["(none)"]), "```", ""]
+
+    head = [f"Patches: {summary['clean']} clean, {summary['offset']} offset, {summary['fuzz']} fuzz, "
+            f"{summary['upstream']} already upstream, {summary['FAILED']} failed, "
+            f"{summary['unchecked']} not checked.",
+            f"Replaced packages whose upstream changed: {len(moved)}"
+            + (f" ({', '.join(cp for cp, _, _ in moved)})" if moved else "") + ".", ""]
+    if problems:
+        head += ["To fix:", *[f"- {p}" for p in problems], ""]
+    lines[2:2] = head
+    text = "\n".join(lines) + "\n"
+    if a.out:
+        with open(a.out, "w") as f:
+            f.write(text)
+    print("\n".join(lines[:2 + len(head)]))
+    if a.out:
+        print(f"full report: {a.out}")
+
+
+if __name__ == "__main__":
+    main()

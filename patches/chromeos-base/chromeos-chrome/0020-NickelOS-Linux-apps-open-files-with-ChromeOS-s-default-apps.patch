@@ -1,0 +1,111 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux apps open files with ChromeOS's default apps
+
+Linux apps open links and files through nickel-open (the handler of
+org.nickelos.ChromeOS.desktop, which xdg-open, GIO and the OpenURI portal
+use on NickelOS). Links go to Ash's UrlHandlerService; for files this adds
+VmApplicationsService.NickelOpenPath(path, how): ChromeOS opens the file
+with the app it opens that kind of file with, the user's default (as the
+Files app does), opens a folder in Files ("folder"), or shows a file in its
+folder ("show"). Paths in /home/chronos/user, Linux apps' home, are taken
+as the profile directory it mounts, where ChromeOS's volumes are. Failures
+show ChromeOS's own notification. So one set of defaults (Files, Settings >
+Apps > Default apps) applies to every app.
+
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index 92e23eab0b087..84eddc00cd92a 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -29,6 +29,7 @@
+ #include "chrome/browser/ash/guest_os/guest_os_terminal.h"
+ #include "chrome/browser/chromeos/policy/dlp/dlp_file_destination.h"
+ #include "chrome/browser/chromeos/policy/dlp/dlp_rules_manager.h"
++#include "chrome/browser/platform_util.h"
+ #include "chrome/browser/profiles/profile_manager.h"
+ #include "chrome/browser/ui/select_file_policy/chrome_select_file_policy.h"
+ #include "chrome/browser/ui/views/select_file_dialog_extension/select_file_dialog_extension.h"
+@@ -132,6 +133,8 @@ void DialogListener::MultiFilesSelected(
+ 
+ // NickelOS: called by nickel-session as it stops (see NickelSessionEnding).
+ constexpr char kNickelSessionEndingMethod[] = "NickelSessionEnding";
++// NickelOS: called by nickel-open (see NickelOpenPath).
++constexpr char kNickelOpenPathMethod[] = "NickelOpenPath";
+ 
+ }  // namespace
+ 
+@@ -176,6 +179,12 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface, kNickelOpenPathMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelOpenPath,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+ }
+ 
+ void VmApplicationsServiceProvider::OnExported(
+@@ -232,6 +241,49 @@ void VmApplicationsServiceProvider::NickelSessionEnding(
+   std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
+ }
+ 
++// NickelOS: nickel-open, the handler Linux apps open files and folders with
++// (xdg-open, GIO, the OpenURI portal), asks ChromeOS to open a file with the
++// app it opens that kind of file with (the user's default), to open a folder
++// in Files ("folder"), or to show a file in its folder ("show"), as the Files
++// app does. Failures show ChromeOS's own notification.
++void VmApplicationsServiceProvider::NickelOpenPath(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string path_string;
++  std::string how;
++  if (!reader.PopString(&path_string) || !reader.PopString(&how)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected a path and how to open it"));
++    return;
++  }
++  base::FilePath path(path_string);
++  Profile* profile = ProfileManager::GetPrimaryUserProfile();
++  if (!path.IsAbsolute() || path.ReferencesParent() || !profile) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS, "Not an absolute path"));
++    return;
++  }
++  // Linux apps' home, /home/chronos/user, is a bind mount of the profile
++  // directory (/home/chronos/u-<hash>), under which ChromeOS's volumes are.
++  base::FilePath in_home;
++  if (base::FilePath("/home/chronos/user").AppendRelativePath(path, &in_home)) {
++    path = profile->GetPath().Append(in_home);
++  }
++  if (how == "show") {
++    platform_util::ShowItemInFolder(profile, path);
++  } else {
++    platform_util::OpenItem(profile, path,
++                            how == "folder" ? platform_util::OPEN_FOLDER
++                                            : platform_util::OPEN_FILE,
++                            platform_util::OpenOperationCallback());
++  }
++  std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
++}
++
+ void VmApplicationsServiceProvider::LaunchTerminal(
+     dbus::MethodCall* method_call,
+     dbus::ExportedObject::ResponseSender response_sender) {
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index 56191a32b5384..c508486d34d2e 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -66,6 +66,8 @@ class VmApplicationsServiceProvider
+   void NickelSessionEnding(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelOpenPath(dbus::MethodCall* method_call,
++                      dbus::ExportedObject::ResponseSender response_sender);
+ 
+   // Exposed in the header so unit tests can call it.
+   static void ParseSelectFileDialogFileTypes(

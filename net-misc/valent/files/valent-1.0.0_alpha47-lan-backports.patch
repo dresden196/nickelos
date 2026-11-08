@@ -1,0 +1,110 @@
+diff --git a/src/plugins/lan/valent-lan-channel-service.c b/src/plugins/lan/valent-lan-channel-service.c
+index 3a98d7b0..58839f8d 100644
+--- a/src/plugins/lan/valent-lan-channel-service.c
++++ b/src/plugins/lan/valent-lan-channel-service.c
+@@ -100,6 +100,10 @@ valent_lan_channel_service_identify_channel (GIOStream     *stream,
+ 
+   if (protocol_version >= VALENT_NETWORK_PROTOCOL_V8)
+     {
++      g_autoptr (JsonNode) secure_identity = NULL;
++      const char *device_id = NULL;
++      const char *secure_id = NULL;
++
+       if (!valent_packet_to_stream (g_io_stream_get_output_stream (stream),
+                                     identity,
+                                     cancellable,
+@@ -108,10 +112,35 @@ valent_lan_channel_service_identify_channel (GIOStream     *stream,
+           return NULL;
+         }
+ 
+-      return valent_packet_from_stream (g_io_stream_get_input_stream (stream),
+-                                        IDENTITY_BUFFER_MAX,
+-                                        cancellable,
+-                                        error);
++      secure_identity = valent_packet_from_stream (g_io_stream_get_input_stream (stream),
++                                                   IDENTITY_BUFFER_MAX,
++                                                   cancellable,
++                                                   error);
++      if (secure_identity == NULL)
++        return NULL;
++
++      /* Backported from upstream 85f77312: a protocol v8 handshake must
++       * start and finish with the same deviceId. */
++      valent_packet_get_string (peer_identity, "deviceId", &device_id);
++      if (!valent_packet_get_string (secure_identity, "deviceId", &secure_id))
++        {
++          g_set_error (error,
++                       G_IO_ERROR,
++                       G_IO_ERROR_INVALID_DATA,
++                       "expected \"deviceId\" field holding a string");
++          return NULL;
++        }
++
++      if (g_strcmp0 (device_id, secure_id) != 0)
++        {
++          g_set_error (error,
++                       G_IO_ERROR,
++                       G_IO_ERROR_NOT_SUPPORTED,
++                       "device ID mismatch during protocol v8 handshake");
++          return NULL;
++        }
++
++      return g_steal_pointer (&secure_identity);
+     }
+   else if (protocol_version >= VALENT_NETWORK_PROTOCOL_MIN)
+     {
+@@ -296,6 +325,29 @@ on_incoming_connection (ValentChannelService   *service,
+       return TRUE;
+     }
+ 
++  /* Backported from upstream df82168b: an identity packet may name its
++   * intended target, so a UDP packet with a spoofed origin cannot make this
++   * device party to an amplification attack. */
++  {
++    const char *target_device_id = NULL;
++    int64_t target_protocol_version = 0;
++    g_autofree char *local_id = valent_channel_service_dup_id (service);
++
++    if (valent_packet_get_string (peer_identity, "targetDeviceId", &target_device_id) &&
++        g_strcmp0 (target_device_id, local_id) != 0)
++      {
++        g_debug ("%s(): identity is for another device", G_STRFUNC);
++        return TRUE;
++      }
++
++    if (valent_packet_get_int (peer_identity, "targetProtocolVersion", &target_protocol_version) &&
++        target_protocol_version != VALENT_NETWORK_PROTOCOL_MAX)
++      {
++        g_debug ("%s(): identity is for another protocol version", G_STRFUNC);
++        return TRUE;
++      }
++  }
++
+   VALENT_JSON (peer_identity, host);
+ 
+   /* NOTE: We're the client when accepting incoming connections */
+@@ -504,7 +556,23 @@ incoming_broadcast_task (GTask        *task,
+   identity = valent_channel_service_ref_identity (service);
+   output_stream = g_io_stream_get_output_stream (G_IO_STREAM (connection));
+ 
+-  if (!valent_packet_to_stream (output_stream, identity, cancellable, &error))
++  /* Backported from upstream df82168b: mark the identity packet for its
++   * intended target, so the peer can abort if the broadcast's origin was
++   * spoofed. Only this packet: the service's identity is shared, and the
++   * secure handshake sends it as it is. */
++  g_autoptr (JsonNode) targeted = json_node_copy (identity);
++  {
++    JsonObject *body = valent_packet_get_body (targeted);
++    const char *target_device_id = NULL;
++    int64_t target_protocol_version = 0;
++
++    if (valent_packet_get_string (peer_identity, "deviceId", &target_device_id))
++      json_object_set_string_member (body, "targetDeviceId", target_device_id);
++    if (valent_packet_get_int (peer_identity, "protocolVersion", &target_protocol_version))
++      json_object_set_int_member (body, "targetProtocolVersion", target_protocol_version);
++  }
++
++  if (!valent_packet_to_stream (output_stream, targeted, cancellable, &error))
+     {
+       g_debug ("%s(): sending identity to (%s:%"G_GINT64_FORMAT"): %s",
+                G_STRFUNC, host, port, error->message);

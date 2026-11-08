@@ -1,0 +1,8 @@
+// NickelOS: shutting down, restarting and suspending go through ChromeOS
+// (powerd and session_manager, which save the session and run their own
+// checks), not through elogind; apps cannot do it behind ChromeOS's back.
+polkit.addRule(function(action, subject) {
+    if (/^org\.freedesktop\.login1\.(power-off|reboot|halt|suspend|hibernate|hybrid-sleep|suspend-then-hibernate|set-reboot|set-wall-message)/.test(action.id)) {
+        return polkit.Result.NO;
+    }
+});

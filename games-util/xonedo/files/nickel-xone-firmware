@@ -1,0 +1,87 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# nickel-xone-firmware DEVPATH PRODUCT: the firmware for the Xbox Wireless
+# Adapter that just bound to xonedo's xone-dongle (udev's DEVPATH of its USB
+# interface, and its PRODUCT, vendor/product/bcd in hex). Run by the
+# nickel-xone-firmware job.
+#
+# Microsoft's firmware may not be redistributed, so NickelOS doesn't ship it:
+# the first time, this downloads Microsoft's Windows driver package for the
+# dongle from Microsoft's own server (Microsoft's terms of use apply:
+# https://www.microsoft.com/en-us/legal/terms-of-use), takes the firmware out
+# of it and checks its SHA-256, and keeps it in /var/lib/nickel/xone. Each
+# time, it hands the firmware to the driver through sysfs ("firmware", then
+# "firmware_done"): LoadPin takes firmware files only from the verified root
+# filesystem. The driver loads it again after the chip restarts on it, and
+# this runs again then, from the kept copy. The URLs and checksums are
+# xonedo's (install/firmware.sh).
+dev=/sys$1
+pid=$(printf '%04x' "0x$(echo "$2" | cut -d/ -f2)" 2>/dev/null)
+keep=/var/lib/nickel/xone
+log=/var/log/nickel-xone-firmware.log
+
+say() {
+	echo "$(date -Is) $*" >> "${log}"
+}
+
+case "${pid}" in
+02e6)
+	url=https://catalog.s.download.windowsupdate.com/c/msdownload/update/driver/drvs/2017/07/1cd6a87c-623f-4407-a52d-c31be49e925c_e19f60808bdcbfbd3c3df6be3e71ffc52e43261e.cab
+	file=FW_ACC_00U.bin
+	sum=48084d9fa53b9bb04358f3bb127b7495dc8f7bb0b3ca1437bd24ef2b6eabdf66 ;;
+02fe)
+	url=https://catalog.s.download.windowsupdate.com/d/msdownload/update/driver/drvs/2017/03/2ea9591b-f751-442c-80ce-8f4692cdc67b_6b555a3a288153cf04aec6e03cba360afe2fce34.cab
+	file=FW_ACC_00U.bin
+	sum=080ce4091e53a4ef3e5fe29939f51fd91f46d6a88be6d67eb6e99a5723b3a223 ;;
+02f9)
+	url=https://catalog.s.download.windowsupdate.com/c/msdownload/update/driver/drvs/2017/06/1dbd7cb4-53bc-4857-a5b0-5955c8acaf71_9081931e7d664429a93ffda0db41b7545b7ac257.cab
+	file=FW_ACC_CL.bin
+	sum=0023a7bae02974834500c665a281e25b1ba52c9226c84989f9084fa5ce591d9b ;;
+091e)
+	url=https://catalog.s.download.windowsupdate.com/d/msdownload/update/driver/drvs/2017/08/aeff215c-3bc4-4d36-a3ea-e14bfa8fa9d2_e58550c4f74a27e51e5cb6868b10ff633fa77164.cab
+	file=FW_ACC_BR.bin
+	sum=e2710daf81e7b36d35985348f68a81d18bc537a2b0c508ffdfde6ac3eae1bad7 ;;
+*)
+	say "${1}: no firmware known for product ${2}"
+	exit 0 ;;
+esac
+fw=${keep}/xone_dongle_${pid}.bin
+
+good() {
+	[ -s "$1" ] && echo "${sum}  $1" | sha256sum -c --quiet 2>/dev/null
+}
+
+if ! good "${fw}"; then
+	say "${pid}: fetching the firmware from Microsoft (${url##*/})"
+	mkdir -p "${keep}"
+	tmp=$(mktemp -d /run/nickel-xone.XXXXXX) || exit 1
+	trap 'rm -rf "${tmp}"' EXIT
+	# Up to ~10 minutes for the network (a dongle plugged in at boot).
+	tries=0
+	until curl -sfL --max-time 120 -o "${tmp}/driver.cab" "${url}"; do
+		tries=$((tries + 1))
+		if [ "${tries}" -ge 20 ] || [ ! -e "${dev}" ]; then
+			say "${pid}: download failed"
+			exit 1
+		fi
+		sleep 30
+	done
+	if ! bsdtar -xOf "${tmp}/driver.cab" "${file}" > "${tmp}/fw" ||
+	    ! good "${tmp}/fw"; then
+		say "${pid}: the firmware in Microsoft's package isn't the expected one"
+		exit 1
+	fi
+	mv "${tmp}/fw" "${fw}"
+	say "${pid}: firmware kept in ${fw}"
+fi
+
+[ -e "${dev}/firmware" ] || { say "${1}: gone"; exit 0; }
+echo 0 > "${dev}/firmware_done" 2>/dev/null
+if dd if="${fw}" of="${dev}/firmware" bs=4096 status=none &&
+    echo 1 > "${dev}/firmware_done"; then
+	say "${pid}: firmware handed to the driver"
+else
+	say "${pid}: handing the firmware over failed"
+	exit 1
+fi

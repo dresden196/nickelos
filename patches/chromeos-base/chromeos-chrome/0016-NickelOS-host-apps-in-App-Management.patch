@@ -1,0 +1,378 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS host apps in App Management
+
+Settings > Apps > Manage your apps lists Linux apps installed on the
+device itself, with a page of their own (nickel_detail_view): pin to
+shelf, and the details block: "Linux app, installed with Flatpak |
+Portage | AppImage" (from the package id nickel-appd gives the app), its
+version, app size and data size. Uninstall is in the page's header (0015).
+The OS image's own Linux apps (no package id) show as system apps.
+
+When the page shows an app, App Management asks the publisher for its
+size (UpdateAppSize); NickelHostApps asks nickel-appd
+(org.nickelos.Apps.GetAppDetails), which reads them from what installed
+the app, and publishes version and sizes.
+
+Strings: "Linux app", "Linux app, installed with <installer>". The page's
+per-type switches gain kNickelHost (metrics counted with Borealis's).
+
+diff --git a/chrome/app/os_settings_strings.grdp b/chrome/app/os_settings_strings.grdp
+index c36fd7fc00077..edeb8447bebe8 100644
+--- a/chrome/app/os_settings_strings.grdp
++++ b/chrome/app/os_settings_strings.grdp
+@@ -7074,6 +7074,12 @@ Press &amp; hold keyboard keys to see accent marks and special characters. This
+   <message name="IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_COMBINED" desc="Full text for installation source and app type line">
+     <ph name="APP_TYPE">$1<ex>Web App</ex></ph> installed from <ph name="BEGIN_LINK">&lt;a href="#"&gt;</ph><ph name="INSTALL_SOURCE">$2<ex>Google Play Store</ex></ph><ph name="END_LINK">&lt;/a&gt;</ph>
+   </message>
++  <message name="IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST" desc="NickelOS: the type of a Linux app installed on the device itself.">
++    Linux app
++  </message>
++  <message name="IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST" desc="NickelOS: the type of a Linux app installed on the device itself, and what installed it.">
++    Linux app, installed with <ph name="INSTALLER">$1<ex>Flatpak</ex></ph>
++  </message>
+   <message name="IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_PREINSTALLED_APP" desc="Explanation text for the installation source of an app, describing the type of the app, and that it came automatically installed with the device (preinstalled).">
+     <ph name="APP_TYPE">$1<ex>ChromeOS System App</ex></ph> preinstalled on your <ph name="DEVICE_TYPE">$2<ex>Chromebook</ex></ph>
+   </message>
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc b/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
+index fda68f4d0af87..0a262386471fd 100644
+--- a/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
++++ b/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
+@@ -119,6 +119,54 @@ void NickelHostApps::Uninstall(const std::string& app_id,
+       }));
+ }
+ 
++// App Management asks for the app's size when it shows the app; nickel-appd
++// works out version, app size and data size from what installed it.
++void NickelHostApps::UpdateAppSize(const std::string& app_id) {
++  std::optional<guest_os::GuestOsRegistryService::Registration> registration =
++      registry()->GetRegistration(app_id);
++  if (!registration || registration->PackageId().empty()) {
++    return;
++  }
++  dbus::ObjectProxy* proxy =
++      ash::DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++          crostini::kNickelAppsServiceName,
++          dbus::ObjectPath(crostini::kNickelAppsServicePath));
++  dbus::MethodCall method_call(crostini::kNickelAppsServiceInterface,
++                               "GetAppDetails");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(registration->DesktopFileId());
++  proxy->CallMethod(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&NickelHostApps::OnAppDetails,
++                     weak_ptr_factory_.GetWeakPtr(), app_id));
++}
++
++void NickelHostApps::OnAppDetails(const std::string& app_id,
++                                  dbus::Response* response) {
++  std::string version;
++  uint64_t app_size = 0;
++  uint64_t data_size = 0;
++  if (!response) {
++    return;
++  }
++  dbus::MessageReader reader(response);
++  if (!reader.PopString(&version) || !reader.PopUint64(&app_size) ||
++      !reader.PopUint64(&data_size)) {
++    return;
++  }
++  auto app = std::make_unique<App>(AppType(), app_id);
++  if (!version.empty()) {
++    app->version = version;
++  }
++  if (app_size) {
++    app->app_size_in_bytes = app_size;
++  }
++  if (data_size) {
++    app->data_size_in_bytes = data_size;
++  }
++  AppPublisher::Publish(std::move(app));
++}
++
+ void NickelHostApps::GetMenuModel(
+     const std::string& app_id,
+     MenuType menu_type,
+@@ -145,9 +193,19 @@ void NickelHostApps::GetMenuModel(
+ void NickelHostApps::CreateAppOverrides(
+     const guest_os::GuestOsRegistryService::Registration& registration,
+     App* app) {
+-  // App Management for host apps: docs/host-apps.md, step 2.
+-  app->show_in_management = false;
+-  app->allow_uninstall = !registration.PackageId().empty();
++  // In App Management with their own page (nickel_detail_view): what
++  // installed them (the package id: flatpak:..., portage, appimage:...),
++  // version and storage (UpdateAppSize). The OS image's own apps have no
++  // package id and count as system apps.
++  app->show_in_management = true;
++  const std::string package_id = registration.PackageId();
++  app->allow_uninstall = !package_id.empty();
++  if (!package_id.empty()) {
++    app->publisher_id = package_id;
++    app->install_reason = InstallReason::kUser;
++  } else {
++    app->install_reason = InstallReason::kSystem;
++  }
+ }
+ 
+ }  // namespace apps
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_host_apps.h b/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
+index 31bbb4d26ba48..1a3216dcee49d 100644
+--- a/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
++++ b/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
+@@ -9,12 +9,17 @@
+ #include <string>
+ 
+ #include "chrome/browser/apps/app_service/app_service_proxy_forward.h"
++#include "base/memory/weak_ptr.h"
+ #include "chrome/browser/apps/app_service/publishers/guest_os_apps.h"
+ #include "chrome/browser/ash/guest_os/guest_os_registry_service.h"
+ #include "components/services/app_service/public/cpp/app_launch_util.h"
+ #include "components/services/app_service/public/cpp/app_types.h"
+ #include "components/services/app_service/public/cpp/menu.h"
+ 
++namespace dbus {
++class Response;
++}  // namespace dbus
++
+ namespace apps {
+ 
+ // NickelOS: Linux apps installed on the device itself (Flatpak, Portage,
+@@ -50,6 +55,7 @@ class NickelHostApps : public GuestOSApps {
+                            LaunchSource launch_source,
+                            WindowInfoPtr window_info,
+                            LaunchCallback callback) override;
++  void UpdateAppSize(const std::string& app_id) override;
+   void Uninstall(const std::string& app_id,
+                  UninstallSource uninstall_source,
+                  bool clear_site_data,
+@@ -59,6 +65,8 @@ class NickelHostApps : public GuestOSApps {
+                     int64_t display_id,
+                     base::OnceCallback<void(MenuItems)> callback) override;
+ 
++  void OnAppDetails(const std::string& app_id, dbus::Response* response);
++
+   // Whether nickel-appd can remove the app (it gave a package id: a
+   // Flatpak, a Portage package, an AppImage; not the OS image's own).
+   bool IsUninstallable(const std::string& app_id) const;
+@@ -69,6 +77,8 @@ class NickelHostApps : public GuestOSApps {
+ 
+   // Tells nickel-appd the system's appearance, for Linux apps to follow.
+   std::unique_ptr<NickelAppearanceReporter> appearance_reporter_;
++
++  base::WeakPtrFactory<NickelHostApps> weak_ptr_factory_{this};
+ };
+ 
+ }  // namespace apps
+diff --git a/chrome/browser/resources/ash/settings/BUILD.gn b/chrome/browser/resources/ash/settings/BUILD.gn
+index 33a660ea55dda..918e503c4de6f 100644
+--- a/chrome/browser/resources/ash/settings/BUILD.gn
++++ b/chrome/browser/resources/ash/settings/BUILD.gn
+@@ -212,6 +212,7 @@ build_webui("build") {
+     "os_apps_page/app_management_page/app_management_page.ts",
+     "os_apps_page/app_management_page/arc_detail_view.ts",
+     "os_apps_page/app_management_page/borealis_page/borealis_detail_view.ts",
++    "os_apps_page/app_management_page/nickel_detail_view.ts",
+     "os_apps_page/app_management_page/chrome_app_detail_view.ts",
+     "os_apps_page/app_management_page/dom_switch.ts",
+     "os_apps_page/app_management_page/file_handling_item.ts",
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_detail_view.html b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_detail_view.html
+index 8f27fbefe70ef..ef17677027bf2 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_detail_view.html
++++ b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_detail_view.html
+@@ -18,5 +18,9 @@
+         route-id="borealis-detail-view"
+         prefs="{{prefs}}">
+     </app-management-borealis-detail-view>
++    <app-management-nickel-detail-view
++        route-id="nickel-detail-view"
++        prefs="{{prefs}}">
++    </app-management-nickel-detail-view>
+   </template>
+ </app-management-dom-switch>
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_detail_view.ts b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_detail_view.ts
+index 16e75fd7665f5..5ed38e0b58aed 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_detail_view.ts
++++ b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_detail_view.ts
+@@ -7,6 +7,7 @@ import './pwa_detail_view.js';
+ import './arc_detail_view.js';
+ import './chrome_app_detail_view.js';
+ import './borealis_page/borealis_detail_view.js';
++import './nickel_detail_view.js';
+ import '../../settings_shared.css.js';
+ 
+ import type {App} from 'chrome://resources/cr_components/app_management/app_management.mojom-webui.js';
+@@ -121,6 +122,8 @@ export class AppManagementAppDetailViewElement extends
+         return 'arc-detail-view';
+       case (AppType.kBorealis):
+         return 'borealis-detail-view';
++      case (AppType.kNickelHost):
++        return 'nickel-detail-view';
+       default:
+         assertNotReached();
+     }
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_details_item.ts b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_details_item.ts
+index 2310131425a00..343476f6b762c 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_details_item.ts
++++ b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_details_item.ts
+@@ -320,6 +320,8 @@ export class AppManagementAppDetailsItem extends
+       case AppType.kWeb:
+       case AppType.kExtension:
+         return this.i18n('appManagementAppDetailsTypeWeb' + suffix);
++      case AppType.kNickelHost:
++        return this.i18n('appManagementAppDetailsTypeNickelHost');
+       default:
+         console.error('App type not handled by app management.');
+         return '';
+@@ -339,6 +341,19 @@ export class AppManagementAppDetailsItem extends
+   }
+ 
+   private getTypeAndSourceString_(app: App): string {
++    if (app.type === AppType.kNickelHost) {
++      // NickelOS: what installed the app, from the package id nickel-appd
++      // gives it (flatpak:..., portage, appimage:...).
++      const id = app.publisherId || '';
++      const installer = id.startsWith('flatpak:') ? 'Flatpak' :
++          id === 'portage'                      ? 'Portage' :
++          id.startsWith('appimage:')            ? 'AppImage' :
++                                                  '';
++      return installer ?
++          this.i18n(
++              'appManagementAppDetailsTypeAndSourceNickelHost', installer) :
++          this.i18n('appManagementAppDetailsTypeNickelHost');
++    }
+     if (app.installReason === InstallReason.kPolicy) {
+       return this.getTypeString_(app, 'InstallReasonPolicy');
+     }
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_item.ts b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_item.ts
+index c69b93cd78afd..65bc8ef401dd6 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_item.ts
++++ b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_item.ts
+@@ -66,6 +66,8 @@ export class AppManagementAppItemElement extends
+         return AppManagementEntryPoint.MAIN_VIEW_CHROME_APP;
+       case AppType.kWeb:
+         return AppManagementEntryPoint.MAIN_VIEW_WEB_APP;
++      // NickelOS host apps: metrics only, counted with Borealis's.
++      case AppType.kNickelHost:
+       case AppType.kBorealis:
+         return AppManagementEntryPoint.MAIN_VIEW_BOREALIS;
+       default:
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/nickel_detail_view.html b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/nickel_detail_view.html
+new file mode 100644
+index 0000000000000..1ce1c86c15704
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/nickel_detail_view.html
+@@ -0,0 +1,14 @@
++<style include="app-management-cros-shared-style">
++</style>
++<div class="permission-list">
++  <app-management-pin-to-shelf-item
++      id="pinToShelfSetting"
++      class="permission-card-row separated-row"
++      app="[[app_]]">
++  </app-management-pin-to-shelf-item>
++  <app-management-app-details-item
++      id="appDetails"
++      class="permission-card-row"
++      app="[[app_]]">
++  </app-management-app-details-item>
++</div>
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/nickel_detail_view.ts b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/nickel_detail_view.ts
+new file mode 100644
+index 0000000000000..b51e60008d190
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/nickel_detail_view.ts
+@@ -0,0 +1,66 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++// NickelOS: the App Management page of a Linux app installed on the device
++// itself (Flatpak, Portage, AppImage): pin to shelf, and what it is, what
++// installed it, its version and storage. Uninstall is in the page's header.
++
++import './app_details_item.js';
++import './pin_to_shelf_item.js';
++import './app_management_cros_shared_style.css.js';
++
++import type {App} from 'chrome://resources/cr_components/app_management/app_management.mojom-webui.js';
++import {getSelectedApp} from 'chrome://resources/cr_components/app_management/util.js';
++import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++
++import {AppManagementStoreMixin} from '../../common/app_management/store_mixin.js';
++import type {PrefsState} from '../../common/types.js';
++
++import {getTemplate} from './nickel_detail_view.html.js';
++
++const AppManagementNickelDetailViewElementBase =
++    AppManagementStoreMixin(PolymerElement);
++
++export class AppManagementNickelDetailViewElement extends
++    AppManagementNickelDetailViewElementBase {
++  static get is() {
++    return 'app-management-nickel-detail-view';
++  }
++
++  static get template() {
++    return getTemplate();
++  }
++
++  static get properties() {
++    return {
++      prefs: {
++        type: Object,
++        notify: true,
++      },
++
++      app_: {
++        type: Object,
++      },
++    };
++  }
++
++  declare prefs: PrefsState;
++  declare private app_: App;
++
++  override connectedCallback(): void {
++    super.connectedCallback();
++    this.watch('app_', state => getSelectedApp(state));
++    this.updateFromStore();
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    'app-management-nickel-detail-view': AppManagementNickelDetailViewElement;
++  }
++}
++
++customElements.define(
++    AppManagementNickelDetailViewElement.is,
++    AppManagementNickelDetailViewElement);
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+index fac36ab87ab77..4549579c064fe 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+@@ -250,6 +250,10 @@ void AddAppManagementStrings(content::WebUIDataSource* html_source) {
+        IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_PREINSTALLED_APP},
+       {"appManagementAppDetailsTypeAndSourceCombined",
+        IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_COMBINED},
++      {"appManagementAppDetailsTypeNickelHost",
++       IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST},
++      {"appManagementAppDetailsTypeAndSourceNickelHost",
++       IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST},
+       {"appManagementAppDetailsTypeAndroidInstallReasonPolicy",
+        IDS_OS_SETTINGS_APP_DETAILS_TYPE_ANDROID_INSTALL_REASON_POLICY},
+       {"appManagementAppDetailsTypeChromeInstallReasonPolicy",
+diff --git a/ui/webui/resources/cr_components/app_management/util.ts b/ui/webui/resources/cr_components/app_management/util.ts
+index 88294208788c8..cbd54b1ae3510 100644
+--- a/ui/webui/resources/cr_components/app_management/util.ts
++++ b/ui/webui/resources/cr_components/app_management/util.ts
+@@ -134,6 +134,8 @@ function getUserActionHistogramNameForAppType(appType: AppType): string {
+       return 'AppManagement.AppDetailViews.PluginVmApp';
+     case AppType.kBorealis:
+       return 'AppManagement.AppDetailViews.BorealisApp';
++    case AppType.kNickelHost:
++      return 'AppManagement.AppDetailViews.NickelHostApp';
+     default:
+       assertNotReached();
+   }

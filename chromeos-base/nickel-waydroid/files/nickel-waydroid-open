@@ -1,0 +1,15 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# Waydroid's launcher entry: Android's own home screen in a window once
+# Android is set up. Before that, Settings > Apps, where it's set up
+# (Waydroid's own first launch asks for root through a window of its own,
+# which doesn't work here).
+W=/var/lib/waydroid
+if [ -f "${W}/waydroid.cfg" ] && [ -d "${W}/rootfs" ]; then
+  exec waydroid first-launch
+fi
+exec dbus-send --system --type=method_call \
+  --dest=org.chromium.UrlHandlerService /org/chromium/UrlHandlerService \
+  org.chromium.UrlHandlerServiceInterface.OpenUrl \
+  string:'chrome://os-settings/apps?nickel=android'

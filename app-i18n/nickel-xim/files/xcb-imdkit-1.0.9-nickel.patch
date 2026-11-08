@@ -1,0 +1,18 @@
+NickelOS: built into nickel-xim. XIM_EXT_MOVE, which Xlib sends when only
+the caret moved, reaches the server as XIM_SET_IC_VALUES does: nickel-xim
+places ChromeOS's candidate window by it.
+
+--- a/src/protocolhandler.c
++++ b/src/protocolhandler.c
+@@ -809,6 +809,11 @@
+ 
+         ic->preedit.spot_location.x = frame.X;
+         ic->preedit.spot_location.y = frame.Y;
++        // NickelOS: the server learns of the move, as of XIM_SET_IC_VALUES.
++        ic->preedit_mask |= XCB_XIM_XNSpotLocation_MASK;
++        if (im->callback) {
++            im->callback(im, client, ic, hdr, &frame, NULL, im->user_data);
++        }
+     } while (0);
+ 
+     xcb_im_ext_move_fr_free(&frame);

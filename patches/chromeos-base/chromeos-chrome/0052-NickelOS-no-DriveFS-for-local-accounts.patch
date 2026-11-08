@@ -1,0 +1,35 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: no DriveFS for local accounts
+
+ChromeOS's Google Drive is DriveFS, which needs the Google account the OS
+is signed in with; NickelOS's local accounts have none (their Gaia ID is a
+stand-in), so Drive counted as available: Files showed a "Google Drive"
+entry that could never work, and DriveIntegrationService tried to start
+DriveFS. Drive is now unavailable for them, as for other accounts without
+Google. Google Drive is one of the cloud storage accounts (patch 0050,
+nickel-cloud through rclone) instead.
+
+diff --git a/chrome/browser/ash/drive/file_system_util.cc b/chrome/browser/ash/drive/file_system_util.cc
+index bd12e953000ea..00da5cba4de25 100644
+--- a/chrome/browser/ash/drive/file_system_util.cc
++++ b/chrome/browser/ash/drive/file_system_util.cc
+@@ -33,6 +33,7 @@
+ #include "chromeos/ash/components/network/network_state_handler.h"
+ #include "components/drive/drive_pref_names.h"
+ #include "components/prefs/pref_service.h"
++#include "components/user_manager/nickel_local_account.h"
+ #include "components/user_manager/user.h"
+ #include "components/user_manager/user_manager.h"
+ #include "content/public/browser/browser_thread.h"
+@@ -148,7 +149,10 @@ DriveAvailability CheckDriveAvailabilityForProfile(
+     return DriveAvailability::kNotAvailableInIncognito;
+   }
+   const User* const user = ash::ProfileHelper::Get()->GetUserByProfile(profile);
+-  if (!user || !user->HasGaiaAccount()) {
++  // NickelOS local accounts have no Google account for DriveFS: Google Drive
++  // is one of their cloud storage accounts (nickel-cloud, through rclone).
++  if (!user || !user->HasGaiaAccount() ||
++      user_manager::IsNickelLocalAccount(user->GetAccountId())) {
+     return DriveAvailability::kNotAvailableForAccountType;
+   }
+ 

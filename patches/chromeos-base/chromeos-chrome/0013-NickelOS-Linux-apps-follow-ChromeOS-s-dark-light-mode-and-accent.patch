@@ -1,0 +1,284 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux apps follow ChromeOS's dark/light mode and
+ accent color
+
+NickelAppearanceReporter, owned by the host apps publisher (0012), tells
+nickel-appd (org.nickelos.Apps.SetAppearance) whether the system is in
+dark or light mode and which accent color it uses: at start, on every
+change of Ash's color palette, and again whenever nickel-appd (re)starts.
+NickelOS's xdg-desktop-portal backend passes both on to Linux apps
+(Settings portal, org.freedesktop.appearance color-scheme and
+accent-color), so GTK 4/libadwaita, Qt and GTK 3 apps switch with
+ChromeOS.
+
+The accent color is Ash's own primary color: tone 40 (light) or 80 (dark)
+of the primary tonal palette generated from the palette seed, with Ash's
+scheme-to-variant mapping.
+
+diff --git a/chrome/browser/apps/app_service/publishers/BUILD.gn b/chrome/browser/apps/app_service/publishers/BUILD.gn
+index b485d0df0ee95..fe2e5d9fabfbc 100644
+--- a/chrome/browser/apps/app_service/publishers/BUILD.gn
++++ b/chrome/browser/apps/app_service/publishers/BUILD.gn
+@@ -62,6 +62,8 @@ source_set("publishers") {
+       "bruschetta_apps.h",
+       "crostini_apps.cc",
+       "crostini_apps.h",
++      "nickel_appearance_reporter.cc",
++      "nickel_appearance_reporter.h",
+       "nickel_host_apps.cc",
+       "nickel_host_apps.h",
+       "extension_apps_chromeos.cc",
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_appearance_reporter.cc b/chrome/browser/apps/app_service/publishers/nickel_appearance_reporter.cc
+new file mode 100644
+index 0000000000000..f041c7604bae6
+--- /dev/null
++++ b/chrome/browser/apps/app_service/publishers/nickel_appearance_reporter.cc
+@@ -0,0 +1,115 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/apps/app_service/publishers/nickel_appearance_reporter.h"
++
++#include <memory>
++#include <optional>
++
++#include "ash/shell.h"
++#include "base/functional/bind.h"
++#include "base/logging.h"
++#include "chrome/browser/ash/crostini/crostini_util.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_path.h"
++#include "dbus/object_proxy.h"
++#include "ui/color/color_provider_key.h"
++#include "ui/color/dynamic_color/palette.h"
++#include "ui/color/dynamic_color/palette_factory.h"
++
++namespace apps {
++
++namespace {
++
++// The palette variant Ash uses for each color scheme, as in
++// ash/style/color_palette_controller.cc.
++ui::ColorProviderKey::SchemeVariant ToVariant(
++    ash::style::mojom::ColorScheme scheme) {
++  using Scheme = ash::style::mojom::ColorScheme;
++  using Variant = ui::ColorProviderKey::SchemeVariant;
++  switch (scheme) {
++    case Scheme::kStatic:
++    case Scheme::kNeutral:
++      return Variant::kNeutral;
++    case Scheme::kTonalSpot:
++      return Variant::kTonalSpot;
++    case Scheme::kExpressive:
++      return Variant::kExpressive;
++    case Scheme::kVibrant:
++      return Variant::kVibrant;
++  }
++  return Variant::kTonalSpot;
++}
++
++void OnSent(dbus::Response* response, dbus::ErrorResponse* error) {
++  LOG_IF(WARNING, !response)
++      << "nickel-appd did not take the appearance"
++      << (error ? ": " + error->GetErrorName() : std::string());
++}
++
++}  // namespace
++
++NickelAppearanceReporter::NickelAppearanceReporter() {
++  proxy_ = ash::DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++      crostini::kNickelAppsServiceName,
++      dbus::ObjectPath(crostini::kNickelAppsServicePath));
++  proxy_->SetNameOwnerChangedCallback(
++      base::BindRepeating(&NickelAppearanceReporter::OnNameOwnerChanged,
++                          weak_ptr_factory_.GetWeakPtr()));
++  proxy_->WaitForServiceToBeAvailable(
++      base::BindOnce(&NickelAppearanceReporter::OnServiceAvailable,
++                     weak_ptr_factory_.GetWeakPtr()));
++  observation_.Observe(ash::Shell::Get()->color_palette_controller());
++}
++
++NickelAppearanceReporter::~NickelAppearanceReporter() = default;
++
++void NickelAppearanceReporter::OnColorPaletteChanging(
++    const ash::ColorPaletteSeed& seed) {
++  Send(seed);
++}
++
++void NickelAppearanceReporter::OnServiceAvailable(bool available) {
++  if (available) {
++    SendCurrent();
++  }
++}
++
++void NickelAppearanceReporter::OnNameOwnerChanged(
++    const std::string& old_owner,
++    const std::string& new_owner) {
++  if (!new_owner.empty()) {
++    SendCurrent();
++  }
++}
++
++void NickelAppearanceReporter::SendCurrent() {
++  std::optional<ash::ColorPaletteSeed> seed =
++      ash::Shell::Get()->color_palette_controller()->GetCurrentSeed();
++  if (seed) {
++    Send(*seed);
++  }
++}
++
++void NickelAppearanceReporter::Send(const ash::ColorPaletteSeed& seed) {
++  const bool dark = seed.color_mode == ui::ColorProviderKey::ColorMode::kDark;
++  // Ash's own primary color (cros.sys.primary): tone 80 of the primary
++  // palette in dark mode, tone 40 in light mode.
++  std::unique_ptr<ui::Palette> palette =
++      ui::GeneratePalette(seed.seed_color, ToVariant(seed.scheme));
++  const SkColor accent = palette->primary().get(dark ? 80.f : 40.f);
++
++  dbus::MethodCall method_call(crostini::kNickelAppsServiceInterface,
++                               "SetAppearance");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendBool(dark);
++  writer.AppendUint32(accent);
++  proxy_->CallMethodWithErrorResponse(&method_call,
++                                      dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++                                      base::BindOnce(&OnSent));
++}
++
++}  // namespace apps
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_appearance_reporter.h b/chrome/browser/apps/app_service/publishers/nickel_appearance_reporter.h
+new file mode 100644
+index 0000000000000..1c0914bb777b1
+--- /dev/null
++++ b/chrome/browser/apps/app_service/publishers/nickel_appearance_reporter.h
+@@ -0,0 +1,54 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_APPS_APP_SERVICE_PUBLISHERS_NICKEL_APPEARANCE_REPORTER_H_
++#define CHROME_BROWSER_APPS_APP_SERVICE_PUBLISHERS_NICKEL_APPEARANCE_REPORTER_H_
++
++#include <string>
++
++#include "ash/style/color_palette_controller.h"
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/scoped_observation.h"
++
++namespace dbus {
++class ObjectProxy;
++}  // namespace dbus
++
++namespace apps {
++
++// NickelOS: tells nickel-appd whether the system is in dark or light mode and
++// which accent color it uses (org.nickelos.Apps.SetAppearance), at start, on
++// every change, and again whenever nickel-appd (re)starts. NickelOS's portal
++// backend hands both to Linux apps (xdg-desktop-portal Settings,
++// org.freedesktop.appearance), so they follow ChromeOS's theme.
++class NickelAppearanceReporter
++    : public ash::ColorPaletteController::Observer {
++ public:
++  NickelAppearanceReporter();
++  NickelAppearanceReporter(const NickelAppearanceReporter&) = delete;
++  NickelAppearanceReporter& operator=(const NickelAppearanceReporter&) =
++      delete;
++  ~NickelAppearanceReporter() override;
++
++ private:
++  // ash::ColorPaletteController::Observer:
++  void OnColorPaletteChanging(const ash::ColorPaletteSeed& seed) override;
++
++  void OnServiceAvailable(bool available);
++  void OnNameOwnerChanged(const std::string& old_owner,
++                          const std::string& new_owner);
++  void SendCurrent();
++  void Send(const ash::ColorPaletteSeed& seed);
++
++  raw_ptr<dbus::ObjectProxy> proxy_;
++  base::ScopedObservation<ash::ColorPaletteController,
++                          ash::ColorPaletteController::Observer>
++      observation_{this};
++  base::WeakPtrFactory<NickelAppearanceReporter> weak_ptr_factory_{this};
++};
++
++}  // namespace apps
++
++#endif  // CHROME_BROWSER_APPS_APP_SERVICE_PUBLISHERS_NICKEL_APPEARANCE_REPORTER_H_
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc b/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
+index 6883117e6a12f..2a85cb75cff5d 100644
+--- a/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
++++ b/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
+@@ -7,9 +7,11 @@
+ #include <utility>
+ 
+ #include "ash/public/cpp/app_menu_constants.h"
++#include "ash/shell.h"
+ #include "ash/strings/grit/ash_strings.h"
+ #include "chrome/browser/apps/app_service/app_service_proxy.h"
+ #include "chrome/browser/apps/app_service/menu_util.h"
++#include "chrome/browser/apps/app_service/publishers/nickel_appearance_reporter.h"
+ #include "chrome/browser/ash/crostini/crostini_util.h"
+ #include "chrome/grit/chrome_unscaled_resources.h"
+ #include "chrome/grit/generated_resources.h"
+@@ -22,6 +24,15 @@ NickelHostApps::NickelHostApps(AppServiceProxy* proxy) : GuestOSApps(proxy) {}
+ 
+ NickelHostApps::~NickelHostApps() = default;
+ 
++void NickelHostApps::Initialize() {
++  GuestOSApps::Initialize();
++  // This publisher exists exactly when host apps do, so it also keeps
++  // their appearance in step with the system's.
++  if (CouldBeAllowed() && ash::Shell::HasInstance()) {
++    appearance_reporter_ = std::make_unique<NickelAppearanceReporter>();
++  }
++}
++
+ bool NickelHostApps::CouldBeAllowed() const {
+   return crostini::IsNickelNativeAppsAllowed(profile());
+ }
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_host_apps.h b/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
+index 8481d89385ec7..92a4b01a569d6 100644
+--- a/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
++++ b/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
+@@ -5,6 +5,7 @@
+ #ifndef CHROME_BROWSER_APPS_APP_SERVICE_PUBLISHERS_NICKEL_HOST_APPS_H_
+ #define CHROME_BROWSER_APPS_APP_SERVICE_PUBLISHERS_NICKEL_HOST_APPS_H_
+ 
++#include <memory>
+ #include <string>
+ 
+ #include "chrome/browser/apps/app_service/app_service_proxy_forward.h"
+@@ -20,6 +21,8 @@ namespace apps {
+ // AppImages), which run on the host as Wayland or X11 clients of Exo, not in
+ // a VM. nickel-appd registers their desktop entries in the GuestOS registry
+ // with VM type NICKEL_HOST and starts them when they are launched.
++class NickelAppearanceReporter;
++
+ class NickelHostApps : public GuestOSApps {
+  public:
+   explicit NickelHostApps(AppServiceProxy* proxy);
+@@ -27,6 +30,9 @@ class NickelHostApps : public GuestOSApps {
+   NickelHostApps& operator=(const NickelHostApps&) = delete;
+   ~NickelHostApps() override;
+ 
++  // GuestOSApps:
++  void Initialize() override;
++
+  private:
+   bool CouldBeAllowed() const override;
+   apps::AppType AppType() const override;
+@@ -52,6 +58,9 @@ class NickelHostApps : public GuestOSApps {
+   void CreateAppOverrides(
+       const guest_os::GuestOsRegistryService::Registration& registration,
+       App* app) override;
++
++  // Tells nickel-appd the system's appearance, for Linux apps to follow.
++  std::unique_ptr<NickelAppearanceReporter> appearance_reporter_;
+ };
+ 
+ }  // namespace apps

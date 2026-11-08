@@ -1,0 +1,50 @@
+#!/bin/bash
+# Runs in the SDK (cros_sdk -- .../nickel-test-image-finish IMAGE): readies a
+# test image's stateful partition for its first boot. Its dev_image, which is
+# /usr/local, comes filled with ChromiumOS's developer and test tools, built
+# for /usr, and the image as built leaves 51 MiB of the partition's 3.9 GiB
+# free. Booting from a USB stick, the first boot then rewrote ~1800 of those
+# tools on the stick (nickel-local-rpath, below) on a partition with no room
+# for it, for ~15 minutes while Chrome waited to load from the same stick.
+#  - Telemetry, Chrome's performance-test framework (chromeos-base/telemetry,
+#    1.3 GiB in /usr/local/telemetry), goes: NickelOS runs no Telemetry
+#    tests, and first boot gets room to set up.
+#  - The dev_image's file(1) goes: built for /usr, it reads
+#    /usr/share/misc/magic.mgc, which is Gentoo's on NickelOS (a newer
+#    format than it reads), and ahead in root's PATH it hid Gentoo's
+#    /usr/bin/file.
+#  - The tools get their RUNPATHs to /usr/local's libraries here, in place
+#    (nothing runs from the image), with the marker that tells
+#    nickel-usr-local not to do it at first boot (dev_image/.nickel-rpath-done).
+#  - /etc/nickel/binhost (system partition) points at the build host as a
+#    QEMU test VM sees it, http://10.0.2.2:8090, where nickel-binhost serves
+#    every build's packages; release images keep NickelOS's public binhost
+#    (nickel-userland).
+set -euo pipefail
+img=${1:?image}
+tool=/mnt/host/source/src/overlays/overlay-nickel/chromeos-base/nickel-userland/files/nickel-local-rpath
+
+type patchelf >/dev/null 2>&1 || sudo emerge --quiet --oneshot dev-util/patchelf
+
+# Partition 1 is the stateful partition.
+start=$(cgpt show -i 1 -b "${img}")
+size=$(cgpt show -i 1 -s "${img}")
+mnt=$(mktemp -d)
+trap 'sudo umount "${mnt}" 2>/dev/null || true; rmdir "${mnt}"' EXIT
+sudo mount -o loop,offset=$((start * 512)),sizelimit=$((size * 512)) "${img}" "${mnt}"
+free() { df -h --output=avail "${mnt}" | tail -1 | tr -d ' '; }
+echo "nickel-test-image-finish: ${mnt##*/}: $(free) free"
+sudo rm -rf "${mnt}/dev_image/telemetry"
+sudo rm -f "${mnt}/dev_image/bin/file"
+sudo env NICKEL_RPATH_IN_PLACE=1 sh "${tool}" "${mnt}/dev_image"
+sudo touch "${mnt}/dev_image/.nickel-rpath-done"
+echo "nickel-test-image-finish: Telemetry removed, RUNPATHs set; $(free) free"
+
+# Partition 3 is the system partition (no rootfs verification on NickelOS,
+# so it mounts read-write).
+sudo umount "${mnt}"
+start=$(cgpt show -i 3 -b "${img}")
+size=$(cgpt show -i 3 -s "${img}")
+sudo mount -o loop,offset=$((start * 512)),sizelimit=$((size * 512)) "${img}" "${mnt}"
+echo http://10.0.2.2:8090 | sudo tee "${mnt}/etc/nickel/binhost" >/dev/null
+echo "nickel-test-image-finish: binhost $(cat "${mnt}/etc/nickel/binhost") (the build host, from a test VM)"

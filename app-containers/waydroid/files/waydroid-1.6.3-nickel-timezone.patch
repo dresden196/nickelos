@@ -1,0 +1,85 @@
+NickelOS: Android follows ChromeOS's time zone (Waydroid gives Android
+none, so it showed UTC). The zone is in Android's properties at each
+start, for a new Android, and set through Android's AlarmManager once
+Android has booted and whenever ChromeOS's zone changes, since Android
+keeps the zone it saved itself. /etc/localtime links through
+/var/lib/timezone/localtime to /usr/share/zoneinfo/<zone>.
+
+--- a/tools/actions/container_manager.py
++++ b/tools/actions/container_manager.py
+@@ -14,6 +14,9 @@
+ import dbus
+ import dbus.service
+ import dbus.exceptions
++import subprocess
++import threading
++import time
+ from gi.repository import GLib
+ 
+ class DbusContainerManager(dbus.service.Object):
+@@ -150,6 +153,41 @@
+     ], "666")
+     prepared_drivers = True
+ 
++# NickelOS: Android follows ChromeOS's time zone. Waydroid gives Android none,
++# and Android keeps the zone it saved at its first boot (UTC), so it is set the
++# way Android's own Settings sets it (AlarmManager.setTimeZone, which tells
++# apps too): once Android has booted, and again whenever ChromeOS's zone
++# changes (checked every 10 s; /etc/localtime links through /var/lib/timezone/localtime to
++# /usr/share/zoneinfo/<zone>). While the container is frozen, it waits.
++def nickel_host_timezone():
++    tz = os.path.realpath("/etc/localtime")
++    return tz.split("/zoneinfo/", 1)[1] if "/zoneinfo/" in tz else None
++
++def nickel_follow_timezone(args):
++    def android(*command):
++        return subprocess.run(
++            ["lxc-attach", "-P", tools.config.defaults["lxc"], "-n", "waydroid",
++             "--clear-env", "--"] + list(command),
++            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
++            timeout=30).stdout.strip()
++    applied = None
++    while True:
++        time.sleep(5 if applied is None else 10)
++        state = helpers.lxc.status(args)
++        if state == "STOPPED":
++            return
++        zone = nickel_host_timezone()
++        if state != "RUNNING" or zone is None or zone == applied:
++            continue
++        try:
++            if android("/system/bin/getprop", "sys.boot_completed") != "1":
++                continue
++            android("/system/bin/service", "call", "alarm", "3", "s16", zone)
++            applied = zone
++            logging.info("Android's time zone: " + zone)
++        except (OSError, subprocess.SubprocessError) as e:
++            logging.warning("Could not set Android's time zone: " + str(e))
++
+ def do_start(args, session):
+     if not actions.initializer.is_initialized(args):
+         raise RuntimeError("Waydroid is not initialized")
+@@ -217,6 +255,8 @@
+ 
+     helpers.lxc.start(args)
+     services.hardware_manager.start(args)
++    threading.Thread(target=nickel_follow_timezone, args=(args,),
++                     daemon=True).start()
+ 
+     args.session = session
+ 
+--- a/tools/helpers/images.py
++++ b/tools/helpers/images.py
+@@ -150,6 +150,12 @@
+     props.append("waydroid.wayland_display=" + tools.config.defaults["container_wayland_display"])
+     if which("waydroid-sensord") is None:
+         props.append("waydroid.stub_sensors_hal=1")
++    # NickelOS: Android starts in ChromeOS's time zone. /etc/localtime links
++    # through /var/lib/timezone/localtime to /usr/share/zoneinfo/<zone>; a
++    # zone the user picks inside Android is kept by Android and wins.
++    tz = os.path.realpath("/etc/localtime")
++    if "/zoneinfo/" in tz:
++        props.append("persist.sys.timezone=" + tz.split("/zoneinfo/", 1)[1])
+     dpi = cfg["lcd_density"]
+     if dpi != "0":
+         props.append("ro.sf.lcd_density=" + dpi)

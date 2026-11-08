@@ -1,0 +1,219 @@
+diff --git a/chrome/browser/exo_parts.cc b/chrome/browser/exo_parts.cc
+index 730c043bd6042..09a5a3d66e6ad 100644
+--- a/chrome/browser/exo_parts.cc
++++ b/chrome/browser/exo_parts.cc
+@@ -43,6 +43,12 @@ ExoParts::ExoParts()
+       std::make_unique<ash::ArcNotificationSurfaceManagerImpl>(),
+       std::make_unique<ash::ArcInputMethodSurfaceManager>(),
+       std::make_unique<ash::ArcToastSurfaceManager>());
++  // NickelOS: Linux apps get only the standard protocols on the default
++  // socket; sommelier (nickel-x11) gets all of Exo's on its own.
++  if (wayland_server_) {
++    wayland_server_->StartSommelierServer(
++        std::make_unique<ash::ChromeSecurityDelegate>(), "wayland-sommelier");
++  }
+   ash::Shell::Get()->TrackInputMethodBounds(
+       ash::ArcInputMethodBoundsTracker::Get());
+ }
+diff --git a/components/exo/server/wayland_server_controller.cc b/components/exo/server/wayland_server_controller.cc
+index 4fcf6c1ab9a96..6f8b8172358bf 100644
+--- a/components/exo/server/wayland_server_controller.cc
++++ b/components/exo/server/wayland_server_controller.cc
+@@ -9,7 +9,9 @@
+ #include "base/atomic_sequence_num.h"
+ #include "base/command_line.h"
+ #include "base/files/scoped_temp_dir.h"
++#include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
++#include "base/logging.h"
+ #include "base/memory/ptr_util.h"
+ #include "base/task/current_thread.h"
+ #include "components/exo/data_exchange_delegate.h"
+@@ -64,6 +66,10 @@ wayland::Server* WaylandServerController::GetServerForDisplay(
+   if (default_server_ && default_server_->GetWaylandDisplay() == display) {
+     return default_server_.get();
+   }
++  if (sommelier_server_ &&
++      sommelier_server_->GetWaylandDisplay() == display) {
++    return sommelier_server_.get();
++  }
+ 
+   for (const auto& pair : on_demand_servers_) {
+     if (pair.second->GetWaylandDisplay() == display) {
+@@ -98,6 +104,18 @@ WaylandServerController::WaylandServerController(
+       &WaylandServerController::GetServerForDisplay, base::Unretained(this)));
+ }
+ 
++void WaylandServerController::StartSommelierServer(
++    std::unique_ptr<SecurityDelegate> security_delegate,
++    const std::string& socket_name) {
++  default_server_->LimitToStandardProtocols();
++  sommelier_server_ =
++      wayland::Server::Create(display_.get(), std::move(security_delegate));
++  sommelier_server_->StartWithSocketName(
++      socket_name, base::BindOnce([](bool success) {
++        LOG_IF(ERROR, !success) << "Failed to start sommelier's wayland server";
++      }));
++}
++
+ void WaylandServerController::ListenOnSocket(
+     std::unique_ptr<SecurityDelegate> security_delegate,
+     base::ScopedFD socket,
+diff --git a/components/exo/server/wayland_server_controller.h b/components/exo/server/wayland_server_controller.h
+index 9494c7106b835..9793f6c0859e9 100644
+--- a/components/exo/server/wayland_server_controller.h
++++ b/components/exo/server/wayland_server_controller.h
+@@ -6,6 +6,7 @@
+ #define COMPONENTS_EXO_SERVER_WAYLAND_SERVER_CONTROLLER_H_
+ 
+ #include <memory>
++#include <string>
+ 
+ #include "base/containers/flat_map.h"
+ #include "base/files/scoped_temp_dir.h"
+@@ -68,6 +69,13 @@ class WaylandServerController {
+       std::unique_ptr<InputMethodSurfaceManager> input_method_surface_manager,
+       std::unique_ptr<ToastSurfaceManager> toast_surface_manager);
+ 
++  // NickelOS: Linux apps reach the default server directly, so it shows them
++  // only the standard protocols; sommelier, which runs X11 apps and passes on
++  // to them only what it knows, gets its own socket, `socket_name` in
++  // XDG_RUNTIME_DIR, with all of Exo's, under `security_delegate`.
++  void StartSommelierServer(std::unique_ptr<SecurityDelegate> security_delegate,
++                            const std::string& socket_name);
++
+   // Creates a wayland server from the given |socket|, with the privileges of
+   // the |security_delegate|. Invokes |callback| with a handle to a wayland
+   // server on success, nullptr on failure.
+@@ -91,6 +99,7 @@ class WaylandServerController {
+   std::unique_ptr<Display> display_;
+   std::unique_ptr<WindowOcclusionManager> window_occlusion_manager_;
+   std::unique_ptr<wayland::Server> default_server_;
++  std::unique_ptr<wayland::Server> sommelier_server_;
+   base::flat_map<WaylandServerHandle*, std::unique_ptr<wayland::Server>>
+       on_demand_servers_;
+   base::WeakPtrFactory<WaylandServerController> weak_factory_{this};
+diff --git a/components/exo/wayland/server.cc b/components/exo/wayland/server.cc
+index bb680ec1f866c..465a7667086c5 100644
+--- a/components/exo/wayland/server.cc
++++ b/components/exo/wayland/server.cc
+@@ -35,10 +35,12 @@
+ #include <array>
+ #include <memory>
+ #include <string>
++#include <string_view>
+ #include <utility>
+ 
+ #include "ash/constants/ash_features.h"
+ #include "base/command_line.h"
++#include "base/containers/fixed_flat_set.h"
+ #include "base/files/file_path.h"
+ #include "base/files/file_util.h"
+ #include "base/no_destructor.h"
+@@ -137,6 +139,46 @@ int GetTextInputExtensionV1Version() {
+   return 14;
+ }
+ 
++// NickelOS: what clients limited to the standard protocols see
++// (Server::LimitToStandardProtocols): the protocols of wayland and
++// wayland-protocols that Exo serves, and Chrome's text-input extension, which
++// sommelier passes on to Crostini's apps too. Exo's own protocols were written
++// for trusted clients (ARC, Lacros, sommelier); Linux apps that found them
++// could take the whole desktop down (Chrome patch 0011). A client cannot bind
++// what it is not shown: libwayland answers with a protocol error.
++bool IsStandardGlobal(const wl_client* client,
++                      const wl_global* global,
++                      void* data) {
++  static constexpr auto kStandard = base::MakeFixedFlatSet<std::string_view>({
++      "wl_compositor",
++      "wl_data_device_manager",
++      "wl_output",
++      "wl_seat",
++      "wl_shell",
++      "wl_shm",
++      "wl_subcompositor",
++      "wp_content_type_manager_v1",
++      "wp_fractional_scale_manager_v1",
++      "wp_presentation",
++      "wp_single_pixel_buffer_manager_v1",
++      "wp_viewporter",
++      "xdg_activation_v1",
++      "xdg_wm_base",
++      "zcr_text_input_extension_v1",
++      "zwp_idle_inhibit_manager_v1",
++      "zwp_input_timestamps_manager_v1",
++      "zwp_keyboard_shortcuts_inhibit_manager_v1",
++      "zwp_linux_dmabuf_v1",
++      "zwp_pointer_constraints_v1",
++      "zwp_pointer_gestures_v1",
++      "zwp_relative_pointer_manager_v1",
++      "zwp_text_input_manager_v1",
++      "zxdg_decoration_manager_v1",
++      "zxdg_output_manager_v1",
++  });
++  return kStandard.contains(wl_global_get_interface(global)->name);
++}
++
+ }  // namespace
+ 
+ bool Server::Open() {
+@@ -146,6 +188,10 @@ bool Server::Open() {
+     socket_name =
+         command_line->GetSwitchValueASCII(switches::kWaylandServerSocket);
+   }
++  return OpenNamed(socket_name);
++}
++
++bool Server::OpenNamed(const std::string& socket_name) {
+ 
+   char* runtime_dir_str = getenv("XDG_RUNTIME_DIR");
+   if (!runtime_dir_str) {
+@@ -416,6 +462,19 @@ void Server::StartWithDefaultPath(StartCallback callback) {
+   Finalize(std::move(callback), /*success=*/true);
+ }
+ 
++void Server::StartWithSocketName(const std::string& socket_name,
++                                 StartCallback callback) {
++  if (!OpenNamed(socket_name)) {
++    std::move(callback).Run(/*success=*/false);
++    return;
++  }
++  Finalize(std::move(callback), /*success=*/true);
++}
++
++void Server::LimitToStandardProtocols() {
++  wl_display_set_global_filter(wl_display_.get(), &IsStandardGlobal, nullptr);
++}
++
+ void Server::StartWithFdAsync(base::ScopedFD fd, StartCallback callback) {
+   base::ThreadPool::PostTaskAndReplyWithResult(
+       FROM_HERE, base::MayBlock(),
+diff --git a/components/exo/wayland/server.h b/components/exo/wayland/server.h
+index e46e5f23a93d3..2cae805c83956 100644
+--- a/components/exo/wayland/server.h
++++ b/components/exo/wayland/server.h
+@@ -69,10 +69,24 @@ class Server : public OutputController::Delegate {
+   void StartWithDefaultPath(StartCallback callback);
+   void StartWithFdAsync(base::ScopedFD fd, StartCallback callback);
+ 
++  // NickelOS: listens on `socket_name` in XDG_RUNTIME_DIR, as
++  // StartWithDefaultPath() does on the default name.
++  void StartWithSocketName(const std::string& socket_name,
++                           StartCallback callback);
++
++  // NickelOS: this server's clients see only the standard protocols (those of
++  // wayland and wayland-protocols), not Exo's own (zaura_shell,
++  // surface_augmenter, overlay_prioritizer, the other zcr_* ones), as
++  // sommelier shows Crostini's apps. Call before clients connect.
++  void LimitToStandardProtocols();
++
+   void Initialize();
+ 
+   bool Open();
+ 
++  // NickelOS: Open() on `socket_name`.
++  bool OpenNamed(const std::string& socket_name);
++
+   bool OpenFd(base::ScopedFD fd);
+ 
+   void Finalize(StartCallback callback, bool success);

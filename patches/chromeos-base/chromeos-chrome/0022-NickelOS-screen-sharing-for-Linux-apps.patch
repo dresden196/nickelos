@@ -1,0 +1,557 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: screen sharing for Linux apps
+
+Linux apps (OBS, browsers, Discord, AnyDesk) share the screen through the
+ScreenCast portal, whose NickelOS backend publishes it as a PipeWire
+stream. ChromeOS has no way to hand the screen to a process outside
+Chrome other than ARC's; this adds one for the backend, on
+VmApplicationsService:
+
+- NickelScreenCastChoose(app name, types): ChromeOS's own "share your
+  screen" picker, as for ARC apps' screen capture (screens, and windows if
+  asked), answering with the chosen DesktopMediaID and its size in pixels.
+- NickelScreenCastStart(source, frame buffer, pipe, size, slots, cursor,
+  app name): copies the screen's or window's layer (CopyOutputRequest,
+  system memory) at most 30 times a second into the backend's shared
+  memory, BGRx, and writes each frame's slot to the pipe; Ash draws the
+  pointer into the frames when asked (as for ARC). ChromeOS's "is sharing
+  your screen" notification stops it; so do the source going away and the
+  pipe closing.
+- NickelScreenCastStop(source).
+
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index aaf99967080d5..e655745a6afc8 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -6,6 +6,8 @@ assert(is_chromeos)
+ 
+ static_library("vm") {
+   sources = [
++    "nickel_screen_cast.cc",
++    "nickel_screen_cast.h",
+     "vm_applications_service_provider.cc",
+     "vm_applications_service_provider.h",
+     "vm_launch_service_provider.cc",
+diff --git a/chrome/browser/ash/dbus/vm/nickel_screen_cast.cc b/chrome/browser/ash/dbus/vm/nickel_screen_cast.cc
+new file mode 100644
+index 0000000000000..2dd369f196e32
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_screen_cast.cc
+@@ -0,0 +1,304 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/dbus/vm/nickel_screen_cast.h"
++
++#include <errno.h>
++#include <sys/mman.h>
++#include <unistd.h>
++
++#include <algorithm>
++#include <cstring>
++#include <map>
++#include <memory>
++#include <utility>
++#include <vector>
++
++#include "ash/shell.h"
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/no_destructor.h"
++#include "base/posix/eintr_wrapper.h"
++#include "base/strings/utf_string_conversions.h"
++#include "base/task/sequenced_task_runner.h"
++#include "base/timer/timer.h"
++#include "chrome/browser/media/webrtc/desktop_media_list_ash.h"
++#include "chrome/browser/media/webrtc/desktop_media_picker.h"
++#include "chrome/browser/ui/screen_capture_notification_ui.h"
++#include "chrome/grit/generated_resources.h"
++#include "components/viz/common/frame_sinks/copy_output_request.h"
++#include "components/viz/common/frame_sinks/copy_output_result.h"
++#include "content/public/browser/desktop_media_id.h"
++#include "third_party/skia/include/core/SkBitmap.h"
++#include "ui/aura/window.h"
++#include "ui/aura/window_observer.h"
++#include "ui/base/l10n/l10n_util.h"
++#include "ui/compositor/layer.h"
++#include "ui/display/display.h"
++#include "ui/display/manager/display_manager.h"
++#include "ui/display/screen.h"
++#include "ui/gfx/geometry/size_conversions.h"
++
++namespace ash {
++
++namespace {
++
++constexpr base::TimeDelta kFrameInterval = base::Milliseconds(33);
++
++std::u16string DisplayName(const std::string& app_name) {
++  return app_name.empty()
++             ? l10n_util::GetStringUTF16(
++                   IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST)
++             : base::UTF8ToUTF16(app_name);
++}
++
++// The window to copy for a source, and its size in pixels.
++aura::Window* SourceWindow(const content::DesktopMediaID& id,
++                           gfx::Size* size_in_pixels) {
++  aura::Window* window = content::DesktopMediaID::GetNativeWindowById(id);
++  if (!window) {
++    return nullptr;
++  }
++  const display::Display display =
++      display::Screen::Get()->GetDisplayNearestWindow(window);
++  if (id.type == content::DesktopMediaID::TYPE_SCREEN) {
++    *size_in_pixels = display.GetSizeInPixel();
++  } else {
++    *size_in_pixels = gfx::ScaleToCeiledSize(window->bounds().size(),
++                                             display.device_scale_factor());
++  }
++  return window;
++}
++
++class Session;
++
++std::map<std::string, std::unique_ptr<Session>>& Sessions() {
++  static base::NoDestructor<std::map<std::string, std::unique_ptr<Session>>>
++      sessions;
++  return *sessions;
++}
++
++// Copies a screen or a window into the portal backend's frame buffer.
++class Session : public aura::WindowObserver {
++ public:
++  Session(const std::string& source_id,
++          aura::Window* window,
++          base::ScopedFD notify,
++          int width,
++          int height,
++          int slots,
++          bool cursor)
++      : source_id_(source_id),
++        window_(window),
++        notify_(std::move(notify)),
++        width_(width),
++        height_(height),
++        slots_(slots),
++        cursor_(cursor) {}
++
++  Session(const Session&) = delete;
++  Session& operator=(const Session&) = delete;
++
++  ~Session() override {
++    timer_.Stop();
++    if (window_) {
++      window_->RemoveObserver(this);
++    }
++    if (counted_) {
++      Shell::Get()->display_manager()->dec_screen_capture_active_counter();
++      Shell::Get()->UpdateCursorCompositingEnabled();
++    }
++    if (ring_) {
++      munmap(ring_, ring_size_);
++    }
++  }
++
++  bool Init(const base::ScopedFD& ring, const std::string& app_name) {
++    ring_size_ = static_cast<size_t>(slots_) * width_ * height_ * 4;
++    void* ring_memory = mmap(nullptr, ring_size_, PROT_READ | PROT_WRITE,
++                             MAP_SHARED, ring.get(), 0);
++    if (ring_memory == MAP_FAILED) {
++      PLOG(ERROR) << "NickelOS screen cast: cannot map the frame buffer";
++      return false;
++    }
++    ring_ = static_cast<uint8_t*>(ring_memory);
++    window_->AddObserver(this);
++    if (cursor_) {
++      // As for ARC's screen capture: Ash draws the pointer into the frames.
++      Shell::Get()->display_manager()->inc_screen_capture_active_counter();
++      Shell::Get()->UpdateCursorCompositingEnabled();
++      counted_ = true;
++    }
++    notification_ = ScreenCaptureNotificationUI::Create(
++        l10n_util::GetStringFUTF16(IDS_MEDIA_SCREEN_CAPTURE_NOTIFICATION_TEXT,
++                                   DisplayName(app_name)),
++        /*capturing_web_contents=*/nullptr);
++    notification_->OnStarted(
++        base::BindOnce(&Session::StopSoon, weak_ptr_factory_.GetWeakPtr()),
++        content::MediaStreamUI::SourceCallback(),
++        std::vector<content::DesktopMediaID>{});
++    timer_.Start(FROM_HERE, kFrameInterval,
++                 base::BindRepeating(&Session::Capture,
++                                     weak_ptr_factory_.GetWeakPtr()));
++    return true;
++  }
++
++  // aura::WindowObserver:
++  void OnWindowDestroying(aura::Window* window) override {
++    window_->RemoveObserver(this);
++    window_ = nullptr;
++    StopSoon();
++  }
++
++ private:
++  void Capture() {
++    if (in_flight_ || !window_) {
++      return;
++    }
++    auto request = std::make_unique<viz::CopyOutputRequest>(
++        viz::CopyOutputRequest::ResultFormat::RGBA,
++        viz::CopyOutputRequest::ResultDestination::kSystemMemory,
++        base::BindOnce(&Session::OnCaptured, weak_ptr_factory_.GetWeakPtr()));
++    request->set_result_task_runner(
++        base::SequencedTaskRunner::GetCurrentDefault());
++    in_flight_ = true;
++    window_->layer()->RequestCopyOfOutput(std::move(request));
++  }
++
++  void OnCaptured(std::unique_ptr<viz::CopyOutputResult> result) {
++    in_flight_ = false;
++    if (result->IsEmpty()) {
++      return;
++    }
++    auto scoped_bitmap = result->ScopedAccessSkBitmap();
++    const SkBitmap& bitmap = scoped_bitmap.bitmap();
++    if (bitmap.drawsNothing()) {
++      return;
++    }
++    // A window that changed size since the start keeps the stream's size:
++    // cut to it, or padded with black.
++    const size_t frame_size = static_cast<size_t>(width_) * height_ * 4;
++    uint8_t* frame = ring_ + next_slot_ * frame_size;
++    const int rows = std::min(height_, bitmap.height());
++    const int columns = std::min(width_, bitmap.width());
++    if (rows < height_ || columns < width_) {
++      memset(frame, 0, frame_size);
++    }
++    for (int y = 0; y < rows; ++y) {
++      memcpy(frame + static_cast<size_t>(y) * width_ * 4, bitmap.getAddr32(0, y),
++             static_cast<size_t>(columns) * 4);
++    }
++    const uint32_t slot = next_slot_;
++    next_slot_ = (next_slot_ + 1) % slots_;
++    if (HANDLE_EINTR(write(notify_.get(), &slot, sizeof(slot))) < 0 &&
++        errno != EAGAIN) {
++      // The backend is gone.
++      StopSoon();
++    }
++  }
++
++  // Ends the session outside the current call (it owns this object).
++  void StopSoon() {
++    timer_.Stop();
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++        FROM_HERE, base::BindOnce(&NickelScreenCast::Stop, source_id_));
++  }
++
++  const std::string source_id_;
++  raw_ptr<aura::Window> window_;
++  base::ScopedFD notify_;
++  const int width_;
++  const int height_;
++  const int slots_;
++  const bool cursor_;
++  bool counted_ = false;
++  uint8_t* ring_ = nullptr;
++  size_t ring_size_ = 0;
++  uint32_t next_slot_ = 0;
++  bool in_flight_ = false;
++  base::RepeatingTimer timer_;
++  std::unique_ptr<ScreenCaptureNotificationUI> notification_;
++  base::WeakPtrFactory<Session> weak_ptr_factory_{this};
++};
++
++void OnChosen(std::unique_ptr<DesktopMediaPicker> picker,
++              NickelScreenCast::ChooseCallback callback,
++              DesktopMediaPicker::DoneCallbackArgumentType result) {
++  // Not deleted in its own callback.
++  base::SequencedTaskRunner::GetCurrentDefault()->DeleteSoon(
++      FROM_HERE, std::move(picker));
++  gfx::Size size;
++  if (!result.has_value() || result.value().is_null() ||
++      !SourceWindow(result.value(), &size) || size.IsEmpty()) {
++    std::move(callback).Run(std::string(), 0, 0);
++    return;
++  }
++  std::move(callback).Run(result.value().ToString(), size.width(),
++                          size.height());
++}
++
++}  // namespace
++
++// static
++void NickelScreenCast::Choose(const std::string& app_name,
++                              bool windows,
++                              ChooseCallback callback) {
++  std::unique_ptr<DesktopMediaPicker> picker =
++      DesktopMediaPicker::Create(nullptr);
++  std::vector<std::unique_ptr<DesktopMediaList>> source_lists;
++  source_lists.emplace_back(
++      std::make_unique<DesktopMediaListAsh>(DesktopMediaList::Type::kScreen));
++  if (windows) {
++    source_lists.emplace_back(
++        std::make_unique<DesktopMediaListAsh>(DesktopMediaList::Type::kWindow));
++  }
++  // Shown as for ARC apps' screen capture: no web page asks.
++  DesktopMediaPicker::Params params{
++      DesktopMediaPicker::Params::RequestSource::kArcScreenCapture};
++  params.context = Shell::GetRootWindowForDisplayId(
++      display::Screen::Get()->GetPrimaryDisplay().id());
++  params.modality = ui::mojom::ModalType::kSystem;
++  params.app_name = DisplayName(app_name);
++  params.target_name = params.app_name;
++  DesktopMediaPicker* shown = picker.get();
++  shown->Show(params, std::move(source_lists),
++              base::BindOnce(&OnChosen, std::move(picker),
++                             std::move(callback)));
++}
++
++// static
++bool NickelScreenCast::Start(const std::string& source_id,
++                             base::ScopedFD ring,
++                             base::ScopedFD notify,
++                             int width,
++                             int height,
++                             int slots,
++                             bool cursor,
++                             const std::string& app_name) {
++  if (Sessions().count(source_id) || width <= 0 || height <= 0 ||
++      slots <= 0) {
++    return false;
++  }
++  gfx::Size size;
++  aura::Window* window =
++      SourceWindow(content::DesktopMediaID::Parse(source_id), &size);
++  if (!window) {
++    return false;
++  }
++  auto session = std::make_unique<Session>(source_id, window,
++                                           std::move(notify), width, height,
++                                           slots, cursor);
++  if (!session->Init(ring, app_name)) {
++    return false;
++  }
++  Sessions()[source_id] = std::move(session);
++  return true;
++}
++
++// static
++void NickelScreenCast::Stop(const std::string& source_id) {
++  Sessions().erase(source_id);
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_screen_cast.h b/chrome/browser/ash/dbus/vm/nickel_screen_cast.h
+new file mode 100644
+index 0000000000000..dc920e0ea3839
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_screen_cast.h
+@@ -0,0 +1,50 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_DBUS_VM_NICKEL_SCREEN_CAST_H_
++#define CHROME_BROWSER_ASH_DBUS_VM_NICKEL_SCREEN_CAST_H_
++
++#include <string>
++
++#include "base/files/scoped_file.h"
++#include "base/functional/callback.h"
++
++namespace ash {
++
++// NickelOS: screen sharing for Linux apps. NickelOS's backend for the
++// ScreenCast portal (xdg-desktop-portal-nickel) calls these through
++// VmApplicationsService; it publishes the frames as a PipeWire stream.
++class NickelScreenCast {
++ public:
++  using ChooseCallback = base::OnceCallback<
++      void(const std::string& source_id, int width, int height)>;
++
++  // Shows ChromeOS's "share your screen" picker for |app_name|, with the
++  // screens, and the windows too if |windows|. Answers with the chosen
++  // source (a DesktopMediaID string) and its size in pixels, or "" if the
++  // user canceled.
++  static void Choose(const std::string& app_name,
++                     bool windows,
++                     ChooseCallback callback);
++
++  // Starts copying |source_id|, at most 30 times a second, into |ring|
++  // (|slots| frames of |width| x |height|, BGRx), writing each frame's slot
++  // (uint32) to |notify|, and shows the "sharing your screen" notification;
++  // with |cursor|, the pointer is drawn into the frames. It stops when the
++  // user stops it there, when the source goes away, when |notify| closes, or
++  // with Stop().
++  static bool Start(const std::string& source_id,
++                    base::ScopedFD ring,
++                    base::ScopedFD notify,
++                    int width,
++                    int height,
++                    int slots,
++                    bool cursor,
++                    const std::string& app_name);
++  static void Stop(const std::string& source_id);
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_ASH_DBUS_VM_NICKEL_SCREEN_CAST_H_
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index 84eddc00cd92a..221a0ed3f0ca4 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -19,6 +19,7 @@
+ #include "chrome/browser/ash/borealis/borealis_service.h"
+ #include "chrome/browser/ash/crostini/crostini_features.h"
+ #include "chrome/browser/ash/crostini/crostini_util.h"
++#include "chrome/browser/ash/dbus/vm/nickel_screen_cast.h"
+ #include "chrome/browser/ash/exo/chrome_security_delegate.h"
+ #include "chrome/browser/ash/guest_os/guest_id.h"
+ #include "chrome/browser/ash/guest_os/guest_os_mime_types_service.h"
+@@ -135,6 +136,10 @@ void DialogListener::MultiFilesSelected(
+ constexpr char kNickelSessionEndingMethod[] = "NickelSessionEnding";
+ // NickelOS: called by nickel-open (see NickelOpenPath).
+ constexpr char kNickelOpenPathMethod[] = "NickelOpenPath";
++// NickelOS: called by the ScreenCast portal's backend (NickelScreenCast).
++constexpr char kNickelScreenCastChooseMethod[] = "NickelScreenCastChoose";
++constexpr char kNickelScreenCastStartMethod[] = "NickelScreenCastStart";
++constexpr char kNickelScreenCastStopMethod[] = "NickelScreenCastStop";
+ 
+ }  // namespace
+ 
+@@ -185,6 +190,28 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelScreenCastChooseMethod,
++      base::BindRepeating(
++          &VmApplicationsServiceProvider::NickelScreenCastChoose,
++          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelScreenCastStartMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelScreenCastStart,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelScreenCastStopMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelScreenCastStop,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+ }
+ 
+ void VmApplicationsServiceProvider::OnExported(
+@@ -284,6 +311,84 @@ void VmApplicationsServiceProvider::NickelOpenPath(
+   std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
+ }
+ 
++// NickelOS: the ScreenCast portal's backend asks which screen or window an
++// app may have, ChromeOS's picker answering (source id, width, height; ""
++// if the user canceled).
++void VmApplicationsServiceProvider::NickelScreenCastChoose(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string app_name;
++  uint32_t types = 0;
++  if (!reader.PopString(&app_name) || !reader.PopUint32(&types)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected the app's name and the source types"));
++    return;
++  }
++  // Portal source types: 1 screens, 2 windows.
++  NickelScreenCast::Choose(
++      app_name, types & 2,
++      base::BindOnce(
++          [](dbus::MethodCall* method_call,
++             dbus::ExportedObject::ResponseSender response_sender,
++             const std::string& source_id, int width, int height) {
++            std::unique_ptr<dbus::Response> response =
++                dbus::Response::FromMethodCall(method_call);
++            dbus::MessageWriter writer(response.get());
++            writer.AppendString(source_id);
++            writer.AppendInt32(width);
++            writer.AppendInt32(height);
++            std::move(response_sender).Run(std::move(response));
++          },
++          method_call, std::move(response_sender)));
++}
++
++// NickelOS: starts copying the chosen source into the backend's frame
++// buffer (see NickelScreenCast::Start).
++void VmApplicationsServiceProvider::NickelScreenCastStart(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string source_id;
++  base::ScopedFD ring;
++  base::ScopedFD notify;
++  uint32_t width = 0;
++  uint32_t height = 0;
++  uint32_t slots = 0;
++  bool cursor = true;
++  std::string app_name;
++  if (!reader.PopString(&source_id) || !reader.PopFileDescriptor(&ring) ||
++      !reader.PopFileDescriptor(&notify) || !reader.PopUint32(&width) ||
++      !reader.PopUint32(&height) || !reader.PopUint32(&slots) ||
++      !reader.PopBool(&cursor) || !reader.PopString(&app_name)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected source, frame buffer, pipe, size, slots, cursor, app"));
++    return;
++  }
++  const bool started = NickelScreenCast::Start(
++      source_id, std::move(ring), std::move(notify), width, height, slots,
++      cursor, app_name);
++  std::unique_ptr<dbus::Response> response =
++      dbus::Response::FromMethodCall(method_call);
++  dbus::MessageWriter(response.get()).AppendBool(started);
++  std::move(response_sender).Run(std::move(response));
++}
++
++void VmApplicationsServiceProvider::NickelScreenCastStop(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string source_id;
++  if (reader.PopString(&source_id)) {
++    NickelScreenCast::Stop(source_id);
++  }
++  std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
++}
++
+ void VmApplicationsServiceProvider::LaunchTerminal(
+     dbus::MethodCall* method_call,
+     dbus::ExportedObject::ResponseSender response_sender) {
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index c508486d34d2e..46d74948a6fd1 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -68,6 +68,15 @@ class VmApplicationsServiceProvider
+       dbus::ExportedObject::ResponseSender response_sender);
+   void NickelOpenPath(dbus::MethodCall* method_call,
+                       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelScreenCastChoose(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
++  void NickelScreenCastStart(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
++  void NickelScreenCastStop(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
+ 
+   // Exposed in the header so unit tests can call it.
+   static void ParseSelectFileDialogFileTypes(

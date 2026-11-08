@@ -1,0 +1,86 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the Bluetooth name is the computer's name
+
+Other devices saw every NickelOS computer as NickelOS_XXXX over Bluetooth
+(0056; Chromebook_XXXX before it). Once the computer has a name (Settings
+> About, 0083), the adapter takes it: the hostname, as gethostname() gives
+it without a file read on the UI thread. Until then (the hostname is
+still localhost) it stays NickelOS_XXXX.
+
+Chrome names the adapter each time Bluetooth turns on; Settings sets it
+again right after a rename, so the new name shows without that.
+
+diff --git a/ash/constants/devicetype.cc b/ash/constants/devicetype.cc
+index 089eca93ed6df..2aeb62e731cdf 100644
+--- a/ash/constants/devicetype.cc
++++ b/ash/constants/devicetype.cc
+@@ -4,6 +4,11 @@
+ 
+ #include "ash/constants/devicetype.h"
+ 
++#include <limits.h>
++#include <unistd.h>
++
++#include <string_view>
++
+ #include "ash/constants/ash_switches.h"
+ #include "base/command_line.h"
+ #include "base/hash/hash.h"
+@@ -21,6 +26,14 @@ constexpr char kDefaultDeviceTypeName[] = "NickelOS";
+ }  // namespace
+ 
+ std::string GetDeviceBluetoothName(const std::string& bluetooth_address) {
++  // NickelOS: the computer's name (Settings > About, nickel-hostnamed) once
++  // one is set; while the hostname is still localhost, NickelOS_XXXX.
++  char host[HOST_NAME_MAX + 1] = {};
++  if (gethostname(host, HOST_NAME_MAX) == 0 && host[0] &&
++      std::string_view(host) != "localhost") {
++    return host;
++  }
++
+   const std::string device_name = DeviceTypeToString(chromeos::GetDeviceType());
+ 
+   // Take the lower 2 bytes of hashed |bluetooth_address| and combine it with
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn
+index 8887ba51906de..dd47b02de985b 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn
+@@ -47,6 +47,7 @@ static_library("about") {
+     "//components/webui/version",
+     "//content/public/browser",
+     "//dbus",
++    "//device/bluetooth",
+     "//ui/base",
+     "//ui/chromeos",
+     "//ui/webui",
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.cc
+index 765aad825f18a..5eddc789d7a65 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.cc
+@@ -13,6 +13,8 @@
+ #include "dbus/bus.h"
+ #include "dbus/message.h"
+ #include "dbus/object_proxy.h"
++#include "device/bluetooth/bluetooth_adapter.h"
++#include "device/bluetooth/bluetooth_adapter_factory.h"
+ 
+ namespace ash::settings {
+ 
+@@ -130,7 +132,16 @@ void NickelComputerNameHandler::OnSet(const std::string& callback_id,
+                                       dbus::ErrorResponse* error) {
+   // "", or why the name was not changed, as the page names it.
+   std::string result;
+-  if (!response) {
++  if (response) {
++    // The Bluetooth name is the computer's name (0084): set it again now
++    // rather than the next time Bluetooth turns on.
++    device::BluetoothAdapterFactory::Get()->GetAdapter(
++        base::BindOnce([](scoped_refptr<device::BluetoothAdapter> adapter) {
++          if (adapter && adapter->IsPresent()) {
++            adapter->SetStandardChromeOSAdapterName();
++          }
++        }));
++  } else {
+     const std::string name = error ? error->GetErrorName() : std::string();
+     if (name == base::StrCat({kErrorPrefix, "InvalidName"})) {
+       result = "invalid";

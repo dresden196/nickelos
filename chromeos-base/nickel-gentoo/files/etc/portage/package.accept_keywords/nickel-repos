@@ -1,0 +1,5 @@
+# GURU's and steam-overlay's packages are keyworded for testing only
+# (~amd64): accept them, so their packages install without a keyword line
+# each. Gentoo's own tree stays on its stable keywords.
+*/*::guru ~amd64
+*/*::steam-overlay ~amd64

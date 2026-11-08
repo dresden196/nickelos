@@ -1,0 +1,31 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: no "Google API keys are missing" bar
+
+Chromium builds without Google's API keys show an infobar in every new
+browser window: "Google API keys are missing. Some functionality of
+Chromium will be disabled." NickelOS is built without them (local
+accounts, no Google sign-in or sync), so the bar only alarms people about
+how the OS is made. It is not shown on ChromeOS builds.
+
+diff --git a/chrome/browser/ui/startup/infobar_utils.cc b/chrome/browser/ui/startup/infobar_utils.cc
+index 598e361a29886..f2c123082f6fc 100644
+--- a/chrome/browser/ui/startup/infobar_utils.cc
++++ b/chrome/browser/ui/startup/infobar_utils.cc
+@@ -253,6 +253,9 @@ void AddInfoBarsIfNecessary(BrowserWindowInterface* browser,
+   infobars::ContentInfoBarManager* infobar_manager =
+       infobars::ContentInfoBarManager::FromWebContents(web_contents);
+ 
++  // NickelOS: no Google API keys, by design (Google's services want its keys
++  // and accounts); the bar about them only alarmed users.
++#if !BUILDFLAG(IS_CHROMEOS)
+   if (!google_apis::HasAPIKeyConfigured()) {
+     if (infobars::IsInfoBarMigrated(
+             infobars::InfoBarDelegate::GOOGLE_API_KEYS_INFOBAR_DELEGATE)) {
+@@ -266,6 +269,7 @@ void AddInfoBarsIfNecessary(BrowserWindowInterface* browser,
+       GoogleApiKeysInfoBarDelegate::Create(infobar_manager);
+     }
+   }
++#endif
+ 
+   if (ObsoleteSystem::IsObsoleteNowOrSoon()) {
+     PrefService* local_state = g_browser_process->local_state();

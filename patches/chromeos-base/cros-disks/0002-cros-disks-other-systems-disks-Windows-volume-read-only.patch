@@ -1,0 +1,111 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] cros-disks: other systems' partitions hidden, Windows'
+ volume read-only
+
+On a PC that also has Windows, cros-disks mounted every partition of the
+Windows disk at sign-in that has a filesystem: its recovery partition too,
+as another drive.
+
+- Partitions that hold nothing of the user's are hidden, as ChromeOS's own
+  and the EFI system partition already are: Microsoft reserved, Windows
+  recovery, Windows LDM, BIOS boot, Linux swap (GPT; recovery, swap and
+  EFI for MBR).
+- Windows' own volume on an internal disk mounts read-only unless the user
+  allowed changes to it (Chrome passes the option nickel-windows-writable,
+  which no filesystem sees). Windows' Fast Startup leaves it half
+  hibernated, and writing to it from another system can lose data when
+  Windows resumes; ntfs-3g refuses a hibernated volume by itself (and
+  cros-disks then mounts it read-only), and this also covers a Windows shut
+  down cleanly. The volume that holds Windows is told by its
+  Windows/System32 directory, so an NTFS volume on an internal disk is
+  first mounted read-only and looked at. Other NTFS volumes, and anything
+  on removable devices, mount as before.
+
+diff -ruN a/cros-disks/disk_manager.cc b/cros-disks/disk_manager.cc
+--- a/cros-disks/disk_manager.cc
++++ b/cros-disks/disk_manager.cc
+@@ -40,6 +40,11 @@
+ #include "cros-disks/system_mounter.h"
+ 
+ namespace cros_disks {
++
++// NickelOS: the mount option with which Chrome passes that the user allowed
++// changes to Windows' own volume (see DoMount). Not a mount option of any
++// filesystem: taken out before mounting.
++constexpr char kNickelWindowsWritable[] = "nickel-windows-writable";
+ namespace {
+ 
+ // Options passed to the mount syscall for various filesystem types.
+@@ -401,6 +406,50 @@
+     applied_options.push_back("ro");
+   }
+ 
++  // NickelOS: Windows' own volume on an internal disk mounts read-only
++  // unless the user allowed changes to it, which Chrome passes as
++  // kNickelWindowsWritable. Windows' Fast Startup leaves the volume half
++  // hibernated, and writing to it from another system can lose data when
++  // Windows resumes; ntfs-3g refuses a hibernated volume by itself (the
++  // read-only retry below), and this covers a Windows shut down cleanly.
++  // Which volume holds Windows shows only in its files, so an NTFS volume
++  // on an internal disk is mounted read-only first and looked at: nothing
++  // is written to it before that.
++  bool windows_writable = false;
++  if (const auto it = std::find(applied_options.begin(), applied_options.end(),
++                                kNickelWindowsWritable);
++      it != applied_options.end()) {
++    applied_options.erase(it);
++    windows_writable = true;
++  }
++  if (fstype == "ntfs" && !disk.is_on_removable_device &&
++      !IsReadOnlyMount(applied_options)) {
++    auto probe_options = applied_options;
++    probe_options.push_back("ro");
++    std::unique_ptr<MountPoint> probe = mounter->Mount(
++        disk.device_file, mount_path, probe_options, error);
++    if (*error == MountError::kSuccess) {
++      DCHECK(probe);
++      const bool holds_windows = platform()->DirectoryExists(
++          mount_path.Append("Windows").Append("System32").value());
++      if (holds_windows && !windows_writable) {
++        LOG(INFO) << "Mounted Windows' volume " << quote(disk.device_file)
++                  << " read-only (changes not allowed)";
++        return MaybeWrapMountPointForEject(std::move(probe), disk);
++      }
++      // Unmounting removes the directory: made again for the real mount.
++      probe->Unmount();
++      probe.reset();
++      if (!platform()->CreateOrReuseEmptyDirectory(mount_path.value())) {
++        LOG(ERROR) << "Cannot create directory " << quote(mount_path)
++                   << " again to mount " << quote(disk.device_file);
++        *error = MountError::kDirectoryCreationFailed;
++        return nullptr;
++      }
++    }
++    // Not mountable read-only either: the attempt below reports why.
++  }
++
+   std::unique_ptr<MountPoint> mount_point =
+       mounter->Mount(disk.device_file, mount_path, applied_options, error);
+   if (*error != MountError::kSuccess) {
+diff -ruN a/cros-disks/udev_device.cc b/cros-disks/udev_device.cc
+--- a/cros-disks/udev_device.cc
++++ b/cros-disks/udev_device.cc
+@@ -74,6 +74,18 @@
+     "3cb8e202-3b7e-47dd-8a3c-7ff2a13cfcec",  // Chrome OS root filesystem
+     "cab6e88e-abf3-4102-a07a-d4bb9be3c1d3",  // Chrome OS firmware
+     "2e0a753d-9e48-43b0-8337-b15192cb1b5e",  // Chrome OS reserved
++    // NickelOS: other operating systems' own partitions, which hold nothing
++    // of the user's (cros-disks mounted Windows' recovery partition as a
++    // second drive).
++    "e3c9e316-0b5c-4db8-817d-f92df00215ae",  // Microsoft reserved
++    "de94bba4-06d1-4d40-a16a-bfd50179d6ac",  // Windows recovery environment
++    "5808c8aa-7e8f-42e0-85d2-e1e90434cfb3",  // Windows LDM metadata
++    "af9b60a0-1431-4f62-bc68-3311714a69ad",  // Windows LDM data
++    "21686148-6449-6e6f-744e-656564454649",  // BIOS boot
++    "0657fd6d-a4ab-43c4-84e5-0933c84b4f4f",  // Linux swap
++    "0x27",                                  // Windows recovery (MBR)
++    "0x82",                                  // Linux swap (MBR)
++    "0xef",                                  // EFI system partition (MBR)
+ };
+ 
+ }  // namespace

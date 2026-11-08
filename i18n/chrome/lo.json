@@ -1,0 +1,1282 @@
+{
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "ແອັບ Linux, ຕິດຕັ້ງດ້ວຍ INSTALLER"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "ແອັບ Linux"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "ກວດສອບໃຫ້ໝັ້ນໃຈວ່າໂທລະສັບ ແລະ ອຸປະກອນ NickelOS ຂອງທ່ານຢູ່ໃນເຄືອຂ່າຍດຽວກັນ ແລ້ວລອງໃໝ່. LEARN_MORE"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "ໂທລະສັບຂອງທ່ານກຳລັງໃຊ້ເຄືອຂ່າຍມືຖືຢູ່. ກວດສອບໃຫ້ໝັ້ນໃຈວ່າໂທລະສັບ ແລະ ອຸປະກອນ NickelOS ຂອງທ່ານຢູ່ໃນເຄືອຂ່າຍ Wi-Fi ດຽວກັນ ແລ້ວລອງໃໝ່. LEARN_MORE"
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "ຕົວຈັດການລະຫັດຜ່ານຕ້ອງການຢືນຢັນວ່າແມ່ນທ່ານ"
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "ທ່ານຈຳເປັນຕ້ອງເປີດອຸປະກອນຂອງທ່ານ ແລະ ສຽບປລັກໄວ້ຕະຫຼອດເວລາໃນລະຫວ່າງນີ້. ກວດໃຫ້ແນ່ໃຈວ່າໄດ້ສຽບສາຍສາກ ຫຼື ສາຍອະແດັບເຕີຄົບຖ້ວນແລ້ວ, ໃສ່ທັງອຸປະກອນ ແລະ ເຕົ້າສຽບໄຟ. ຢ່າປິດອຸປະກອນຂອງທ່ານ."
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "ປະຢັດເວລາໂດຍການຕອບກັບຫາຂໍ້ຄວາມຂອງໂທລະສັບທ່ານຈາກອຸປະກອນ NickelOS ຂອງທ່ານ"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "ເດັສທັອບ"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "ຍ້າຍໄປໃສ່ຖັງຂີ້ເຫຍື້ອ"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "ໃຊ້ຊື່ທີ່ບໍ່ຂຶ້ນຕົ້ນດ້ວຍຈຸດ ແລະ ບໍ່ມີເຄື່ອງໝາຍທັບ (/)."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "ມີລາຍການທີ່ໃຊ້ຊື່ນັ້ນຢູ່ແລ້ວ."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "ໂຟລເດີໃໝ່"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "ໂຟລເດີໃໝ່"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "ເປີດ"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "ເປີດເດັສທັອບໃນແອັບໄຟລ໌"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "ປ່ຽນຊື່"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "ບໍ່ສາມາດປ່ຽນຊື່ໄດ້."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "ປ່ຽນຊື່"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "ສະແດງໃນໄຟລ໌"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "ມີພຽງອຸປະກອນ Thunderbolt ທີ່ໄດ້ຮັບການຮອງຮັບເທົ່ານັ້ນຈຶ່ງຈະໃຊ້ຮ່ວມກັບອຸປະກອນ NickelOS ຂອງທ່ານໄດ້"
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "ຕິດຕັ້ງ NickelOS"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "ອຸປະກອນ NickelOS ຫຼື ອຸປະກອນ Bluetooth ຂອງທ່ານກຳລັງໃຊ້ Bluetooth ເວີຊັນເກົ່າ. ກະລຸນາໃຊ້ໄມໂຄຣໂຟນໃນເຄື່ອງເພື່ອຄຸນນະພາບສຽງທີ່ດີຂຶ້ນ."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "ກວດສອບໃຫ້ແນ່ໃຈວ່າອຸປະກອນ NickelOS ຂອງທ່ານຢູ່ໃນເຄືອຂ່າຍ Wi-Fi ດຽວກັນກັບອຸປະກອນ Chromecast ຂອງທ່ານ."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "ເປີດຄູ່ມື NickelOS"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "ເບິ່ງຄຳແນະນຳສັ້ນໆກ່ຽວກັບ PRODUCT_NAME ຂອງທ່ານ: ແອັບຂອງທ່ານຢູ່ໃສ, ວິທີຮັບແອັບເພີ່ມ ແລະ Linux ທີ່ຢູ່ເບື້ອງຫຼັງ. 7 ຂັ້ນຕອນ."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "ສະບາຍດີ. ຍິນດີຕ້ອນຮັບສູ່ PRODUCT_NAME ຂອງທ່ານ."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "ເບິ່ງຂັ້ນຕອນທີ STEP ຈາກທັງໝົດ TOTAL_STEPS ຂັ້ນຕອນ. ທ່ານສາມາດຊອກເຫັນແອັບໄຟລ໌ໃນຕົວເປີດໃຊ້. ໂຟລເດີສ່ວນຕົວແມ່ນໂຟລເດີຫຼັກຂອງທ່ານໃນ Linux: ແອັບ Linux ແລະ ແອັບໄຟລ໌ເຫັນໄຟລ໌ດຽວກັນ ແລະ ບ່ອນເກັບຂໍ້ມູນຄລາວທີ່ທ່ານເພີ່ມໃນການຕັ້ງຄ່າກໍຈະສະແດງຢູ່ບ່ອນນີ້ນຳ."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "ໂຟລເດີສ່ວນຕົວແມ່ນໂຟລເດີຫຼັກຂອງທ່ານໃນ Linux: ແອັບ Linux ແລະ ແອັບໄຟລ໌ເຫັນໄຟລ໌ດຽວກັນ ແລະ ບ່ອນເກັບຂໍ້ມູນຄລາວທີ່ທ່ານເພີ່ມໃນການຕັ້ງຄ່າກໍຈະສະແດງຢູ່ບ່ອນນີ້ນຳ."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "ເບິ່ງຂັ້ນຕອນທີ STEP ຈາກທັງໝົດ TOTAL_STEPS ຂັ້ນຕອນ. Waydroid ເຮັດໃຫ້ແອັບ Android ເຮັດວຽກໄດ້, ແຕ່ລະແອັບຢູ່ໃນໜ້າຈໍຂອງຕົນເອງ. ຕັ້ງຄ່າໄດ້ໃນການຕັ້ງຄ່າ, ພາຍໃຕ້ແອັບ, ຈາກນັ້ນແອັບ Android. ຫຼັງຈາກນັ້ນ, ການເປີດໄຟລ໌ APK ຈະຕິດຕັ້ງແອັບນັ້ນ ແລະ ແອັບຂອງ Android ຈະສະແດງໃນຕົວເປີດໃຊ້."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Waydroid ເຮັດໃຫ້ແອັບ Android ເຮັດວຽກໄດ້, ແຕ່ລະແອັບຢູ່ໃນໜ້າຈໍຂອງຕົນເອງ. ຕັ້ງຄ່າໄດ້ໃນ ການຕັ້ງຄ່າ > ແອັບ > ແອັບ Android. ຫຼັງຈາກນັ້ນ, ການເປີດໄຟລ໌ APK ຈະຕິດຕັ້ງແອັບນັ້ນ ແລະ ແອັບຂອງ Android ຈະສະແດງໃນຕົວເປີດໃຊ້."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "ເບິ່ງຂັ້ນຕອນທີ STEP ຈາກທັງໝົດ TOTAL_STEPS ຂັ້ນຕອນ. ຮັບແອັບເພີ່ມເຕີມໄດ້ໃນ Bazaar: ແອັບ Linux ຈາກ Flathub, ຕິດຕັ້ງເປັນ Flatpak. ແອັບເຫຼົ່ານີ້ຈະສະແດງໃນຕົວເປີດໃຊ້ຄືກັບແອັບອື່ນໆ."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "ຮັບແອັບເພີ່ມເຕີມໄດ້ໃນ Bazaar: ແອັບ Linux ຈາກ Flathub, ຕິດຕັ້ງເປັນ Flatpak. ແອັບເຫຼົ່ານີ້ຈະສະແດງໃນຕົວເປີດໃຊ້ຄືກັບແອັບອື່ນໆ."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "ເບິ່ງຂັ້ນຕອນທີ STEP ຈາກທັງໝົດ TOTAL_STEPS ຂັ້ນຕອນ. ອຸປະກອນປາຍທາງແມ່ນເຊວ Linux ແທ້ໆ ທີ່ໃຊ້ sudo ໄດ້. NickelOS ມີ Gentoo ຢູ່ເບື້ອງຫຼັງ: eix ຊອກຫາແພັກເກດ ແລະ sudo emerge ຕິດຕັ້ງແພັກເກດ, ຄືກັບໃນ Gentoo ທົ່ວໄປ."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "ອຸປະກອນປາຍທາງແມ່ນເຊວ Linux ແທ້ໆ ທີ່ໃຊ້ sudo ໄດ້. NickelOS ມີ Gentoo ຢູ່ເບື້ອງຫຼັງ: eix ຊອກຫາແພັກເກດ ແລະ sudo emerge ຕິດຕັ້ງແພັກເກດ, ຄືກັບໃນ Gentoo ທົ່ວໄປ."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "ເບິ່ງຂັ້ນຕອນທີ STEP ຈາກທັງໝົດ TOTAL_STEPS ຂັ້ນຕອນ. ເມື່ອເປີດນຳໃຊ້ຕົວເປີດໃຊ້, ທ່ານຈະເຫັນແຖບຊອກຫາ. ເລີ່ມພິມເພື່ອຊອກຫາແອັບ, ໄຟລ໌ ແລະ ການຕັ້ງຄ່າໃນ PRODUCT_NAME ຂອງທ່ານ."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "ຊອກຫາແອັບ, ໄຟລ໌ ແລະ ການຕັ້ງຄ່າໃນ PRODUCT_NAME ຂອງທ່ານຈາກຕົວເປີດໃຊ້."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "ເບິ່ງຂັ້ນຕອນທີ STEP ຈາກທັງໝົດ TOTAL_STEPS ຂັ້ນຕອນ. ທ່ານສາມາດຊອກຫາການຕັ້ງຄ່າອຸປະກອນຂອງທ່ານໄດ້ໃນຕົວເປີດໃຊ້. ປັບແຕ່ງ PRODUCT_NAME ຂອງທ່ານໃນການຕັ້ງຄ່າ: ຮູບພື້ນຫຼັງ, ໂໝດມືດ ຫຼື ແຈ້ງ, ການສະແດງຜົນ ແລະ ອື່ນໆ. ການແນະນຳມີພຽງເທົ່ານີ້! ຄູ່ມື NickelOS ມີຂໍ້ມູນເພີ່ມເຕີມ."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "ປັບແຕ່ງ ແລະ ປັບ PRODUCT_NAME ຂອງທ່ານໃຫ້ເປັນແບບສ່ວນຕົວໃນການຕັ້ງຄ່າ: ຮູບພື້ນຫຼັງ, ໂໝດມືດ ຫຼື ແຈ້ງ, ການສະແດງຜົນ ແລະ ອື່ນໆ. ການແນະນຳມີພຽງເທົ່ານີ້! ຄູ່ມື NickelOS ມີຂໍ້ມູນເພີ່ມເຕີມ."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "ເພື່ອປົດລັອກອຸປະກອນ NickelOS ຂອງທ່ານ, ໃຫ້ໃຊ້ລາຍນິ້ວມືຂອງທ່ານ ຫຼື ປົດລັອກໂທລະສັບທ່ານ"
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "ກະລຸນາກວດສອບວ່າອຸປະກອນ Bluetooth ຂອງທ່ານຢູ່ໃນໂໝດຈັບຄູ່ ແລະ ຢູ່ໃກ້ຄຽງ. ທ່ານຄວນຈັບຄູ່ກັບອຸປະກອນທີ່ທ່ານເຊື່ອຖືເທົ່ານັ້ນ. ທຸກບັນຊີໃນອຸປະກອນ NickelOS ນີ້ຈະເຫັນອຸປະກອນທີ່ຈັບຄູ່ແລ້ວ."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "ກະລຸນາກວດສອບວ່າອຸປະກອນ Bluetooth ຂອງທ່ານຢູ່ໃນໂໝດຈັບຄູ່ ແລະ ຢູ່ໃກ້ຄຽງ. ທ່ານຄວນຈັບຄູ່ກັບອຸປະກອນທີ່ທ່ານເຊື່ອຖືເທົ່ານັ້ນ. ທຸກບັນຊີໃນອຸປະກອນ NickelOS ນີ້ຈະເຫັນອຸປະກອນທີ່ຈັບຄູ່ແລ້ວ. BEGIN_LINK_LEARN_MOREສຶກສາເພີ່ມເຕີມEND_LINK_LEARN_MORE"
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "ຂໍ້ມູນຂອງທ່ານຈະຖືກຊິ້ງຂໍ້ມູນໃນໂປຣແກຣມທ່ອງເວັບ Chrome ທັງໝົດທີ່ທ່ານໄດ້ເປີດໃຊ້ການຊິ້ງຂໍ້ມູນສຳລັບບັນຊີນີ້ໄວ້. ສຳລັບຕົວເລືອກການຊິ້ງຂໍ້ມູນ NickelOS, ກະລຸນາເຂົ້າໄປ LINK_BEGINການຕັ້ງຄ່າ NickelOSLINK_END."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "ທາງລັດແປ້ນພິມ"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "ໃຊ້ຄຸນສົມບັດການຊ່ວຍເຂົ້າເຖິງຂອງໜ້າຈໍສຳຜັດ"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "ໃນແປ້ນພິມສ່ວນໃຫຍ່, ປຸ່ມຊອກຫາແມ່ນປຸ່ມ Windows, ຢູ່ຕິດກັບປຸ່ມ Alt ເບື້ອງຊ້າຍ."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "ທ່ານກຳລັງໄດ້ຮັບອັບເດດຊອບແວຫຼ້າສຸດ, ພ້ອມດ້ວຍການແກ້ໄຂດ້ານຄວາມປອດໄພ ແລະ ຄຸນສົມບັດໃໝ່ຫຼ້າສຸດ."
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "BEGIN_H3ຄຸນສົມບັດການດີບັກEND_H3\n          BR\n          ທ່ານສາມາດເປີດການນຳໃຊ້ຄຸນສົມບັດການດີບັກຢູ່ອຸປະກອນ NickelOS ຂອງທ່ານເພື່ອຕິດຕັ້ງ ແລະ ທົດສອບໂຄດທີ່ກຳນົດເອງຢູ່ອຸປະກອນຂອງທ່ານໄດ້.  ເຊິ່ງຈະຊ່ວຍໃຫ້ທ່ານສາມາດເຮັດສິ່ງຕໍ່ໄປນີ້ໄດ້:BR\n          BEGIN_LIST\n            LIST_ITEMລຶບການຢັ້ງຢືນ rootfs ອອກເພື່ອໃຫ້ທ່ານສາມາດແກ້ໄຂໄຟລ໌ລະບົບປະຕິບັດການໄດ້\n            LIST_ITEMເປີດການນຳໃຊ້ການເຂົ້າເຖິງອຸປະກອນແບບ SSH ໂດຍໃຊ້ກະແຈທົດສອບມາດຕະຖານເພື່ອໃຫ້ທ່ານສາມາດໃຊ້ເຄື່ອງມືຕ່າງໆ ເຊັ່ນ: BEGIN_CODE'cros flash'END_CODE ໃນການເຂົ້າເຖິງອຸປະກອນນັ້ນໄດ້\n            LIST_ITEMເປີດການນຳໃຊ້ການເປີດເຄື່ອງຈາກ USB ເພື່ອໃຫ້ທ່ານສາມາດຕິດຕັ້ງອິມເມກລະບົບປະຕິບັດການຈາກໄດຣຟ໌ USB ໄດ້\n            LIST_ITEMຕັ້ງຄ່າທັງ dev ແລະ ລະຫັດຜ່ານການເຂົ້າສູ່ລະບົບໃນລະດັບ root ເປັນຄ່າທີ່ກຳນົດເອງເພື່ອໃຫ້ທ່ານສາມາດເຂົ້າເຖິງອຸປະກອນແບບ SSH ດ້ວຍຕົວເອງໄດ້\n          END_LIST\n          BR\n          ເມື່ອເປີດການນຳໃຊ້ແລ້ວ, ຄຸນສົມບັດການດີບັກສ່ວນໃຫຍ່ຈະຍັງຄົງເປີດການນຳໃຊ້ຢູ່ເຖິງແມ່ນວ່າຈະດຳເນີນການ powerwash ຫຼື ລ້າງຂໍ້ມູນຢູ່ອຸປະກອນທີ່ມີການຈັດການຂອງອົງກອນແລ້ວ.  ເພື່ອປິດການນຳໃຊ້ຄຸນສົມບັດການດີບັກທັງໝົດໂດຍສົມບູນ, ກະລຸນາຕິດຕັ້ງ NickelOS ຄືນໃໝ່.\n          BR\n          BR\n          ສຳລັບຂໍ້ມູນເພີ່ມເຕີມກ່ຽວກັບຄຸນສົມບັດການດີບັກ, ກະລຸນາເບິ່ງ:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDໝາຍເຫດ:END_BOLD  ລະບົບຈະປິດເປີດໃໝ່ໃນລະຫວ່າງການດຳເນີນການ."
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "ຊອກຫາບົດຄວາມຊ່ວຍເຫຼືອ ແລະ ຄຳຕອບສຳລັບຄຳຖາມທົ່ວໄປ"
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "ຂໍຂອບໃຈສຳລັບຄຳຕິຊົມຂອງທ່ານ. ຄຳຕິຊົມຈະຖືກສົ່ງເມື່ອທ່ານກັບມາອອນລາຍ."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "ຂໍຂອບໃຈສຳລັບຄຳຕິຊົມຂອງທ່ານ."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "ໂຟລເດີສ່ວນຕົວ"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "ໄຟລ໌ນີ້ຖືກອອກແບບມາສໍາລັບຄອມພິວເຕີທີ່ໃຊ້ຊອບແວ Macintosh. ສິ່ງນີ້ບໍ່ເຂົ້າກັນໄດ້ກັບອຸປະກອນຂອງທ່ານເຊິ່ງໃຊ້ NickelOS. BEGIN_LINK_HELPສຶກສາເພີ່ມເຕີມEND_LINK_HELP ກ່ຽວກັບການເປີດໄຟລ໌ຢູ່ NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "ໄຟລ໌ນີ້ຖືກອອກແບບມາສຳລັບ PC ໂດຍໃຊ້ຊອບແວ Windows. ສິ່ງນີ້ບໍ່ເຂົ້າກັນໄດ້ກັບອຸປະກອນຂອງທ່ານເຊິ່ງໃຊ້ NickelOS. BEGIN_LINK_HELPສຶກສາເພີ່ມເຕີມEND_LINK_HELP ກ່ຽວກັບການເປີດໄຟລ໌ຢູ່ NickelOS."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "ອຸປະກອນຂອງທ່ານຈະຢຸດຮັບການອັບເດດໃນໄວໆນີ້."
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "ເພື່ອຕັ້ງຄ່າດ້ວຍໂທລະສັບ Android ຂອງທ່ານ, ຕ້ອງເປີດ Bluetooth ຂອງອຸປະກອນ NickelOS ຂອງທ່ານ"
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "ຜູ້ເບິ່ງແຍງລະບົບຂອງທ່ານໄດ້ເປີດໃຫ້ຊິ້ງລາຍການຕໍ່ໄປນີ້ລະຫວ່າງເຊດຊັນກ່ອນໜ້າ ແລະ ເຊດຊັນປັດຈຸບັນຂອງທ່ານໃນອຸປະກອນ NickelOS ທັງໝົດຂອງທ່ານ:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "ອະນຸຍາດ"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "ບໍ່ອະນຸຍາດ"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "ບໍ່ແມ່ນຕອນນີ້"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "ໃສ່ລະຫັດຜ່ານຂອງ NAME, ຜູ້ເບິ່ງແຍງລະບົບຂອງຄອມພິວເຕີນີ້."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "APP_NAME ຕ້ອງການໃຊ້ກ້ອງຖ່າຍຮູບຂອງອຸປະກອນນີ້. ລະບົບຈະຈື່ຄຳຕອບຂອງທ່ານສຳລັບແອັບນີ້."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "ອະນຸຍາດໃຫ້ APP_NAME ໃຊ້ກ້ອງຖ່າຍຮູບບໍ?"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "APP_NAME ຕ້ອງການໃຊ້ກ້ອງຖ່າຍຮູບ. ເພື່ອອະນຸຍາດ, ໃຫ້ເປີດການເຂົ້າເຖິງກ້ອງຖ່າຍຮູບໃນການຄວບຄຸມຄວາມເປັນສ່ວນຕົວ."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "ເປີດການຕັ້ງຄ່າ"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "ການເຂົ້າເຖິງກ້ອງຖ່າຍຮູບປິດຢູ່"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "ອະນຸຍາດ"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "ບໍ່ອະນຸຍາດ"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "ເພື່ອປ່ຽນທາງລັດ, ໃຫ້ເລືອກປຸ່ມຂອງມັນແລ້ວກົດປຸ່ມໃໝ່. ປຸ່ມ Backspace ຈະລຶບທາງລັດອອກ."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "APP_NAME ຕ້ອງການໃຫ້ທາງລັດເຫຼົ່ານີ້ເຮັດວຽກໄດ້ໃນຂະນະທີ່ທ່ານໃຊ້ແອັບອື່ນນຳ. ແອັບຈະຮູ້ພຽງແຕ່ຕອນທີ່ທ່ານກົດທາງລັດເຫຼົ່ານີ້, ບໍ່ແມ່ນສິ່ງອື່ນທີ່ທ່ານພິມ."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "ໃຊ້ Ctrl, Alt ຫຼື ຊອກຫາ ພ້ອມກັບປຸ່ມນັ້ນ ຫຼື ໃຊ້ປຸ່ມຟັງຊັນ."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "ບໍ່ໄດ້ຕັ້ງ"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "ກົດປຸ່ມ…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "ປຸ່ມເຫຼົ່ານັ້ນຖືກໃຊ້ຢູ່ແລ້ວ. ລອງປຸ່ມອື່ນ."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "ອະນຸຍາດທາງລັດແປ້ນພິມບໍ?"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "ປ່ຽນ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "ຄອມພິວເຕີຕັ້ງໂຕະ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "ຄອມພິວເຕີ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "ແລັບທັອບ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE ຂອງ NAME"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "ແທັບເລັດ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "ຢືນຢັນລະຫັດຜ່ານ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "ກຳລັງສ້າງບັນຊີຂອງທ່ານ..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "ບໍ່ສາມາດສ້າງບັນຊີໄດ້."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "ບໍ່ສາມາດສ້າງບັນຊີໄດ້: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "ເລືອກລະຫັດຜ່ານ."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "ບໍ່ສາມາດຕັ້ງຄ່າບັນຊີໄດ້: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "ຊື່ຜູ້ໃຊ້ນັ້ນມີຄົນໃຊ້ແລ້ວ."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "ການສ້າງບັນຊີໃຊ້ເວລາດົນເກີນໄປ. ກະລຸນາລອງໃໝ່."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "ຊື່ຜູ້ໃຊ້ຕ້ອງຂຶ້ນຕົ້ນດ້ວຍຕົວພິມນ້ອຍ ແລະ ໃຊ້ໄດ້ສະເພາະຕົວພິມນ້ອຍ, ຕົວເລກ, - ແລະ _ (ສູງສຸດ 32 ຕົວ)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "ລະຫັດຜ່ານບໍ່ກົງກັນ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "ຊື່ຂອງທ່ານ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "ລະຫັດຜ່ານ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "ຮູບຂອງທ່ານ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "ຮູບນີ້ຈະສະແດງຢູ່ໜ້າຈໍລົງຊື່ເຂົ້າໃຊ້ ແລະ ໃນຖາດລະບົບ. ເພື່ອໃຊ້ຮູບຂອງທ່ານເອງ, ໃຫ້ໄປທີ່ການຕັ້ງຄ່າໃນພາຍຫຼັງ."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "ເລືອກຮູບ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "ບັນຊີຂອງທ່ານ ແລະ ໄຟລ໌ຂອງບັນຊີຈະຢູ່ໃນອຸປະກອນນີ້, ເຂົ້າລະຫັດດ້ວຍລະຫັດຜ່ານຂອງທ່ານ. ເນື່ອງຈາກບໍ່ມີບັນຊີ Google, ຈະບໍ່ມີທາງກູ້ຄືນພວກມັນໄດ້ຫາກທ່ານລືມລະຫັດຜ່ານ."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "ສ້າງບັນຊີຂອງທ່ານ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "ຊື່ຜູ້ໃຊ້"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "ຂຶ້ນຕົ້ນດ້ວຍຕົວພິມນ້ອຍ; ໃຊ້ຕົວພິມນ້ອຍ, ຕົວເລກ, - ແລະ _ (ສູງສຸດ 32 ຕົວ)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "APP_NAME ຕ້ອງການຮູ້ວ່າອຸປະກອນນີ້ຢູ່ໃສ, ເຊິ່ງລະບຸຈາກເຄືອຂ່າຍ Wi-Fi ທີ່ຢູ່ໃກ້ຄຽງ ແລະ ທີ່ຢູ່ອິນເຕີເນັດຂອງອຸປະກອນ. ລະບົບຈະຈື່ຄຳຕອບຂອງທ່ານສຳລັບແອັບນີ້."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "ອະນຸຍາດໃຫ້ APP_NAME ໃຊ້ສະຖານທີ່ຂອງທ່ານບໍ?"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "APP_NAME ຕ້ອງການໃຊ້ສະຖານທີ່ຂອງທ່ານ. ເພື່ອອະນຸຍາດ, ໃຫ້ເປີດການເຂົ້າເຖິງສະຖານທີ່ໃນການຄວບຄຸມຄວາມເປັນສ່ວນຕົວ."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "ການເຂົ້າເຖິງສະຖານທີ່ປິດຢູ່"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "APP_NAME ຕ້ອງການຄວບຄຸມແປ້ນພິມ ແລະ ຕົວຊີ້ຂອງອຸປະກອນນີ້. ອະນຸຍາດສະເພາະເມື່ອທ່ານເຊື່ອຖືຜູ້ທີ່ກຳລັງເຊື່ອມຕໍ່ເທົ່ານັ້ນ."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "APP_NAME ກຳລັງຄວບຄຸມອຸປະກອນນີ້."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "ອະນຸຍາດການຄວບຄຸມຈາກໄລຍະໄກບໍ?"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "ທ່ານເລືອກ “ແບບພື້ນຖານ” ຕອນຕັ້ງຄ່າ NickelOS, ສະນັ້ນຈຶ່ງບໍ່ມີການເລືອກເຄື່ອງມືຊອກຫາໃຫ້ທ່ານ. ເຄື່ອງມືຊອກຫາເຫຼົ່ານີ້ເປັນທີ່ນິຍົມໃນພາກພື້ນຂອງທ່ານ ແລະ ສະແດງຕາມລຳດັບແບບສຸ່ມ."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "ບໍ່ວ່າຈະເລືອກແບບໃດ, ທ່ານກໍຈະໄດ້ Bazaar ເພື່ອຊອກຫາແອັບເພີ່ມເຕີມ ແລະ ແອັບສຳລັບເປີດຮູບພາບ, ວິດີໂອ, ເພງ ແລະ ເອກະສານຂອງທ່ານ."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "ປະສົບການເຕັມຮູບແບບ"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "ທຸກຢ່າງພ້ອມໃຊ້ ແລະ ເປັນສ່ວນຕົວ. DuckDuckGo ຊອກຫາເວັບຈາກບຣາວເຊີ ແລະ ຕົວເປີດໃຊ້, uBlock Origin ບລັອກໂຄສະນາ ແລະ ຕົວຕິດຕາມໃນບຣາວເຊີ, ແອັບສ່ວນຕົວຂອງ Proton (Mail, Calendar, Drive, Pass ແລະ ອື່ນໆ) ຖືກຕິດຕັ້ງໄວ້ ແລະ ມີແອັບໂອເພນຊອດຟຣີມາພ້ອມ: LibreOffice, OBS Studio, GIMP, Kdenlive ແລະ ອື່ນໆ."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "ແບບພື້ນຖານ"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "ມີແຕ່ສິ່ງທີ່ຈຳເປັນ. ຕົວເປີດໃຊ້ຈະຊອກຫາສະເພາະໃນຄອມພິວເຕີນີ້ ແລະ ບໍ່ມີຫຍັງອື່ນຖືກຕັ້ງຄ່າໃຫ້ທ່ານ."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "ທ່ານສາມາດປ່ຽນທັງໝົດນີ້ໄດ້ໃນພາຍຫຼັງໃນການຕັ້ງຄ່າ."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "ທ່ານຢາກເລີ່ມຕົ້ນແນວໃດ?"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "ກ່ອນການເລີ່ມຕົ້ນ, ໃຫ້ກວດສອບວ່າທ່ານໄດ້ສຳຮອງຂໍ້ມູນຂອງທ່ານໄວ້ແລ້ວ. ການຕິດຕັ້ງ DEVICE_OS ຈະຂຽນທັບຂໍ້ມູນໃນດິສກ໌ທີ່ທ່ານເລືອກ."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "DEVICE_OS ເປັນຊອບແວເສລີທີ່ສະໜອງໃຫ້ຕາມສະພາບທີ່ເປັນຢູ່: ມັນອາດບໍ່ເຮັດວຽກຢູ່ທຸກຄອມພິວເຕີ ແລະ ຜູ້ສ້າງມັນບໍ່ຮັບຜິດຊອບຕໍ່ການສູນເສຍຂໍ້ມູນໃດກໍຕາມ."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "ການອັບເດດ, ຕົວເລືອກນັກພັດທະນາ"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "ໂທລະສັບ, ການແບ່ງປັນໃກ້ຄຽງ"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "ໂທລະສັບ, FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "ບ່ອນເກັບຂໍ້ມູນຄລາວ"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Google Drive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "ເພີ່ມບັນຊີຄລາວ"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "ຮູບຂອງທ່ານເອງ"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "ເມື່ອໜ້າຈໍຂອງທ່ານບໍ່ໄດ້ເປີດນຳໃຊ້, ສະແດງຮູບພາບຂອງທ່ານ, ເວລາ ແລະ ຂໍ້ມູນສື່"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "ຮູບພາບຂອງທ່ານເອງ"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "ພາບພັກໜ້າຈໍຈະສະແດງຮູບພາບໃນໂຟລເດີ Pictures ຂອງທ່ານ ແລະ ໃນໂຟລເດີຍ່ອຍຂອງມັນ. ເພີ່ມຮູບຢ່າງໜ້ອຍ 2 ຮູບ."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "ໂຟລເດີ Pictures"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "ຮູບທີ່ມາພ້ອມກັບ NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "ພາບພັກໜ້າຈໍຈະສະແດງພາບພື້ນຫຼັງຂອງ NickelOS. ເປີດສິ່ງນີ້ເພື່ອສະແດງຮູບໃນ ໄຟລ໌ຂອງຂ້ອຍ > Pictures ແທນ."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "ພາບພື້ນຫຼັງ NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "ຈາກ Open-Meteo ສຳລັບສະຖານທີ່ໂດຍປະມານຂອງທ່ານ ເຊິ່ງ beaconDB ລະບຸຈາກທີ່ຢູ່ IP ຂອງທ່ານ"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "ສະແດງສະພາບອາກາດ"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "ກວດສອບວ່າເຄື່ອງພິມຂອງທ່ານເປີດຢູ່ ແລະ ເຊື່ອມຕໍ່ກັບເຄືອຂ່າຍດຽວກັນກັບອຸປະກອນ NickelOS ຂອງທ່ານ ຫຼື ໃຊ້ສາຍ USB"
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "ໂຟລເດີສ່ວນຕົວ"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "ເມື່ອເປີດໄວ້, ລະບົບຈະບັນທຶກຂໍ້ມູນໃນບັນຊີ Google ຂອງທ່ານ ແລະ ສາມາດໃຊ້ໃນອຸປະກອນທຸກເຄື່ອງຂອງທ່ານໄດ້. ເມື່ອປິດໄວ້, ລະບົບຈະບັນທຶກຂໍ້ມູນໃສ່ໃນອຸປະກອນເຄື່ອງນີ້ເທົ່ານັ້ນ. ສຳລັບຕົວເລືອກການຊິ້ງຂອງ NickelOS, ກະລຸນາເຂົ້າໄປ LINK_BEGINການຕັ້ງຄ່າ NickelOSLINK_END."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "ໃຫ້ແອັບ Android ຄວບຄຸມອຸປະກອນ USB ຢູ່ອຸປະກອນ NickelOS ເຄື່ອງນີ້. ຈະມີການຮ້ອງຂໍການອະນຸຍາດທຸກເທື່ອທີ່ທ່ານສຽບອຸປະກອນ USB. ແອັບ Android ແຕ່ລະແອັບຈະຂໍການອະນຸຍາດເພີ່ມເຕີມ."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "ອຸປະກອນຂອງທ່ານບໍ່ໄດ້ຮັບການອັບເດດຄວາມປອດໄພ ແລະ ຊອບແວອີກຕໍ່ໄປ."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "ອຸປະກອນນີ້ບໍ່ໄດ້ຮັບການອັບເດດອີກຕໍ່ໄປ"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "ອຸປະກອນຂອງທ່ານບໍ່ໄດ້ຮັບການອັບເດດຄວາມປອດໄພ ແລະ ຊອບແວອີກຕໍ່ໄປ."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "ອຸປະກອນນີ້ບໍ່ໄດ້ຮັບການອັບເດດອີກຕໍ່ໄປ"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "ໃຫ້ແອັບ Android ຄວບຄຸມອຸປະກອນ USB ຢູ່ອຸປະກອນ NickelOS ເຄື່ອງນີ້"
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "ຕົວເລືອກນີ້ນຳໃຊ້ກັບອຸປະກອນ NickelOS ທີ່ມີແພັກເກດອິນເຕີເນັດ ຫຼື dongle ເຄືອຂ່າຍມືຖື ຫຼື ເມື່ອປ່ອຍສັນຍານຫາຮັອດສະປອດແບບພົກພາ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "ເພີ່ມຄົນ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "ທ່ານຈະຖືກອອກຈາກລະບົບ. ຢູ່ໜ້າຈໍລົງຊື່ເຂົ້າໃຊ້, ຄົນໃໝ່ຈະເລືອກຊື່, ຊື່ຜູ້ໃຊ້ ແລະ ລະຫັດຜ່ານ."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "ຜູ້ເບິ່ງແຍງລະບົບ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "ຜູ້ເບິ່ງແຍງລະບົບສາມາດຕິດຕັ້ງຊອບແວໃຫ້ທຸກຄົນ, ປ່ຽນແປງລະບົບ ແລະ ຈັດການບັນຊີໄດ້."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "ປ່ຽນລະຫັດຜ່ານ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "ຢືນຢັນ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "ຢືນຢັນລະຫັດຜ່ານໃໝ່"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "ລະຫັດຜ່ານປັດຈຸບັນ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "ເລືອກລະຫັດຜ່ານໃໝ່"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "ມີບາງຢ່າງຜິດພາດ. ກະລຸນາລອງໃໝ່."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "ອຸປະກອນນີ້ຕ້ອງມີຜູ້ເບິ່ງແຍງລະບົບຢ່າງໜ້ອຍໜຶ່ງຄົນ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "ໃຫ້ NAME ເປັນຜູ້ເບິ່ງແຍງລະບົບບໍ?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "ລະຫັດຜ່ານໃໝ່"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "ບໍ່ມີຄົນອື່ນມີບັນຊີໃນອຸປະກອນນີ້."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "ຄົນອື່ນໃນອຸປະກອນນີ້"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "ທຸກຄົນມີບັນຊີ ແລະ ໄຟລ໌ຂອງຕົນເອງ. ຜູ້ເບິ່ງແຍງລະບົບສາມາດຕິດຕັ້ງຊອບແວໃຫ້ທຸກຄົນ, ປ່ຽນແປງລະບົບ ແລະ ຈັດການບັນຊີໄດ້."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "ເຈົ້າຂອງ, ຜູ້ເບິ່ງແຍງລະບົບ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "ລະຫັດຜ່ານໃໝ່ບໍ່ກົງກັນ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "ລຶບອອກ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "ໃຫ້ NAME ເປັນຜູ້ໃຊ້ມາດຕະຖານບໍ?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "ບັນຊີ ແລະ ໄຟລ໌ທັງໝົດຂອງເຂົາເຈົ້າຈະຖືກລຶບອອກຈາກອຸປະກອນນີ້. ການດຳເນີນການນີ້ບໍ່ສາມາດຍົກເລີກໄດ້."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "ລຶບ NAME ອອກບໍ?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "ອອກຈາກລະບົບ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "ມາດຕະຖານ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "ລະຫັດຜ່ານນັ້ນບໍ່ຖືກຕ້ອງ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "ບັນຊີຂອງທ່ານ"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "ລະຫັດຜ່ານຂອງທ່ານ"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "ມີພຽງຜູ້ເບິ່ງແຍງລະບົບຂອງອຸປະກອນນີ້ເທົ່ານັ້ນທີ່ສາມາດປ່ຽນການຕັ້ງຄ່າເຫຼົ່ານີ້ໄດ້."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "ສຳລັບແອັບທີ່ສ້າງມາສະເພາະໂປຣເຊສເຊີ ARM ທີ່ໂທລະສັບໃຊ້, ລວມທັງເກມຫຼາຍເກມ. ເປັນຊອບແວທີ່ມີກຳມະສິດ, ຈະຖືກດາວໂຫຼດເມື່ອທ່ານເປີດໃຊ້."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "ແອັບ Android ຫຼາຍແອັບ, ໂດຍສະເພາະເກມ, ຖືກສ້າງມາສະເພາະໂປຣເຊສເຊີ ARM ທີ່ໂທລະສັບໃຊ້. ເພື່ອໃຊ້ແອັບເຫຼົ່ານັ້ນໃນຄອມພິວເຕີນີ້, Android ຕ້ອງມີຕົວແປງຄຳສັ່ງ. NickelOS ບໍ່ໄດ້ສ້າງ ຫຼື ລວມຕົວແປງຄຳສັ່ງມາໃຫ້: ການເປີດໃຊ້ຈະດາວໂຫຼດ TRANSLATOR ຈາກ GitHub, ເຊິ່ງເປັນສະບັບດຽວກັນກັບທີ່ waydroid_script ຂອງຊຸມຊົນ Waydroid ຕິດຕັ້ງ."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "ນີ້ແມ່ນຊອບແວທີ່ມີກຳມະສິດ, ຢູ່ພາຍໃຕ້ຂໍ້ກຳນົດຂອງເຈົ້າຂອງ ແລະ ທ່ານເປັນຜູ້ຕິດຕັ້ງມັນເອງ. ບາງແອັບອາດເຮັດວຽກຊ້າ ຫຼື ບໍ່ເຮັດວຽກເລີຍ. Android ຈະເລີ່ມຕົ້ນໃໝ່ເພື່ອໃຊ້ມັນ."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "ຍອມຮັບ ແລະ ເປີດ"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "ເປີດການຮອງຮັບແອັບ ARM ບໍ?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "ການຮອງຮັບແອັບ ARM"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "ກຳລັງລຶບອອກ..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "ກຳລັງດາວໂຫຼດ ແລະ ຕິດຕັ້ງ..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "ກຳລັງດາວໂຫຼດ Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "ການດາວໂຫຼດບໍ່ສຳເລັດ. ກວດສອບການເຊື່ອມຕໍ່ຂອງທ່ານ, ແລ້ວລອງໃໝ່."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "ມີບາງຢ່າງຜິດພາດ. ກະລຸນາລອງໃໝ່."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "ການຕັ້ງຄ່າ Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "ກຳລັງຕັ້ງຄ່າ Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "ລຶບອອກ"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "ລຶບ Android, ແອັບ Android ຂອງທ່ານ ແລະ ຂໍ້ມູນຂອງແອັບເຫຼົ່ານັ້ນ"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "Android, ແອັບ Android ຂອງທ່ານ ແລະ ຂໍ້ມູນຂອງແອັບເຫຼົ່ານັ້ນຈະຖືກລຶບອອກຈາກອຸປະກອນນີ້. ຄົນອື່ນທີ່ໃຊ້ອຸປະກອນນີ້ຍັງຄົງມີຂໍ້ມູນ Android ຂອງເຂົາເຈົ້າ, ແຕ່ຈະບໍ່ສາມາດເປີດແອັບ Android ໄດ້ຈົນກວ່າຈະຕັ້ງຄ່າ Android ຄືນໃໝ່."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "ລຶບ Android ອອກບໍ?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "ລຶບ Android ອອກ"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "ກຳລັງລຶບ Android ອອກ..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "ຕັ້ງຄ່າ"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "ແອັບ Android ຈະເປີດໃນໜ້າຈໍຂອງຕົນເອງ, ຄຽງຂ້າງແອັບອື່ນໆຂອງທ່ານ. ການຕັ້ງຄ່າຈະດາວໂຫຼດ Android (LineageOS, ຈາກໂຄງການ Waydroid): ປະມານ 1 GB ແລະ ໃຊ້ພື້ນທີ່ 2.5 GB ໃນອຸປະກອນນີ້."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "ໃຊ້ແອັບ Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "ແອັບ Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "Houdini ຂອງ Intel"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "ຕົວແປງ NDK ຂອງ Google"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "ແອັບ Android ບໍ່ສາມາດໃຊ້ໄດ້ໃນຕອນນີ້."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "Android ໃຊ້ພື້ນທີ່ SIZE ໃນອຸປະກອນນີ້"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "ID ກະແຈການເຂົ້າເຖິງ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "ເພີ່ມບັນຊີ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "ກັບຄືນ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "ID ລູກຂ່າຍ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "ຂໍ້ມູນລັບລູກຂ່າຍ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "ເຊື່ອມຕໍ່"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "ກຳລັງເຊື່ອມຕໍ່…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "ເບິ່ງ Google Drive, OneDrive, Dropbox ແລະ ບ່ອນເກັບຂໍ້ມູນຄລາວອື່ນໆໃນແອັບໄຟລ໌"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "ເພີ່ມບ່ອນເກັບຂໍ້ມູນຄລາວ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "ACCOUNT_NAME ຢູ່ໃນແອັບໄຟລ໌ແລ້ວ."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "Google Drive ຕ້ອງໃຊ້ ID ລູກຂ່າຍ ແລະ ຂໍ້ມູນລັບລູກຂ່າຍຂອງທ່ານເອງຈາກ Google Cloud Console."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "ອີເມວ ຫຼື ຊື່ຜູ້ໃຊ້"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "ຈຸດປາຍທາງ (ປ່ອຍຫວ່າງໄວ້ສຳລັບ Amazon S3)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "ບໍ່ສາມາດເຊື່ອມຕໍ່ໄດ້. ກວດສອບລາຍລະອຽດແລ້ວລອງໃໝ່."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "ສຳເລັດ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "ວິທີສ້າງ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "ຢູ່ໃນແອັບໄຟລ໌"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "ຊື່"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "ຕໍ່ໄປ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "ບໍ່ໄດ້ເຊື່ອມຕໍ່"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "ລະຫັດຜ່ານ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "NickelOS ໃຊ້ rclone ເພື່ອສະແດງບ່ອນເກັບຂໍ້ມູນຄລາວຂອງທ່ານໃນແອັບໄຟລ໌, ເພື່ອໃຫ້ທ່ານເຂົ້າເຖິງໄຟລ໌ໄດ້ງ່າຍ. ເລືອກບໍລິການທີ່ຈະລົງຊື່ເຂົ້າໃຊ້."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "ພາກພື້ນ (ບໍ່ບັງຄັບ)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "ລຶບອອກ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "ແອັບໄຟລ໌ຈະບໍ່ສະແດງບັນຊີນີ້ອີກ. ໄຟລ໌ຂອງທ່ານຍັງຄົງຢູ່ໃນຄລາວ ແລະ ທ່ານສາມາດເພີ່ມບັນຊີນີ້ຄືນໄດ້ໃນພາຍຫຼັງ."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "ລຶບ ACCOUNT_NAME ອອກບໍ?"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "ກຳລັງລຶບອອກ…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "Amazon S3 ຫຼື ບໍລິການທີ່ເຂົ້າກັນໄດ້"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "ກະແຈການເຂົ້າເຖິງລັບ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "ທີ່ຢູ່ເຊີບເວີ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "ບໍລິການ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "ລົງຊື່ເຂົ້າໃຊ້ໃຫ້ສຳເລັດຢູ່ໜ້າທີ່ເປີດໃນບຣາວເຊີຂອງທ່ານ."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "ເມື່ອທ່ານເຊື່ອມຕໍ່, ໜ້າລົງຊື່ເຂົ້າໃຊ້ຂອງບໍລິການຈະເປີດໃນບຣາວເຊີຂອງທ່ານ."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "ບ່ອນເກັບຂໍ້ມູນຄລາວ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "ລະຫັດຢັ້ງຢືນ 2 ຂັ້ນຕອນ (ຖ້າທ່ານໃຊ້)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "ຊື່ຜູ້ໃຊ້"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "Nextcloud ຫຼື WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "ມີພຽງຜູ້ເບິ່ງແຍງລະບົບຂອງຄອມພິວເຕີນີ້ເທົ່ານັ້ນທີ່ສາມາດປ່ຽນຊື່ຂອງມັນໄດ້."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "ປ່ຽນ"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "ອຸປະກອນອື່ນຈະເຫັນຊື່ນີ້ໃນເຄືອຂ່າຍຂອງທ່ານ ແລະ ຜ່ານ Bluetooth. ອຸປະກອນປາຍທາງ ແລະ ແອັບ Linux ກໍສະແດງຊື່ນີ້ນຳ."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "ປ່ຽນຊື່ຄອມພິວເຕີ"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "ບໍ່ສາມາດປ່ຽນຊື່ໄດ້. ກະລຸນາລອງໃໝ່."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "ໃຊ້ຕົວອັກສອນຈາກ A ຫາ Z ຫຼື ຕົວເລກຢ່າງໜ້ອຍໜຶ່ງຕົວ."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "ຊື່ຄອມພິວເຕີ"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "ໃນອຸປະກອນປາຍທາງ: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "ແອັບທີ່ເປີດໄຟລ໌ແຕ່ລະປະເພດ, ຈາກແອັບໄຟລ໌ ແລະ ຈາກແອັບ Linux"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "ເອກະສານ"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "ອີເມວ"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "ຮູບພາບ"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "ເພງ"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "ບໍ່ມີແອັບທີ່ເປີດໄຟລ໌ເຫຼົ່ານີ້ໄດ້"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "ບໍ່ໄດ້ຕັ້ງ"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "ເອກະສານ PDF"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "ງານນຳສະເໜີ"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "ຮູບຖ່າຍໜ້າຈໍ (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "ການຖ່າຍຮູບໜ້າຈໍ (ມີມາໃນຕົວ)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "ສະເປຣດຊີດ"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "ໄຟລ໌ຂໍ້ຄວາມ"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "ແອັບເລີ່ມຕົ້ນ"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "ວິດີໂອ"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (ເວັບໄຊ)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "ໄດຣຟ໌ພາຍໃນອຸປະກອນນີ້ນອກເໜືອຈາກໄດຣຟ໌ທີ່ມີ NickelOS. ໄດຣຟ໌ທີ່ມີ Windows ຈະເປີດແບບອ່ານຢ່າງດຽວ ເພື່ອໃຫ້ Windows ຢູ່ຄົບຖ້ວນ."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "ໄດຣຟ໌ອື່ນ"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "ອະນຸຍາດການປ່ຽນແປງ"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "Windows ຢູ່ໃນໄດຣຟ໌ນີ້. ໄດຣຟ໌ນີ້ເປັນແບບອ່ານຢ່າງດຽວ ເວັ້ນເສຍແຕ່ທ່ານອະນຸຍາດການປ່ຽນແປງ."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "ເມື່ອເປີດ Fast Startup, Windows ຈະບໍ່ປິດເຄື່ອງຢ່າງສົມບູນ ແລະ ການປ່ຽນແປງທີ່ເຮັດຢູ່ບ່ອນນີ້ອາດສູນເສຍ ຫຼື ເຮັດໃຫ້ໄຟລ໌ເສຍຫາຍເມື່ອ Windows ເລີ່ມຕົ້ນອີກຄັ້ງ. ປິດ Fast Startup ໃນ Windows ຫຼື ກົດ Shift ຄ້າງໄວ້ໃນຂະນະທີ່ທ່ານປິດ Windows, ກ່ອນທີ່ທ່ານຈະເຮັດການປ່ຽນແປງ."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "ອະນຸຍາດການປ່ຽນແປງໄດຣຟ໌ Windows ບໍ?"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "Windows ບໍ່ໄດ້ປິດເຄື່ອງຢ່າງສົມບູນ, ສະນັ້ນໄດຣຟ໌ຈຶ່ງຍັງເປັນແບບອ່ານຢ່າງດຽວ. ປິດ Windows ໃຫ້ສົມບູນເພື່ອເຮັດການປ່ຽນແປງ."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "ສະແດງໃນໄຟລ໌"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "ຂໍຄວາມຊ່ວຍເຫຼືອຈາກຄົນອື່ນ"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "ຟໍຣັມ, Discord ແລະ GitHub ຢູ່ nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "ການຮຽນຮູ້ Gentoo"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "Portage ແລະ emerge ຕັ້ງແຕ່ເລີ່ມຕົ້ນ, ພ້ອມຄຳສັ່ງ pacman ແລະ apt ຄຽງຂ້າງກັນ"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "ຄູ່ມື NickelOS"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "NickelOS ເຮັດວຽກແນວໃດ. ສຳເນົານີ້ມາພ້ອມກັບ NickelOS ລຸ້ນຂອງທ່ານ ແລະ ໃຊ້ໄດ້ແບບອອບລາຍ."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "ຄູ່ມື, ການຮຽນຮູ້ Gentoo, ການແກ້ໄຂບັນຫາ"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "ຄູ່ມືອອນລາຍ"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "ລຸ້ນໃໝ່ລ່າສຸດ ຢູ່ nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "ຄວາມຊ່ວຍເຫຼືອ"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "ການແກ້ໄຂບັນຫາ"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "ບັນທຶກ, ລາຍງານການຂັດຂ້ອງ ແລະ ບັນຫາທົ່ວໄປພ້ອມວິທີແກ້ໄຂ"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "ແອັບ Linux"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "ຍອມຮັບ"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "ພ້ອມຈັບຄູ່"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "ຍົກເລີກ"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "ເຊື່ອມຕໍ່ແລ້ວ"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "ເຊື່ອມຕໍ່ແລ້ວ · ແບັດເຕີຣີ PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "ເຊື່ອມຕໍ່ແລ້ວ · ກຳລັງສາກ, PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "ດ້ວຍແອັບ KDE Connect ໃນ Android ຫຼື iPhone, ຢູ່ໃນເຄືອຂ່າຍ Wi-Fi ດຽວກັນ"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "ເພີ່ມເຕີມສຳລັບ DEVICE_NAME"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "ຍັງບໍ່ມີໂທລະສັບ ຫຼື ແທັບເລັດເທື່ອ. ຕິດຕັ້ງ KDE Connect ຈາກ Google Play, F‑Droid ຫຼື App Store, ເປີດມັນຢູ່ໃນເຄືອຂ່າຍ Wi-Fi ດຽວກັນ, ຈາກນັ້ນຈັບຄູ່ຈາກອຸປະກອນໃດກໍໄດ້."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "ການເຊື່ອມຕໍ່ໂທລະສັບບໍ່ໄດ້ເຮັດວຽກຢູ່. ອອກຈາກລະບົບແລ້ວລົງຊື່ເຂົ້າໃຊ້ຄືນໃໝ່ເພື່ອເລີ່ມມັນ."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "ເປີດ Valent"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "ຈັບຄູ່"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "ຈັບຄູ່ແລ້ວ · ບໍ່ໄດ້ເຊື່ອມຕໍ່"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "ກຳລັງລໍຖ້າໃຫ້ອີກຝ່າຍຍອມຮັບ"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "ປະຕິເສດ"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "ສົ່ງສຽງດັງ"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "ສົ່ງໄຟລ໌"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "ສົ່ງໄຟລ໌"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "ໂທລະສັບ ແລະ ແທັບເລັດ"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "ຍົກເລີກການຈັບຄູ່"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "ຕ້ອງການຈັບຄູ່ກັບອຸປະກອນນີ້"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "ໃຫ້ແອັບຕ່າງໆ ເຊັ່ນ: Discord ໃຊ້ການກົດເພື່ອເວົ້າ (push-to-talk) ໄດ້ໃນຂະນະທີ່ທ່ານຢູ່ໃນໜ້າຈໍອື່ນ. ແອັບເຫຼົ່ານີ້ຈະເຫັນປຸ່ມທີ່ກົດພ້ອມກັບ Ctrl, Alt ຫຼື ຊອກຫາ ແລະ ປຸ່ມຟັງຊັນ, ແຕ່ຈະບໍ່ເຫັນສິ່ງທີ່ທ່ານພິມ."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "ປຸ່ມທາງລັດສຳລັບແອັບ Linux ລຸ້ນເກົ່າ"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "ກວດສອບໃຫ້ໝັ້ນໃຈວ່າເຄື່ອງພິມຂອງທ່ານເຊື່ອມຕໍ່ກັບເຄືອຂ່າຍ Wi-Fi ດຽວກັນກັບອຸປະກອນ NickelOS ຂອງທ່ານ ຫຼື ໃຊ້ສາຍ USB. LINK_BEGINສຶກສາເພີ່ມເຕີມກ່ຽວກັບຄວາມເຂົ້າກັນໄດ້LINK_END"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "ບໍ່ສາມາດເຊື່ອມຕໍ່ກັບເຄື່ອງພິມໄດ້. ກະລຸນາກວດເບິ່ງວ່າເຄື່ອງພິມເປີດຢູ່ ແລະ ເຊື່ອມຕໍ່ກັບອຸປະກອນ NickelOS ຂອງທ່ານຜ່ານ Wi-Fi ຫຼື USB ຫຼືບໍ່."
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "ໂຟລເດີສ່ວນຕົວ"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "ເພື່ອເລີ່ມຕົ້ນ, ກະລຸນາກວດໃຫ້ແນ່ໃຈວ່າປຸ່ມ USB ຫຼື Bluetooth ຂອງທ່ານເຊື່ອມຕໍ່ກັບອຸປະກອນ NickelOS ຂອງທ່ານຢູ່. ນອກນັ້ນທ່ານຍັງສາມາດໃຊ້ປຸ່ມໃນແປ້ນພິມໄດ້ນຳ."
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "ເພື່ອປົດລັອກອຸປະກອນ NickelOS ຂອງທ່ານ, ໃຫ້ກວດສອບວ່າທ່ານເປີດ Bluetooth ຂອງໂທລະສັບທ່ານແລ້ວ"
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "Bluetooth ຂອງອຸປະກອນ NickelOS ຂອງທ່ານປິດຢູ່. ເພື່ອປົດລັອກອຸປະກອນ NickelOS ຂອງທ່ານ, ໃຫ້ໃສ່ລະຫັດຜ່ານກ່ອນ."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "ໂທລະສັບຂອງທ່ານບໍ່ມີໜ້າຈໍລັອກ. ເພື່ອປົດລັອກອຸປະກອນ NickelOS ຂອງທ່ານ, ໃຫ້ໃສ່ລະຫັດຜ່ານກ່ອນ."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "ເພື່ອປົດລັອກອຸປະກອນ NickelOS ຂອງທ່ານ, ໃຫ້ປົດລັອກໂທລະສັບຂອງທ່ານ"
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "ອຸປະກອນຂອງທ່ານຈະໃຊ້ເຊັນເຊີທີ່ມີມາໃນຕົວເພື່ອກວດຫາຄົນທີ່ຢູ່ໜ້າອຸປະກອນ. ຂໍ້ມູນທັງໝົດຈະຖືກປະມວນຜົນຢູ່ອຸປະກອນຂອງທ່ານທັນທີແລ້ວຈາກນັ້ນຈະຖືກລຶບອອກ. ຂໍ້ມູນເຊັນເຊີຈະບໍ່ຖືກສົ່ງໃຫ້ Google ເດັດຂາດ."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "ບັນທຶກ NickelOS"
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "ທ່ານຈະລົງຊື່ເຂົ້າໃຊ້ອຸປະກອນຂອງທ່ານດ້ວຍບັນຊີຂອງທ່ານເອງ ແລະ ທຸກຄົນທີ່ໃຊ້ອຸປະກອນນີ້ກໍສາມາດມີບັນຊີຂອງຕົນເອງໄດ້."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "ບັນຊີຂອງທ່ານເອງໃນອຸປະກອນຂອງທ່ານ"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "NickelOS ໄດ້ຮັບການອອກແບບມາໂດຍຄຳນຶງເຖິງຄວາມປອດໄພ ແລະ ອັບເດດຕົວເອງໃຫ້ທັນສະໄໝໂດຍອັດຕະໂນມັດ."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "NickelOS ໃຊ້ແອັບເວັບ ແລະ ແອັບ Linux ໄດ້ຄຽງຄູ່ກັນ. ດາວໂຫຼດແອັບສຳລັບປະສິດທິພາບການເຮັດວຽກ, ການບັນເທີງ ແລະ ອື່ນໆອີກ."
+ },
+ "IDS_UPDATE_SLIDE_UPDATE_TEXT": {
+  "en": "This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.",
+  "t": "ນີ້ເປັນເວລາໜຶ່ງດຽວທີ່ທ່ານຈະລໍຖ້າການອັບເດດ. ໃນ NickelOS, ການອັບເດດຊອບແວຈະເກີດຂຶ້ນໃນພື້ນຫຼັງ."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "ແອັບ Chrome ບໍ່ເຮັດວຽກຢູ່ NickelOS. ລອງພິຈາລະນະແອັບທາງເລືອກ."
+ }
+}

@@ -1,0 +1,26 @@
+NickelOS: on a driver without implicit synchronization (NVIDIA), do not flip
+a client's buffer that came without DRI3 1.4 sync points: nothing would tell
+the compositor when the client's rendering into it is done. Copy it instead,
+which glamor fences with Xwayland's own sync point (explicit sync) or waits
+for (glFinish). Upstream allows the flip as soon as explicit sync is
+available and then attaches the buffer with no sync at all.
+
+--- a/hw/xwayland/xwayland-present.c
++++ b/hw/xwayland/xwayland-present.c
+@@ -874,6 +874,16 @@
+     if (!xwl_window || !xwl_window->allow_commits)
+         return FALSE;
+ 
++#if defined(XWL_HAS_GLAMOR) && defined(DRI3)
++    /* Without implicit sync, a buffer that comes without sync points has
++     * nothing that says when the client's rendering into it is done; let
++     * the copy path (fenced by glamor) present it.
++     */
++    if (!xwl_glamor_supports_implicit_sync(xwl_window->xwl_screen) &&
++        !(vblank->acquire_syncobj && vblank->release_syncobj))
++        return FALSE;
++#endif /* defined(XWL_HAS_GLAMOR) && defined(DRI3) */
++
+     buffer = xwl_pixmap_get_wl_buffer(pixmap);
+     if (!buffer) {
+         ErrorF("present: Error getting buffer\n");

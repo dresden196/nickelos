@@ -1,0 +1,13 @@
+# NickelOS: Gentoo's world (nickel-gentoo): its layer, which appears in /usr
+# and /etc, and Portage's places in /var. Packages ship symlinks, and Portage
+# makes and follows them while it builds.
+/mnt/stateful_partition/nickel-gentoo
+/var/db/pkg
+/var/db/repos
+/var/lib/portage
+/var/cache/edb
+/var/cache/eix
+/var/cache/binhost
+/var/cache/binpkgs
+/var/cache/distfiles
+/var/tmp/portage

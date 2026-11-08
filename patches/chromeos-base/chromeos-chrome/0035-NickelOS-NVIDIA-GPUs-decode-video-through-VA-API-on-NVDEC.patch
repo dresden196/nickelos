@@ -1,0 +1,316 @@
+diff --git a/content/utility/utility_main.cc b/content/utility/utility_main.cc
+index b21b405954318..859c58016298c 100644
+--- a/content/utility/utility_main.cc
++++ b/content/utility/utility_main.cc
+@@ -181,6 +181,20 @@ bool ShouldUseAmdGpuPolicy(sandbox::mojom::Sandbox sandbox_type) {
+ #endif  // BUILDFLAG(USE_LINUX_VIDEO_ACCELERATION)
+   return false;
+ }
++
++// NickelOS: the video decoder process's sandbox also lets NVIDIA's driver work
++// (HardwareVideoDecodingPreSandboxHook()).
++bool ShouldUseNvidiaGpuPolicy(sandbox::mojom::Sandbox sandbox_type) {
++#if BUILDFLAG(USE_LINUX_VIDEO_ACCELERATION) && \
++    BUILDFLAG(ENABLE_OOP_VIDEO_DECODER)
++  if (sandbox_type == sandbox::mojom::Sandbox::kHardwareVideoDecoding) {
++    gpu::GPUInfo gpu_info{};
++    gpu::CollectBasicGraphicsInfo(&gpu_info);
++    return angle::IsNVIDIA(gpu_info.active_gpu().vendor_id);
++  }
++#endif
++  return false;
++}
+ #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
+ 
+ #if BUILDFLAG(IS_WIN)
+@@ -406,6 +420,14 @@ int UtilityMain(MainFunctionParams parameters) {
+       (parameters.zygote_child || !pre_sandbox_hook.is_null())) {
+     sandbox_options.use_amd_specific_policies =
+         ShouldUseAmdGpuPolicy(sandbox_type);
++    sandbox_options.use_nvidia_specific_policies =
++        ShouldUseNvidiaGpuPolicy(sandbox_type);
++    // NickelOS: NVIDIA's VA-API driver initialized CUDA before the sandbox
++    // (above), and CUDA runs threads of its own: the sandbox covers them too
++    // (seccomp with TSYNC) instead of refusing to start.
++    if (sandbox_options.use_nvidia_specific_policies) {
++      sandbox_options.allow_threads_during_sandbox_init = true;
++    }
+     sandbox::policy::Sandbox::Initialize(
+         sandbox_type, std::move(pre_sandbox_hook), sandbox_options);
+   }
+diff --git a/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc b/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc
+index 37f44c9813db7..9737db56aa03d 100644
+--- a/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc
++++ b/media/gpu/sandbox/hardware_video_decoding_sandbox_hook_linux.cc
+@@ -208,6 +208,39 @@ bool HardwareVideoDecodingPreSandboxHookForV4L2(
+ #endif  // BUILDFLAG(USE_V4L2_CODEC)
+ }
+ 
++// NickelOS: NVIDIA's own driver (nvidia-open), whose VA-API driver
++// (nvidia-vaapi-driver) decodes through CUDA and NVDEC. Both are loaded and
++// initialized before the sandbox (VaapiWrapper::PreSandboxInitialization() in
++// utility_main.cc); in it, they open NVIDIA's device files for each decoder,
++// and minigbm, allocating the decoded frames' buffers, opens the render node
++// read-write and loads NVIDIA's allocator.
++void AddNvidiaPermissions(std::vector<BrokerFilePermission>& permissions) {
++  for (const char* device : {"/dev/nvidiactl", "/dev/nvidia-modeset",
++                             "/dev/nvidia-uvm", "/dev/nvidia-uvm-tools"}) {
++    permissions.push_back(BrokerFilePermission::ReadWrite(device));
++  }
++  for (int i = 0; i < 16; ++i) {
++    permissions.push_back(BrokerFilePermission::ReadWrite(
++        base::StringPrintf("/dev/nvidia%d", i)));
++  }
++  permissions.push_back(
++      BrokerFilePermission::ReadOnlyRecursive("/proc/driver/nvidia/"));
++  permissions.push_back(
++      BrokerFilePermission::ReadOnlyRecursive("/usr/share/nvidia/"));
++  // CUDA reads these as it starts threads and allocates.
++  permissions.push_back(BrokerFilePermission::ReadOnly(
++      "/sys/devices/system/memory/block_size_bytes"));
++  permissions.push_back(
++      BrokerFilePermission::ReadOnly("/sys/devices/system/cpu/online"));
++  permissions.push_back(BrokerFilePermission::ReadOnly("/dev/dri"));
++  AllowAccessToRenderNodes(permissions, /*include_sys_dev_char=*/true,
++                           /*read_write=*/true);
++  if (!dlopen("libnvidia-allocator.so.1",
++              RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE)) {
++    LOG(WARNING) << "dlopen(libnvidia-allocator.so.1) failed: " << dlerror();
++  }
++}
++
+ }  // namespace
+ 
+ // TODO(b/195769334): consider using the type of client to decide if we should
+@@ -238,7 +271,8 @@ bool HardwareVideoDecodingPreSandboxHook(
+ 
+   const PolicyType policy_type =
+       HardwareVideoDecodingProcessPolicy::ComputePolicyType(
+-          options.use_amd_specific_policies);
++          options.use_amd_specific_policies,
++          options.use_nvidia_specific_policies);
+ 
+   sandbox::syscall_broker::BrokerCommandSet command_set;
+   std::vector<BrokerFilePermission> permissions;
+@@ -246,6 +280,7 @@ bool HardwareVideoDecodingPreSandboxHook(
+   bool result_for_platform_policy;
+   switch (policy_type) {
+     case PolicyType::kVaapiOnIntel:
++    case PolicyType::kVaapiOnNvidia:  // NickelOS: plus AddNvidiaPermissions()
+       result_for_platform_policy =
+           HardwareVideoDecodingPreSandboxHookForVaapiOnIntel(command_set,
+                                                              permissions);
+@@ -283,6 +318,10 @@ bool HardwareVideoDecodingPreSandboxHook(
+   if (!result_for_platform_policy)
+     return false;
+ 
++  if (options.use_nvidia_specific_policies) {
++    AddNvidiaPermissions(permissions);
++  }
++
+   // TODO(b/210759684): should this still be called if |command_set| or
+   // |permissions| is empty?
+   sandbox::policy::SandboxLinux::GetInstance()->StartBrokerProcess(
+diff --git a/media/gpu/vaapi/vaapi_video_decoder.cc b/media/gpu/vaapi/vaapi_video_decoder.cc
+index 64a6ac275ca1b..fdefd08ab7740 100644
+--- a/media/gpu/vaapi/vaapi_video_decoder.cc
++++ b/media/gpu/vaapi/vaapi_video_decoder.cc
+@@ -581,6 +581,16 @@ void VaapiVideoDecoder::SurfaceReady(
+   CHECK(iter != allocated_va_surfaces_.end());
+   CHECK(gfx::Rect(iter->second->size()).Contains(visible_rect));
+ 
++  // NickelOS: NVIDIA's VA-API driver finishes a decoded picture into its
++  // surface's buffer on a thread of its own after vaEndPicture(), and the
++  // buffer carries no fence for it, as Intel's and AMD's drivers' do: without
++  // waiting, the first frames were shown half written (rows still black).
++  if (VaapiWrapper::IsNvdecDriver() &&
++      !vaapi_wrapper_->SyncSurface(va_surface_id)) {
++    SetState({DecoderStatus::Codes::kFailed, "Failed to sync the VASurface"});
++    return;
++  }
++
+   // Set the timestamp at which the decode operation started on the
+   // |frame|. If the frame has been outputted before (e.g. because of VP9
+   // show-existing-frame feature) we can't overwrite the timestamp directly, as
+diff --git a/media/gpu/vaapi/vaapi_wrapper.cc b/media/gpu/vaapi/vaapi_wrapper.cc
+index b88dfd2db85df..35eb98bdddf34 100644
+--- a/media/gpu/vaapi/vaapi_wrapper.cc
++++ b/media/gpu/vaapi/vaapi_wrapper.cc
+@@ -98,6 +98,24 @@ using media_gpu_vaapi::StubPathMap;
+ namespace media {
+ 
+ namespace {
++// NickelOS: VA-API on NVIDIA GPUs is nvidia-vaapi-driver, which decodes with
++// NVDEC through CUDA. Video is decoded in the video decoder process, whose
++// sandbox lets NVIDIA's driver work and covers CUDA's threads
++// (hardware_video_decoding_sandbox_hook_linux.cc, utility_main.cc); nowhere
++// else: CUDA's threads would leave the GPU process unsandboxed and keep other
++// sandboxed processes (the video encoder's) from starting. Chrome's media test
++// programs, which have no sandbox, opt in with NICKEL_VAAPI_ON_NVIDIA=1.
++bool UseVaapiOnNvidiaInThisProcess() {
++  const base::CommandLine& command_line =
++      *base::CommandLine::ForCurrentProcess();
++  if (command_line.GetSwitchValueASCII("type") == "utility" &&
++      command_line.GetSwitchValueASCII("utility-sub-type") ==
++          "media.mojom.VideoDecoderFactoryProcess") {
++    return true;
++  }
++  return base::Environment::Create()->HasVar("NICKEL_VAAPI_ON_NVIDIA");
++}
++
+ // Returns a DRM FD and whether this FD should be skipped.
+ std::pair<base::ScopedFD, bool> LoadDrmFD(const base::FilePath& dev_path) {
+   base::File drm_file =
+@@ -127,7 +145,8 @@ std::pair<base::ScopedFD, bool> LoadDrmFD(const base::FilePath& dev_path) {
+     // tends to be shaky and can sometimes cause crashes: crbug.com/1492880
+     // We do need more checks to ensure that the driver supports linear textures
+     // or a picture processor, which is somewhat driver-version dependent.
+-    if (!base::FeatureList::IsEnabled(kVaapiOnNvidiaGPUs)) {
++    if (!base::FeatureList::IsEnabled(kVaapiOnNvidiaGPUs) &&
++        !UseVaapiOnNvidiaInThisProcess()) {
+       LOG(WARNING) << "Should skip nVidia device named: " << version_name;
+       return std::make_pair(base::ScopedFD(drm_file.TakePlatformFile()),
+                             /*should_skip=*/true);
+@@ -1863,6 +1882,17 @@ VAImplementation VaapiWrapper::GetImplementationType() {
+              : VAImplementation::kInvalid;
+ }
+ 
++// static
++bool VaapiWrapper::IsNvdecDriver() {
++  static const bool is_nvdec = [] {
++    auto va_display_state_handle = VADisplayStateSingleton::GetHandle();
++    return va_display_state_handle &&
++           va_display_state_handle->vendor_string().starts_with(
++               "VA-API NVDEC driver");
++  }();
++  return is_nvdec;
++}
++
+ // static
+ int VaapiWrapper::GetMaxNumDecoderInstances() {
+   if (!base::FeatureList::IsEnabled(media::kLimitConcurrentDecoderInstances)) {
+diff --git a/media/gpu/vaapi/vaapi_wrapper.h b/media/gpu/vaapi/vaapi_wrapper.h
+index 8c5c3482ae582..e030ce5b881a8 100644
+--- a/media/gpu/vaapi/vaapi_wrapper.h
++++ b/media/gpu/vaapi/vaapi_wrapper.h
+@@ -217,6 +217,11 @@ class MEDIA_GPU_EXPORT VaapiWrapper
+   // Returns the type of the underlying VA-API implementation.
+   static VAImplementation GetImplementationType();
+ 
++  // NickelOS: true for NVIDIA's VA-API driver (nvidia-vaapi-driver), whose
++  // decoded surfaces need vaSyncSurface() before they are read (see
++  // VaapiVideoDecoder::SurfaceReady()).
++  static bool IsNvdecDriver();
++
+   // Return an instance of VaapiWrapper initialized for |va_profile| and
+   // |mode|. |report_error_to_uma_cb| will be called independently from
+   // reporting errors to clients via method return values.
+diff --git a/sandbox/policy/linux/bpf_hardware_video_decoding_policy_linux.cc b/sandbox/policy/linux/bpf_hardware_video_decoding_policy_linux.cc
+index c44b331c1fb0f..ee1b3233ceea1 100644
+--- a/sandbox/policy/linux/bpf_hardware_video_decoding_policy_linux.cc
++++ b/sandbox/policy/linux/bpf_hardware_video_decoding_policy_linux.cc
+@@ -27,7 +27,8 @@ namespace sandbox::policy {
+ // static
+ HardwareVideoDecodingProcessPolicy::PolicyType
+ HardwareVideoDecodingProcessPolicy::ComputePolicyType(
+-    bool use_amd_specific_policies) {
++    bool use_amd_specific_policies,
++    bool use_nvidia_specific_policies) {
+   // TODO(b/210759684): the policy type computation is currently based on the
+   // GPU. In reality, we should base this on the video decoding hardware. This
+   // is good enough on ChromeOS but may be not good enough for a Linux system
+@@ -43,6 +44,9 @@ HardwareVideoDecodingProcessPolicy::ComputePolicyType(
+   return use_amd_specific_policies ? PolicyType::kVaapiOnAMDAndV4L2
+                                    : PolicyType::kVaapiAndV4L2;
+ #elif BUILDFLAG(USE_VAAPI)
++  if (use_nvidia_specific_policies) {
++    return PolicyType::kVaapiOnNvidia;
++  }
+   return use_amd_specific_policies ? PolicyType::kVaapiOnAMD
+                                    : PolicyType::kVaapiOnIntel;
+ #elif BUILDFLAG(USE_V4L2_CODEC)
+@@ -82,10 +86,27 @@ ResultExpr HardwareVideoDecodingProcessPolicy::EvaluateSyscall(
+       // sched_setaffinity, and crashes on truncate), so the union of the two
+       // is simply the AMD policy.
+       return EvaluateSyscallForVaapiOnAMD(system_call_number);
++    case PolicyType::kVaapiOnNvidia:
++      return EvaluateSyscallForVaapiOnNvidia(system_call_number);
+   }
+   NOTREACHED();
+ }
+ 
++// NickelOS: as on Intel, and CUDA's threads ask for the scheduling priority
++// range as they start (a crash on sched_get_priority_min() before), read
++// sysinfo() and list directories.
++ResultExpr HardwareVideoDecodingProcessPolicy::EvaluateSyscallForVaapiOnNvidia(
++    int system_call_number) const {
++  switch (system_call_number) {
++    case __NR_getdents64:
++    case __NR_sysinfo:
++    case __NR_sched_get_priority_max:
++    case __NR_sched_get_priority_min:
++      return Allow();
++  }
++  return EvaluateSyscallForVaapiOnIntel(system_call_number);
++}
++
+ ResultExpr HardwareVideoDecodingProcessPolicy::EvaluateSyscallForVaapiOnIntel(
+     int system_call_number) const {
+   if (SyscallSets::IsTruncate(system_call_number)) {
+diff --git a/sandbox/policy/linux/bpf_hardware_video_decoding_policy_linux.h b/sandbox/policy/linux/bpf_hardware_video_decoding_policy_linux.h
+index 09f61544449d5..6aaa69fc92d9d 100644
+--- a/sandbox/policy/linux/bpf_hardware_video_decoding_policy_linux.h
++++ b/sandbox/policy/linux/bpf_hardware_video_decoding_policy_linux.h
+@@ -35,8 +35,12 @@ class SANDBOX_POLICY_EXPORT HardwareVideoDecodingProcessPolicy
+     // sandbox setup time (see ComputePolicyType()).
+     kVaapiAndV4L2,
+     kVaapiOnAMDAndV4L2,
++    // NickelOS: VA-API on NVIDIA's driver (nvidia-vaapi-driver: NVDEC
++    // through CUDA).
++    kVaapiOnNvidia,
+   };
+-  static PolicyType ComputePolicyType(bool use_amd_specific_policies);
++  static PolicyType ComputePolicyType(bool use_amd_specific_policies,
++                                      bool use_nvidia_specific_policies = false);
+ 
+   explicit HardwareVideoDecodingProcessPolicy(PolicyType policy_type);
+   HardwareVideoDecodingProcessPolicy(
+@@ -56,6 +60,8 @@ class SANDBOX_POLICY_EXPORT HardwareVideoDecodingProcessPolicy
+   bpf_dsl::ResultExpr EvaluateSyscallForV4L2(int system_call_number) const;
+   bpf_dsl::ResultExpr EvaluateSyscallForVaapiAndV4L2(
+       int system_call_number) const;
++  bpf_dsl::ResultExpr EvaluateSyscallForVaapiOnNvidia(
++      int system_call_number) const;
+ 
+   const PolicyType policy_type_;
+ };
+diff --git a/sandbox/policy/linux/sandbox_linux.cc b/sandbox/policy/linux/sandbox_linux.cc
+index 7e1dfcd1732a7..ffcec3a090b79 100644
+--- a/sandbox/policy/linux/sandbox_linux.cc
++++ b/sandbox/policy/linux/sandbox_linux.cc
+@@ -363,8 +363,10 @@ bool SandboxLinux::InitializeSandbox(sandbox::mojom::Sandbox sandbox_type,
+   const bool has_threads = !IsSingleThreaded();
+ 
+   // For now, restrict the |options.allow_threads_during_sandbox_init| option to
+-  // the GPU process
++  // the GPU process (NickelOS: and the video decoder process on NVIDIA GPUs,
++  // whose CUDA threads start before the sandbox; utility_main.cc).
+   DCHECK(process_type == switches::kGpuProcess ||
++         process_type == switches::kUtilityProcess ||
+          !options.allow_threads_during_sandbox_init);
+   if (has_threads && !options.allow_threads_during_sandbox_init) {
+     std::string error_message =
+diff --git a/sandbox/policy/linux/sandbox_seccomp_bpf_linux.cc b/sandbox/policy/linux/sandbox_seccomp_bpf_linux.cc
+index 50b2478e6ca5a..abf8b1858c891 100644
+--- a/sandbox/policy/linux/sandbox_seccomp_bpf_linux.cc
++++ b/sandbox/policy/linux/sandbox_seccomp_bpf_linux.cc
+@@ -226,7 +226,8 @@ std::unique_ptr<BPFBasePolicy> SandboxSeccompBPF::PolicyForSandboxType(
+     case sandbox::mojom::Sandbox::kHardwareVideoDecoding:
+       return std::make_unique<HardwareVideoDecodingProcessPolicy>(
+           HardwareVideoDecodingProcessPolicy::ComputePolicyType(
+-              options.use_amd_specific_policies));
++              options.use_amd_specific_policies,
++              options.use_nvidia_specific_policies));
+ #endif  // BUILDFLAG(ENABLE_OOP_VIDEO_DECODER)
+ #if BUILDFLAG(USE_LINUX_VIDEO_ACCELERATION)
+     case sandbox::mojom::Sandbox::kHardwareVideoEncoding:

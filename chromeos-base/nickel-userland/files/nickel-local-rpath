@@ -1,0 +1,82 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# nickel-local-rpath DIR...: make the programs and libraries under DIR look
+# for their libraries in /usr/local first, through their own RUNPATH.
+#
+# Portage installs into /usr/local the same packages the OS image is made of,
+# built for /usr, so they carry no path to /usr/local's libraries.
+# ChromiumOS's developer mode adds /usr/local to the linker cache and to
+# LD_LIBRARY_PATH instead, for every program, so a library installed there
+# replaces the OS's own copy in Chrome and every system program. NickelOS
+# keeps /usr/local out of the system's library search (the image's ld.so.conf) and
+# instead gives each dynamically linked ELF file installed there a RUNPATH
+# that starts with /usr/local/lib64. Library paths a package already carries
+# (/usr/lib64/<pkg>) get their /usr/local twin in front. Libraries /usr/local
+# does not have still come from the OS, through the linker cache, and last
+# from /usr/lib64/cros: on NickelOS, Google's libraries that stay
+# beside Gentoo's (protobuf, abseil, gRPC...), which these tools, built as
+# ChromeOS's own programs are, link with.
+#
+# Runs on each package's image before Portage merges it (Portage bashrc), and
+# over all of /usr/local after the Portage bootstrap and on test images (when
+# the image is built, nickel-image-rpath; at first boot for older images).
+# Files already done are skipped, so running it again is cheap.
+#
+# NICKEL_RPATH_IN_PLACE=1 patches each file where it is, for a tree nothing
+# runs from (an image being built): no temporary copies, so a nearly full
+# filesystem (a test image's stateful partition) has room for it.
+set -u
+lib=/usr/local/lib64
+
+# RUNPATH for a file whose current one is $1.
+runpath() {
+  new=${lib}
+  old_ifs=${IFS}
+  IFS=:
+  for p in $1; do
+    case ${p} in
+      /usr/local/*) ;;
+      /*) new="${new}:/usr/local${p#/usr}" ;;
+    esac
+  done
+  IFS=${old_ifs}
+  new="${new}${1:+:$1}"
+  case ":${new}:" in *:/usr/lib64/cros:*) ;; *) new="${new}:/usr/lib64/cros" ;; esac
+  echo "${new}"
+}
+
+# nickel-local-rpath --files FILE...: the work itself, for the files given
+# (the main mode below runs it in parallel).
+if [ "${1:-}" = --files ]; then
+  shift
+  elf=$(printf '\177ELF')
+  for f in "$@"; do
+    [ "$(head -c4 "${f}" 2>/dev/null)" = "${elf}" ] || continue
+    # Static programs, object files and kernel modules have nothing to set.
+    old=$(patchelf --print-rpath "${f}" 2>/dev/null) || continue
+    case ":${old}:" in *":${lib}:"*) continue ;; esac
+    if [ -n "${NICKEL_RPATH_IN_PLACE:-}" ]; then
+      patchelf --set-rpath "$(runpath "${old}")" "${f}" ||
+        echo "nickel-local-rpath: could not update ${f}" >&2
+      continue
+    fi
+    # Patch a copy and move it into place: a program that is running, or
+    # starting while this runs, keeps the complete file it opened.
+    tmp="${f}.nickel-rpath"
+    if cp -a "${f}" "${tmp}" &&
+       patchelf --set-rpath "$(runpath "${old}")" "${tmp}"; then
+      mv -f "${tmp}" "${f}"
+    else
+      rm -f "${tmp}"
+      echo "nickel-local-rpath: could not update ${f}" >&2
+    fi
+  done
+  exit 0
+fi
+
+# ELF files are programs (executable) or libraries and modules (*.so*);
+# leaving out everything else keeps this quick on large trees.
+find "$@" -xdev -type f -size +63c \
+    \( -perm -u+x -o -name '*.so' -o -name '*.so.*' \) -print0 2>/dev/null |
+  xargs -0 -r -n 64 -P "$(nproc)" sh "$0" --files

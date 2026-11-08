@@ -1,0 +1,124 @@
+#!/bin/sh
+# NickelOS's ISO: the initramfs's first process (scripts/iso/README.md).
+# Mounts what it needs, finds the NickelOS image on the boot medium (the
+# stick or disc, or an ISO file on a stick, as Ventoy keeps them), and
+# starts frecon, ChromeOS's console, whose terminal runs the installer
+# (/sbin/agetty, the program frecon starts there).
+/bin/busybox --install -s /bin
+export PATH=/sbin:/bin
+mkdir -p /proc /sys /dev /run /tmp /media /nickelos
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev
+mount -t tmpfs -o mode=755 tmpfs /run
+mount -t tmpfs tmpfs /tmp
+mkdir -p /dev/pts /dev/shm
+mount -t devpts devpts /dev/pts
+# NickelOS's kernel registers no console (no VT, no serial line): opening
+# /dev/console fails there, and a failed redirect would end init.
+if (: </dev/console) 2>/dev/null; then
+	exec </dev/console >/dev/console 2>&1
+else
+	exec </dev/null >/dev/null 2>&1
+fi
+echo 1 > /proc/sys/kernel/printk 2>/dev/null
+
+# Test builds only (nickelos.debuglog=DEVICE on the kernel's command line,
+# which only the test ISO's own GRUB menu sets): this kernel has no console
+# to read, so init's output, frecon's and the kernel's go raw onto that
+# disk every few seconds (a test VM's empty disk, read from the host).
+dbg=$(sed -n 's/.*nickelos\.debuglog=\([^ ]*\).*/\1/p' /proc/cmdline)
+if [ -n "$dbg" ]; then
+	exec >/run/init.log 2>&1
+	set -x
+	# Each boot its own 4 MB of the disk (by its boot id), so a boot that
+	# ends in a crash keeps its log past the next one.
+	slot=$(( $(printf '%d' "0x$(cut -c1 /proc/sys/kernel/random/boot_id)") * 4 ))
+	echo "debug slot ${slot}M"
+	( while :; do
+		{ cat /run/init.log; echo "== frecon"; cat /run/frecon.log 2>/dev/null
+		  echo "== installer"; cat /run/install.log /run/try.log 2>/dev/null
+		  echo "== memory"; grep -E "MemFree|MemAvailable|Cached|Dirty|Writeback|Shmem:" /proc/meminfo
+		  echo "== dmesg"; dmesg; } > /run/debug.txt 2>&1
+		dd if=/run/debug.txt of="$dbg" bs=1M seek=$slot conv=notrunc,fsync 2>/dev/null
+		sleep 1
+	done ) &
+fi
+
+# Filesystems of boot media: modules the kernel doesn't build in.
+for m in $(cat /etc/nickelos/modules); do
+	insmod "/lib/modules/$m" 2>/dev/null
+done
+
+# Where the image is: a filesystem with nickelos/image.sqfs on it, or an
+# ISO file (NickelOS's) on one. USB sticks can take a few seconds to show.
+find_media() {
+	n=0
+	for d in /sys/class/block/*; do
+		dev=/dev/${d##*/}
+		case ${d##*/} in loop*|ram*|zram*|dm-*) continue ;; esac
+		m=/media/${d##*/}
+		mkdir -p "$m"
+		for t in iso9660 vfat exfat ntfs3; do
+			mount -o ro -t "$t" "$dev" "$m" 2>/dev/null && break
+		done
+		mountpoint -q "$m" || { rmdir "$m"; continue; }
+		if [ -f "$m/nickelos/image.sqfs" ]; then
+			echo "$dev $m direct"
+			return 0
+		fi
+		for iso in "$m"/*.iso "$m"/*/*.iso; do
+			[ -f "$iso" ] || continue
+			l=$(losetup -f) && losetup -r "$l" "$iso" || continue
+			i=/media/iso$n; n=$((n + 1)); mkdir -p "$i"
+			if mount -o ro -t iso9660 "$l" "$i" 2>/dev/null && [ -f "$i/nickelos/image.sqfs" ]; then
+				echo "$dev $i file"
+				return 0
+			fi
+			umount "$i" 2>/dev/null; losetup -d "$l"; rmdir "$i"
+		done
+		umount "$m"; rmdir "$m"
+	done
+	return 1
+}
+for i in $(seq 30); do
+	found=$(find_media) && break
+	sleep 1
+done
+if [ -z "$found" ]; then
+	echo "NickelOS: the stick or disc this started from was not found."
+	echo "Restarting in 30 seconds."
+	sleep 30
+	reboot -f
+fi
+set -- $found
+echo "MEDIA_DEV=$1" > /run/nickelos-media
+echo "MEDIA_DIR=$2" >> /run/nickelos-media
+echo "MEDIA_KIND=$3" >> /run/nickelos-media
+mount -o ro -t squashfs "$2/nickelos/image.sqfs" /nickelos
+
+# frecon draws on the first display (DRM: the GPU's driver, or the
+# firmware's framebuffer through simpledrm). --no-login: it starts no
+# program in its terminals (each would start one), so the installer runs
+# once, here, on VT1's terminal (/run/frecon/vt1), which frecon shows after
+# the switchvt escape written to its first terminal.
+mkdir -p /run/frecon
+frecon --enable-osc --no-login --daemon 2>/run/frecon.log
+for i in $(seq 50); do [ -e /run/frecon/vt0 ] && break; sleep 0.1; done
+printf '\033]switchvt:1\a' > /run/frecon/vt0 2>/dev/null
+for i in $(seq 50); do [ -e /run/frecon/vt1 ] && break; sleep 0.1; done
+# Terminals without a program of frecon's own take no keys until told.
+printf '\033]input:on\a' > /run/frecon/vt1 2>/dev/null
+ls -la /run/frecon
+if [ -e /run/frecon/vt1 ]; then
+	while :; do
+		setsid /sbin/agetty </run/frecon/vt1 >/run/frecon/vt1 2>&1
+		sleep 1
+	done
+fi
+# No display frecon knows: the installer on the kernel's console (a
+# serial line), if the kernel has one.
+while :; do
+	/sbin/agetty
+	sleep 1
+done

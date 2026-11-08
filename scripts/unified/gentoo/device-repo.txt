@@ -1,0 +1,11 @@
+# Packages of ours that NickelOS's Gentoo repository (repo/nickel, on the
+# device and in the Unified root) carries too, copied from this overlay by
+# scripts/unified/uf-device-repo.sh. The Unified root builds them for
+# Gentoo's Python and the image takes those builds (install.txt); a world
+# update on the device keeps them built for whatever Python Gentoo moves to.
+# The board's copies are built for the board's Python 3.11, whose GObject
+# bindings crash with Gentoo's GLib (waydroid didn't start, 2026-10-19).
+app-containers/waydroid
+dev-python/gbinder
+dev-libs/gbinder
+dev-libs/libglibutil

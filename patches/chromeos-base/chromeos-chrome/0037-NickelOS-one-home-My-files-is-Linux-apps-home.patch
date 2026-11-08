@@ -1,0 +1,419 @@
+diff --git a/chrome/browser/ash/app_list/search/files/file_search_provider.cc b/chrome/browser/ash/app_list/search/files/file_search_provider.cc
+index 17151e8eb1dd2..743d237a4142f 100644
+--- a/chrome/browser/ash/app_list/search/files/file_search_provider.cc
++++ b/chrome/browser/ash/app_list/search/files/file_search_provider.cc
+@@ -4,6 +4,8 @@
+ 
+ #include "chrome/browser/ash/app_list/search/files/file_search_provider.h"
+ 
++#include <fnmatch.h>
++
+ #include <algorithm>
+ #include <cmath>
+ #include <utility>
+@@ -100,41 +102,62 @@ std::vector<FileSearchProvider::FileInfo> SearchFilesByPattern(
+     std::vector<base::FilePath> trash_paths,
+     int file_type,
+     base::span<const std::string> allowed_extensions) {
+-  base::FileEnumerator enumerator(
+-      root_path,
+-      /*recursive=*/true, file_type, CreateFnmatchQuery(query),
+-      base::FileEnumerator::FolderSearchPolicy::ALL);
+-
++  // NickelOS: My files is the Linux home (one home), whose hidden folders
++  // hold apps' own data (Flatpak, caches, game libraries). Like Recent,
++  // search skips them, and it does not follow links into other folders (a
++  // Wine prefix's z: is the whole file system).
++  const std::string pattern = CreateFnmatchQuery(query);
+   const auto time_limit = base::Milliseconds(kSearchTimeoutMs);
+   bool timed_out = false;
+   std::vector<FileSearchProvider::FileInfo> matched_paths;
+-  for (base::FilePath path = enumerator.Next(); !path.empty();
+-       path = enumerator.Next()) {
+-    // Exclude any paths that are parented at an enabled trash location.
+-    if (std::ranges::any_of(trash_paths,
+-                            [&path](const base::FilePath& trash_path) {
+-                              return trash_path.IsParent(path);
+-                            })) {
+-      continue;
+-    }
+-    // Exclude any results that are not in the allowed extensions.
+-    if (!allowed_extensions.empty() &&
+-        !std::ranges::any_of(allowed_extensions,
+-                             [&path](const std::string& extension) {
+-                               return path.MatchesFinalExtension(extension);
+-                             })) {
+-      continue;
+-    }
++  std::vector<base::FilePath> pending = {root_path};
++  while (!pending.empty() && !timed_out && matched_paths.size() < kMaxResults) {
++    const base::FilePath dir = std::move(pending.back());
++    pending.pop_back();
++    base::FileEnumerator enumerator(dir, /*recursive=*/false,
++                                    base::FileEnumerator::DIRECTORIES |
++                                        base::FileEnumerator::FILES |
++                                        base::FileEnumerator::SHOW_SYM_LINKS);
++    for (base::FilePath path = enumerator.Next(); !path.empty();
++         path = enumerator.Next()) {
++      const std::string name = path.BaseName().value();
++      if (name.starts_with('.')) {
++        continue;
++      }
++      const base::FileEnumerator::FileInfo info = enumerator.GetInfo();
++      if (info.IsDirectory()) {
++        pending.push_back(path);
++      }
++      if (fnmatch(pattern.c_str(), name.c_str(), FNM_NOESCAPE) != 0 ||
++          !(file_type & (info.IsDirectory() ? base::FileEnumerator::DIRECTORIES
++                                            : base::FileEnumerator::FILES))) {
++        continue;
++      }
++      // Exclude any paths that are parented at an enabled trash location.
++      if (std::ranges::any_of(trash_paths,
++                              [&path](const base::FilePath& trash_path) {
++                                return trash_path.IsParent(path);
++                              })) {
++        continue;
++      }
++      // Exclude any results that are not in the allowed extensions.
++      if (!allowed_extensions.empty() &&
++          !std::ranges::any_of(allowed_extensions,
++                               [&path](const std::string& extension) {
++                                 return path.MatchesFinalExtension(extension);
++                               })) {
++        continue;
++      }
+ 
+-    matched_paths.emplace_back(
+-        path, enumerator.GetInfo().IsDirectory(),
+-        base::Time::FromTimeT(enumerator.GetInfo().stat().st_atime));
++      matched_paths.emplace_back(path, info.IsDirectory(),
++                                 base::Time::FromTimeT(info.stat().st_atime));
+ 
+-    if (matched_paths.size() == kMaxResults) {
+-      break;
+-    } else if (base::TimeTicks::Now() - query_start_time > time_limit) {
+-      timed_out = true;
+-      break;
++      if (matched_paths.size() == kMaxResults) {
++        break;
++      } else if (base::TimeTicks::Now() - query_start_time > time_limit) {
++        timed_out = true;
++        break;
++      }
+     }
+   }
+   UMA_HISTOGRAM_BOOLEAN("Apps.AppList.FileSearchProvider.TimedOut", timed_out);
+diff --git a/chrome/browser/ash/crostini/crostini_util.cc b/chrome/browser/ash/crostini/crostini_util.cc
+index 65ec840a2e3cf..585d5c3b29750 100644
+--- a/chrome/browser/ash/crostini/crostini_util.cc
++++ b/chrome/browser/ash/crostini/crostini_util.cc
+@@ -4,6 +4,10 @@
+ 
+ #include "chrome/browser/ash/crostini/crostini_util.h"
+ 
++#include <pwd.h>
++#include <unistd.h>
++
++#include <array>
+ #include <utility>
+ #include <variant>
+ 
+@@ -71,6 +75,25 @@ constexpr char kCrostiniAppLaunchResultHistogramUnknown[] =
+     "Crostini.AppLaunchResult.Unknown";
+ constexpr int64_t kDelayBeforeSpinnerMs = 400;
+ 
++// The one home of the session's Linux user: Chrome runs as a local account's
++// own user, whose home nickel-accountsd sets to /home/<name>. Empty for any
++// other home (a guest session runs as chronos, home /home/chronos/user).
++const base::FilePath& NickelOneHome() {
++  static const base::NoDestructor<base::FilePath> home([] {
++    struct passwd entry;
++    struct passwd* result = nullptr;
++    std::array<char, 4096> buffer;
++    if (getpwuid_r(getuid(), &entry, buffer.data(), buffer.size(), &result) !=
++            0 ||
++        !result || !result->pw_dir) {
++      return base::FilePath();
++    }
++    base::FilePath dir(result->pw_dir);
++    return dir.DirName() == base::FilePath("/home") ? dir : base::FilePath();
++  }());
++  return *home;
++}
++
+ void OnApplicationLaunched(const std::string& app_id,
+                            crostini::CrostiniSuccessCallback callback,
+                            const crostini::CrostiniResult failure_result,
+@@ -223,11 +246,12 @@ void LaunchNickelApp(
+           std::vector<base::FilePath>(), /*intent=*/nullptr));
+ 
+   // nickel-appd and its apps share Chrome's mount namespace, so files are
+-  // passed as their paths.
++  // passed as their paths, as the apps know them (one home).
+   std::vector<std::string> launch_args;
+   for (const auto& arg : args) {
+     if (const auto* url = std::get_if<storage::FileSystemURL>(&arg)) {
+-      launch_args.push_back(url->path().value());
++      launch_args.push_back(
++          NickelPathForLinuxApps(profile, url->path()).value());
+     } else {
+       launch_args.push_back(std::get<std::string>(arg));
+     }
+@@ -259,6 +283,54 @@ bool IsNickelNativeAppsAllowed(Profile* profile) {
+   return ash::ProfileHelper::IsPrimaryProfile(profile->GetOriginalProfile());
+ }
+ 
++base::FilePath NickelPathForLinuxApps(Profile* profile,
++                                      const base::FilePath& path) {
++  const base::FilePath& home = NickelOneHome();
++  if (home.empty() || !profile) {
++    return path;
++  }
++  const base::FilePath my_files =
++      file_manager::util::GetMyFilesFolderForProfile(profile);
++  base::FilePath relative;
++  if (path == my_files) {
++    return home;
++  }
++  if (my_files.AppendRelativePath(path, &relative)) {
++    return home.Append(relative);
++  }
++  return path;
++}
++
++base::FilePath NickelPathFromLinuxApps(Profile* profile,
++                                       const base::FilePath& path) {
++  if (!profile) {
++    return path;
++  }
++  const base::FilePath& home = NickelOneHome();
++  base::FilePath relative;
++  if (!home.empty()) {
++    const base::FilePath my_files =
++        file_manager::util::GetMyFilesFolderForProfile(profile);
++    if (path == home) {
++      return my_files;
++    }
++    if (home.AppendRelativePath(path, &relative)) {
++      return my_files.Append(relative);
++    }
++  }
++  // /home/chronos/user (Linux apps' home before one home, and a guest's My
++  // files is below it) is a bind mount of the profile directory, under which
++  // ChromeOS's volumes are.
++  const base::FilePath user_home(kHomeDirectory);
++  if (path == user_home) {
++    return profile->GetPath();
++  }
++  if (user_home.AppendRelativePath(path, &relative)) {
++    return profile->GetPath().Append(relative);
++  }
++  return path;
++}
++
+ bool IsCrostiniRunning(Profile* profile) {
+   auto* manager = crostini::CrostiniManager::GetForProfile(profile);
+   return manager && manager->IsVmRunning(kCrostiniDefaultVmName);
+diff --git a/chrome/browser/ash/crostini/crostini_util.h b/chrome/browser/ash/crostini/crostini_util.h
+index ab19589e70b0a..3150812400cee 100644
+--- a/chrome/browser/ash/crostini/crostini_util.h
++++ b/chrome/browser/ash/crostini/crostini_util.h
+@@ -65,6 +65,17 @@ inline constexpr char kNickelAppsServiceInterface[] = "org.nickelos.Apps";
+ // this needs no virtualization support and includes guest sessions.
+ bool IsNickelNativeAppsAllowed(Profile* profile);
+ 
++// NickelOS, one home: a local account's Linux home is /home/<name>, where
++// nickel-session-setup mounts the user's My files for the session. Linux apps
++// name files by that path, Chrome by its own (<profile>/MyFiles/...); these
++// turn one into the other where files pass between them (an app launched
++// with files, the file picker, drag and drop, files apps open). Other paths
++// come back unchanged.
++base::FilePath NickelPathForLinuxApps(Profile* profile,
++                                      const base::FilePath& path);
++base::FilePath NickelPathFromLinuxApps(Profile* profile,
++                                       const base::FilePath& path);
++
+ // These values are persisted to logs. Entries should not be renumbered and
+ // numeric values should never be reused.
+ enum class CrostiniAppLaunchAppType {
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index 701073364867a..0d0c68ee7be3f 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -100,9 +100,13 @@ void SendNickelFileSelected(const std::string& token,
+                                "FileSelected");
+   dbus::MessageWriter writer(&method_call);
+   writer.AppendString(token);
++  // As the app knows them: in its home, not Chrome's My files (one home).
++  Profile* profile = ProfileManager::GetPrimaryUserProfile();
+   std::vector<std::string> uris;
+   for (const base::FilePath& path : paths) {
+-    uris.push_back(net::FilePathToFileURL(path).spec());
++    uris.push_back(
++        net::FilePathToFileURL(crostini::NickelPathForLinuxApps(profile, path))
++            .spec());
+   }
+   writer.AppendArrayOfStrings(uris);
+   proxy->CallMethodWithErrorResponse(
+@@ -331,12 +335,8 @@ void VmApplicationsServiceProvider::NickelOpenPath(
+             method_call, DBUS_ERROR_INVALID_ARGS, "Not an absolute path"));
+     return;
+   }
+-  // Linux apps' home, /home/chronos/user, is a bind mount of the profile
+-  // directory (/home/chronos/u-<hash>), under which ChromeOS's volumes are.
+-  base::FilePath in_home;
+-  if (base::FilePath("/home/chronos/user").AppendRelativePath(path, &in_home)) {
+-    path = profile->GetPath().Append(in_home);
+-  }
++  // Linux apps name files in their home (My files) by its own path.
++  path = crostini::NickelPathFromLinuxApps(profile, path);
+   if (how == "show") {
+     platform_util::ShowItemInFolder(profile, path);
+   } else {
+@@ -650,10 +650,13 @@ void VmApplicationsServiceProvider::SelectFile(
+                                         base::FilePath()));
+     }
+     // Translate to path in host and DLP component type if possible. NickelOS
+-    // host apps already give local paths.
++    // host apps give local paths, in their home rather than My files.
+     std::vector<base::FilePath> paths;
+     if (request.vm_name() != crostini::kNickelVmName) {
+       paths = TranslateVMPathsToHost(request.vm_name(), file_infos);
++    } else {
++      paths.push_back(
++          crostini::NickelPathFromLinuxApps(profile, file_infos[0].path));
+     }
+     default_path =
+         !paths.empty() ? std::move(paths[0]) : std::move(file_infos[0].path);
+diff --git a/chrome/browser/ash/exo/chrome_security_delegate.cc b/chrome/browser/ash/exo/chrome_security_delegate.cc
+index 863e53f4307d2..f4006fc8f75b8 100644
+--- a/chrome/browser/ash/exo/chrome_security_delegate.cc
++++ b/chrome/browser/ash/exo/chrome_security_delegate.cc
+@@ -222,9 +222,11 @@ void ShareAndTranslateHostToVM(
+       // NickelOS: no VM. Only the default Wayland server's clients get here
+       // (ChromeSecurityDelegate knows no VM for them), and on NickelOS those
+       // are Linux apps running on the device itself, as the session user,
+-      // on the same files: they get the file's own path. (ChromeOS ignored
+-      // these: only VMs and ARC received files.)
+-      file_url = ui::FilePathToFileURL(info.path);
++      // on the same files: they get the file's own path, in their home
++      // rather than My files (one home). (ChromeOS ignored these: only VMs
++      // and ARC received files.)
++      file_url = ui::FilePathToFileURL(
++          crostini::NickelPathForLinuxApps(primary_profile, info.path));
+     }
+     file_urls.push_back(std::move(file_url));
+     if (share_required && !share_path->IsPathShared(vm_name, info.path)) {
+diff --git a/chrome/browser/ash/extensions/file_manager/search_by_pattern.cc b/chrome/browser/ash/extensions/file_manager/search_by_pattern.cc
+index aee0fd5da9dad..e2e41323d5b0a 100644
+--- a/chrome/browser/ash/extensions/file_manager/search_by_pattern.cc
++++ b/chrome/browser/ash/extensions/file_manager/search_by_pattern.cc
+@@ -4,7 +4,11 @@
+ 
+ #include "chrome/browser/ash/extensions/file_manager/search_by_pattern.h"
+ 
++#include <fnmatch.h>
++#include <sys/stat.h>
++
+ #include "base/files/file_enumerator.h"
++#include "base/files/file_util.h"
+ #include "base/strings/strcat.h"
+ #include "base/strings/string_util.h"
+ #include "chrome/browser/ash/fileapi/recent_disk_source.h"
+@@ -50,40 +54,62 @@ std::vector<std::pair<base::FilePath, bool>> SearchByPattern(
+   std::vector<std::pair<base::FilePath, bool>> prefix_matches;
+   std::vector<std::pair<base::FilePath, bool>> other_matches;
+ 
+-  base::FileEnumerator enumerator(
+-      root, true,
+-      base::FileEnumerator::DIRECTORIES | base::FileEnumerator::FILES,
+-      CreateFnmatchQuery(query), base::FileEnumerator::FolderSearchPolicy::ALL);
+-
+-  for (base::FilePath path = enumerator.Next(); !path.empty();
+-       path = enumerator.Next()) {
+-    if (enumerator.GetInfo().GetLastModifiedTime() < min_timestamp) {
+-      continue;
+-    }
+-    if (!ash::RecentDiskSource::MatchesFileType(path, file_type)) {
+-      continue;
+-    }
+-    // Reject files that have path in excluded paths.
+-    if (std::ranges::any_of(
+-            excluded_paths, [&path](const base::FilePath& excluded_path) {
+-              CHECK(!path.EndsWithSeparator(), base::NotFatalUntil::M160);
+-              CHECK(!excluded_path.EndsWithSeparator(),
+-                    base::NotFatalUntil::M160);
+-              return excluded_path == path || excluded_path.IsParent(path);
+-            })) {
+-      continue;
+-    }
+-    if (base::StartsWith(path.BaseName().value(), query,
+-                         base::CompareCase::INSENSITIVE_ASCII)) {
+-      prefix_matches.emplace_back(path, enumerator.GetInfo().IsDirectory());
+-      if (max_results && prefix_matches.size() == max_results) {
+-        return prefix_matches;
++  // NickelOS: My files is the Linux home (one home), whose hidden folders
++  // hold apps' own data (Flatpak, caches, game libraries). Like Recent,
++  // search skips them, and it does not follow links into other folders (a
++  // Wine prefix's z: is the whole file system).
++  const std::string pattern = CreateFnmatchQuery(query);
++  std::vector<base::FilePath> pending = {root};
++  while (!pending.empty()) {
++    const base::FilePath dir = std::move(pending.back());
++    pending.pop_back();
++    base::FileEnumerator enumerator(dir, /*recursive=*/false,
++                                    base::FileEnumerator::DIRECTORIES |
++                                        base::FileEnumerator::FILES |
++                                        base::FileEnumerator::SHOW_SYM_LINKS);
++    for (base::FilePath path = enumerator.Next(); !path.empty();
++         path = enumerator.Next()) {
++      const std::string name = path.BaseName().value();
++      if (name.starts_with('.')) {
++        continue;
++      }
++      const base::FileEnumerator::FileInfo info = enumerator.GetInfo();
++      bool is_dir = info.IsDirectory();
++      if (is_dir) {
++        pending.push_back(path);
++      } else if (S_ISLNK(info.stat().st_mode)) {
++        is_dir = base::DirectoryExists(path);
++      }
++      if (fnmatch(pattern.c_str(), name.c_str(), FNM_NOESCAPE) != 0) {
++        continue;
++      }
++      if (info.GetLastModifiedTime() < min_timestamp) {
++        continue;
++      }
++      if (!ash::RecentDiskSource::MatchesFileType(path, file_type)) {
++        continue;
++      }
++      // Reject files that have path in excluded paths.
++      if (std::ranges::any_of(
++              excluded_paths, [&path](const base::FilePath& excluded_path) {
++                CHECK(!path.EndsWithSeparator(), base::NotFatalUntil::M160);
++                CHECK(!excluded_path.EndsWithSeparator(),
++                      base::NotFatalUntil::M160);
++                return excluded_path == path || excluded_path.IsParent(path);
++              })) {
++        continue;
++      }
++      if (base::StartsWith(name, query, base::CompareCase::INSENSITIVE_ASCII)) {
++        prefix_matches.emplace_back(path, is_dir);
++        if (max_results && prefix_matches.size() == max_results) {
++          return prefix_matches;
++        }
++        continue;
++      }
++      if (!max_results ||
++          prefix_matches.size() + other_matches.size() < max_results) {
++        other_matches.emplace_back(path, is_dir);
+       }
+-      continue;
+-    }
+-    if (!max_results ||
+-        prefix_matches.size() + other_matches.size() < max_results) {
+-      other_matches.emplace_back(path, enumerator.GetInfo().IsDirectory());
+     }
+   }
+   prefix_matches.insert(

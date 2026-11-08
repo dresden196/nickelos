@@ -1,0 +1,288 @@
+#!/bin/bash
+# Build a board end to end: setup_board -> build-packages -> build-image ->
+# image_to_vm. Board from NICKEL_BOARD (default reven = the stock baseline:
+# public overlay-reven + the src/private-overlays/overlay-reven-private stand-in).
+#
+# NICKEL_SEED_FROM=<board> first hardlinks that board's local binary packages
+# into this board's PKGDIR. Portage reuses only the ones whose USE and deps
+# still match, so a reven Chrome is reused for nickel instead of a second ~2h
+# compile, while anything that differs for this board is rebuilt. Seeding needs
+# --no-eclean: by default build-packages deep-cleans every binpkg that is not
+# installed, which deletes the seed before it can be used.
+#
+# Test image = dev tools + sshd with the public test key; the qemu image is the
+# same with a 16 GiB stateful partition (4 GiB fills up on first boot).
+set -euo pipefail
+export PATH=$HOME/depot_tools:$PATH
+BOARD=${NICKEL_BOARD:-reven}
+IMAGE=${NICKEL_IMAGE:-test}
+cd /srv/nickel/src
+stage() { echo "== $1 $(date -Is)"; }
+
+# An image needs ~16 GB and a Chrome build tens more; a full disk once broke
+# Chrome's package (see the check before build-image). Stop early instead.
+free_gb=$(df -BG --output=avail . | tail -1 | tr -dc 0-9)
+if [ "${free_gb:-0}" -lt 100 ]; then
+  echo "only ${free_gb} GB free on the build host: free space first" >&2
+  exit 1
+fi
+
+# Re-creating the SDK replaces the chroot, so only create it when missing.
+if [ ! -d chroot/usr ]; then stage "sdk create"; cros_sdk --create; fi
+
+stage "setup_board $BOARD"
+cros_sdk -- setup_board --board="$BOARD"
+
+if [ -n "${NICKEL_SEED_FROM:-}" ]; then
+  stage "seed binpkgs from $NICKEL_SEED_FROM"
+  sudo cp -aln "out/build/$NICKEL_SEED_FROM/packages/." "out/build/$BOARD/packages/"
+  cros_sdk -- sudo env ROOT="/build/$BOARD/" PORTAGE_CONFIGROOT="/build/$BOARD/" \
+    emaint binhost --fix
+fi
+
+# Packages changed by board-overlay hooks (profiles/base/package.bashrc ->
+# profiles/base/bashrc/*) or patches (patches/<cat>/<pkg>/*.patch) keep their
+# version when a hook or patch changes, so portage would reuse a stale binary,
+# ours or Google's. Rebuild such a package from source whenever its hook/patch
+# content changed since its last rebuild (content hash per package), and
+# whenever the version Portage would install isn't the one installed: a
+# rebase or an upstream uprev brings a new version of a package whose patch
+# didn't change, and build-packages would take Google's binary of it, without
+# the patch (2026-10-26: system_api on R157, and nickel-appd failed to build).
+OVL="src/overlays/overlay-$BOARD"
+STAMPS="$HOME/.nickel-state/hook-stamps/$BOARD"
+mkdir -p "$STAMPS"
+declare -A HOOKFILES=()
+if [ -f "$OVL/profiles/base/package.bashrc" ]; then
+  while read -r atom files; do
+    if [ -z "$atom" ] || [ "${atom:0:1}" = "#" ]; then continue; fi
+    for f in $files; do HOOKFILES[$atom]+=" $OVL/profiles/base/bashrc/$f"; done
+  done < "$OVL/profiles/base/package.bashrc"
+fi
+if [ -d "$OVL/patches" ]; then
+  for d in "$OVL"/patches/*/*; do
+    [ -d "$d" ] || continue
+    # Patches are applied by a hook, which package.bashrc maps (2026-10-25:
+    # vm_host_tools' patch had no line and a build went by without it).
+    [ -n "${HOOKFILES[${d#"$OVL"/patches/}]:-}" ] ||
+      { echo "${d#"$OVL"/} has no hook in profiles/base/package.bashrc, so it is never applied" >&2; exit 1; }
+    HOOKFILES[${d#"$OVL"/patches/}]+=" $(echo "$d"/*.patch)"
+  done
+fi
+# Chrome's hook also writes NickelOS's translations into it.
+HOOKFILES[chromeos-base/chromeos-chrome]+=" $(echo "$OVL"/scripts/i18n/*.py "$OVL"/i18n/chrome/*.json)"
+hookhash() { cat ${HOOKFILES[$1]} 2>/dev/null | sha256sum | cut -c1-16; }
+installed() { local p; p=$(ls -d out/build/"$BOARD"/var/db/pkg/"$1"-[0-9]* 2>/dev/null | head -1); echo "${p#out/build/"$BOARD"/var/db/pkg/}"; }
+declare -A BEST=()
+while read -r atom cpv; do BEST[$atom]=$cpv; done < <(
+  cros_sdk -- env ROOT="/build/$BOARD/" PORTAGE_CONFIGROOT="/build/$BOARD/" python3 -c \
+    'import sys, portage; db = portage.db[portage.root]["porttree"].dbapi; [print(a, db.xmatch("bestmatch-visible", a) or "-") for a in sys.argv[1:]]' \
+    "${!HOOKFILES[@]}")
+[ ${#BEST[@]} -eq ${#HOOKFILES[@]} ] || { echo "could not ask Portage for the hooked packages' versions" >&2; exit 1; }
+REBUILD=()
+declare -A HASH=()
+for atom in "${!HOOKFILES[@]}"; do
+  h=$(hookhash "$atom")
+  HASH[$atom]="$h ${BEST[$atom]}"
+  stampf="$STAMPS/${atom//\//__}"
+  # A stamp from before versions were in it counts for the version installed.
+  [ "$(cat "$stampf" 2>/dev/null)" = "$h" ] && echo "$h $(installed "$atom")" > "$stampf"
+  # Only what the board has: one it doesn't have (vm_host_tools once
+  # kvm_host is off) isn't installed for it; one it gets later is checked
+  # after build-packages (patch_record_stale).
+  [ -n "$(installed "$atom")" ] || continue
+  if [ "$(cat "$stampf" 2>/dev/null)" != "${HASH[$atom]}" ] ||
+     [ "$(installed "$atom")" != "${BEST[$atom]}" ]; then
+    REBUILD+=("$atom")
+  fi
+done
+# Chrome: when its checkout is already at the commit the chromeos-chrome ebuild
+# pins, build that checkout (LOCAL_SOURCE) instead of letting the ebuild sync.
+# sync_chrome re-downloads Chrome's prebuilt toolchains every time, which makes
+# ninja rebuild nearly all of Chrome (~100 min) even for a one-file patch.
+# nickel-chrome.bashrc keeps the checkout's patches in step.
+CHROME_ENV=()
+CHROME_SRC=.cache/distfiles/chrome-src/src
+chrome_pinned=$(cros_sdk -- bash -c "sed -n 's/^GIT_COMMIT=\"\\(.*\\)\"/\\1/p' \$(equery-$BOARD which chromeos-chrome)" 2>/dev/null)
+chrome_head=$(git -c safe.directory='*' -C "$CHROME_SRC" rev-parse HEAD 2>/dev/null || true)
+if [ -n "$chrome_pinned" ] && [ "$chrome_pinned" = "$chrome_head" ]; then
+  CHROME_ENV=(env CHROME_ORIGIN=LOCAL_SOURCE CHROME_ROOT=/var/cache/chromeos-cache/distfiles/chrome-src)
+fi
+
+if [ ${#REBUILD[@]} -gt 0 ]; then
+  stage "rebuild from source (hook, patch or version changed): ${REBUILD[*]}${CHROME_ENV[*]:+ [chrome: ${CHROME_ENV[1]}]}"
+  cros_sdk -- "${CHROME_ENV[@]}" emerge-"$BOARD" --usepkg=n --getbinpkg=n --oneshot "${REBUILD[@]}"
+  # The hashes the rebuild was decided on: a hook or patch changed while it
+  # ran must still count as changed for the next build.
+  for atom in "${REBUILD[@]}"; do echo "${HASH[$atom]}" > "$STAMPS/${atom//\//__}"; done
+fi
+
+stage "build-packages $BOARD"
+BP_ARGS=()
+[ -n "${NICKEL_SEED_FROM:-}" ] && BP_ARGS+=(--no-eclean)
+cros_sdk -- cros build-packages --board="$BOARD" "${BP_ARGS[@]}"
+
+# Every package nickel-patches.bashrc patches carries a record of its
+# patches as installed (/usr/share/nickel/patched): build-packages may still
+# have taken Google's binary of one (a USE change, a reinstall), which has
+# none. Rebuild those from source.
+patch_record_stale() {
+  local d atom want
+  for d in "$OVL"/patches/*/*; do
+    [ -d "$d" ] || continue
+    atom=${d#"$OVL"/patches/}
+    case " ${HOOKFILES[$atom]} " in *"/nickel-patches.bashrc "*) ;; *) continue ;; esac
+    [ -n "$(installed "$atom")" ] || continue
+    want=$(export LC_ALL=C; cat "$d"/*.patch | sha256sum | cut -c1-16)
+    [ "$(cat "out/build/$BOARD/usr/share/nickel/patched/${atom//\//__}" 2>/dev/null)" = "$want" ] || echo "$atom"
+  done
+}
+mapfile -t unpatched < <(patch_record_stale)
+if [ ${#unpatched[@]} -gt 0 ]; then
+  stage "rebuild from source (installed without its patches): ${unpatched[*]}"
+  cros_sdk -- emerge-"$BOARD" --usepkg=n --getbinpkg=n --oneshot "${unpatched[@]}"
+  mapfile -t unpatched < <(patch_record_stale)
+  [ ${#unpatched[@]} -eq 0 ] || { echo "still without their patches: ${unpatched[*]}" >&2; exit 1; }
+fi
+
+# Out-of-tree kernel modules are built and signed for one kernel build; the
+# kernel package has no subslot, so their := dependency never rebuilds them,
+# and a module from an older kernel build is refused at boot. Rebuild each
+# whenever the kernel package is newer than its own.
+KMOD_PKGS=(x11-drivers/nvidia-open games-util/xonedo games-util/xpadneo
+	media-video/v4l2loopback)
+OUT=out/build/$BOARD/packages
+kpkg=$(ls -t "$OUT"/sys-kernel/chromeos-kernel-*.tbz2 2>/dev/null | head -1)
+stale=()
+for p in "${KMOD_PKGS[@]}"; do
+  mpkg=$(ls -t "$OUT/$p"-[0-9]*.tbz2 2>/dev/null | head -1)
+  if [ -n "$kpkg" ] && [ -n "$mpkg" ] && [ "$kpkg" -nt "$mpkg" ]; then
+    stale+=("$p")
+  fi
+done
+if [ ${#stale[@]} -gt 0 ]; then
+  stage "rebuild kernel modules for the new kernel: ${stale[*]}"
+  cros_sdk -- emerge-"$BOARD" --usepkg=n --getbinpkg=n --oneshot "${stale[@]}"
+fi
+
+# 2026-10-10: the disk filled while Chrome's package was made; its strip
+# step failed on a truncated binary, the build went on with an empty
+# /opt/google/chrome/chrome, and the image had no UI. Check it here.
+chrome_bin=out/build/$BOARD/opt/google/chrome/chrome
+if [ "$BOARD" != reven ] && { [ ! -f "$chrome_bin" ] ||
+    [ "$(stat -c %s "$chrome_bin")" -lt 50000000 ]; }; then
+  echo "Chrome's binary in the board root is missing or truncated;" \
+    "rebuild chromeos-chrome before making an image" >&2
+  exit 1
+fi
+
+# Updates (docs/vision.md "Updates"): where the image's update_engine asks
+# for updates and the channel a fresh install starts on (cros_set_lsb_release
+# reads these; cros_sdk passes them into the chroot). NICKEL_PATCH is
+# NickelOS's own fix counter, the platform version's third number, which
+# Google leaves at 0 on its release branches: 16836.3.NICKEL_PATCH. It goes
+# into chromeos_version.sh for the image build only and is put back after.
+export CHROMEOS_VERSION_AUSERVER=${NICKEL_AUSERVER:-https://update.nickelos.dev/update}
+export CHROMEOS_VERSION_DEVSERVER=${NICKEL_DEVSERVER:-https://update.nickelos.dev}
+export CHROMEOS_VERSION_TRACK=${NICKEL_TRACK:-stable-channel}
+VERSION_SH=src/third_party/chromiumos-overlay/chromeos/config/chromeos_version.sh
+if [ -n "${NICKEL_PATCH:-}" ]; then
+  [[ $NICKEL_PATCH =~ ^[0-9]+$ ]] || { echo "NICKEL_PATCH must be a number" >&2; exit 1; }
+  cp -p "$VERSION_SH" "$VERSION_SH.nickel-orig"
+  trap 'mv -f "$VERSION_SH.nickel-orig" "$VERSION_SH"' EXIT
+  sed -i "s/^CHROMEOS_PATCH=.*/CHROMEOS_PATCH=${NICKEL_PATCH}/" "$VERSION_SH"
+fi
+
+# NickelOS (docs/unified.md): the Unified Gentoo root, whose Portage
+# installs Gentoo's packages into the image (scripts/unified/nickel-unify,
+# from build_image's hook), bound into the checkout so the SDK sees it.
+if [ "$BOARD" != reven ]; then
+  UNIFIED_ROOT=${NICKEL_UNIFIED_ROOT:-/srv/nickel/unified/root}
+  [ -x "$UNIFIED_ROOT/usr/bin/emerge" ] || { echo "no Unified Gentoo root at $UNIFIED_ROOT" >&2; exit 1; }
+  mkdir -p .nickel-unified-root
+  mountpoint -q .nickel-unified-root || sudo mount --bind "$UNIFIED_ROOT" .nickel-unified-root
+fi
+
+VERSION=$(grep -E '^CHROMEOS_(BUILD|BRANCH|PATCH)=' "$VERSION_SH" | cut -d= -f2 | paste -sd.)
+# The builder path (CHROMEOS_RELEASE_BUILDER_PATH) is where update_engine
+# looks for this build's scaled DLCs on update.nickelos.dev (push-dlc).
+BUILDER_PATH=nickel-release/R$(sed -n 's/^CHROME_BRANCH=//p' "$VERSION_SH")-$VERSION
+stage "build-image $BOARD $IMAGE ($VERSION, $CHROMEOS_VERSION_TRACK, $BUILDER_PATH)"
+cros_sdk -- cros build-image --board="$BOARD" --no-enable-rootfs-verification \
+  --builder-path="$BUILDER_PATH" "$IMAGE"
+
+# The board's GRUB (patches/sys-boot/grub: boot fallback) into the image:
+# build_image makes x86's bootx64.efi from the SDK's GRUB modules instead.
+if [ "$BOARD" != reven ] && [ -x "$OVL/scripts/buildhost/bin/nickel-image-grub" ]; then
+  stage "board GRUB into the image $BOARD"
+  cros_sdk -- env NICKEL_BOARD="$BOARD" "/mnt/host/source/$OVL/scripts/buildhost/bin/nickel-image-grub" \
+    "/mnt/host/source/src/build/images/$BOARD/latest/chromiumos_${IMAGE}_image.bin"
+fi
+
+# Secure Boot (scripts/secureboot/README.md), only with a key:
+# NICKEL_SECUREBOOT_KEY and NICKEL_SECUREBOOT_CERT (PEM files on the build
+# host; the test key for test images). Shim, MokManager and the Secure Boot
+# GRUB in the SDK, the signatures outside it.
+if [ "$BOARD" != reven ] && [ -n "${NICKEL_SECUREBOOT_KEY:-}" ]; then
+  stage "Secure Boot: shim and its GRUB into the image $BOARD"
+  cros_sdk -- emerge-"$BOARD" --quiet --noreplace sys-boot/nickel-shim
+  cros_sdk -- env NICKEL_BOARD="$BOARD" NICKEL_SECUREBOOT=1 "/mnt/host/source/$OVL/scripts/buildhost/bin/nickel-image-grub" \
+    "/mnt/host/source/src/build/images/$BOARD/latest/chromiumos_${IMAGE}_image.bin"
+  sudo "$OVL/scripts/buildhost/bin/nickel-image-sbsign" "src/build/images/$BOARD/latest/chromiumos_${IMAGE}_image.bin" \
+    "$NICKEL_SECUREBOOT_KEY" "${NICKEL_SECUREBOOT_CERT:?NICKEL_SECUREBOOT_CERT with NICKEL_SECUREBOOT_KEY}"
+fi
+
+# A release image says "Release Build", not "Developer Build - <user>"
+# (nickel-image-release-type), before Secure Boot's or anyone's signatures.
+if [ "$BOARD" != reven ] && [ "$IMAGE" = base ]; then
+  stage "release build type $BOARD"
+  cros_sdk -- "/mnt/host/source/$OVL/scripts/buildhost/bin/nickel-image-release-type" \
+    "/mnt/host/source/src/build/images/$BOARD/latest/chromiumos_${IMAGE}_image.bin"
+fi
+
+# The test payload key in test images (always) and in base images built
+# for tests (NICKEL_TEST_KEY=1); release images keep the production key.
+if [ "$BOARD" != reven ] && { [ "$IMAGE" = test ] || [ "${NICKEL_TEST_KEY:-}" = 1 ]; }; then
+  stage "test payload key into the image $BOARD"
+  cros_sdk -- "/mnt/host/source/$OVL/scripts/buildhost/bin/nickel-image-testkey" \
+    "/mnt/host/source/src/build/images/$BOARD/latest/chromiumos_${IMAGE}_image.bin"
+fi
+
+# A test image's /usr/local comes filled with ChromiumOS's developer and
+# test tools, leaving its stateful partition nearly full; finish it here
+# rather than at first boot, which from a USB stick took ~15 minutes
+# (nickel-test-image-finish).
+if [ "$IMAGE" = test ] && [ -x "$OVL/scripts/buildhost/bin/nickel-test-image-finish" ]; then
+  stage "finish test image $BOARD"
+  cros_sdk -- "/mnt/host/source/$OVL/scripts/buildhost/bin/nickel-test-image-finish" \
+    "/mnt/host/source/src/build/images/$BOARD/latest/chromiumos_test_image.bin"
+fi
+
+# The VM's data partition: 32 GiB (a sparse file), room for your layer of
+# Gentoo and Gentoo's repository beside the Flatpak apps and the test tools
+# the tests install; at 16 GiB the release check filled it.
+if [ "$IMAGE" = test ]; then
+  stage "image_to_vm $BOARD"
+  cros_sdk -- ./image_to_vm.sh --board="$BOARD" --test_image --adjust_part=STATE:=32GiB
+fi
+
+# An image directory takes ~16 GB (the test image and the VM's copy of it);
+# 62 of them filled the build host's disk on 2026-10-10 and a Chrome build
+# failed. Keep the newest four, and any a test VM's overlay is backed by.
+stage "prune old images"
+keep=$(ls -dt src/build/images/"$BOARD"/R*-a1 | head -4 | xargs -r -n1 realpath)
+backing=$(for q in /srv/nickel/vmtest*/*.qcow2; do
+  qemu-img info -U "$q" 2>/dev/null | sed -n 's/^backing file: //p'
+done | xargs -r -n1 dirname)
+for d in src/build/images/"$BOARD"/R*-a1; do
+  d=$(realpath "$d")
+  case " $(echo $keep $backing) " in *" $d "*) continue ;; esac
+  echo "removing $d"
+  rm -rf -- "$d" || sudo rm -rf -- "$d"
+done
+
+# The binhost of this version (Portage and dev_install on the image ask it).
+[ -x /usr/local/bin/nickel-binhost-sync ] && /usr/local/bin/nickel-binhost-sync
+
+stage "done"
+ls -la src/build/images/"$BOARD"/latest/*.bin

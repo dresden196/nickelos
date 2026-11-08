@@ -1,0 +1,9 @@
+# Ours, from NickelOS's Gentoo repository (scripts/unified/gentoo/
+# device-repo.txt): they carry NickelOS's patches, GURU's copies don't.
+app-containers/waydroid::guru
+dev-python/gbinder::guru
+dev-libs/gbinder::guru
+dev-libs/libglibutil::guru
+# NickelOS's notifications are the OS's own (nickel-portal): our virtual
+# says so, Gentoo's would bring Gentoo's notification-daemon.
+virtual/notification-daemon::gentoo

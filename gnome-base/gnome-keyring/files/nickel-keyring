@@ -1,0 +1,39 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# NickelOS: starts gnome-keyring, the Secret Service (where apps keep saved
+# passwords and sign-ins; Flatpak apps through the Secret portal), with the
+# user's login keyring unlocked. The session bus starts it for any of
+# gnome-keyring's names (D-Bus activation: org.freedesktop.secrets,
+# org.gnome.keyring, org.freedesktop.impl.portal.Secret).
+#
+# A Linux desktop unlocks the login keyring with the password typed at
+# sign-in (PAM); ChromeOS's sign-in gives that password to cryptohome only.
+# So the login keyring's password is a random key of the account's own,
+# made the first time and kept at the top of the encrypted vault: encrypted
+# with the home, but outside it, where Chrome's profile is, so a Flatpak app
+# with access to the home can't read it. gnome-keyring makes the login
+# keyring with it when there is none, and the login keyring is the default
+# one. A keyring the user made some other way keeps its own password
+# (gnome-keyring asks for it).
+set -eu
+key=/home/chronos/user/.nickel-keyring-key
+rt=${XDG_RUNTIME_DIR:?}
+
+# One start at a time: the bus may start this for two names at once.
+exec 9>"${rt}/nickel-keyring.lock"
+flock 9
+if ! pgrep -u "$(id -u)" -x gnome-keyring-d >/dev/null; then
+	if [ ! -s "${key}" ]; then
+		(umask 077; head -c 32 /dev/urandom | base64 -w 0 > "${key}.new")
+		mv -f "${key}.new" "${key}"
+	fi
+	# Starts the daemon, which unlocks (or makes) the login keyring with the
+	# key once it is initialized, below.
+	gnome-keyring-daemon --daemonize --login < "${key}" > /dev/null
+fi
+flock -u 9
+
+# Initializes the daemon (the Secret Service), then stays while it runs, as
+# the bus expects of what it started.
+exec gnome-keyring-daemon --start --foreground --components=secrets > /dev/null

@@ -1,0 +1,65 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# libnickelhwcfix.so (files/hwcfix) fixes Waydroid's hwcomposer (its own on
+# Intel and AMD, waydroid-nvidia's on NVIDIA) from inside its process:
+#   - a roundtrip that can wait forever for a reply the Wayland thread
+#     already took (first boots, most of all on NVIDIA);
+#   - a focus change sent to Android with the window lock held, which
+#     deadlocks with a frame when Android is busy (a window opening);
+#   - every buffer made again each frame while the pointer moves or a list
+#     scrolls, which Chrome then imported again (choppy, a lagging pointer);
+#   - the mouse pointer read back through the GPU, which on NVIDIA (ANGLE
+#     over Venus) came out as noise: it's read with the CPU now;
+#   - Android's display hotplugged whenever an Android window gained or lost
+#     focus (windows jumped back in front, SurfaceFlinger could crash);
+#   - SurfaceViews made with a context other than the Activity (every SDL
+#     game, SuperTuxKart among them) given no window: the game's window
+#     stayed empty;
+#   - opaque layers handed over with their alpha, which games leave below 1:
+#     the desktop showed through Shattered Pixel Dungeon and Mindustry;
+#   - the colour Android draws behind an app (its task's background) never
+#     shown: the desktop showed through the bare strip Android leaves under
+#     fullscreen apps (Mindustry, Pixel Wheels).
+# The hangs end in Android's watchdog restarting it. The comments in each
+# source file say how. Android's init preloads it into the composer service:
+# Waydroid's own init.waydroid.rc (which overrides the vendor's composer
+# service, so a vendor file can't), copied from the system image with
+# LD_PRELOAD added, and the library, both in Waydroid's overlay. Redone when
+# either changes.
+#
+# Run by nickel-waydroid-prepare; a failure here leaves Android as Waydroid
+# made it.
+set -e
+W=/var/lib/waydroid
+fix=/usr/share/nickel-waydroid/libnickelhwcfix.so.gz
+system=${W}/images/system.img
+lib=${W}/overlay/vendor/lib64/libnickelhwcfix.so
+rc=${W}/overlay/system/etc/init/init.waydroid.rc
+stamp=${W}/.nickel-hwcfix
+[ -f "${fix}" ] && [ -f "${system}" ] || exit 0
+want="$(md5sum < "${fix}" | cut -c1-32) $(stat -c %Y "${system}")"
+if [ "$(cat "${stamp}" 2>/dev/null)" = "${want}" ] && [ -f "${lib}" ]; then
+  exit 0
+fi
+mkdir -p "${lib%/*}" "${rc%/*}"
+gzip -dc "${fix}" > "${lib}.new"
+chmod 0644 "${lib}.new"
+mv "${lib}.new" "${lib}"
+m=$(mktemp -d)
+mount -o loop,ro "${system}" "${m}"
+src=${m}/system/etc/init/init.waydroid.rc
+if [ -f "${src}" ] && grep -q '^service vendor\.hwcomposer-2-1 ' "${src}"; then
+  awk '{ print }
+    /^service vendor\.hwcomposer-2-1 / {
+      print "    setenv LD_PRELOAD /vendor/lib64/libnickelhwcfix.so"
+    }' "${src}" > "${rc}.new"
+  chmod 0644 "${rc}.new"
+  mv "${rc}.new" "${rc}"
+else
+  # An image without that service: Waydroid's own file stays.
+  rm -f "${rc}"
+fi
+umount "${m}"
+rmdir "${m}"
+echo "${want}" > "${stamp}"

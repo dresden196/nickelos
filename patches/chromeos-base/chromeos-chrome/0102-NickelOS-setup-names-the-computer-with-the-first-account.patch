@@ -1,0 +1,614 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: setup names the computer with the first account
+
+Settings > About can rename the computer (0083), but setup never asked, so
+every NickelOS computer was "localhost" until someone renamed it. The
+first account's screen now has a Computer name field under "Your name",
+filled in as the name is typed: "Dresden's Latitude 5510" from the
+person's first name and the computer's model (nickel-hostnamed's
+HardwareModel), or "Dresden's Laptop" (or Desktop, Tablet, Computer) when
+the firmware's model is a placeholder or a desktop's motherboard name.
+Once edited, it stays as typed. On Create, the name is set first
+(org.nickelos.Hostname1's SetName, which nickel-hostnamed allows from the
+sign-in screen until an account exists), then the account is made; a name
+with no character a hostname can hold gets Settings' error, and any other
+failure leaves the name for Settings. Later accounts ("Add person") don't
+see the field.
+
+The screen's own wording, hardcoded English until now, moves into
+ui_chromeos_strings.grd, so it can be translated, with the new strings.
+
+---
+diff --git a/chrome/browser/ash/login/screens/BUILD.gn b/chrome/browser/ash/login/screens/BUILD.gn
+index 2f4a1f7..f486d01 100644
+--- a/chrome/browser/ash/login/screens/BUILD.gn
++++ b/chrome/browser/ash/login/screens/BUILD.gn
+@@ -357,6 +357,7 @@ static_library("screens") {
+     "//services/network/public/mojom:url_loader_base",
+     "//ui/aura",
+     "//ui/base",
++    "//ui/chromeos/strings:strings_grit",
+     "//ui/chromeos",
+     "//ui/display/manager",
+     "//ui/gfx",
+diff --git a/chrome/browser/ash/login/screens/local_account_creation_screen.cc b/chrome/browser/ash/login/screens/local_account_creation_screen.cc
+index efa0be0..270ee4b 100644
+--- a/chrome/browser/ash/login/screens/local_account_creation_screen.cc
++++ b/chrome/browser/ash/login/screens/local_account_creation_screen.cc
+@@ -9,6 +9,7 @@
+ #include "base/functional/bind.h"
+ #include "base/logging.h"
+ #include "base/strings/string_util.h"
++#include "base/strings/utf_string_conversions.h"
+ #include "chrome/browser/ash/login/existing_user_controller.h"
+ #include "chrome/browser/ash/login/users/default_user_image/default_user_images.h"
+ #include "chrome/browser/browser_process.h"
+@@ -27,6 +28,9 @@
+ #include "dbus/bus.h"
+ #include "dbus/message.h"
+ #include "dbus/object_proxy.h"
++#include "dbus/property.h"
++#include "ui/base/l10n/l10n_util.h"
++#include "ui/chromeos/strings/grit/ui_chromeos_strings.h"
+ 
+ namespace ash {
+ namespace {
+@@ -44,6 +48,43 @@ constexpr char kAccountsInterface[] = "org.nickelos.Accounts";
+ // left without its account, so the username stayed taken).
+ constexpr int kAccountsTimeoutMs = 2 * 60 * 1000;
+ 
++// nickel-hostnamed: the computer's name (org.freedesktop.hostname1, and
++// org.nickelos.Hostname1's SetName for the name as typed).
++constexpr char kHostnameService[] = "org.freedesktop.hostname1";
++constexpr char kHostnamePath[] = "/org/freedesktop/hostname1";
++constexpr char kHostnameInterface[] = "org.freedesktop.hostname1";
++constexpr char kNickelHostnameInterface[] = "org.nickelos.Hostname1";
++
++dbus::ObjectProxy* HostnameProxy() {
++  return DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++      kHostnameService, dbus::ObjectPath(kHostnamePath));
++}
++
++// The computer's model for its default name, or "" when the firmware's is no
++// use: placeholders board makers leave, or a desktop's motherboard name.
++std::string ComputerModel(const std::string& vendor,
++                          const std::string& model,
++                          const std::string& chassis) {
++  const std::string lower = base::ToLowerASCII(model);
++  for (const char* junk :
++       {"default string", "to be filled by o.e.m.", "system product name",
++        "not applicable", "none", "system version", "o.e.m.", "unknown"}) {
++    if (lower.empty() || lower == junk) {
++      return "";
++    }
++  }
++  if (chassis == "desktop") {
++    const std::string maker = base::ToLowerASCII(vendor);
++    for (const char* board : {"gigabyte", "asrock", "micro-star", "asustek",
++                              "biostar", "supermicro"}) {
++      if (maker.find(board) != std::string::npos) {
++        return "";
++      }
++    }
++  }
++  return model;
++}
++
+ // Same rule as nickel-accountsd: ^[a-z_][a-z0-9_-]{0,31}$.
+ bool IsValidUsername(const std::string& name) {
+   if (name.empty() || name.size() > 32 ||
+@@ -114,7 +155,58 @@ void LocalAccountCreationScreen::ShowImpl() {
+                        .Set("url", image.url.spec())
+                        .Set("title", image.title));
+   }
+-  view_->Show(base::DictValue().Set("avatars", std::move(avatars)));
++  base::DictValue data;
++  data.Set("avatars", std::move(avatars));
++  // The first account: the computer's name is asked too (nickel-hostnamed
++  // lets setup set it until an account exists).
++  ask_computer_name_ =
++      user_manager::UserManager::Get()->GetPersistedUsers().empty();
++  if (!ask_computer_name_) {
++    view_->Show(std::move(data));
++    return;
++  }
++  dbus::MethodCall method_call(dbus::kPropertiesInterface,
++                               dbus::kPropertiesGetAll);
++  dbus::MessageWriter(&method_call).AppendString(kHostnameInterface);
++  HostnameProxy()->CallMethod(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&LocalAccountCreationScreen::OnComputerInfo,
++                     weak_ptr_factory_.GetWeakPtr(), std::move(data)));
++}
++
++void LocalAccountCreationScreen::OnComputerInfo(base::DictValue data,
++                                                dbus::Response* response) {
++  if (!view_) {
++    return;
++  }
++  std::string vendor, model, chassis;
++  if (response) {
++    dbus::MessageReader reader(response);
++    dbus::MessageReader properties(nullptr);
++    if (reader.PopArray(&properties)) {
++      while (properties.HasMoreData()) {
++        dbus::MessageReader entry(nullptr);
++        std::string key, value;
++        if (!properties.PopDictEntry(&entry) || !entry.PopString(&key)) {
++          break;
++        }
++        if (!entry.PopVariantOfString(&value)) {
++          continue;
++        }
++        if (key == "HardwareVendor") {
++          vendor = value;
++        } else if (key == "HardwareModel") {
++          model = value;
++        } else if (key == "Chassis") {
++          chassis = value;
++        }
++      }
++    }
++  }
++  data.Set("askComputerName", true);
++  data.Set("computerModel", ComputerModel(vendor, model, chassis));
++  data.Set("computerChassis", chassis);
++  view_->Show(std::move(data));
+ }
+ 
+ void LocalAccountCreationScreen::HideImpl() {}
+@@ -123,10 +215,12 @@ void LocalAccountCreationScreen::OnUserAction(const base::ListValue& args) {
+   const std::string& action_id = args[0].GetString();
+   if (action_id == kUserActionBack) {
+     exit_callback_.Run(Result::BACK);
+-  } else if (action_id == kUserActionCreate && args.size() == 5) {
++  } else if (action_id == kUserActionCreate &&
++             (args.size() == 5 || args.size() == 6)) {
+     HandleCreate(args[1].GetString(), args[2].GetString(),
+                  args[3].GetString(),
+-                 static_cast<int>(args[4].GetIfDouble().value_or(-1)));
++                 static_cast<int>(args[4].GetIfDouble().value_or(-1)),
++                 args.size() == 6 ? args[5].GetString() : std::string());
+   } else {
+     BaseScreen::OnUserAction(args);
+   }
+@@ -135,19 +229,61 @@ void LocalAccountCreationScreen::OnUserAction(const base::ListValue& args) {
+ void LocalAccountCreationScreen::HandleCreate(const std::string& display_name,
+                                               const std::string& username,
+                                               const std::string& password,
+-                                              int avatar_index) {
++                                              int avatar_index,
++                                              const std::string& computer_name) {
+   if (!IsValidUsername(username)) {
+     return ShowError(
+-        "Usernames start with a lowercase letter and use only lowercase "
+-        "letters, digits, - and _ (up to 32).");
++        l10n_util::GetStringUTF8(IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME));
+   }
+   if (password.empty()) {
+-    return ShowError("Choose a password.");
++    return ShowError(
++        l10n_util::GetStringUTF8(IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD));
+   }
+   if (user_manager::UserManager::Get()->FindUser(
+           user_manager::MakeNickelLocalAccountId(username))) {
+-    return ShowError("That username is taken.");
++    return ShowError(
++        l10n_util::GetStringUTF8(IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN));
++  }
++  // The computer's name first, with the first account: once that account
++  // exists nickel-hostnamed takes it only from an administrator.
++  if (ask_computer_name_ &&
++      !base::TrimWhitespaceASCII(computer_name, base::TRIM_ALL).empty()) {
++    dbus::MethodCall method_call(kNickelHostnameInterface, "SetName");
++    dbus::MessageWriter(&method_call).AppendString(computer_name);
++    HostnameProxy()->CallMethodWithErrorResponse(
++        &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++        base::BindOnce(&LocalAccountCreationScreen::OnComputerNamed,
++                       weak_ptr_factory_.GetWeakPtr(), display_name, username,
++                       password, avatar_index));
++    return;
++  }
++  CreateUser(display_name, username, password, avatar_index);
++}
++
++void LocalAccountCreationScreen::OnComputerNamed(
++    const std::string& display_name,
++    const std::string& username,
++    const std::string& password,
++    int avatar_index,
++    dbus::Response* response,
++    dbus::ErrorResponse* error) {
++  if (!response) {
++    if (error && error->GetErrorName() ==
++                     "org.freedesktop.hostname1.Error.InvalidName") {
++      return ShowError(
++          l10n_util::GetStringUTF8(IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID));
++    }
++    // The account matters more; the name can be set in Settings later.
++    LOG(WARNING) << "Could not name the computer: "
++                 << (error ? error->GetErrorName() : "no reply");
+   }
++  CreateUser(display_name, username, password, avatar_index);
++}
++
++void LocalAccountCreationScreen::CreateUser(const std::string& display_name,
++                                            const std::string& username,
++                                            const std::string& password,
++                                            int avatar_index) {
+   // The first account on the device is its owner and an administrator
+   // (sudo).
+   const bool admin =
+@@ -177,14 +313,18 @@ void LocalAccountCreationScreen::OnUserCreated(const std::string& username,
+         error->GetErrorName() == "org.freedesktop.DBus.Error.NoReply") {
+       // No answer in time: the user may still be made after all.
+       DeleteLinuxUser(username);
+-      return ShowError("Creating the account took too long. Try again.");
++      return ShowError(
++          l10n_util::GetStringUTF8(IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG));
+     }
+-    std::string message = "Could not create the account.";
++    std::string message =
++        l10n_util::GetStringUTF8(IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED);
+     if (error) {
+       std::string detail;
+       dbus::MessageReader(error).PopString(&detail);
+       if (!detail.empty()) {
+-        message = "Could not create the account: " + detail + ".";
++        message = l10n_util::GetStringFUTF8(
++            IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL,
++            base::UTF8ToUTF16(detail));
+       }
+     }
+     return ShowError(message);
+@@ -220,7 +360,9 @@ void LocalAccountCreationScreen::OnAuthFailure(const AuthFailure& error) {
+     SetPendingAvatar(pending_username_, -1);
+     pending_username_.clear();
+   }
+-  ShowError("Could not set up the account: " + error.GetErrorString());
++  ShowError(l10n_util::GetStringFUTF8(
++      IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN,
++      base::UTF8ToUTF16(error.GetErrorString())));
+ }
+ 
+ void LocalAccountCreationScreen::OnAuthSuccess(
+diff --git a/chrome/browser/ash/login/screens/local_account_creation_screen.h b/chrome/browser/ash/login/screens/local_account_creation_screen.h
+index fde332e..3a19eb8 100644
+--- a/chrome/browser/ash/login/screens/local_account_creation_screen.h
++++ b/chrome/browser/ash/login/screens/local_account_creation_screen.h
+@@ -9,6 +9,7 @@
+ 
+ #include "base/functional/callback.h"
+ #include "base/memory/weak_ptr.h"
++#include "base/values.h"
+ #include "chrome/browser/ash/login/screens/base_screen.h"
+ #include "chromeos/ash/components/login/auth/auth_status_consumer.h"
+ 
+@@ -55,11 +56,26 @@ class LocalAccountCreationScreen : public BaseScreen,
+   void HideImpl() override;
+   void OnUserAction(const base::ListValue& args) override;
+ 
+-  // `avatar_index` is the default image picked for the account (-1: none).
++  // Shows the screen once nickel-hostnamed said what the computer is (its
++  // model, its kind), for the computer's name asked with the first account.
++  void OnComputerInfo(base::DictValue data, dbus::Response* response);
++  // `avatar_index` is the default image picked for the account (-1: none);
++  // `computer_name`, the computer's name typed with the first account.
+   void HandleCreate(const std::string& display_name,
+                     const std::string& username,
+                     const std::string& password,
+-                    int avatar_index);
++                    int avatar_index,
++                    const std::string& computer_name);
++  void OnComputerNamed(const std::string& display_name,
++                       const std::string& username,
++                       const std::string& password,
++                       int avatar_index,
++                       dbus::Response* response,
++                       dbus::ErrorResponse* error);
++  void CreateUser(const std::string& display_name,
++                  const std::string& username,
++                  const std::string& password,
++                  int avatar_index);
+   void OnUserCreated(const std::string& username,
+                      const std::string& password,
+                      dbus::Response* response,
+@@ -75,6 +91,9 @@ class LocalAccountCreationScreen : public BaseScreen,
+ 
+   // The Linux user this screen created; removed again if signing in fails.
+   std::string pending_username_;
++  // Whether this is the first account, for which the screen asks the
++  // computer's name too.
++  bool ask_computer_name_ = false;
+   bool observing_login_ = false;
+ 
+   base::WeakPtrFactory<LocalAccountCreationScreen> weak_ptr_factory_{this};
+diff --git a/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.html b/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.html
+index 7f5094b..dba4128 100644
+--- a/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.html
++++ b/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.html
+@@ -17,6 +17,11 @@ found in the LICENSE file.
+     color: var(--cros-sys-error);
+   }
+ 
++  #computerNameHint {
++    color: var(--cros-sys-on_surface_variant);
++    margin-block: -8px 12px;
++  }
++
+   #pictureRow {
+     align-items: center;
+     display: flex;
+@@ -83,6 +88,15 @@ found in the LICENSE file.
+         label="[[i18nDynamic(locale, 'localAccountCreationName')]]"
+         on-input="onNameInput">
+     </cr-input>
++    <template is="dom-if" if="[[askComputerName]]" restamp>
++      <cr-input id="computerNameInput" value="{{computerName}}"
++          label="[[i18nDynamic(locale, 'localAccountCreationComputerName')]]"
++          on-input="onComputerNameInput">
++      </cr-input>
++      <div id="computerNameHint">
++        [[i18nDynamic(locale, 'localAccountCreationComputerNameHint')]]
++      </div>
++    </template>
+     <cr-input id="usernameInput" value="{{username}}"
+         label="[[i18nDynamic(locale, 'localAccountCreationUsername')]]"
+         invalid="[[!usernameOk(username)]]"
+diff --git a/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts b/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts
+index 3b12eee..ecedd8f 100644
+--- a/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts
++++ b/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts
+@@ -70,6 +70,11 @@ export class LocalAccountCreation extends LocalAccountCreationBase {
+       usernameEdited: {type: Boolean, value: false},
+       avatars: {type: Array, value: () => []},
+       avatarIndex: {type: Number, value: -1},
++      askComputerName: {type: Boolean, value: false},
++      computerName: {type: String, value: ''},
++      computerNameEdited: {type: Boolean, value: false},
++      computerModel: {type: String, value: ''},
++      computerChassis: {type: String, value: ''},
+     };
+   }
+ 
+@@ -82,6 +87,13 @@ export class LocalAccountCreation extends LocalAccountCreationBase {
+   declare private avatars: Avatar[];
+   // The picture chosen (a default image index), -1 for none.
+   declare private avatarIndex: number;
++  // The computer's name, asked with the first account: suggested from the
++  // person's first name and the computer's model (or kind) until edited.
++  declare private askComputerName: boolean;
++  declare private computerName: string;
++  declare private computerNameEdited: boolean;
++  declare private computerModel: string;
++  declare private computerChassis: string;
+ 
+   override get EXTERNAL_API(): string[] {
+     return ['showError'];
+@@ -119,6 +131,11 @@ export class LocalAccountCreation extends LocalAccountCreationBase {
+     this.avatarIndex = this.avatars.length ?
+         this.avatars[Math.floor(Math.random() * this.avatars.length)].index :
+         -1;
++    this.askComputerName = !!(data && data.askComputerName);
++    this.computerModel = (data && data.computerModel) || '';
++    this.computerChassis = (data && data.computerChassis) || '';
++    this.computerNameEdited = false;
++    this.computerName = this.suggestedComputerName('');
+     this.setUIStep(LocalAccountCreationStep.FORM);
+   }
+ 
+@@ -130,8 +147,14 @@ export class LocalAccountCreation extends LocalAccountCreationBase {
+     this.setUIStep(LocalAccountCreationStep.FORM);
+   }
+ 
+-  /** Suggests a username from the name until the user types one. */
++  /**
++   * Suggests a username, and the computer's name, from the name until the
++   * user types them.
++   */
+   private onNameInput(): void {
++    if (!this.computerNameEdited) {
++      this.computerName = this.suggestedComputerName(this.displayName);
++    }
+     if (this.usernameEdited) {
+       return;
+     }
+@@ -140,6 +163,27 @@ export class LocalAccountCreation extends LocalAccountCreationBase {
+         first.toLowerCase().replace(/[^a-z0-9_-]/g, '').substring(0, 32);
+   }
+ 
++  private onComputerNameInput(): void {
++    this.computerNameEdited = true;
++  }
++
++  /** "Dresden's Latitude 5510", or "Dresden's Laptop" with no model. */
++  private suggestedComputerName(displayName: string): string {
++    const kinds: Record<string, string> = {
++      laptop: 'localAccountCreationComputerLaptop',
++      convertible: 'localAccountCreationComputerLaptop',
++      desktop: 'localAccountCreationComputerDesktop',
++      tablet: 'localAccountCreationComputerTablet',
++    };
++    const device = this.computerModel ||
++        this.i18n(kinds[this.computerChassis] ||
++                  'localAccountCreationComputerGeneric');
++    const first = displayName.trim().split(/\s+/)[0] || '';
++    return first ?
++        this.i18n('localAccountCreationComputerNameDefault', first, device) :
++        device;
++  }
++
+   private onUsernameInput(): void {
+     this.usernameEdited = true;
+   }
+@@ -196,6 +240,7 @@ export class LocalAccountCreation extends LocalAccountCreationBase {
+       this.username,
+       this.password,
+       this.avatarIndex,
++      this.askComputerName ? this.computerName.trim() : '',
+     ]);
+   }
+ 
+diff --git a/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.cc b/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.cc
+index c052240..d4fbc1e 100644
+--- a/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.cc
++++ b/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.cc
+@@ -5,6 +5,7 @@
+ #include "chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.h"
+ 
+ #include "components/login/localized_values_builder.h"
++#include "ui/chromeos/strings/grit/ui_chromeos_strings.h"
+ 
+ namespace ash {
+ 
+@@ -14,29 +15,45 @@ LocalAccountCreationScreenHandler::LocalAccountCreationScreenHandler()
+ LocalAccountCreationScreenHandler::~LocalAccountCreationScreenHandler() =
+     default;
+ 
+-// TODO(NickelOS): move the strings into a .grd so they can be translated.
+ void LocalAccountCreationScreenHandler::DeclareLocalizedValues(
+     ::login::LocalizedValuesBuilder* builder) {
+-  builder->Add("localAccountCreationTitle", "Create your account");
++  builder->Add("localAccountCreationTitle", IDS_NICKEL_LOCAL_ACCOUNT_TITLE);
+   builder->Add("localAccountCreationSubtitle",
+-               "Your account and its files live on this device, encrypted "
+-               "with your password. Without a Google account there is no way "
+-               "to recover them if you forget it.");
+-  builder->Add("localAccountCreationName", "Your name");
+-  builder->Add("localAccountCreationUsername", "Username");
++               IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE);
++  builder->Add("localAccountCreationName", IDS_NICKEL_LOCAL_ACCOUNT_NAME);
++  builder->Add("localAccountCreationUsername",
++               IDS_NICKEL_LOCAL_ACCOUNT_USERNAME);
+   builder->Add("localAccountCreationUsernameError",
+-               "Start with a lowercase letter; use lowercase letters, digits, "
+-               "- and _ (up to 32)");
+-  builder->Add("localAccountCreationPassword", "Password");
+-  builder->Add("localAccountCreationConfirm", "Confirm password");
+-  builder->Add("localAccountCreationMismatch", "The passwords don't match");
+-  builder->Add("localAccountCreationCreating", "Creating your account...");
+-  builder->Add("localAccountCreationPicture", "Your picture");
+-  builder->Add("localAccountCreationChangePicture", "Change");
+-  builder->Add("localAccountCreationPictureTitle", "Choose a picture");
++               IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR);
++  builder->Add("localAccountCreationPassword",
++               IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD);
++  builder->Add("localAccountCreationConfirm", IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM);
++  builder->Add("localAccountCreationMismatch",
++               IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH);
++  builder->Add("localAccountCreationCreating",
++               IDS_NICKEL_LOCAL_ACCOUNT_CREATING);
++  builder->Add("localAccountCreationPicture", IDS_NICKEL_LOCAL_ACCOUNT_PICTURE);
++  builder->Add("localAccountCreationChangePicture",
++               IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE);
++  builder->Add("localAccountCreationPictureTitle",
++               IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE);
+   builder->Add("localAccountCreationPictureSubtitle",
+-               "It shows on the sign-in screen and in the system tray. To "
+-               "use a photo of your own, go to Settings later.");
++               IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE);
++  // The computer's name, asked with the first account.
++  builder->Add("localAccountCreationComputerName",
++               IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL);
++  builder->Add("localAccountCreationComputerNameHint",
++               IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY);
++  builder->Add("localAccountCreationComputerNameDefault",
++               IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT);
++  builder->Add("localAccountCreationComputerLaptop",
++               IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP);
++  builder->Add("localAccountCreationComputerDesktop",
++               IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP);
++  builder->Add("localAccountCreationComputerTablet",
++               IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET);
++  builder->Add("localAccountCreationComputerGeneric",
++               IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC);
+ }
+ 
+ void LocalAccountCreationScreenHandler::Show(base::DictValue data) {
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index 7790086..d891077 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -2327,6 +2327,82 @@
+       <message name="IDS_NICKEL_ACCESS_NOT_NOW" desc="NickelOS: button that closes the notice that camera access is off.">
+         Not now
+       </message>
++      <!-- NickelOS: setup's local account screen (local_account_creation). -->
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_TITLE" desc="NickelOS: title of the setup screen that creates a local account (an account on this computer, with no Google account).">
++        Create your account
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE" desc="NickelOS: under the title of the setup screen that creates a local account.">
++        Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_NAME" desc="NickelOS: label of the field for the person's name, on the setup screen that creates a local account.">
++        Your name
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_USERNAME" desc="NickelOS: label of the field for the account's username (its Linux user name).">
++        Username
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR" desc="NickelOS: under the username field when the username isn't allowed.">
++        Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD" desc="NickelOS: label of the password field.">
++        Password
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM" desc="NickelOS: label of the field where the password is typed a second time.">
++        Confirm password
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH" desc="NickelOS: under the second password field when the two passwords differ.">
++        The passwords don't match
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_CREATING" desc="NickelOS: shown while the account is being created.">
++        Creating your account...
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_PICTURE" desc="NickelOS: label of the account's picture on the setup screen.">
++        Your picture
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE" desc="NickelOS: button that opens the choice of pictures for the account.">
++        Change
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE" desc="NickelOS: title of the page where the account's picture is chosen.">
++        Choose a picture
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE" desc="NickelOS: under the title of the page where the account's picture is chosen.">
++        It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME" desc="NickelOS: error when the username isn't allowed.">
++        Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD" desc="NickelOS: error when no password was typed.">
++        Choose a password.
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN" desc="NickelOS: error when an account with that username already exists.">
++        That username is taken.
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG" desc="NickelOS: error when creating the account got no answer in time.">
++        Creating the account took too long. Try again.
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED" desc="NickelOS: error when the account could not be created and no reason is known.">
++        Could not create the account.
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP" desc="NickelOS: the word for this computer in its default name when the firmware gives no model and the computer is a laptop (as in &quot;Dresden's Laptop&quot;).">
++        Laptop
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP" desc="NickelOS: the word for this computer in its default name when the firmware gives no model and the computer is a desktop.">
++        Desktop
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET" desc="NickelOS: the word for this computer in its default name when the firmware gives no model and the computer is a tablet.">
++        Tablet
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC" desc="NickelOS: the word for this computer in its default name when the firmware gives neither its model nor its kind.">
++        Computer
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL" desc="NickelOS: error when the account could not be created, with the reason the system gave (in English, from nickel-accountsd).">
++        Could not create the account: <ph name="DETAIL">$1<ex>the home folder already exists</ex></ph>.
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN" desc="NickelOS: error when the new account was created but signing into it failed, with ChromeOS's reason.">
++        Could not set up the account: <ph name="DETAIL">$1<ex>Login failed</ex></ph>
++      </message>
++      <message name="IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT" desc="NickelOS: the computer's name setup suggests, from the first name of the person creating the first account and the computer's model or kind. Translate as the usual way to say whose computer it is.">
++        <ph name="NAME">$1<ex>Dresden</ex></ph>'s <ph name="DEVICE">$2<ex>Latitude 5510</ex></ph>
++      </message>
+     </messages>
+   </release>
+ </grit>

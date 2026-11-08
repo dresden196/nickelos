@@ -1,0 +1,478 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Wallpaper & style shows NickelOS's wallpapers
+
+Wallpaper & style's collections came from Google's servers (Backdrop).
+They are NickelOS's own wallpapers now (Dresden, 2026-11-04): one
+collection, "NickelOS", of the pictures in the image at
+/usr/share/chromeos-assets/wallpaper/nickel (chromeos-bsp-nickel), listed
+in its collection.json, so pictures change without a new Chrome. A picture
+with a dark-mode twin (the default wave) is one unit of a light and a dark
+image, which ChromeOS switches with the color mode, as it does for Google's.
+"Surprise me" picks one of them.
+
+Their addresses are chrome://personalization/nickel-wallpaper/NAME.jpg.
+The app's request filter serves a thumbnail there (thumbs/NAME.jpg), and
+WallpaperImageDownloader reads the picture itself from disk for that
+address, where it asked Google's servers for an online wallpaper at twice
+the screen's size. Names are checked before either touches a file.
+
+---
+diff --git a/ash/wallpaper/wallpaper_image_downloader.cc b/ash/wallpaper/wallpaper_image_downloader.cc
+--- a/ash/wallpaper/wallpaper_image_downloader.cc
++++ b/ash/wallpaper/wallpaper_image_downloader.cc
+@@ -8,9 +8,12 @@
+ #include <string>
+ 
+ #include "ash/public/cpp/image_downloader.h"
++#include "ash/public/cpp/image_util.h"
+ #include "ash/public/cpp/wallpaper/wallpaper_types.h"
++#include "base/files/file_path.h"
+ #include "base/functional/callback.h"
+ #include "base/strings/string_number_conversions.h"
++#include "base/strings/string_util.h"
+ #include "base/strings/stringprintf.h"
+ #include "components/account_id/account_id.h"
+ #include "net/http/http_request_headers.h"
+@@ -143,6 +146,29 @@
+     const GURL& url,
+     const AccountId& account_id,
+     ImageDownloader::DownloadCallback callback) const {
++  // NickelOS: its own wallpapers (Wallpaper & style's collection, from
++  // nickel_wallpaper_fetchers.h) are files in the image, at
++  // chrome://personalization/nickel-wallpaper/NAME.jpg: the picture itself
++  // is read from disk (the app shows a thumbnail from that address).
++  constexpr char kNickelUrlPrefix[] =
++      "chrome://personalization/nickel-wallpaper/";
++  constexpr char kNickelDir[] = "/usr/share/chromeos-assets/wallpaper/nickel";
++  if (base::StartsWith(url.spec(), kNickelUrlPrefix)) {
++    const std::string name = url.spec().substr(sizeof(kNickelUrlPrefix) - 1);
++    const bool valid =
++        !name.empty() && name.size() < 160 &&
++        name.find_first_not_of("abcdefghijklmnopqrstuvwxyz"
++                               "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.") ==
++            std::string::npos &&
++        name.find("..") == std::string::npos;
++    if (!valid) {
++      std::move(callback).Run(gfx::ImageSkia());
++      return;
++    }
++    image_util::DecodeImageFile(std::move(callback),
++                                base::FilePath(kNickelDir).Append(name));
++    return;
++  }
+   ImageDownloader::Get()->Download(
+       GURL(url.spec() + GetBackdropWallpaperSuffix()),
+       kDownloadOnlineWallpaperTrafficAnnotation, account_id,
+diff --git a/ash/webui/personalization_app/personalization_app_ui.cc b/ash/webui/personalization_app/personalization_app_ui.cc
+--- a/ash/webui/personalization_app/personalization_app_ui.cc
++++ b/ash/webui/personalization_app/personalization_app_ui.cc
+@@ -26,6 +26,10 @@
+ #include "ash/webui/personalization_app/personalization_app_user_provider.h"
+ #include "ash/webui/personalization_app/personalization_app_wallpaper_provider.h"
+ #include "base/check.h"
++#include "base/files/file_path.h"
++#include "base/files/file_util.h"
++#include "base/memory/ref_counted_memory.h"
++#include "base/task/thread_pool.h"
+ #include "base/strings/string_util.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/time/time.h"
+@@ -438,8 +442,36 @@
+   source->EnableReplaceI18nInJS();
+ }
+ 
++// NickelOS: the thumbnails of NickelOS's wallpapers (Wallpaper & style's
++// collection, nickel_wallpaper_fetchers.h), from the image.
++constexpr char kNickelWallpaperPath[] = "nickel-wallpaper/";
++constexpr char kNickelThumbDir[] =
++    "/usr/share/chromeos-assets/wallpaper/nickel/thumbs";
++
+ bool ShouldHandleWebUIRequest(const std::string& path) {
+-  return base::StartsWith(path, "wallpaper.jpg");
++  return base::StartsWith(path, "wallpaper.jpg") ||
++         base::StartsWith(path, kNickelWallpaperPath);
++}
++
++// A thumbnail's bytes, or nothing for a name that isn't one.
++scoped_refptr<base::RefCountedMemory> ReadNickelThumbnail(std::string name) {
++  const size_t query = name.find('?');
++  if (query != std::string::npos) {
++    name.resize(query);
++  }
++  if (name.empty() || name.size() > 160 ||
++      name.find_first_not_of("abcdefghijklmnopqrstuvwxyz"
++                             "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.") !=
++          std::string::npos ||
++      name.find("..") != std::string::npos) {
++    return nullptr;
++  }
++  std::string bytes;
++  if (!base::ReadFileToString(base::FilePath(kNickelThumbDir).Append(name),
++                              &bytes)) {
++    return nullptr;
++  }
++  return base::MakeRefCounted<base::RefCountedString>(std::move(bytes));
+ }
+ 
+ }  // namespace
+@@ -581,6 +613,14 @@
+ void PersonalizationAppUI::HandleWebUIRequest(
+     const std::string& path,
+     content::WebUIDataSource::GotDataCallback callback) {
++  if (base::StartsWith(path, kNickelWallpaperPath)) {
++    base::ThreadPool::PostTaskAndReplyWithResult(
++        FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
++        base::BindOnce(&ReadNickelThumbnail,
++                       path.substr(sizeof(kNickelWallpaperPath) - 1)),
++        std::move(callback));
++    return;
++  }
+   DCHECK(path.contains("?key="))
+       << "wallpaper key must be provided to prevent browser cache collisions";
+   wallpaper_provider_->GetWallpaperAsJpegBytes(std::move(callback));
+diff --git a/chrome/browser/ash/wallpaper_handlers/BUILD.gn b/chrome/browser/ash/wallpaper_handlers/BUILD.gn
+--- a/chrome/browser/ash/wallpaper_handlers/BUILD.gn
++++ b/chrome/browser/ash/wallpaper_handlers/BUILD.gn
+@@ -7,6 +7,8 @@
+ static_library("wallpaper_handlers") {
+   sources = [
+     "google_photos_wallpaper_handlers.cc",
++    "nickel_wallpaper_fetchers.cc",
++    "nickel_wallpaper_fetchers.h",
+     "google_photos_wallpaper_handlers.h",
+     "wallpaper_fetcher_delegate.cc",
+     "wallpaper_fetcher_delegate.h",
+diff --git a/chrome/browser/ash/wallpaper_handlers/nickel_wallpaper_fetchers.cc b/chrome/browser/ash/wallpaper_handlers/nickel_wallpaper_fetchers.cc
+new file mode 100644
+--- /dev/null
++++ b/chrome/browser/ash/wallpaper_handlers/nickel_wallpaper_fetchers.cc
+@@ -0,0 +1,225 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/wallpaper_handlers/nickel_wallpaper_fetchers.h"
++
++#include <optional>
++#include <string>
++#include <utility>
++#include <vector>
++
++#include "ash/webui/personalization_app/proto/backdrop_wallpaper.pb.h"
++#include "base/files/file_path.h"
++#include "base/files/file_util.h"
++#include "base/functional/bind.h"
++#include "base/hash/hash.h"
++#include "base/json/json_reader.h"
++#include "base/rand_util.h"
++#include "base/strings/string_util.h"
++#include "base/task/thread_pool.h"
++#include "base/values.h"
++
++namespace wallpaper_handlers {
++
++namespace {
++
++constexpr char kManifest[] =
++    "/usr/share/chromeos-assets/wallpaper/nickel/collection.json";
++constexpr char kCollectionId[] = "nickelos";
++constexpr char kCollectionName[] = "NickelOS";
++constexpr char kUrlPrefix[] = "chrome://personalization/nickel-wallpaper/";
++
++struct Wallpaper {
++  std::string name;
++  std::string dark;  // The dark-mode twin's name, or "".
++  std::string photographer;
++  std::string source;
++};
++
++struct Manifest {
++  std::string default_name;
++  std::vector<Wallpaper> wallpapers;
++};
++
++// A file name in the wallpaper folder: letters, digits, "-" and "_".
++bool IsName(const std::string& name) {
++  if (name.empty() || name.size() > 128) {
++    return false;
++  }
++  for (char c : name) {
++    if (!base::IsAsciiAlphaNumeric(c) && c != '-' && c != '_') {
++      return false;
++    }
++  }
++  return true;
++}
++
++std::optional<Manifest> ReadManifest() {
++  std::string text;
++  if (!base::ReadFileToString(base::FilePath(kManifest), &text)) {
++    return std::nullopt;
++  }
++  std::optional<base::Value> value =
++      base::JSONReader::Read(text, base::JSON_PARSE_RFC);
++  if (!value || !value->is_dict()) {
++    return std::nullopt;
++  }
++  Manifest manifest;
++  if (const std::string* name = value->GetDict().FindString("default")) {
++    manifest.default_name = *name;
++  }
++  const base::ListValue* list = value->GetDict().FindList("wallpapers");
++  if (!list) {
++    return std::nullopt;
++  }
++  for (const base::Value& item : *list) {
++    if (!item.is_dict()) {
++      continue;
++    }
++    const base::DictValue& dict = item.GetDict();
++    const std::string* name = dict.FindString("name");
++    if (!name || !IsName(*name)) {
++      continue;
++    }
++    Wallpaper wallpaper;
++    wallpaper.name = *name;
++    if (const std::string* dark = dict.FindString("dark");
++        dark && IsName(*dark)) {
++      wallpaper.dark = *dark;
++    }
++    if (const std::string* by = dict.FindString("photographer")) {
++      wallpaper.photographer = *by;
++    }
++    if (const std::string* source = dict.FindString("source")) {
++      wallpaper.source = *source;
++    }
++    manifest.wallpapers.push_back(std::move(wallpaper));
++  }
++  if (manifest.wallpapers.empty()) {
++    return std::nullopt;
++  }
++  if (manifest.default_name.empty()) {
++    manifest.default_name = manifest.wallpapers.front().name;
++  }
++  return manifest;
++}
++
++std::string Url(const std::string& name) {
++  return std::string(kUrlPrefix) + name + ".jpg";
++}
++
++// Ids that stay the same from one session to the next: ChromeOS keeps the
++// chosen picture's asset id.
++uint64_t Id(const std::string& name) {
++  return base::PersistentHash(name) | (uint64_t{1} << 32);
++}
++
++backdrop::Image MakeImage(const Wallpaper& wallpaper,
++                          const std::string& name,
++                          backdrop::Image::ImageType type) {
++  backdrop::Image image;
++  image.set_asset_id(Id(name));
++  image.set_image_url(Url(name));
++  image.set_unit_id(Id(wallpaper.name));
++  image.set_image_type(type);
++  if (!wallpaper.photographer.empty()) {
++    image.add_attribution()->set_text(wallpaper.photographer);
++  }
++  if (!wallpaper.source.empty()) {
++    image.add_attribution()->set_text(wallpaper.source);
++  }
++  return image;
++}
++
++std::vector<backdrop::Image> MakeImages(const Manifest& manifest) {
++  std::vector<backdrop::Image> images;
++  for (const Wallpaper& wallpaper : manifest.wallpapers) {
++    if (wallpaper.dark.empty()) {
++      images.push_back(MakeImage(wallpaper, wallpaper.name,
++                                 backdrop::Image::IMAGE_TYPE_UNKNOWN));
++      continue;
++    }
++    images.push_back(MakeImage(wallpaper, wallpaper.name,
++                               backdrop::Image::IMAGE_TYPE_LIGHT_MODE));
++    images.push_back(MakeImage(wallpaper, wallpaper.dark,
++                               backdrop::Image::IMAGE_TYPE_DARK_MODE));
++  }
++  return images;
++}
++
++}  // namespace
++
++NickelCollectionInfoFetcher::NickelCollectionInfoFetcher() = default;
++NickelCollectionInfoFetcher::~NickelCollectionInfoFetcher() = default;
++
++void NickelCollectionInfoFetcher::Start(OnCollectionsInfoFetched callback) {
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
++      base::BindOnce(&ReadManifest),
++      base::BindOnce(
++          [](OnCollectionsInfoFetched callback,
++             std::optional<Manifest> manifest) {
++            if (!manifest) {
++              std::move(callback).Run(false, {});
++              return;
++            }
++            backdrop::Collection collection;
++            collection.set_collection_id(kCollectionId);
++            collection.set_collection_name(kCollectionName);
++            backdrop::Image* preview = collection.add_preview();
++            preview->set_image_url(Url(manifest->default_name));
++            std::move(callback).Run(true, {std::move(collection)});
++          },
++          std::move(callback)));
++}
++
++NickelImageInfoFetcher::NickelImageInfoFetcher(const std::string& collection_id)
++    : collection_id_(collection_id) {}
++NickelImageInfoFetcher::~NickelImageInfoFetcher() = default;
++
++void NickelImageInfoFetcher::Start(OnImagesInfoFetched callback) {
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
++      base::BindOnce(&ReadManifest),
++      base::BindOnce(
++          [](std::string collection_id, OnImagesInfoFetched callback,
++             std::optional<Manifest> manifest) {
++            if (!manifest || collection_id != kCollectionId) {
++              std::move(callback).Run(false, collection_id, {});
++              return;
++            }
++            std::move(callback).Run(true, collection_id,
++                                    MakeImages(*manifest));
++          },
++          collection_id_, std::move(callback)));
++}
++
++NickelSurpriseMeImageFetcher::NickelSurpriseMeImageFetcher() = default;
++NickelSurpriseMeImageFetcher::~NickelSurpriseMeImageFetcher() = default;
++
++void NickelSurpriseMeImageFetcher::Start(OnSurpriseMeImageFetched callback) {
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
++      base::BindOnce(&ReadManifest),
++      base::BindOnce(
++          [](OnSurpriseMeImageFetched callback,
++             std::optional<Manifest> manifest) {
++            if (!manifest) {
++              std::move(callback).Run(false, backdrop::Image(), "");
++              return;
++            }
++            const Wallpaper& wallpaper = manifest->wallpapers[base::RandGenerator(
++                manifest->wallpapers.size())];
++            std::move(callback).Run(
++                true,
++                MakeImage(wallpaper, wallpaper.name,
++                          wallpaper.dark.empty()
++                              ? backdrop::Image::IMAGE_TYPE_UNKNOWN
++                              : backdrop::Image::IMAGE_TYPE_LIGHT_MODE),
++                "");
++          },
++          std::move(callback)));
++}
++
++}  // namespace wallpaper_handlers
+diff --git a/chrome/browser/ash/wallpaper_handlers/nickel_wallpaper_fetchers.h b/chrome/browser/ash/wallpaper_handlers/nickel_wallpaper_fetchers.h
+new file mode 100644
+--- /dev/null
++++ b/chrome/browser/ash/wallpaper_handlers/nickel_wallpaper_fetchers.h
+@@ -0,0 +1,53 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_WALLPAPER_HANDLERS_NICKEL_WALLPAPER_FETCHERS_H_
++#define CHROME_BROWSER_ASH_WALLPAPER_HANDLERS_NICKEL_WALLPAPER_FETCHERS_H_
++
++#include <string>
++
++#include "chrome/browser/ash/wallpaper_handlers/wallpaper_handlers.h"
++
++namespace wallpaper_handlers {
++
++// NickelOS: Wallpaper & style's collections, which ChromeOS fetches from
++// Google's servers (Backdrop), are NickelOS's own wallpapers: one
++// collection, the pictures in the image at
++// /usr/share/chromeos-assets/wallpaper/nickel, listed in its collection.json
++// (chromeos-bsp-nickel). A picture with a dark-mode twin is one unit of two
++// images, light and dark, which ChromeOS switches with the color mode. Their
++// addresses are chrome://personalization/nickel-wallpaper/NAME.jpg: the app
++// shows a thumbnail from there, and the wallpaper downloader reads the
++// picture itself from disk for them (wallpaper_image_downloader.cc).
++class NickelCollectionInfoFetcher : public BackdropCollectionInfoFetcher {
++ public:
++  NickelCollectionInfoFetcher();
++  ~NickelCollectionInfoFetcher() override;
++
++  void Start(OnCollectionsInfoFetched callback) override;
++};
++
++class NickelImageInfoFetcher : public BackdropImageInfoFetcher {
++ public:
++  explicit NickelImageInfoFetcher(const std::string& collection_id);
++  ~NickelImageInfoFetcher() override;
++
++  void Start(OnImagesInfoFetched callback) override;
++
++ private:
++  const std::string collection_id_;
++};
++
++// "Surprise me" and the daily change: one of the pictures at random.
++class NickelSurpriseMeImageFetcher : public BackdropSurpriseMeImageFetcher {
++ public:
++  NickelSurpriseMeImageFetcher();
++  ~NickelSurpriseMeImageFetcher() override;
++
++  void Start(OnSurpriseMeImageFetched callback) override;
++};
++
++}  // namespace wallpaper_handlers
++
++#endif  // CHROME_BROWSER_ASH_WALLPAPER_HANDLERS_NICKEL_WALLPAPER_FETCHERS_H_
+diff --git a/chrome/browser/ash/wallpaper_handlers/wallpaper_fetcher_delegate.cc b/chrome/browser/ash/wallpaper_handlers/wallpaper_fetcher_delegate.cc
+--- a/chrome/browser/ash/wallpaper_handlers/wallpaper_fetcher_delegate.cc
++++ b/chrome/browser/ash/wallpaper_handlers/wallpaper_fetcher_delegate.cc
+@@ -13,6 +13,7 @@
+ #include "base/check_deref.h"
+ #include "base/types/pass_key.h"
+ #include "chrome/browser/ash/wallpaper_handlers/google_photos_wallpaper_handlers.h"
++#include "chrome/browser/ash/wallpaper_handlers/nickel_wallpaper_fetchers.h"
+ #include "chrome/browser/ash/wallpaper_handlers/wallpaper_handlers.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chromeos/ash/components/signin/identity_manager_provider.h"
+@@ -37,29 +38,23 @@
+ 
+ WallpaperFetcherDelegateImpl::~WallpaperFetcherDelegateImpl() = default;
+ 
++// NickelOS: Wallpaper & style's collections are NickelOS's own wallpapers,
++// from the image, not Google's (nickel_wallpaper_fetchers.h).
+ std::unique_ptr<BackdropCollectionInfoFetcher>
+ WallpaperFetcherDelegateImpl::CreateBackdropCollectionInfoFetcher() const {
+-  return std::make_unique<BackdropCollectionInfoFetcherImpl>(
+-      base::PassKey<WallpaperFetcherDelegateImpl>(),
+-      &application_locale_storage_.get(), shared_url_loader_factory_);
++  return std::make_unique<NickelCollectionInfoFetcher>();
+ }
+ 
+ std::unique_ptr<BackdropImageInfoFetcher>
+ WallpaperFetcherDelegateImpl::CreateBackdropImageInfoFetcher(
+     const std::string& collection_id) const {
+-  return std::make_unique<BackdropImageInfoFetcherImpl>(
+-      base::PassKey<WallpaperFetcherDelegateImpl>(),
+-      &application_locale_storage_.get(), shared_url_loader_factory_,
+-      collection_id);
++  return std::make_unique<NickelImageInfoFetcher>(collection_id);
+ }
+ 
+ std::unique_ptr<BackdropSurpriseMeImageFetcher>
+ WallpaperFetcherDelegateImpl::CreateBackdropSurpriseMeImageFetcher(
+     const std::string& collection_id) const {
+-  return std::make_unique<BackdropSurpriseMeImageFetcherImpl>(
+-      base::PassKey<WallpaperFetcherDelegateImpl>(),
+-      &application_locale_storage_.get(), shared_url_loader_factory_,
+-      collection_id, /*resume_token=*/"");
++  return std::make_unique<NickelSurpriseMeImageFetcher>();
+ }
+ 
+ std::unique_ptr<GooglePhotosAlbumsFetcher>

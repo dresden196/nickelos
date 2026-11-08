@@ -1,0 +1,866 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: setup asks how NickelOS should work
+
+The first time NickelOS starts, before the first account is made, setup
+asks how NickelOS should work (docs/setup-experiences.md in
+overlay-nickel):
+
+- Privacy, preselected: DuckDuckGo is the search engine for the browser and
+  the launcher.
+- Google: Google is.
+- Minimal: the launcher searches only the device (its web results are off);
+  the browser's search engine is left to the user.
+
+The screen is nickel-setup (NickelSetupScreen, NickelSetupScreenHandler,
+nickel-setup-element), text only, with ChromeOS's card radio buttons as on
+the theme screen; its strings are in ui_chromeos_strings.grd. The wizard
+shows it in place of local-account-creation while the device has no
+accounts; it skips itself once one exists.
+
+The choice waits in the local state pref nickel.setup.pending_experience
+until the new account first signs in. NickelOS restarts Chrome as the
+account's Linux user then, so the session's own OOBE screens never run:
+UserSessionManager::PerformPostBrowserLaunchOOBEActions applies it
+(NickelSetupScreen::MaybeApplyChoice) and keeps it in the profile pref
+nickel.setup.experience (ash/constants/nickel_pref_names.h) for what comes
+next, the apps each experience suggests.
+
+diff --git a/ash/ash_prefs.cc b/ash/ash_prefs.cc
+index a8278f12604ac..b6dedc4df7dac 100644
+--- a/ash/ash_prefs.cc
++++ b/ash/ash_prefs.cc
+@@ -37,6 +37,7 @@
+ #include "ash/login/ui/login_expanded_public_account_view.h"
+ #include "ash/login/ui/management_disclosure_field_trial.h"
+ #include "ash/media/media_controller_impl.h"
++#include "ash/constants/nickel_pref_names.h"
+ #include "ash/nickel/desktop/nickel_desktop_controller.h"
+ #include "ash/metrics/feature_discovery_duration_reporter_impl.h"
+ #include "ash/projector/projector_controller_impl.h"
+@@ -177,6 +178,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry,
+   MediaControllerImpl::RegisterProfilePrefs(registry);
+   MessageCenterController::RegisterProfilePrefs(registry);
+   NickelDesktopController::RegisterProfilePrefs(registry);
++  registry->RegisterStringPref(prefs::kNickelSetupExperience, std::string());
+   NightLightControllerImpl::RegisterProfilePrefs(registry);
+   OnboardingNudgeController::RegisterProfilePrefs(registry);
+   PaletteTray::RegisterProfilePrefs(registry);
+@@ -260,6 +262,8 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry,
+ }  // namespace
+ 
+ void RegisterLocalStatePrefs(PrefRegistrySimple* registry, bool for_test) {
++  registry->RegisterStringPref(prefs::kNickelSetupPendingExperience,
++                               std::string());
+   PaletteTray::RegisterLocalStatePrefs(registry);
+   WallpaperPrefManager::RegisterLocalStatePrefs(registry);
+   ColorPaletteController::RegisterLocalStatePrefs(registry);
+diff --git a/ash/constants/BUILD.gn b/ash/constants/BUILD.gn
+index 3f3b22ecc7d8c..1baee4f5aa69a 100644
+--- a/ash/constants/BUILD.gn
++++ b/ash/constants/BUILD.gn
+@@ -20,6 +20,7 @@ component("constants") {
+     "ash_paths.h",
+     "ash_policy_pref_names.h",
+     "ash_pref_names.h",
++    "nickel_pref_names.h",
+     "ash_switches.cc",
+     "ash_switches.h",
+     "chrome_custom_icon_catalog.h",
+diff --git a/ash/constants/nickel_pref_names.h b/ash/constants/nickel_pref_names.h
+new file mode 100644
+index 0000000000000..c3770c138a0f3
+--- /dev/null
++++ b/ash/constants/nickel_pref_names.h
+@@ -0,0 +1,23 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef ASH_CONSTANTS_NICKEL_PREF_NAMES_H_
++#define ASH_CONSTANTS_NICKEL_PREF_NAMES_H_
++
++// NickelOS's own profile prefs, apart from ash_pref_names.h, which nearly
++// all of Ash includes.
++namespace ash::prefs {
++
++// Profile: the experience picked in setup (privacy, google or minimal; empty
++// before setup or for other accounts).
++inline constexpr char kNickelSetupExperience[] = "nickel.setup.experience";
++
++// Local state: the experience picked in setup, until the device's first
++// account's session applies it (setup asks before the account exists).
++inline constexpr char kNickelSetupPendingExperience[] =
++    "nickel.setup.pending_experience";
++
++}  // namespace ash::prefs
++
++#endif  // ASH_CONSTANTS_NICKEL_PREF_NAMES_H_
+diff --git a/chrome/browser/ash/login/screens/BUILD.gn b/chrome/browser/ash/login/screens/BUILD.gn
+index 1863f84a555a5..d7ec0ee81388e 100644
+--- a/chrome/browser/ash/login/screens/BUILD.gn
++++ b/chrome/browser/ash/login/screens/BUILD.gn
+@@ -104,6 +104,8 @@ static_library("screens") {
+     "network_screen.h",
+     "local_account_creation_screen.cc",
+     "local_account_creation_screen.h",
++    "nickel_setup_screen.cc",
++    "nickel_setup_screen.h",
+     "offline_login_screen.cc",
+     "offline_login_screen.h",
+     "online_authentication_screen.cc",
+@@ -230,6 +232,9 @@ static_library("screens") {
+   ]
+ 
+   deps = [
++    # NickelOS: nickel_setup_screen.cc.
++    "//chrome/browser/search_engines",
++    "//components/search_engines",
+     "//ash/constants",
+     "//ash/login/resources:login_strings",
+     "//ash/public/mojom:input_device_settings",
+diff --git a/chrome/browser/ash/login/screens/nickel_setup_screen.cc b/chrome/browser/ash/login/screens/nickel_setup_screen.cc
+new file mode 100644
+index 0000000000000..82c56960d796a
+--- /dev/null
++++ b/chrome/browser/ash/login/screens/nickel_setup_screen.cc
+@@ -0,0 +1,162 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/login/screens/nickel_setup_screen.h"
++
++#include <memory>
++#include <utility>
++
++#include "ash/constants/ash_pref_names.h"
++#include "ash/constants/nickel_pref_names.h"
++#include "ash/public/cpp/app_list/app_list_types.h"
++#include "base/callback_list.h"
++#include "base/functional/bind.h"
++#include "base/logging.h"
++#include "base/no_destructor.h"
++#include "chrome/browser/ash/profiles/profile_helper.h"
++#include "chrome/browser/browser_process.h"
++#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/search_engines/template_url_service_factory.h"
++#include "chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.h"
++#include "components/prefs/pref_service.h"
++#include "components/prefs/scoped_user_pref_update.h"
++#include "components/search_engines/template_url.h"
++#include "components/search_engines/template_url_data.h"
++#include "components/search_engines/template_url_data_util.h"
++#include "components/search_engines/template_url_service.h"
++#include "components/user_manager/nickel_local_account.h"
++#include "components/user_manager/user.h"
++#include "components/user_manager/user_manager.h"
++#include "third_party/search_engines_data/resources/definitions/prepopulated_engines.h"
++
++namespace ash {
++
++namespace {
++
++constexpr char kUserActionNext[] = "next";
++
++// Makes the search engine with `keyword` the default, adding DuckDuckGo from
++// Chromium's built-in list if the profile's list lacks it.
++void SetDefaultSearchEngine(TemplateURLService* service,
++                            const std::u16string& keyword) {
++  if (service->is_default_search_managed()) {
++    return;
++  }
++  TemplateURL* engine = service->GetTemplateURLForKeyword(keyword);
++  if (!engine && keyword == u"duckduckgo.com") {
++    std::unique_ptr<TemplateURLData> data =
++        TemplateURLDataFromPrepopulatedEngine(
++            TemplateURLPrepopulateData::duckduckgo);
++    engine = service->Add(std::make_unique<TemplateURL>(*data));
++  }
++  if (!engine) {
++    LOG(WARNING) << "NickelOS setup: no search engine " << keyword;
++    return;
++  }
++  service->SetUserSelectedDefaultSearchProvider(engine);
++}
++
++// Sets up what `experience` ("privacy", "google" or "minimal") means for
++// `profile`.
++void Apply(Profile* profile, const std::string& experience) {
++  // Minimal: the launcher searches the device only (no web results).
++  if (experience == "minimal") {
++    ScopedDictPrefUpdate update(profile->GetPrefs(),
++                                prefs::kLauncherSearchCategoryControlStatus);
++    update->Set(GetAppListControlCategoryName(AppListSearchControlCategory::kWeb),
++                false);
++    return;
++  }
++
++  // Privacy and Google: the search engine for the browser and the launcher
++  // (whose web results follow the browser's).
++  const std::u16string keyword =
++      experience == "google" ? u"google.com" : u"duckduckgo.com";
++  TemplateURLService* service =
++      TemplateURLServiceFactory::GetForProfile(profile);
++  if (!service) {
++    return;
++  }
++  if (service->loaded()) {
++    SetDefaultSearchEngine(service, keyword);
++    return;
++  }
++  // Once the profile's search engines are loaded (the session's one profile:
++  // the service lives as long as the subscription needs).
++  static base::NoDestructor<base::CallbackListSubscription> loaded;
++  *loaded = service->RegisterOnLoadedCallback(base::BindOnce(
++      &SetDefaultSearchEngine, base::Unretained(service), keyword));
++  service->Load();
++}
++
++}  // namespace
++
++// static
++std::string NickelSetupScreen::GetResultString(Result result) {
++  switch (result) {
++    case Result::kNext:
++      return "Next";
++    case Result::kNotApplicable:
++      return BaseScreen::kNotApplicable;
++  }
++}
++
++// static
++void NickelSetupScreen::MaybeApplyChoice(Profile* profile) {
++  PrefService* local_state = g_browser_process->local_state();
++  const std::string experience =
++      local_state->GetString(prefs::kNickelSetupPendingExperience);
++  const user_manager::User* user =
++      ProfileHelper::Get()->GetUserByProfile(profile);
++  if (experience.empty() || !user ||
++      !user_manager::IsNickelLocalAccount(user->GetAccountId()) ||
++      !profile->GetPrefs()->GetString(prefs::kNickelSetupExperience).empty()) {
++    return;
++  }
++  // The device's first account takes it, once.
++  local_state->ClearPref(prefs::kNickelSetupPendingExperience);
++  profile->GetPrefs()->SetString(prefs::kNickelSetupExperience, experience);
++  Apply(profile, experience);
++}
++
++NickelSetupScreen::NickelSetupScreen(base::WeakPtr<NickelSetupView> view,
++                                     const ScreenExitCallback& exit_callback)
++    : BaseScreen(NickelSetupView::kScreenId, OobeScreenPriority::DEFAULT),
++      view_(std::move(view)),
++      exit_callback_(exit_callback) {}
++
++NickelSetupScreen::~NickelSetupScreen() = default;
++
++bool NickelSetupScreen::MaybeSkip(WizardContext& context) {
++  // Only before the device's first account.
++  if (!user_manager::UserManager::Get()->GetPersistedUsers().empty()) {
++    exit_callback_.Run(Result::kNotApplicable);
++    return true;
++  }
++  return false;
++}
++
++void NickelSetupScreen::ShowImpl() {
++  if (view_) {
++    view_->Show();
++  }
++}
++
++void NickelSetupScreen::HideImpl() {}
++
++void NickelSetupScreen::OnUserAction(const base::ListValue& args) {
++  const std::string& action = args[0].GetString();
++  if (action == kUserActionNext && args.size() > 1 && args[1].is_string()) {
++    PrefService* local_state = g_browser_process->local_state();
++    local_state->SetString(prefs::kNickelSetupPendingExperience,
++                           args[1].GetString());
++    // Chrome restarts soon after, as the new account's Linux user.
++    local_state->CommitPendingWrite();
++    exit_callback_.Run(Result::kNext);
++    return;
++  }
++  BaseScreen::OnUserAction(args);
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ash/login/screens/nickel_setup_screen.h b/chrome/browser/ash/login/screens/nickel_setup_screen.h
+new file mode 100644
+index 0000000000000..b804bc050ba49
+--- /dev/null
++++ b/chrome/browser/ash/login/screens/nickel_setup_screen.h
+@@ -0,0 +1,67 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_LOGIN_SCREENS_NICKEL_SETUP_SCREEN_H_
++#define CHROME_BROWSER_ASH_LOGIN_SCREENS_NICKEL_SETUP_SCREEN_H_
++
++#include <string>
++
++#include "base/functional/callback.h"
++#include "base/memory/weak_ptr.h"
++#include "chrome/browser/ash/login/screens/base_screen.h"
++
++class Profile;
++
++namespace ash {
++
++class NickelSetupView;
++
++// NickelOS: before the device's first account is created, setup asks how
++// NickelOS should work (docs/setup-experiences.md in overlay-nickel):
++// Privacy (preselected; DuckDuckGo searches the web from the browser and the
++// launcher), Google (Google does) or Minimal (the launcher searches only the
++// device). Everything it sets can be changed in Settings later.
++//
++// It asks before the account rather than after, as ChromeOS's onboarding
++// does, because a local account's session restarts Chrome as its Linux user
++// (patch 0008), which ends onboarding. The choice waits in local state and
++// the account's first session applies it (MaybeApplyChoice()).
++class NickelSetupScreen : public BaseScreen {
++ public:
++  using TView = NickelSetupView;
++
++  enum class Result {
++    kNext,
++    kNotApplicable,
++  };
++
++  static std::string GetResultString(Result result);
++
++  // In a session, once: sets up the experience chosen in setup for the
++  // device's first account (search engine, launcher) and keeps it in its
++  // profile.
++  static void MaybeApplyChoice(Profile* profile);
++
++  using ScreenExitCallback = base::RepeatingCallback<void(Result result)>;
++
++  NickelSetupScreen(base::WeakPtr<NickelSetupView> view,
++                    const ScreenExitCallback& exit_callback);
++  NickelSetupScreen(const NickelSetupScreen&) = delete;
++  NickelSetupScreen& operator=(const NickelSetupScreen&) = delete;
++  ~NickelSetupScreen() override;
++
++ private:
++  // BaseScreen:
++  bool MaybeSkip(WizardContext& context) override;
++  void ShowImpl() override;
++  void HideImpl() override;
++  void OnUserAction(const base::ListValue& args) override;
++
++  base::WeakPtr<NickelSetupView> view_;
++  ScreenExitCallback exit_callback_;
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_ASH_LOGIN_SCREENS_NICKEL_SETUP_SCREEN_H_
+diff --git a/chrome/browser/ash/login/session/user_session_manager.cc b/chrome/browser/ash/login/session/user_session_manager.cc
+index 92906c3845a36..276cb35e8f54f 100644
+--- a/chrome/browser/ash/login/session/user_session_manager.cc
++++ b/chrome/browser/ash/login/session/user_session_manager.cc
+@@ -85,6 +85,7 @@
+ #include "chrome/browser/ash/login/saml/password_sync_token_verifier.h"
+ #include "chrome/browser/ash/login/saml/password_sync_token_verifier_factory.h"
+ #include "chrome/browser/ash/login/screens/display_size_screen.h"
++#include "chrome/browser/ash/login/screens/nickel_setup_screen.h"
+ #include "chrome/browser/ash/login/screens/drive_pinning_screen.h"
+ #include "chrome/browser/ash/login/screens/sync_consent_screen.h"
+ #include "chrome/browser/ash/login/security_token_session_controller_factory.h"
+@@ -2359,6 +2360,8 @@ void UserSessionManager::ShowNotificationsIfNeeded(Profile* profile) {
+ 
+ void UserSessionManager::PerformPostBrowserLaunchOOBEActions(Profile* profile) {
+   SyncConsentScreen::MaybeLaunchSyncConsentSettings(profile);
++  // NickelOS: the experience picked in setup, for the first account.
++  NickelSetupScreen::MaybeApplyChoice(profile);
+   if (features::IsOobeDisplaySizeEnabled()) {
+     DisplaySizeScreen::MaybeUpdateZoomFactor(profile);
+   }
+diff --git a/chrome/browser/ash/login/wizard_controller.cc b/chrome/browser/ash/login/wizard_controller.cc
+index ef870bd123fe3..0b015da8e677f 100644
+--- a/chrome/browser/ash/login/wizard_controller.cc
++++ b/chrome/browser/ash/login/wizard_controller.cc
+@@ -211,6 +211,7 @@
+ #include "chrome/browser/ui/webui/ash/login/multidevice_setup_screen_handler.h"
+ #include "chrome/browser/ui/webui/ash/login/network_screen_handler.h"
+ #include "chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.h"
++#include "chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.h"
+ #include "chrome/browser/ui/webui/ash/login/offline_login_screen_handler.h"
+ #include "chrome/browser/ui/webui/ash/login/online_authentication_screen_handler.h"
+ #include "chrome/browser/ui/webui/ash/login/oobe_ui.h"
+@@ -911,6 +912,10 @@ WizardController::CreateScreens() {
+       oobe_ui->GetView<LocalAccountCreationScreenHandler>()->AsWeakPtr(),
+       base::BindRepeating(&WizardController::OnLocalAccountCreationScreenExit,
+                           weak_factory_.GetWeakPtr())));
++  append(std::make_unique<NickelSetupScreen>(
++      oobe_ui->GetView<NickelSetupScreenHandler>()->AsWeakPtr(),
++      base::BindRepeating(&WizardController::OnNickelSetupScreenExit,
++                          weak_factory_.GetWeakPtr())));
+ 
+   append(std::make_unique<TpmErrorScreen>(
+       &local_state_.get(),
+@@ -2610,6 +2615,14 @@ void WizardController::OnRecoveryEligibilityScreenExit(
+   }
+ }
+ 
++void WizardController::OnNickelSetupScreenExit(
++    NickelSetupScreen::Result result) {
++  OnScreenExit(NickelSetupView::kScreenId,
++               NickelSetupScreen::GetResultString(result));
++  nickel_setup_done_ = true;
++  AdvanceToScreen(LocalAccountCreationView::kScreenId);
++}
++
+ void WizardController::OnTermsOfServiceScreenExit(
+     TermsOfServiceScreen::Result result) {
+   OnScreenExit(TermsOfServiceScreenView::kScreenId,
+@@ -3654,6 +3667,12 @@ void WizardController::AdvanceToScreen(OobeScreenId screen_id) {
+       screen_id == GaiaView::kScreenId) {
+     screen_id = LocalAccountCreationView::kScreenId;
+   }
++  // NickelOS: before the device's first account, how NickelOS should work
++  // (NickelSetupScreen).
++  if (screen_id == LocalAccountCreationView::kScreenId && !nickel_setup_done_ &&
++      user_manager::UserManager::Get()->GetPersistedUsers().empty()) {
++    screen_id = NickelSetupView::kScreenId;
++  }
+   if (!CanNavigateTo(screen_id)) {
+     LOG(WARNING) << "Cannot advance to screen : " << screen_id
+                  << " as it's priority is less than the current screen : "
+@@ -3770,6 +3789,7 @@ void WizardController::AdvanceToScreen(OobeScreenId screen_id) {
+              screen_id == RecoveryEligibilityView::kScreenId ||
+              screen_id == OfflineLoginView::kScreenId ||
+              screen_id == LocalAccountCreationView::kScreenId ||
++             screen_id == NickelSetupView::kScreenId ||
+              screen_id == OsInstallScreenView::kScreenId ||
+              screen_id == OsTrialScreenView::kScreenId ||
+              screen_id == ParentalHandoffScreenView::kScreenId ||
+@@ -3905,6 +3925,7 @@ void WizardController::SkipEnrollmentPromptsForTesting() {
+ bool WizardController::IsSigninScreen(OobeScreenId screen_id) {
+   return screen_id == UserCreationView::kScreenId ||
+          screen_id == LocalAccountCreationView::kScreenId ||
++         screen_id == NickelSetupView::kScreenId ||
+          screen_id == GaiaView::kScreenId ||
+          screen_id == SignInFatalErrorView::kScreenId;
+ }
+diff --git a/chrome/browser/ash/login/wizard_controller.h b/chrome/browser/ash/login/wizard_controller.h
+index 88e46195cbbdf..793e0b55568c0 100644
+--- a/chrome/browser/ash/login/wizard_controller.h
++++ b/chrome/browser/ash/login/wizard_controller.h
+@@ -54,6 +54,7 @@
+ #include "chrome/browser/ash/login/screens/multidevice_setup_screen.h"
+ #include "chrome/browser/ash/login/screens/network_screen.h"
+ #include "chrome/browser/ash/login/screens/local_account_creation_screen.h"
++#include "chrome/browser/ash/login/screens/nickel_setup_screen.h"
+ #include "chrome/browser/ash/login/screens/offline_login_screen.h"
+ #include "chrome/browser/ash/login/screens/online_authentication_screen.h"
+ #include "chrome/browser/ash/login/screens/os_install_screen.h"
+@@ -513,6 +514,7 @@ class WizardController : public OobeUI::Observer {
+   void OnOfflineLoginScreenExit(OfflineLoginScreen::Result result);
+   void OnLocalAccountCreationScreenExit(
+       LocalAccountCreationScreen::Result result);
++  void OnNickelSetupScreenExit(NickelSetupScreen::Result result);
+   void OnOsInstallScreenExit();
+   void OnOsTrialScreenExit(OsTrialScreen::Result result);
+   void OnConsolidatedConsentScreenExit(
+@@ -691,6 +693,9 @@ class WizardController : public OobeUI::Observer {
+   // True if full OOBE flow should be shown.
+   bool is_out_of_box_ = false;
+ 
++  // NickelOS: the setup experiences screen was shown (or skipped).
++  bool nickel_setup_done_ = false;
++
+   // Value of the screen name that WizardController was started with.
+   OobeScreenId first_screen_for_testing_ = ash::OOBE_SCREEN_UNKNOWN;
+ 
+diff --git a/chrome/browser/resources/chromeos/login/BUILD.gn b/chrome/browser/resources/chromeos/login/BUILD.gn
+index 77ad4aeb0cb49..e65cbab2cfa60 100644
+--- a/chrome/browser/resources/chromeos/login/BUILD.gn
++++ b/chrome/browser/resources/chromeos/login/BUILD.gn
+@@ -129,6 +129,7 @@ build_webui("build") {
+     "screens/common/smart_privacy_protection.ts",
+     "screens/common/split_modifier_keyboard_info.ts",
+     "screens/common/sync_consent.ts",
++    "screens/common/nickel_setup.ts",
+     "screens/common/theme_selection.ts",
+     "screens/common/touchpad_scroll.ts",
+     "screens/common/tpm_error.ts",
+diff --git a/chrome/browser/resources/chromeos/login/screens.ts b/chrome/browser/resources/chromeos/login/screens.ts
+index eb917e4b0d3d5..42a1146a3759c 100644
+--- a/chrome/browser/resources/chromeos/login/screens.ts
++++ b/chrome/browser/resources/chromeos/login/screens.ts
+@@ -45,6 +45,7 @@ import './screens/common/signin_fatal_error.js';
+ import './screens/common/smart_privacy_protection.js';
+ import './screens/common/split_modifier_keyboard_info.js';
+ import './screens/common/sync_consent.js';
++import './screens/common/nickel_setup.js';
+ import './screens/common/theme_selection.js';
+ import './screens/common/touchpad_scroll.js';
+ import './screens/common/tpm_error.js';
+@@ -199,6 +200,8 @@ export const commonScreensList: OobeTypes.ScreensList = [
+     condition: 'isSplitModifierKeyboardInfoEnabled',
+   },
+   {tag: 'sync-consent-element', id: 'sync-consent'},
++  // NickelOS: how NickelOS works for a new local account.
++  {tag: 'nickel-setup-element', id: 'nickel-setup'},
+   {tag: 'theme-selection-element', id: 'theme-selection'},
+   {
+     tag: 'touchpad-scroll-element',
+diff --git a/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.html b/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.html
+new file mode 100644
+index 0000000000000..1a64e38282cff
+--- /dev/null
++++ b/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.html
+@@ -0,0 +1,76 @@
++<!--
++Copyright 2026 The NickelOS Authors
++Use of this source code is governed by a BSD-style license that can be
++found in the LICENSE file.
++-->
++
++<!--
++  NickelOS: how NickelOS works for the user (Privacy, Google or Minimal).
++  Text only: no Google or vendor logos.
++-->
++<style include="oobe-dialog-host-styles cr-card-radio-group-styles
++    cros-color-overrides">
++  cr-card-radio-button:not(:last-child) {
++    margin-bottom: 12px;
++  }
++
++  .card-container {
++    padding: 12px 16px;
++  }
++</style>
++<oobe-adaptive-dialog id="nickelSetupDialog" role="presentation"
++    for-step="overview" aria-live="polite"
++    aria-label$="[[i18nDynamic(locale, 'nickelSetupTitle')]]">
++  <iron-icon slot="icon" icon="oobe-32:stars"></iron-icon>
++  <h1 slot="title" id="nickel-setup-title">
++    [[i18nDynamic(locale, 'nickelSetupTitle')]]
++  </h1>
++  <div slot="subtitle">
++    [[i18nDynamic(locale, 'nickelSetupSubtitle')]]
++  </div>
++  <div slot="content" class="layout vertical landscape-vertical-centered">
++    <cr-radio-group id="experience" selected="{{selected}}">
++      <cr-card-radio-button id="privacyButton" class="flex" name="privacy">
++        <div class="card-container">
++          <div class="card-content">
++            <div class="card-label">
++              [[i18nDynamic(locale, 'nickelSetupPrivacy')]]
++            </div>
++            <div class="card-text">
++              [[i18nDynamic(locale, 'nickelSetupPrivacyDescription')]]
++            </div>
++          </div>
++        </div>
++      </cr-card-radio-button>
++      <cr-card-radio-button id="googleButton" class="flex" name="google">
++        <div class="card-container">
++          <div class="card-content">
++            <div class="card-label">
++              [[i18nDynamic(locale, 'nickelSetupGoogle')]]
++            </div>
++            <div class="card-text">
++              [[i18nDynamic(locale, 'nickelSetupGoogleDescription')]]
++            </div>
++          </div>
++        </div>
++      </cr-card-radio-button>
++      <cr-card-radio-button id="minimalButton" class="flex" name="minimal">
++        <div class="card-container">
++          <div class="card-content">
++            <div class="card-label">
++              [[i18nDynamic(locale, 'nickelSetupMinimal')]]
++            </div>
++            <div class="card-text">
++              [[i18nDynamic(locale, 'nickelSetupMinimalDescription')]]
++            </div>
++          </div>
++        </div>
++      </cr-card-radio-button>
++    </cr-radio-group>
++  </div>
++  <div slot="bottom-buttons">
++    <oobe-next-button id="nextButton" class="focus-on-show"
++        on-click="onNextClicked">
++    </oobe-next-button>
++  </div>
++</oobe-adaptive-dialog>
+diff --git a/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.ts b/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.ts
+new file mode 100644
+index 0000000000000..6b458adbff3d8
+--- /dev/null
++++ b/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.ts
+@@ -0,0 +1,87 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++/**
++ * @fileoverview NickelOS: before the device's first account is created, how
++ * NickelOS should work: Privacy (preselected), Google or Minimal
++ * (NickelSetupScreen).
++ */
++
++import '//resources/ash/common/cr_elements/cros_color_overrides.css.js';
++import '//resources/ash/common/cr_elements/cr_radio_button/cr_radio_button.js';
++import '//resources/ash/common/cr_elements/cr_radio_group/cr_radio_group.js';
++import '//resources/polymer/v3_0/iron-icon/iron-icon.js';
++import '../../components/buttons/oobe_next_button.js';
++import '../../components/oobe_icons.html.js';
++import '../../components/common_styles/cr_card_radio_group_styles.css.js';
++import '../../components/common_styles/oobe_common_styles.css.js';
++import '../../components/common_styles/oobe_dialog_host_styles.css.js';
++import '../../components/dialogs/oobe_adaptive_dialog.js';
++
++import type {PolymerElementProperties} from '//resources/polymer/v3_0/polymer/interfaces.js';
++import {PolymerElement} from '//resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++
++import {OobeUiState} from '../../components/display_manager_types.js';
++import {LoginScreenMixin} from '../../components/mixins/login_screen_mixin.js';
++import {MultiStepMixin} from '../../components/mixins/multi_step_mixin.js';
++import {OobeI18nMixin} from '../../components/mixins/oobe_i18n_mixin.js';
++
++import {getTemplate} from './nickel_setup.html.js';
++
++enum NickelSetupStep {
++  OVERVIEW = 'overview',
++}
++
++const NickelSetupBase =
++    LoginScreenMixin(MultiStepMixin(OobeI18nMixin(PolymerElement)));
++
++export class NickelSetup extends NickelSetupBase {
++  static get is() {
++    return 'nickel-setup-element' as const;
++  }
++
++  static get template(): HTMLTemplateElement {
++    return getTemplate();
++  }
++
++  static get properties(): PolymerElementProperties {
++    return {
++      // The experience picked: privacy, google or minimal.
++      selected: {type: String, value: 'privacy'},
++    };
++  }
++
++  declare private selected: string;
++
++  // eslint-disable-next-line @typescript-eslint/naming-convention
++  override defaultUIStep(): NickelSetupStep {
++    return NickelSetupStep.OVERVIEW;
++  }
++
++  override get UI_STEPS() {
++    return NickelSetupStep;
++  }
++
++  override ready(): void {
++    super.ready();
++    this.initializeLoginScreen('NickelSetupScreen');
++  }
++
++  // eslint-disable-next-line @typescript-eslint/naming-convention
++  override getOobeUIInitialState(): OobeUiState {
++    return OobeUiState.USER_CREATION;
++  }
++
++  private onNextClicked(): void {
++    this.userActed(['next', this.selected]);
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    [NickelSetup.is]: NickelSetup;
++  }
++}
++
++customElements.define(NickelSetup.is, NickelSetup);
+diff --git a/chrome/browser/ui/webui/ash/login/BUILD.gn b/chrome/browser/ui/webui/ash/login/BUILD.gn
+index 95384484046e4..d6f4413260831 100644
+--- a/chrome/browser/ui/webui/ash/login/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/login/BUILD.gn
+@@ -113,6 +113,8 @@ static_library("login") {
+     "network_state_informer.h",
+     "local_account_creation_screen_handler.cc",
+     "local_account_creation_screen_handler.h",
++    "nickel_setup_screen_handler.cc",
++    "nickel_setup_screen_handler.h",
+     "offline_login_screen_handler.cc",
+     "offline_login_screen_handler.h",
+     "online_authentication_screen_handler.cc",
+@@ -342,6 +344,7 @@ static_library("login") {
+     "//ui/base:features",
+     "//ui/chromeos",
+     "//ui/chromeos/resources",
++    "//ui/chromeos/strings:strings_grit",
+     "//ui/chromeos/strings:strings_provider",
+     "//ui/display",
+     "//ui/display/manager",
+diff --git a/chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.cc b/chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.cc
+new file mode 100644
+index 0000000000000..ff0be8546ec58
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.cc
+@@ -0,0 +1,40 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.h"
++
++#include "components/login/localized_values_builder.h"
++#include "ui/chromeos/strings/grit/ui_chromeos_strings.h"
++
++namespace ash {
++
++NickelSetupScreenHandler::NickelSetupScreenHandler()
++    : BaseScreenHandler(kScreenId) {}
++
++NickelSetupScreenHandler::~NickelSetupScreenHandler() = default;
++
++void NickelSetupScreenHandler::DeclareLocalizedValues(
++    ::login::LocalizedValuesBuilder* builder) {
++  builder->Add("nickelSetupTitle", IDS_NICKEL_SETUP_TITLE);
++  builder->Add("nickelSetupSubtitle", IDS_NICKEL_SETUP_SUBTITLE);
++  builder->Add("nickelSetupPrivacy", IDS_NICKEL_SETUP_PRIVACY);
++  builder->Add("nickelSetupPrivacyDescription",
++               IDS_NICKEL_SETUP_PRIVACY_DESCRIPTION);
++  builder->Add("nickelSetupGoogle", IDS_NICKEL_SETUP_GOOGLE);
++  builder->Add("nickelSetupGoogleDescription",
++               IDS_NICKEL_SETUP_GOOGLE_DESCRIPTION);
++  builder->Add("nickelSetupMinimal", IDS_NICKEL_SETUP_MINIMAL);
++  builder->Add("nickelSetupMinimalDescription",
++               IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION);
++}
++
++void NickelSetupScreenHandler::Show() {
++  ShowInWebUI();
++}
++
++base::WeakPtr<NickelSetupView> NickelSetupScreenHandler::AsWeakPtr() {
++  return weak_ptr_factory_.GetWeakPtr();
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.h b/chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.h
+new file mode 100644
+index 0000000000000..4bb1b69331f7e
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.h
+@@ -0,0 +1,50 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_WEBUI_ASH_LOGIN_NICKEL_SETUP_SCREEN_HANDLER_H_
++#define CHROME_BROWSER_UI_WEBUI_ASH_LOGIN_NICKEL_SETUP_SCREEN_HANDLER_H_
++
++#include "base/memory/weak_ptr.h"
++#include "chrome/browser/ui/webui/ash/login/base_screen_handler.h"
++
++namespace ash {
++
++// NickelOS: the screen where a new user picks how NickelOS works for them.
++class NickelSetupView {
++ public:
++  inline constexpr static StaticOobeScreenId kScreenId{"nickel-setup",
++                                                       "NickelSetupScreen"};
++
++  virtual ~NickelSetupView() = default;
++
++  virtual void Show() = 0;
++  virtual base::WeakPtr<NickelSetupView> AsWeakPtr() = 0;
++};
++
++class NickelSetupScreenHandler final : public BaseScreenHandler,
++                                       public NickelSetupView {
++ public:
++  using TView = NickelSetupView;
++
++  NickelSetupScreenHandler();
++  NickelSetupScreenHandler(const NickelSetupScreenHandler&) = delete;
++  NickelSetupScreenHandler& operator=(const NickelSetupScreenHandler&) =
++      delete;
++  ~NickelSetupScreenHandler() override;
++
++ private:
++  // NickelSetupView:
++  void Show() override;
++  base::WeakPtr<NickelSetupView> AsWeakPtr() override;
++
++  // BaseScreenHandler:
++  void DeclareLocalizedValues(
++      ::login::LocalizedValuesBuilder* builder) override;
++
++  base::WeakPtrFactory<NickelSetupView> weak_ptr_factory_{this};
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_UI_WEBUI_ASH_LOGIN_NICKEL_SETUP_SCREEN_HANDLER_H_
+diff --git a/chrome/browser/ui/webui/ash/login/oobe_ui.cc b/chrome/browser/ui/webui/ash/login/oobe_ui.cc
+index 6331ce9f85672..5706cbcd07834 100644
+--- a/chrome/browser/ui/webui/ash/login/oobe_ui.cc
++++ b/chrome/browser/ui/webui/ash/login/oobe_ui.cc
+@@ -100,6 +100,7 @@
+ #include "chrome/browser/ui/webui/ash/login/network_screen_handler.h"
+ #include "chrome/browser/ui/webui/ash/login/network_state_informer.h"
+ #include "chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.h"
++#include "chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.h"
+ #include "chrome/browser/ui/webui/ash/login/offline_login_screen_handler.h"
+ #include "chrome/browser/ui/webui/ash/login/online_authentication_screen_handler.h"
+ #include "chrome/browser/ui/webui/ash/login/oobe_display_chooser.h"
+@@ -530,6 +531,7 @@ void OobeUI::ConfigureOobeDisplay(
+ 
+   AddScreenHandler(std::make_unique<OfflineLoginScreenHandler>());
+   AddScreenHandler(std::make_unique<LocalAccountCreationScreenHandler>());
++  AddScreenHandler(std::make_unique<NickelSetupScreenHandler>());
+ 
+   AddWebUIHandler(std::make_unique<SshConfiguredHandler>());
+ 
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index 7d5b84ecd5d83..6dd1ea3db1a48 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -2159,6 +2159,31 @@
+       <message name="IDS_SETTINGS_NICKEL_CLOUD_FINISH" desc="NickelOS: in the dialog that adds a cloud storage account, the button that closes it after the account was added.">
+         Done
+       </message>
++      <!-- NickelOS: the setup screen (how NickelOS works for the user). -->
++      <message name="IDS_NICKEL_SETUP_TITLE" desc="NickelOS: on the setup screen after a new account first signs in, its title.">
++        How should NickelOS work for you?
++      </message>
++      <message name="IDS_NICKEL_SETUP_SUBTITLE" desc="NickelOS: on the setup screen after a new account first signs in, under the title.">
++        You can change any of this later in Settings.
++      </message>
++      <message name="IDS_NICKEL_SETUP_PRIVACY" desc="NickelOS: on the setup screen after a new account first signs in, the first choice (preselected): privacy-friendly defaults.">
++        Privacy
++      </message>
++      <message name="IDS_NICKEL_SETUP_PRIVACY_DESCRIPTION" desc="NickelOS: on the setup screen after a new account first signs in, what the Privacy choice does.">
++        DuckDuckGo searches the web, from the browser and from the launcher.
++      </message>
++      <message name="IDS_NICKEL_SETUP_GOOGLE" desc="NickelOS: on the setup screen after a new account first signs in, the second choice: Google&#x27;s services as defaults.">
++        Google
++      </message>
++      <message name="IDS_NICKEL_SETUP_GOOGLE_DESCRIPTION" desc="NickelOS: on the setup screen after a new account first signs in, what the Google choice does.">
++        Google searches the web, from the browser and from the launcher.
++      </message>
++      <message name="IDS_NICKEL_SETUP_MINIMAL" desc="NickelOS: on the setup screen after a new account first signs in, the third choice: as little as possible.">
++        Minimal
++      </message>
++      <message name="IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION" desc="NickelOS: on the setup screen after a new account first signs in, what the Minimal choice does.">
++        The launcher searches only this device. Pick a search engine in the browser when you want one.
++      </message>
+     </messages>
+   </release>
+ </grit>

@@ -1,0 +1,360 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] ash: list and launch NickelOS host Linux apps
+
+NickelOS runs Linux apps (Flatpak, Portage) on the device itself, as
+Wayland clients of Exo, instead of in a Crostini VM. nickel-appd
+registers them in the GuestOS registry as VM "nickel", container "host",
+through the same UpdateApplicationList D-Bus call vm_cicerone uses, and
+starts them on request.
+
+- crostini::LaunchCrostiniAppWithIntent() hands apps of VM "nickel" to
+  nickel-appd (org.nickelos.Apps.LaunchApplication) before any Crostini
+  check; every other launch path would start a VM first.
+- crostini::IsNickelNativeAppsAllowed(): the shelf's window tracker
+  also runs for host apps (and their publisher, 0012, asks it), which
+  need no /dev/kvm and are available in guest sessions.
+- The GuestOS registry, session tracker, MIME types service and
+  CrostiniManager now exist for guest profiles (redirected to the
+  original profile), as the code paths above expect them. Borealis still
+  has no service there: the Borealis publisher is only created when its
+  service exists, and GuestOsRegistryService::GetEnabledApps() no longer
+  assumes it (it also counts host apps as enabled, so they can handle
+  links).
+- GetGuestOsShelfAppId() matches a window's unprefixed app id to a host
+  app's desktop file id or StartupWMClass, so windows group under the
+  app's shelf item without sommelier.
+
+diff --git a/chrome/browser/apps/app_service/publishers/publisher_host_impl.cc b/chrome/browser/apps/app_service/publishers/publisher_host_impl.cc
+index cd1661816b613..ecc704e9a197c 100644
+--- a/chrome/browser/apps/app_service/publishers/publisher_host_impl.cc
++++ b/chrome/browser/apps/app_service/publishers/publisher_host_impl.cc
+@@ -10,6 +10,7 @@
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+ #include "chrome/browser/apps/app_service/publishers/borealis_apps.h"
++#include "chrome/browser/ash/borealis/borealis_service_factory.h"
+ #include "chrome/browser/apps/app_service/publishers/bruschetta_apps.h"
+ #include "chrome/browser/apps/app_service/publishers/crostini_apps.h"
+ #include "chrome/browser/apps/app_service/publishers/extension_apps_chromeos.h"
+@@ -89,7 +90,10 @@ void PublisherHostImpl::Initialize() {
+   if (!IsKioskSessionProfile(profile)) {
+     // TODO(crbug.com/170591339): Allow borealis to provide apps for the
+     // non-primary profile.
++    // NickelOS: guest profiles have a GuestOS registry (for host apps) but
++    // no Borealis service.
+     if (guest_os::GuestOsRegistryServiceFactory::GetForProfile(profile) &&
++        borealis::BorealisServiceFactory::GetForProfile(profile) &&
+         !g_omit_borealis_apps_for_testing_) {
+       borealis_apps_ = std::make_unique<BorealisApps>(proxy_);
+       borealis_apps_->Initialize();
+diff --git a/chrome/browser/ash/crostini/BUILD.gn b/chrome/browser/ash/crostini/BUILD.gn
+index 15381ffbdd27b..4067a2a5be9e3 100644
+--- a/chrome/browser/ash/crostini/BUILD.gn
++++ b/chrome/browser/ash/crostini/BUILD.gn
+@@ -118,6 +118,7 @@ static_library("crostini") {
+     "//chrome/common:constants",
+     "//chromeos/ash/components/browser_context_helper",
+     "//chromeos/ash/components/browser_delegate",
++    "//chromeos/ash/components/dbus",
+     "//chromeos/ash/components/dbus/anomaly_detector",
+     "//chromeos/ash/components/dbus/anomaly_detector:proto",
+     "//chromeos/ash/components/dbus/concierge",
+@@ -142,6 +143,7 @@ static_library("crostini") {
+     "//components/pref_registry",
+     "//components/prefs",
+     "//components/user_manager",
++    "//dbus",
+     "//services/network/public/cpp",
+     "//ui/base",
+     "//ui/base/ime/ash",
+diff --git a/chrome/browser/ash/crostini/crostini_manager_factory.cc b/chrome/browser/ash/crostini/crostini_manager_factory.cc
+index dc9efbc7f0bc0..f057fa5e76100 100644
+--- a/chrome/browser/ash/crostini/crostini_manager_factory.cc
++++ b/chrome/browser/ash/crostini/crostini_manager_factory.cc
+@@ -29,7 +29,8 @@ CrostiniManagerFactory::CrostiniManagerFactory()
+           "CrostiniManager",
+           ProfileSelections::Builder()
+               .WithRegular(ProfileSelection::kRedirectedToOriginal)
+-              .WithGuest(ProfileSelection::kNone)
++              // NickelOS: host apps work in guest sessions too.
++              .WithGuest(ProfileSelection::kRedirectedToOriginal)
+               .WithAshInternals(ProfileSelection::kNone)
+               .WithSystem(ProfileSelection::kNone)
+               .Build()) {}
+diff --git a/chrome/browser/ash/crostini/crostini_util.cc b/chrome/browser/ash/crostini/crostini_util.cc
+index 006104f9e792c..a2f54d2d48282 100644
+--- a/chrome/browser/ash/crostini/crostini_util.cc
++++ b/chrome/browser/ash/crostini/crostini_util.cc
+@@ -41,10 +41,14 @@
+ #include "chrome/browser/ui/ash/shelf/shelf_spinner_controller.h"
+ #include "chrome/browser/ui/ash/shelf/shelf_spinner_item_controller.h"
+ #include "chrome/browser/ui/views/crostini/crostini_recovery_view.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
+ #include "chromeos/ui/base/app_types.h"
+ #include "chromeos/ui/base/window_properties.h"
+ #include "components/prefs/pref_service.h"
+ #include "components/user_manager/user.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_proxy.h"
+ #include "ui/aura/client/aura_constants.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/l10n/time_format.h"
+@@ -165,8 +169,83 @@ void LaunchApplication(
+                      std::move(paths.launch_args), std::move(callback)));
+ }
+ 
++void OnNickelAppLaunched(const std::string& app_id,
++                         crostini::CrostiniSuccessCallback callback,
++                         dbus::Response* response,
++                         dbus::ErrorResponse* error) {
++  if (!response) {
++    std::string reason = "nickel-appd did not launch " + app_id;
++    if (error) {
++      std::string message;
++      dbus::MessageReader(error).PopString(&message);
++      reason += ": " + error->GetErrorName() + ": " + message;
++    }
++    return OnLaunchFailed(app_id, std::move(callback), reason,
++                          CrostiniResult::UNKNOWN_ERROR);
++  }
++  OnApplicationLaunched(app_id, std::move(callback),
++                        CrostiniResult::UNKNOWN_ERROR, true, std::string());
++}
++
++// NickelOS host apps run on the device itself: launching one is a single call
++// to nickel-appd, which starts it as the session user.
++void LaunchNickelApp(
++    Profile* profile,
++    const std::string& app_id,
++    const guest_os::GuestOsRegistryService::Registration& registration,
++    int64_t display_id,
++    const std::vector<guest_os::LaunchArg>& args,
++    CrostiniSuccessCallback callback) {
++  RecordAppLaunchHistogram(CrostiniAppLaunchAppType::kRegisteredApp);
++  guest_os::GuestOsRegistryServiceFactory::GetForProfile(profile)->AppLaunched(
++      app_id);
++  // Lets the window tracker put the app's window on |display_id|.
++  if (auto* shelf_controller = ChromeShelfController::instance()) {
++    if (auto* window_controller =
++            shelf_controller->app_service_app_window_controller()) {
++      if (auto* tracker = window_controller->app_service_crostini_tracker()) {
++        tracker->OnAppLaunchRequested(app_id, display_id);
++      }
++    }
++  }
++
++  // nickel-appd and its apps share Chrome's mount namespace, so files are
++  // passed as their paths.
++  std::vector<std::string> launch_args;
++  for (const auto& arg : args) {
++    if (const auto* url = std::get_if<storage::FileSystemURL>(&arg)) {
++      launch_args.push_back(url->path().value());
++    } else {
++      launch_args.push_back(std::get<std::string>(arg));
++    }
++  }
++
++  dbus::ObjectProxy* proxy =
++      ash::DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++          kNickelAppsServiceName, dbus::ObjectPath(kNickelAppsServicePath));
++  dbus::MethodCall method_call(kNickelAppsServiceInterface,
++                               "LaunchApplication");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(registration.DesktopFileId());
++  writer.AppendArrayOfStrings(launch_args);
++  proxy->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&OnNickelAppLaunched, app_id, std::move(callback)));
++}
++
+ }  // namespace
+ 
++bool IsNickelNativeAppsAllowed(Profile* profile) {
++  if (!profile) {
++    return false;
++  }
++  // Guest sessions run their apps in the off-the-record profile.
++  if (profile->IsOffTheRecord() && !profile->IsGuestSession()) {
++    return false;
++  }
++  return ash::ProfileHelper::IsPrimaryProfile(profile->GetOriginalProfile());
++}
++
+ bool IsCrostiniRunning(Profile* profile) {
+   auto* manager = crostini::CrostiniManager::GetForProfile(profile);
+   return manager && manager->IsVmRunning(kCrostiniDefaultVmName);
+@@ -246,6 +325,18 @@ void LaunchCrostiniAppWithIntent(Profile* profile,
+                                  apps::IntentPtr intent,
+                                  const std::vector<guest_os::LaunchArg>& args,
+                                  CrostiniSuccessCallback callback) {
++  // NickelOS host apps need no VM, so none of the Crostini checks apply.
++  if (auto* registry_service =
++          guest_os::GuestOsRegistryServiceFactory::GetForProfile(profile)) {
++    std::optional<guest_os::GuestOsRegistryService::Registration> host_app =
++        registry_service->GetRegistration(app_id);
++    if (host_app && host_app->VmName() == kNickelVmName &&
++        IsNickelNativeAppsAllowed(profile)) {
++      return LaunchNickelApp(profile, app_id, *host_app, display_id, args,
++                             std::move(callback));
++    }
++  }
++
+   // Policies can change under us, and crostini may now be forbidden.
+   std::string reason;
+   if (!CrostiniFeatures::Get()->IsAllowedNow(profile, &reason)) {
+diff --git a/chrome/browser/ash/crostini/crostini_util.h b/chrome/browser/ash/crostini/crostini_util.h
+index 7f85185b41ce8..ab19589e70b0a 100644
+--- a/chrome/browser/ash/crostini/crostini_util.h
++++ b/chrome/browser/ash/crostini/crostini_util.h
+@@ -52,6 +52,19 @@ inline constexpr char kToolsDlcName[] = "termina-tools-dlc";
+ inline constexpr base::FilePath::CharType kHomeDirectory[] =
+     FILE_PATH_LITERAL("/home/chronos/user");
+ 
++// NickelOS: Linux apps installed on the device itself (Flatpak, Portage) are
++// registered by nickel-appd as this VM and container, and run natively on the
++// host instead of in a VM. nickel-appd launches them for Chrome.
++inline constexpr char kNickelVmName[] = "nickel";
++inline constexpr char kNickelContainerName[] = "host";
++inline constexpr char kNickelAppsServiceName[] = "org.nickelos.Apps";
++inline constexpr char kNickelAppsServicePath[] = "/org/nickelos/Apps";
++inline constexpr char kNickelAppsServiceInterface[] = "org.nickelos.Apps";
++
++// Whether |profile| may list and launch NickelOS host apps. Unlike Crostini,
++// this needs no virtualization support and includes guest sessions.
++bool IsNickelNativeAppsAllowed(Profile* profile);
++
+ // These values are persisted to logs. Entries should not be renumbered and
+ // numeric values should never be reused.
+ enum class CrostiniAppLaunchAppType {
+diff --git a/chrome/browser/ash/guest_os/guest_os_mime_types_service_factory.cc b/chrome/browser/ash/guest_os/guest_os_mime_types_service_factory.cc
+index d9e3162170062..729544ed3d5d5 100644
+--- a/chrome/browser/ash/guest_os/guest_os_mime_types_service_factory.cc
++++ b/chrome/browser/ash/guest_os/guest_os_mime_types_service_factory.cc
+@@ -28,7 +28,8 @@ GuestOsMimeTypesServiceFactory::GuestOsMimeTypesServiceFactory()
+           "GuestOsMimeTypesService",
+           ProfileSelections::Builder()
+               .WithRegular(ProfileSelection::kRedirectedToOriginal)
+-              .WithGuest(ProfileSelection::kNone)
++              // NickelOS: host apps work in guest sessions too.
++              .WithGuest(ProfileSelection::kRedirectedToOriginal)
+               .WithAshInternals(ProfileSelection::kNone)
+               .WithSystem(ProfileSelection::kNone)
+               .Build()) {}
+diff --git a/chrome/browser/ash/guest_os/guest_os_registry_service.cc b/chrome/browser/ash/guest_os/guest_os_registry_service.cc
+index 0f631a6e44a8e..2c48dacfbbcdb 100644
+--- a/chrome/browser/ash/guest_os/guest_os_registry_service.cc
++++ b/chrome/browser/ash/guest_os/guest_os_registry_service.cc
+@@ -38,6 +38,7 @@
+ #include "chrome/browser/ash/bruschetta/bruschetta_util.h"
+ #include "chrome/browser/ash/crostini/crostini_features.h"
+ #include "chrome/browser/ash/crostini/crostini_manager.h"
++#include "chrome/browser/ash/crostini/crostini_util.h"
+ #include "chrome/browser/ash/guest_os/guest_os_pref_names.h"
+ #include "chrome/browser/ash/guest_os/guest_os_shelf_utils.h"
+ #include "chrome/browser/ash/guest_os/public/types.h"
+@@ -550,11 +551,14 @@ std::map<std::string, GuestOsRegistryService::Registration>
+ GuestOsRegistryService::GetEnabledApps() const {
+   bool crostini_enabled =
+       crostini::CrostiniFeatures::Get()->IsEnabled(profile_);
++  // NickelOS: no Borealis service in guest profiles; host apps are enabled
++  // wherever they are allowed.
++  auto* borealis_service =
++      borealis::BorealisServiceFactory::GetForProfile(profile_);
+   bool borealis_enabled =
+-      borealis::BorealisServiceFactory::GetForProfile(profile_)
+-          ->Features()
+-          .IsEnabled();
+-  if (!crostini_enabled && !borealis_enabled) {
++      borealis_service && borealis_service->Features().IsEnabled();
++  bool host_apps_enabled = crostini::IsNickelNativeAppsAllowed(profile_);
++  if (!crostini_enabled && !borealis_enabled && !host_apps_enabled) {
+     return {};
+   }
+ 
+@@ -563,7 +567,9 @@ GuestOsRegistryService::GetEnabledApps() const {
+     bool enabled = false;
+     switch (it->second.VmType()) {
+       case VmType::TERMINA:
+-        enabled = crostini_enabled;
++        enabled = it->second.VmName() == crostini::kNickelVmName
++                      ? host_apps_enabled
++                      : crostini_enabled;
+         break;
+       case VmType::PLUGIN_VM:
+         break;
+diff --git a/chrome/browser/ash/guest_os/guest_os_registry_service_factory.cc b/chrome/browser/ash/guest_os/guest_os_registry_service_factory.cc
+index f5e0bdb065370..c3a99858550f5 100644
+--- a/chrome/browser/ash/guest_os/guest_os_registry_service_factory.cc
++++ b/chrome/browser/ash/guest_os/guest_os_registry_service_factory.cc
+@@ -31,7 +31,8 @@ GuestOsRegistryServiceFactory::GuestOsRegistryServiceFactory()
+           "GuestOsRegistryService",
+           ProfileSelections::Builder()
+               .WithRegular(ProfileSelection::kRedirectedToOriginal)
+-              .WithGuest(ProfileSelection::kNone)
++              // NickelOS: host apps work in guest sessions too.
++              .WithGuest(ProfileSelection::kRedirectedToOriginal)
+               .WithAshInternals(ProfileSelection::kNone)
+               .WithSystem(ProfileSelection::kNone)
+               .Build()) {}
+diff --git a/chrome/browser/ash/guest_os/guest_os_session_tracker_factory.cc b/chrome/browser/ash/guest_os/guest_os_session_tracker_factory.cc
+index 69c973f14f408..95ab86444be33 100644
+--- a/chrome/browser/ash/guest_os/guest_os_session_tracker_factory.cc
++++ b/chrome/browser/ash/guest_os/guest_os_session_tracker_factory.cc
+@@ -29,7 +29,8 @@ GuestOsSessionTrackerFactory::GuestOsSessionTrackerFactory()
+           "GuestOsSessionTracker",
+           ProfileSelections::Builder()
+               .WithRegular(ProfileSelection::kRedirectedToOriginal)
+-              .WithGuest(ProfileSelection::kNone)
++              // NickelOS: host apps work in guest sessions too.
++              .WithGuest(ProfileSelection::kRedirectedToOriginal)
+               .WithAshInternals(ProfileSelection::kNone)
+               .WithSystem(ProfileSelection::kNone)
+               .Build()) {}
+diff --git a/chrome/browser/ash/guest_os/guest_os_shelf_utils.cc b/chrome/browser/ash/guest_os/guest_os_shelf_utils.cc
+index 6fe976dc60cd2..51e92f802e06d 100644
+--- a/chrome/browser/ash/guest_os/guest_os_shelf_utils.cc
++++ b/chrome/browser/ash/guest_os/guest_os_shelf_utils.cc
+@@ -41,6 +41,10 @@ constexpr std::string_view kWmClassPrefix = "wmclass.";
+ // TODO(b/267377562): Borealis windows have a hardcoded "borealis" token.
+ constexpr std::string_view kBorealisToken = "borealis";
+ 
++// NickelOS host apps (crostini::kNickelVmName / kNickelContainerName).
++constexpr char kNickelVmName[] = "nickel";
++constexpr char kNickelContainerName[] = "host";
++
+ const std::string* GetAppNameForWMClass(std::string_view wmclass) {
+   // A hard-coded mapping from WMClass to app names.
+   // This is used to deal with the Linux apps that don't specify the correct
+@@ -220,6 +224,17 @@ std::string GetGuestOsShelfAppId(Profile* profile,
+   // If the window_id does not follow the expected format, return a generic id.
+   if (!base::StartsWith(*window_app_id, kGuestOsWindowAppIdPrefix,
+                         base::CompareCase::SENSITIVE)) {
++    // NickelOS host apps are Exo's own clients, with no sommelier to prefix
++    // their app id: it is the app's desktop file id, or its StartupWMClass.
++    const GuestId host(VmType::TERMINA, kNickelVmName, kNickelContainerName);
++    if (FindAppId(apps, guest_os::prefs::kAppDesktopFileIdKey, *window_app_id,
++                  host, &app_id) == FindAppIdResult::UniqueMatch ||
++        FindAppId(apps, guest_os::prefs::kAppStartupWMClassKey,
++                  *window_app_id, host, &app_id,
++                  false /* require_startup_notification */,
++                  true /* need_display */) == FindAppIdResult::UniqueMatch) {
++      return app_id;
++    }
+     LOG(ERROR) << "window_app_id:" << *window_app_id
+                << " provided is not prefixed with "
+                << kGuestOsWindowAppIdPrefix;
+diff --git a/chrome/browser/ui/ash/shelf/app_service/app_service_app_window_shelf_controller.cc b/chrome/browser/ui/ash/shelf/app_service/app_service_app_window_shelf_controller.cc
+index 9815e6e14880e..e7f3e82729234 100644
+--- a/chrome/browser/ui/ash/shelf/app_service/app_service_app_window_shelf_controller.cc
++++ b/chrome/browser/ui/ash/shelf/app_service/app_service_app_window_shelf_controller.cc
+@@ -84,7 +84,8 @@ AppServiceAppWindowShelfController::AppServiceAppWindowShelfController(
+     arc_tracker_ = std::make_unique<AppServiceAppWindowArcTracker>(this);
+   }
+ 
+-  if (crostini::CrostiniFeatures::Get()->CouldBeAllowed(owner->profile())) {
++  if (crostini::CrostiniFeatures::Get()->CouldBeAllowed(owner->profile()) ||
++      crostini::IsNickelNativeAppsAllowed(owner->profile())) {
+     crostini_tracker_ =
+         std::make_unique<AppServiceAppWindowCrostiniTracker>(this);
+   }

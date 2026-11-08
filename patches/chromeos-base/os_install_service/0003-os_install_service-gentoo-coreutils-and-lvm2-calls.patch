@@ -1,0 +1,43 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] os_install_service: Gentoo's coreutils and lvm2 calls
+
+NickelOS Unified runs Gentoo's coreutils and lvm2. chromeos-install's cp
+made directories with mkdirat and set owners with fchownat, which this
+policy killed ("Bad system call", the install failed after preloading the
+DLCs); lvm2's pvs does its I/O through Linux AIO. Found by tracing a full
+install outside the sandbox: these are all the calls it makes that the
+policy didn't list.
+
+---
+--- a/conf/os_install_service-seccomp-amd64.policy
++++ b/conf/os_install_service-seccomp-amd64.policy
+@@ -57,6 +57,8 @@
+ fchdir: 1
+ fchmod: 1
+ fchown: 1
++# NickelOS Unified: Gentoo's coreutils (cp -a) sets owners with fchownat.
++fchownat: 1
+ fcntl: 1
+ fgetxattr: 1
+ flistxattr: 1
+@@ -86,6 +88,11 @@
+ getuid: 1
+ inotify_add_watch: 1
+ inotify_init1: 1
++# NickelOS Unified: Gentoo's lvm2 does its I/O through Linux AIO (libaio).
++io_destroy: 1
++io_getevents: 1
++io_setup: 1
++io_submit: 1
+ lchown: 1
+ lgetxattr: 1
+ linkat: 1
+@@ -94,6 +101,8 @@
+ lsetxattr: 1
+ lstat: 1
+ mkdir: 1
++# NickelOS Unified: Gentoo's coreutils (cp, mkdir) make directories with mkdirat.
++mkdirat: 1
+ mmap: arg2 in ~PROT_EXEC || arg2 in ~PROT_WRITE
+ madvise: arg2 == MADV_DONTNEED || arg2 == MADV_GUARD_INSTALL
+ mseal: 1

@@ -1,0 +1,743 @@
+diff -ruN a/backgroundpage.html b/backgroundpage.html
+--- a/backgroundpage.html
++++ b/backgroundpage.html
+@@ -17,11 +17,11 @@
+ <html>
+ <head>
+   <title>IME Background page</title>
+-  <embed
+-       id="nacl_module"
+-       width="0" height="0"
+-       src="hangul.nmf"
+-       type="application/x-nacl" />
++  <!-- NickelOS: Chrome runs no Native Client; nickel-hangul.js is the
++       engine, behind the element ime.js talks to. -->
++  <div id="nacl_module"></div>
++  <script type='text/javascript' src='nickel-hangul-keyboards.js'></script>
++  <script type='text/javascript' src='nickel-hangul.js'></script>
+   <script type='text/javascript' src='ime.js'></script>
+   <script type='text/javascript' src='keyboard.js'></script>
+ </head>
+diff -ruN a/nickel-hangul.js b/nickel-hangul.js
+--- a/nickel-hangul.js
++++ b/nickel-hangul.js
+@@ -0,0 +1,511 @@
++// NickelOS. Licensed under the Apache License, Version 2.0, as the rest of
++// this input method.
++
++/**
++ * @fileoverview The Hangul engine in JavaScript. ChromiumOS ran libhangul as
++ * a Native Client module (hangul_x86_64.nexe); Chrome no longer runs NaCl,
++ * so Korean typed nothing at all. This stands in for the module behind the
++ * messages ime.js sends it:
++ *   {keyboard: NAME}         switch the keyboard layout
++ *   {text: KEYS, num: 0}     compose the keys typed so far (ASCII)
++ *   {text: HANGUL, num: 0}   Hanja for the Hangul text (hanja.txt)
++ * and answers as the module did: a 'message' event whose data is the JSON
++ * ['SUCCESS', [[text, candidates, matched lengths, {annotation}]]].
++ * The 2-set layout (dubeolsik, the common one) composes here; the 3-set
++ * layouts (390, final, no-shift), Ahnmatae and Romaja through a port of
++ * libhangul's input automata, on its own tables
++ * (nickel-hangul-keyboards.js).
++ */
++
++'use strict';
++
++(function() {
++  const module = document.getElementById('nacl_module');
++
++  // libhangul's input context, ported from hangulinputcontext.c (its
++  // options at their defaults): a buffer of one syllable's initial, medial
++  // and final with the stack of what was pushed, and the automata of jamo
++  // (2-set), jaso (3-set) and romaja layouts. Conjoining jamo.
++  const isInitial = (c) => (c >= 0x1100 && c <= 0x115F) ||
++      (c >= 0xA960 && c <= 0xA97C);
++  const isMedial = (c) => (c >= 0x1160 && c <= 0x11A7) ||
++      (c >= 0xD7B0 && c <= 0xD7C6);
++  const isFinal = (c) => (c >= 0x11A8 && c <= 0x11FF) ||
++      (c >= 0xD7CB && c <= 0xD7FB);
++  const isJamo = (c) => isInitial(c) || isMedial(c) || isFinal(c);
++  // Modern initials as finals, modern finals as initials (0: none), and the
++  // finals that split into a final and the next initial.
++  const INITIAL_TO_FINAL = [
++    0x11A8, 0x11A9, 0x11AB, 0x11AE, 0, 0x11AF, 0x11B7, 0x11B8, 0, 0x11BA,
++    0x11BB, 0x11BC, 0x11BD, 0, 0x11BE, 0x11BF, 0x11C0, 0x11C1, 0x11C2,
++  ];
++  const FINAL_TO_INITIAL = [
++    0x1100, 0x1101, 0, 0x1102, 0x115C, 0x115D, 0x1103, 0x1105, 0xA964,
++    0xA968, 0xA969, 0xA96C, 0, 0, 0x111A, 0x1106, 0x1107, 0x1121, 0x1109,
++    0x110A, 0x110B, 0x110C, 0x110E, 0x110F, 0x1110, 0x1111, 0x1112,
++  ];
++  const FINAL_SPLIT = [
++    [0, 0x1100], [0x11A8, 0x1100], [0x11A8, 0x1109], [0, 0x1102],
++    [0x11AB, 0x110C], [0x11AB, 0x1112], [0, 0x1103], [0, 0x1105],
++    [0x11AF, 0x1100], [0x11AF, 0x1106], [0x11AF, 0x1107], [0x11AF, 0x1109],
++    [0x11AF, 0x1110], [0x11AF, 0x1111], [0x11AF, 0x1112], [0, 0x1106],
++    [0, 0x1107], [0x11B8, 0x1109], [0, 0x1109], [0x11BA, 0x1109],
++    [0, 0x110B], [0, 0x110C], [0, 0x110E], [0, 0x110F], [0, 0x1110],
++    [0, 0x1111], [0, 0x1112],
++  ];
++  // The initial that a final made of two leaves when a vowel follows (dalg
++  // + i: dal + gi), and the finals made of two.
++  const FINAL_SECOND = [
++    0x1100, 0x1100, 0x1109, 0x1102, 0x110C, 0x1112, 0x1103, 0x1105, 0x1100,
++    0x1106, 0x1107, 0x1109, 0x1110, 0x1111, 0x1112, 0x1106, 0x1107, 0x1109,
++    0x1109, 0x1109, 0x110B, 0x110C, 0x110E, 0x110F, 0x1110, 0x1111, 0x1112,
++  ];
++  const DOUBLE_FINALS = [
++    0x11A9, 0x11AA, 0x11AC, 0x11AD, 0x11B0, 0x11B1, 0x11B2, 0x11B3, 0x11B4,
++    0x11B5, 0x11B6, 0x11B9, 0x11BB,
++  ];
++  const parts = (c) => DOUBLE_FINALS.includes(c) ? 2 : 1;
++  // libhangul's jongseong_get_diff: what a final adds to the one before.
++  function finalDifference(previous, final) {
++    if (!(final >= 0x11A8 && final <= 0x11C2)) {
++      return 0;
++    }
++    const difference = parts(final) - parts(previous) - 1;
++    return difference === 0 ? FINAL_SECOND[final - 0x11A8] :
++        difference === 2 ? finalToInitial(final) : 0;
++  }
++  const initialToFinal = (c) =>
++      c >= 0x1100 && c <= 0x1112 ? INITIAL_TO_FINAL[c - 0x1100] : 0;
++  const finalToInitial = (c) =>
++      c >= 0x11A8 && c <= 0x11C2 ? FINAL_TO_INITIAL[c - 0x11A8] : 0;
++
++  // Conjoining jamo as compatibility jamo, for a syllable left incomplete.
++  const COMPATIBILITY = new Map();
++  for (let c = 0x3131; c <= 0x318E; c++) {
++    const conjoining = String.fromCharCode(c).normalize('NFKC');
++    COMPATIBILITY.set(conjoining.charCodeAt(0), c);
++  }
++  function compatibility(c) {
++    const initial = finalToInitial(c);
++    return String.fromCharCode(
++        COMPATIBILITY.get(c) || COMPATIBILITY.get(initial) || c);
++  }
++
++  const LAYOUTS = {};
++  for (const [id, table] of Object.entries(NICKEL_HANGUL_KEYBOARDS)) {
++    const layout = {type: table.type, keys: new Map(), combinations: new Map()};
++    for (let i = 0; i < table.keys.length; i++) {
++      layout.keys.set(table.keys[i], table.values.charCodeAt(i));
++    }
++    for (let i = 0; i < table.combinations.length; i += 3) {
++      const c = table.combinations;
++      layout.combinations.set(c.charCodeAt(i) * 0x10000 + c.charCodeAt(i + 1),
++                              c.charCodeAt(i + 2));
++    }
++    LAYOUTS[id] = layout;
++  }
++
++  class Context {
++    constructor(layout) {
++      this.layout = layout;
++      this.units = [];
++      this.clear();
++    }
++    clear() {
++      this.initial = 0;
++      this.medial = 0;
++      this.final = 0;
++      this.stack = [];
++    }
++    push(c) {
++      if (!isJamo(c)) {
++        this.commit();
++        return false;
++      }
++      if (isInitial(c)) {
++        this.initial = c;
++      } else if (isMedial(c)) {
++        this.medial = c;
++      } else {
++        this.final = c;
++      }
++      this.stack.push(c);
++      return true;
++    }
++    pop() {
++      return this.stack.pop() || 0;
++    }
++    peek() {
++      return this.stack.length ? this.stack[this.stack.length - 1] : 0;
++    }
++    combine(first, second) {
++      // A 2-set key pressed twice is not a double consonant (no g + g = kk).
++      if (this.layout.type === 'jamo' && first === second) {
++        return 0;
++      }
++      return this.layout.combinations.get(first * 0x10000 + second) || 0;
++    }
++    // libhangul's save_commit_string (and flush): the syllable is done.
++    commit() {
++      const {initial, medial, final} = this;
++      const modern = (c, first, last) => c >= first && c <= last;
++      if (modern(initial, 0x1100, 0x1112) && modern(medial, 0x1161, 0x1175) &&
++          (!final || modern(final, 0x11A8, 0x11C2))) {
++        this.units.push(String.fromCharCode(0xAC00 +
++            ((initial - 0x1100) * 21 + medial - 0x1161) * 28 +
++            (final ? final - 0x11A7 : 0)));
++      } else if (initial || medial || final) {
++        this.units.push([initial, medial, final].filter((c) => c)
++            .map(compatibility).join(''));
++      }
++      this.clear();
++    }
++    append(c) {
++      this.commit();
++      this.units.push(String.fromCharCode(c));
++    }
++  }
++
++  // hangul_ic_process_jamo: the 2-set automaton, where a consonant is an
++  // initial or a final by its place.
++  function processJamo(context, c) {
++    if (!isJamo(c) && c > 0) {
++      context.append(c);
++      return true;
++    }
++    if (context.final) {
++      if (isInitial(c)) {
++        const combined =
++            context.combine(context.final, initialToFinal(c));
++        if (isFinal(combined)) {
++          return context.push(combined) || context.push(c);
++        }
++        context.commit();
++        return context.push(c);
++      }
++      if (isMedial(c)) {
++        const popped = context.pop();
++        const peeked = context.peek();
++        if (isFinal(peeked)) {
++          const initial = finalDifference(peeked, context.final);
++          if (!initial) {
++            context.commit();
++            return context.push(c);
++          }
++          context.final = peeked;
++          context.commit();
++          context.push(initial);
++          return context.push(c);
++        }
++        context.final = 0;
++        context.commit();
++        context.push(finalToInitial(popped));
++        return context.push(c);
++      }
++      context.commit();
++      return false;
++    }
++    if (context.medial) {
++      if (isInitial(c)) {
++        if (context.initial) {
++          const final = initialToFinal(c);
++          if (isFinal(final)) {
++            return context.push(final) || context.push(c);
++          }
++        }
++        context.commit();
++        return context.push(c);
++      }
++      if (isMedial(c)) {
++        const combined = context.combine(context.medial, c);
++        if (isMedial(combined)) {
++          return context.push(combined);
++        }
++        context.commit();
++        return context.push(c);
++      }
++      context.commit();
++      return false;
++    }
++    if (context.initial) {
++      if (isInitial(c)) {
++        const combined = context.combine(context.initial, c);
++        // Two initials that make a final (g + s = gs, as MS IME types it):
++        // the first one becomes a final too.
++        if (isFinal(combined)) {
++          context.initial = 0;
++          context.push(initialToFinal(context.pop()));
++        }
++        return context.push(combined) || context.push(c);
++      }
++      return context.push(c);
++    }
++    return context.push(c);
++  }
++
++  // hangul_ic_process_jaso: the key names the jamo's place.
++  function processJaso(context, c) {
++    if (isInitial(c)) {
++      if (!context.initial) {
++        if (context.medial || context.final) {
++          context.commit();
++        }
++        return context.push(c);
++      }
++      const combined = isInitial(context.peek()) ?
++          context.combine(context.initial, c) : 0;
++      if (combined) {
++        return context.push(combined);
++      }
++      context.commit();
++      return context.push(c);
++    }
++    if (isMedial(c)) {
++      if (!context.medial) {
++        if (context.final) {
++          context.commit();
++        }
++        return context.push(c);
++      }
++      const combined = isMedial(context.peek()) ?
++          context.combine(context.medial, c) : 0;
++      if (combined) {
++        return context.push(combined);
++      }
++      context.commit();
++      return context.push(c);
++    }
++    if (isFinal(c)) {
++      if (!context.final) {
++        return context.push(c);
++      }
++      const combined = isFinal(context.peek()) ?
++          context.combine(context.final, c) : 0;
++      if (combined) {
++        return context.push(combined);
++      }
++      context.commit();
++      return context.push(c);
++    }
++    if (c > 0) {
++      context.append(c);
++      return true;
++    }
++    context.commit();
++    return false;
++  }
++
++  // hangul_ic_process_romaja: spelled in Latin letters; a vowel alone gets
++  // the silent initial, a consonant alone the vowel eu.
++  function processRomaja(context, key, c) {
++    const x = key === 'x' || key === 'X';
++    if (!isJamo(c) && c > 0) {
++      context.append(c);
++      return true;
++    }
++    if (key >= 'A' && key <= 'Z') {
++      context.commit();
++    }
++    if (context.final) {
++      if (x) {
++        context.commit();
++        return context.push(0x110C);
++      }
++      if (isInitial(c) || isFinal(c)) {
++        const final = isFinal(c) ? c : initialToFinal(c);
++        const combined = context.combine(context.final, final);
++        if (isFinal(combined)) {
++          return context.push(combined) || context.push(c);
++        }
++        context.commit();
++        return context.push(c);
++      }
++      if (isMedial(c)) {
++        if (context.final === 0x11BC) {
++          context.commit();
++          context.initial = 0x110B;
++          return context.push(c);
++        }
++        let popped = context.pop();
++        if (isMedial(context.peek())) {
++          if (popped === 0x11AA) {
++            context.final = 0x11A8;
++            popped = 0x11BA;
++          } else {
++            context.final = 0;
++          }
++          context.commit();
++          context.push(finalToInitial(popped));
++          return context.push(c);
++        }
++        const [final, initial] = FINAL_SPLIT[context.final - 0x11A8] || [0, 0];
++        context.final = final;
++        context.commit();
++        context.push(initial);
++        return context.push(c);
++      }
++      context.commit();
++      return false;
++    }
++    if (context.medial) {
++      if (isInitial(c)) {
++        if (context.initial) {
++          const final = initialToFinal(c);
++          if (isFinal(final)) {
++            return context.push(final) || context.push(c);
++          }
++          context.commit();
++          return context.push(c);
++        }
++        return context.push(c);
++      }
++      if (isMedial(c)) {
++        const combined = context.combine(context.medial, c);
++        if (isMedial(combined)) {
++          return context.push(combined);
++        }
++        context.commit();
++        context.initial = 0x110B;
++        return context.push(c);
++      }
++      if (isFinal(c)) {
++        return context.push(c);
++      }
++      context.commit();
++      return false;
++    }
++    if (context.initial) {
++      if (isInitial(c)) {
++        const combined = context.combine(context.initial, c);
++        if (!combined) {
++          context.medial = 0x1173;
++          context.commit();
++          return context.push(c);
++        }
++        return context.push(combined);
++      }
++      if (isFinal(c)) {
++        context.medial = 0x1173;
++        context.commit();
++        return context.push(x ? 0x110C : c);
++      }
++      return context.push(c);
++    }
++    if (!context.push(x ? 0x110C : c)) {
++      return false;
++    }
++    if (!context.initial && context.medial) {
++      context.initial = 0x110B;
++    }
++    return true;
++  }
++
++  // A layout's keys as the syllables (and the other characters) they
++  // make. A key the automaton does not take types as it is.
++  function composeLibhangul(layout, keys) {
++    const context = new Context(layout);
++    for (const key of keys) {
++      const c = layout.keys.get(key) || 0;
++      const taken = layout.type === 'romaja' ?
++          processRomaja(context, key, c) :
++          layout.type === 'jamo' ? processJamo(context, c) :
++          processJaso(context, c);
++      if (!taken) {
++        context.units.push(key);
++      }
++    }
++    context.commit();
++    return context.units;
++  }
++
++  // How many keys each syllable took: the split points where the keys
++  // before and after compose on their own to the same syllables (a final
++  // that moved on to the next syllable belongs to that one).
++  function lengthsOf(compose, keys, units) {
++    const same = (a, b) =>
++        a.length === b.length && a.every((u, i) => u === b[i]);
++    const lengths = [];
++    let start = 0;
++    for (let i = 0; i < units.length; i++) {
++      let end = Math.min(start + 1, keys.length);
++      for (let e = start + 1; e <= keys.length; e++) {
++        if (same(compose(keys.slice(start, e)), [units[i]]) &&
++            same(compose(keys.slice(e)), units.slice(i + 1))) {
++          end = e;
++          break;
++        }
++      }
++      lengths.push(i === units.length - 1 ? keys.length - start : end - start);
++      start = end;
++    }
++    return lengths;
++  }
++
++  // hanja.txt (libhangul's, "Hangul:Hanja:meaning" lines), read the first
++  // time Hanja are asked for.
++  let hanjaTable = null;
++  function loadHanja() {
++    if (!hanjaTable) {
++      hanjaTable = fetch('hanja.txt').then((response) => response.text())
++          .then((text) => {
++            const table = new Map();
++            for (const line of text.split('\n')) {
++              if (!line || line[0] === '#') {
++                continue;
++              }
++              const [key, value, ...meaning] = line.split(':');
++              if (!value) {
++                continue;
++              }
++              if (!table.has(key)) {
++                table.set(key, []);
++              }
++              table.get(key).push([value, meaning.join(':')]);
++            }
++            return table;
++          });
++    }
++    return hanjaTable;
++  }
++
++  // Hanja for the longest Hangul prefix first, as libhangul's prefix match.
++  async function convert(text) {
++    const table = await loadHanja();
++    const candidates = [];
++    const matched = [];
++    const annotation = [];
++    for (let length = text.length; length > 0; length--) {
++      for (const [value, meaning] of table.get(text.slice(0, length)) || []) {
++        candidates.push(value);
++        matched.push(length);
++        annotation.push(meaning);
++      }
++    }
++    return [text, candidates, matched, {annotation: annotation}];
++  }
++
++  let keyboard = '2';
++  let queue = Promise.resolve();
++  // Answers in order, after the caller returns, as the module did.
++  module.postMessage = function(message) {
++    const request = JSON.parse(message);
++    queue = queue.then(async () => {
++      if (request.keyboard !== undefined) {
++        keyboard = request.keyboard;
++        return;
++      }
++      const text = request.text || '';
++      let data;
++      if (/^[\x00-\x7f]*$/.test(text)) {
++        const layout = LAYOUTS[keyboard] || LAYOUTS['2'];
++        const compose = (keys) => composeLibhangul(layout, keys);
++        const units = compose(text);
++        data = [text, units, lengthsOf(compose, text, units), {}];
++      } else {
++        data = await convert(text);
++      }
++      module.dispatchEvent(new MessageEvent(
++          'message', {data: JSON.stringify(['SUCCESS', [data]])}));
++    }).catch((error) => console.error('nickel-hangul:', error));
++  };
++})();
+diff -ruN a/nickel-hangul-keyboards.js b/nickel-hangul-keyboards.js
+--- a/nickel-hangul-keyboards.js
++++ b/nickel-hangul-keyboards.js
+@@ -0,0 +1,204 @@
++// NickelOS: libhangul's keyboard layouts (data/keyboards/*.xml), for
++// nickel-hangul.js; generated by gen-keyboards.py. libhangul is
++// Copyright (C) 2006-2011 Choe Hwanjin and licensed under the GNU LGPL
++// 2.1 or later; these tables are its data. ASCII only: the page declares
++// no charset.
++//
++// Each layout: its type (libhangul's: jaso is a 3-set layout, whose keys
++// name initial, medial or final jamo; romaja spells), the keys it maps
++// and their jamo, one to one, and the combinations, three code points
++// each: first, second and their result. Unicode conjoining jamo.
++
++'use strict';
++
++var NICKEL_HANGUL_KEYBOARDS = {
++  '2': {
++    type: 'jamo',
++    keys:
++        '\u0041\u0042\u0043\u0044\u0045\u0046\u0047\u0048\u0049\u004A\u004B' +
++        '\u004C\u004D\u004E\u004F\u0050\u0051\u0052\u0053\u0054\u0055\u0056' +
++        '\u0057\u0058\u0059\u005A\u0061\u0062\u0063\u0064\u0065\u0066\u0067' +
++        '\u0068\u0069\u006A\u006B\u006C\u006D\u006E\u006F\u0070\u0071\u0072' +
++        '\u0073\u0074\u0075\u0076\u0077\u0078\u0079\u007A',
++    values:
++        '\u1106\u1172\u110E\u110B\u1104\u1105\u1112\u1169\u1163\u1165\u1161' +
++        '\u1175\u1173\u116E\u1164\u1168\u1108\u1101\u1102\u110A\u1167\u1111' +
++        '\u110D\u1110\u116D\u110F\u1106\u1172\u110E\u110B\u1103\u1105\u1112' +
++        '\u1169\u1163\u1165\u1161\u1175\u1173\u116E\u1162\u1166\u1107\u1100' +
++        '\u1102\u1109\u1167\u1111\u110C\u1110\u116D\u110F',
++    combinations:
++        '\u1100\u1100\u1101\u1100\u1109\u11AA\u1102\u110C\u11AC\u1102\u1112' +
++        '\u11AD\u1103\u1103\u1104\u1105\u1100\u11B0\u1105\u1106\u11B1\u1105' +
++        '\u1107\u11B2\u1105\u1109\u11B3\u1105\u1110\u11B4\u1105\u1111\u11B5' +
++        '\u1105\u1112\u11B6\u1107\u1107\u1108\u1107\u1109\u11B9\u1109\u1109' +
++        '\u110A\u110C\u110C\u110D\u1169\u1161\u116A\u1169\u1162\u116B\u1169' +
++        '\u1175\u116C\u116E\u1165\u116F\u116E\u1166\u1170\u116E\u1175\u1171' +
++        '\u1173\u1175\u1174\u11A8\u11A8\u11A9\u11A8\u11BA\u11AA\u11AB\u11BD' +
++        '\u11AC\u11AB\u11C2\u11AD\u11AF\u11A8\u11B0\u11AF\u11B7\u11B1\u11AF' +
++        '\u11B8\u11B2\u11AF\u11BA\u11B3\u11AF\u11C0\u11B4\u11AF\u11C1\u11B5' +
++        '\u11AF\u11C2\u11B6\u11B8\u11BA\u11B9\u11BA\u11BA\u11BB',
++  },
++  '39': {
++    type: 'jaso',
++    keys:
++        '\u0021\u0027\u002F\u0030\u0031\u0032\u0033\u0034\u0035\u0036\u0037' +
++        '\u0038\u0039\u003B\u003C\u003E\u0041\u0042\u0043\u0044\u0045\u0046' +
++        '\u0047\u0048\u0049\u004A\u004B\u004C\u004D\u004E\u004F\u0050\u0051' +
++        '\u0052\u0053\u0054\u0055\u0056\u0057\u0058\u0059\u005A\u0061\u0062' +
++        '\u0063\u0064\u0065\u0066\u0067\u0068\u0069\u006A\u006B\u006C\u006D' +
++        '\u006E\u006F\u0070\u0071\u0072\u0073\u0074\u0075\u0076\u0077\u0078' +
++        '\u0079\u007A',
++    values:
++        '\u11BD\u1110\u1169\u110F\u11C2\u11BB\u11B8\u116D\u1172\u1163\u1168' +
++        '\u1174\u116E\u1107\u0032\u0033\u11AE\u0021\u11B1\u11B0\u11BF\u11A9' +
++        '\u002F\u0027\u0038\u0034\u0035\u0036\u0031\u0030\u0039\u003E\u11C1' +
++        '\u1164\u11AD\u003B\u0037\u11B6\u11C0\u11B9\u003C\u11BE\u11BC\u116E' +
++        '\u1166\u1175\u1167\u1161\u1173\u1102\u1106\u110B\u1100\u110C\u1112' +
++        '\u1109\u110E\u1111\u11BA\u1162\u11AB\u1165\u1103\u1169\u11AF\u11A8' +
++        '\u1105\u11B7',
++    combinations:
++        '\u1100\u1100\u1101\u1100\u1109\u11AA\u1102\u110C\u11AC\u1102\u1112' +
++        '\u11AD\u1103\u1103\u1104\u1105\u1100\u11B0\u1105\u1106\u11B1\u1105' +
++        '\u1107\u11B2\u1105\u1109\u11B3\u1105\u1110\u11B4\u1105\u1111\u11B5' +
++        '\u1105\u1112\u11B6\u1107\u1107\u1108\u1107\u1109\u11B9\u1109\u1109' +
++        '\u110A\u110C\u110C\u110D\u1169\u1161\u116A\u1169\u1162\u116B\u1169' +
++        '\u1175\u116C\u116E\u1165\u116F\u116E\u1166\u1170\u116E\u1175\u1171' +
++        '\u1173\u1175\u1174\u11A8\u11A8\u11A9\u11A8\u11BA\u11AA\u11AB\u11BD' +
++        '\u11AC\u11AB\u11C2\u11AD\u11AF\u11A8\u11B0\u11AF\u11B7\u11B1\u11AF' +
++        '\u11B8\u11B2\u11AF\u11BA\u11B3\u11AF\u11C0\u11B4\u11AF\u11C1\u11B5' +
++        '\u11AF\u11C2\u11B6\u11B8\u11BA\u11B9\u11BA\u11BA\u11BB',
++  },
++  '3f': {
++    type: 'jaso',
++    keys:
++        '\u0021\u0022\u0023\u0024\u0025\u0026\u0027\u0028\u0029\u002A\u002D' +
++        '\u002F\u0030\u0031\u0032\u0033\u0034\u0035\u0036\u0037\u0038\u0039' +
++        '\u003A\u003B\u003C\u003D\u003E\u003F\u0040\u0041\u0042\u0043\u0044' +
++        '\u0045\u0046\u0047\u0048\u0049\u004A\u004B\u004C\u004D\u004E\u004F' +
++        '\u0050\u0051\u0052\u0053\u0054\u0055\u0056\u0057\u0058\u0059\u005A' +
++        '\u005B\u005C\u005D\u005E\u005F\u0060\u0061\u0062\u0063\u0064\u0065' +
++        '\u0066\u0067\u0068\u0069\u006A\u006B\u006C\u006D\u006E\u006F\u0070' +
++        '\u0071\u0072\u0073\u0074\u0075\u0076\u0077\u0078\u0079\u007A\u007B' +
++        '\u007C\u007D\u007E',
++    values:
++        '\u11A9\u00B7\u11BD\u11B5\u11B4\u201C\u1110\u0027\u007E\u201D\u0029' +
++        '\u1169\u110F\u11C2\u11BB\u11B8\u116D\u1172\u1163\u1168\u1174\u116E' +
++        '\u0034\u1107\u002C\u003E\u002E\u0021\u11B0\u11AE\u003F\u11BF\u11B2' +
++        '\u11AC\u11B1\u1164\u0030\u0037\u0031\u0032\u0033\u0022\u002D\u0038' +
++        '\u0039\u11C1\u11B6\u11AD\u11B3\u0036\u11AA\u11C0\u11B9\u0035\u11BE' +
++        '\u0028\u003A\u003C\u003D\u003B\u002A\u11BC\u116E\u1166\u1175\u1167' +
++        '\u1161\u1173\u1102\u1106\u110B\u1100\u110C\u1112\u1109\u110E\u1111' +
++        '\u11BA\u1162\u11AB\u1165\u1103\u1169\u11AF\u11A8\u1105\u11B7\u0025' +
++        '\u005C\u002F\u203B',
++    combinations:
++        '\u1100\u1100\u1101\u1100\u1109\u11AA\u1102\u110C\u11AC\u1102\u1112' +
++        '\u11AD\u1103\u1103\u1104\u1105\u1100\u11B0\u1105\u1106\u11B1\u1105' +
++        '\u1107\u11B2\u1105\u1109\u11B3\u1105\u1110\u11B4\u1105\u1111\u11B5' +
++        '\u1105\u1112\u11B6\u1107\u1107\u1108\u1107\u1109\u11B9\u1109\u1109' +
++        '\u110A\u110C\u110C\u110D\u1169\u1161\u116A\u1169\u1162\u116B\u1169' +
++        '\u1175\u116C\u116E\u1165\u116F\u116E\u1166\u1170\u116E\u1175\u1171' +
++        '\u1173\u1175\u1174\u11A8\u11A8\u11A9\u11A8\u11BA\u11AA\u11AB\u11BD' +
++        '\u11AC\u11AB\u11C2\u11AD\u11AF\u11A8\u11B0\u11AF\u11B7\u11B1\u11AF' +
++        '\u11B8\u11B2\u11AF\u11BA\u11B3\u11AF\u11C0\u11B4\u11AF\u11C1\u11B5' +
++        '\u11AF\u11C2\u11B6\u11B8\u11BA\u11B9\u11BA\u11BA\u11BB',
++  },
++  '3s': {
++    type: 'jaso',
++    keys:
++        '\u0027\u002D\u002F\u0030\u0031\u0032\u0033\u0034\u0035\u0036\u0037' +
++        '\u0038\u0039\u003B\u003C\u003D\u003E\u0041\u0042\u0043\u0044\u0045' +
++        '\u0046\u0047\u0048\u0049\u004A\u004B\u004C\u004D\u004E\u004F\u0050' +
++        '\u0051\u0052\u0053\u0054\u0055\u0056\u0057\u0058\u0059\u005A\u005B' +
++        '\u005C\u005D\u0061\u0062\u0063\u0064\u0065\u0066\u0067\u0068\u0069' +
++        '\u006A\u006B\u006C\u006D\u006E\u006F\u0070\u0071\u0072\u0073\u0074' +
++        '\u0075\u0076\u0077\u0078\u0079\u007A',
++    values:
++        '\u1110\u11BD\u11AE\u1164\u11C2\u11BB\u11B8\u116D\u1172\u1163\u1168' +
++        '\u1174\u110F\u1107\u0032\u11BE\u0033\u11BC\u0021\u005C\u005D\u1167' +
++        '\u1161\u002F\u0027\u0038\u0034\u0035\u0036\u0031\u0030\u0039\u003E' +
++        '\u11BA\u1162\u005B\u003B\u0037\u1169\u11AF\u003D\u003C\u002D\u11C0' +
++        '\u11BF\u11C1\u11BC\u116E\u1166\u1175\u1167\u1161\u1173\u1102\u1106' +
++        '\u110B\u1100\u110C\u1112\u1109\u110E\u1111\u11BA\u1162\u11AB\u1165' +
++        '\u1103\u1169\u11AF\u11A8\u1105\u11B7',
++    combinations:
++        '\u1100\u1100\u1101\u1100\u1109\u11AA\u1102\u110C\u11AC\u1102\u1112' +
++        '\u11AD\u1103\u1103\u1104\u1105\u1100\u11B0\u1105\u1106\u11B1\u1105' +
++        '\u1107\u11B2\u1105\u1109\u11B3\u1105\u1110\u11B4\u1105\u1111\u11B5' +
++        '\u1105\u1112\u11B6\u1107\u1107\u1108\u1107\u1109\u11B9\u1109\u1109' +
++        '\u110A\u110C\u110C\u110D\u1169\u1161\u116A\u1169\u1162\u116B\u1169' +
++        '\u1175\u116C\u116E\u1165\u116F\u116E\u1166\u1170\u116E\u1175\u1171' +
++        '\u1173\u1175\u1174\u11A8\u11A8\u11A9\u11A8\u11BA\u11AA\u11AB\u11BD' +
++        '\u11AC\u11AB\u11C2\u11AD\u11AF\u11A8\u11B0\u11AF\u11B7\u11B1\u11AF' +
++        '\u11B8\u11B2\u11AF\u11BA\u11B3\u11AF\u11C0\u11B4\u11AF\u11C1\u11B5' +
++        '\u11AF\u11C2\u11B6\u11B8\u11BA\u11B9\u11BA\u11BA\u11BB',
++  },
++  'ahn': {
++    type: 'jaso',
++    keys:
++        '\u0027\u002C\u002E\u002F\u003B\u003F\u0041\u0042\u0043\u0044\u0045' +
++        '\u0046\u0047\u0048\u0049\u004A\u004B\u004C\u004D\u004E\u004F\u0050' +
++        '\u0051\u0052\u0053\u0054\u0055\u0056\u0057\u0058\u0059\u005A\u005B' +
++        '\u005D\u0061\u0062\u0063\u0064\u0065\u0066\u0067\u0068\u0069\u006A' +
++        '\u006B\u006C\u006D\u006E\u006F\u0070\u0071\u0072\u0073\u0074\u0075' +
++        '\u0076\u0077\u0078\u0079\u007A',
++    values:
++        '\u002E\u11B7\u11AF\u11C2\u116E\u11F9\u1107\u11F0\u11B8\u1103\u1102' +
++        '\u1100\u114C\u1165\u002F\u119E\u1175\u1169\u11AB\u11EB\u005B\u005D' +
++        '\u1106\u1105\u110C\u1159\u0027\u11A8\u1140\u11AE\u003B\u11BD\u002C' +
++        '\u003F\u1107\u11BC\u11B8\u1103\u1102\u1100\u110B\u1165\u1173\u1161' +
++        '\u1175\u1169\u11AB\u11BA\u116D\u1172\u1106\u1105\u110C\u1112\u1163' +
++        '\u11A8\u1109\u11AE\u1167\u11BD',
++    combinations:
++        '\u1100\u1103\u1104\u1100\u110B\u1101\u1100\u1112\u110F\u1102\u1109' +
++        '\u110A\u1103\u1100\u1104\u1103\u110C\u110D\u1103\u1112\u1110\u1107' +
++        '\u110C\u1108\u1107\u1112\u1111\u1109\u1102\u110A\u110B\u1100\u1101' +
++        '\u110C\u1103\u110D\u110C\u1107\u1108\u110C\u1112\u110E\u1112\u1100' +
++        '\u110F\u1112\u1103\u1110\u1112\u1107\u1111\u1112\u110C\u110E\u1161' +
++        '\u1169\u116A\u1161\u1175\u1162\u1162\u1169\u116B\u1163\u1175\u1164' +
++        '\u1165\u116E\u116F\u1165\u1175\u1166\u1166\u116E\u1170\u1167\u1175' +
++        '\u1168\u1169\u1161\u116A\u1169\u1175\u116C\u116A\u1175\u116B\u116C' +
++        '\u1161\u116B\u116E\u1165\u116F\u116E\u1175\u1171\u116F\u1175\u1170' +
++        '\u1171\u1165\u1170\u1173\u1175\u1174\u1175\u1161\u1162\u1175\u1163' +
++        '\u1164\u1175\u1165\u1166\u1175\u1167\u1168\u1175\u1169\u116C\u1175' +
++        '\u116E\u1171\u1175\u1173\u1174\u11A8\u11AF\u11B0\u11A8\u11BA\u11AA' +
++        '\u11A8\u11BC\u11A9\u11A8\u11C2\u11BF\u11AB\u11BA\u11BB\u11AB\u11BD' +
++        '\u11AC\u11AB\u11C2\u11AD\u11AE\u11AF\u11CE\u11AE\u11C2\u11C0\u11AF' +
++        '\u11A8\u11B0\u11AF\u11AE\u11CE\u11AF\u11B7\u11B1\u11AF\u11B8\u11B2' +
++        '\u11AF\u11BA\u11B3\u11AF\u11C2\u11B6\u11B2\u11C2\u11B5\u11B6\u11AE' +
++        '\u11B4\u11B6\u11B8\u11B5\u11B7\u11AF\u11B1\u11B8\u11AF\u11B2\u11B8' +
++        '\u11BA\u11B9\u11B8\u11C2\u11C1\u11BA\u11A8\u11AA\u11BA\u11AB\u11BB' +
++        '\u11BA\u11AF\u11B3\u11BA\u11B8\u11B9\u11BC\u11A8\u11A9\u11BD\u11AB' +
++        '\u11AC\u11BD\u11C2\u11BE\u11C0\u11AF\u11B4\u11C1\u11AF\u11B5\u11C2' +
++        '\u11A8\u11BF\u11C2\u11AB\u11AD\u11C2\u11AE\u11C0\u11C2\u11AF\u11B6' +
++        '\u11C2\u11B8\u11C1\u11C2\u11BD\u11BE\u11CE\u11C2\u11B4',
++  },
++  'ro': {
++    type: 'romaja',
++    keys:
++        '\u0041\u0042\u0043\u0044\u0045\u0046\u0047\u0048\u0049\u004A\u004B' +
++        '\u004C\u004D\u004E\u004F\u0050\u0051\u0052\u0053\u0054\u0055\u0056' +
++        '\u0057\u0058\u0059\u005A\u0061\u0062\u0063\u0064\u0065\u0066\u0067' +
++        '\u0068\u0069\u006A\u006B\u006C\u006D\u006E\u006F\u0070\u0071\u0072' +
++        '\u0073\u0074\u0075\u0076\u0077\u0078\u0079\u007A',
++    values:
++        '\u1161\u1107\u110E\u1103\u1166\u1111\u1100\u1112\u1175\u110C\u110F' +
++        '\u1105\u1106\u1102\u1169\u1111\u110F\u1105\u1109\u1110\u116E\u1107' +
++        '\u116E\u110C\u1175\u110C\u1161\u1107\u110E\u1103\u1166\u1111\u1100' +
++        '\u1112\u1175\u110C\u110F\u1105\u1106\u1102\u1169\u1111\u110F\u1105' +
++        '\u1109\u1110\u116E\u1107\u116E\u11AA\u1175\u110C',
++    combinations:
++        '\u1100\u1100\u1101\u1103\u1103\u1104\u1107\u1107\u1108\u1109\u1109' +
++        '\u110A\u110C\u110C\u110D\u110E\u1112\u110E\u1161\u1166\u1162\u1161' +
++        '\u1175\u1162\u1163\u1166\u1164\u1163\u1175\u1164\u1166\u1169\u1165' +
++        '\u1166\u116E\u1173\u1168\u1169\u1167\u1169\u1161\u116A\u1169\u1162' +
++        '\u116B\u1169\u1175\u116C\u116A\u1166\u116B\u116A\u1175\u116B\u116E' +
++        '\u1161\u116A\u116E\u1165\u116F\u116E\u1166\u1170\u116E\u1169\u116F' +
++        '\u116E\u1175\u1171\u1170\u1169\u116F\u1173\u1175\u1174\u1175\u1161' +
++        '\u1163\u1175\u1162\u1164\u1175\u1165\u1167\u1175\u1166\u1168\u1175' +
++        '\u1169\u116D\u1175\u116E\u1172\u11A8\u11A8\u11A9\u11A8\u11BA\u11AA' +
++        '\u11AB\u11A8\u11BC\u11AB\u11BD\u11AC\u11AB\u11C2\u11AD\u11AF\u11A8' +
++        '\u11B0\u11AF\u11B7\u11B1\u11AF\u11B8\u11B2\u11AF\u11BA\u11B3\u11AF' +
++        '\u11C0\u11B4\u11AF\u11C1\u11B5\u11AF\u11C2\u11B6\u11B8\u11BA\u11B9' +
++        '\u11BA\u11BA\u11BB',
++  },
++};

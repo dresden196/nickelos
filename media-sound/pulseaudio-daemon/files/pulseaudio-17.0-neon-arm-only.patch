@@ -1,0 +1,19 @@
+NickelOS: build the NEON variants only for 32-bit ARM. unstable-simd checks
+for NEON by passing -mfpu=neon, which ChromiumOS clang accepts on x86_64 as
+well, so remap_neon.c, sconv_neon.c and mix_neon.c (ARM assembly) were
+compiled for x86_64 and failed.
+--- a/src/pulsecore/meson.build
++++ b/src/pulsecore/meson.build
+@@ -184,6 +184,12 @@
+ 
+ foreach simd_kwargs : simd_variants
+ 
++  # The NEON sources are 32-bit ARM code; clang accepts -mfpu=neon on other
++  # targets too, so meson's flag check alone would enable them there.
++  if host_machine.cpu_family() != 'arm' and 'neon' in simd_kwargs
++    continue
++  endif
++
+   if host_machine.cpu_family() == 'arm' and 'neon' in simd_kwargs
+     if not cc.compiles('''
+         #include <arm_neon.h>

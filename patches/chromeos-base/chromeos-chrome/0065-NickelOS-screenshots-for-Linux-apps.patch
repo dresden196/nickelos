@@ -1,0 +1,343 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: screenshots for Linux apps
+
+The Screenshot portal's NickelOS backend (xdg-desktop-portal-nickel) asks
+ChromeOS's "share your screen" picker which screen or window an app may
+have (NickelScreenCastChoose, 0022), then has it copied once:
+
+- NickelScreenCastShot(source, frame buffer, width, height): copies the
+  screen's or window's layer once into the backend's shared memory, BGRx,
+  answering whether it did. It waits until nothing on the screen is
+  animating (at most a second), so the picker that chose the source has
+  faded out and the screenshot doesn't show it, and shows no "sharing
+  your screen" notification: the user just said yes in the picker, and
+  nothing goes on being shared. The buffer must be the frame's size.
+
+diff --git a/chrome/browser/ash/dbus/vm/nickel_screen_cast.cc b/chrome/browser/ash/dbus/vm/nickel_screen_cast.cc
+index 2dd369f196e32..336b5c317dfb8 100644
+--- a/chrome/browser/ash/dbus/vm/nickel_screen_cast.cc
++++ b/chrome/browser/ash/dbus/vm/nickel_screen_cast.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <errno.h>
+ #include <sys/mman.h>
++#include <sys/stat.h>
+ #include <unistd.h>
+ 
+ #include <algorithm>
+@@ -33,8 +34,10 @@
+ #include "third_party/skia/include/core/SkBitmap.h"
+ #include "ui/aura/window.h"
+ #include "ui/aura/window_observer.h"
++#include "ui/aura/window_tracker.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/compositor/layer.h"
++#include "ui/compositor/layer_animator.h"
+ #include "ui/display/display.h"
+ #include "ui/display/manager/display_manager.h"
+ #include "ui/display/screen.h"
+@@ -45,6 +48,12 @@ namespace ash {
+ namespace {
+ 
+ constexpr base::TimeDelta kFrameInterval = base::Milliseconds(33);
++// A screenshot waits for the screen to be still, checking this often, but
++// not past kShotSettleTries (a second): something may move for good.
++constexpr base::TimeDelta kShotSettleInterval = base::Milliseconds(50);
++constexpr int kShotSettleTries = 20;
++// The largest screenshot side, so its size fits in a size_t.
++constexpr int kMaxShotSide = 16384;
+ 
+ std::u16string DisplayName(const std::string& app_name) {
+   return app_name.empty()
+@@ -71,6 +80,34 @@ aura::Window* SourceWindow(const content::DesktopMediaID& id,
+   return window;
+ }
+ 
++// Copies |bitmap| into |frame| (|width| x |height|, BGRx). A window that
++// changed size meanwhile is cut to the frame's size, or padded with black.
++void CopyFrame(const SkBitmap& bitmap, uint8_t* frame, int width, int height) {
++  const int rows = std::min(height, bitmap.height());
++  const int columns = std::min(width, bitmap.width());
++  if (rows < height || columns < width) {
++    memset(frame, 0, static_cast<size_t>(width) * height * 4);
++  }
++  for (int y = 0; y < rows; ++y) {
++    memcpy(frame + static_cast<size_t>(y) * width * 4, bitmap.getAddr32(0, y),
++           static_cast<size_t>(columns) * 4);
++  }
++}
++
++// Whether |layer| or anything in it is animating: a window or a dialog
++// fading in or out, the dimming behind a dialog.
++bool Animating(ui::Layer* layer) {
++  if (layer->GetAnimator()->is_animating()) {
++    return true;
++  }
++  for (ui::Layer* child : layer->children()) {
++    if (Animating(child)) {
++      return true;
++    }
++  }
++  return false;
++}
++
+ class Session;
+ 
+ std::map<std::string, std::unique_ptr<Session>>& Sessions() {
+@@ -176,19 +213,10 @@ class Session : public aura::WindowObserver {
+     if (bitmap.drawsNothing()) {
+       return;
+     }
+-    // A window that changed size since the start keeps the stream's size:
+-    // cut to it, or padded with black.
+-    const size_t frame_size = static_cast<size_t>(width_) * height_ * 4;
+-    uint8_t* frame = ring_ + next_slot_ * frame_size;
+-    const int rows = std::min(height_, bitmap.height());
+-    const int columns = std::min(width_, bitmap.width());
+-    if (rows < height_ || columns < width_) {
+-      memset(frame, 0, frame_size);
+-    }
+-    for (int y = 0; y < rows; ++y) {
+-      memcpy(frame + static_cast<size_t>(y) * width_ * 4, bitmap.getAddr32(0, y),
+-             static_cast<size_t>(columns) * 4);
+-    }
++    // A window that changed size since the start keeps the stream's size.
++    CopyFrame(bitmap,
++              ring_ + next_slot_ * static_cast<size_t>(width_) * height_ * 4,
++              width_, height_);
+     const uint32_t slot = next_slot_;
+     next_slot_ = (next_slot_ + 1) % slots_;
+     if (HANDLE_EINTR(write(notify_.get(), &slot, sizeof(slot))) < 0 &&
+@@ -222,6 +250,78 @@ class Session : public aura::WindowObserver {
+   base::WeakPtrFactory<Session> weak_ptr_factory_{this};
+ };
+ 
++// One screenshot (NickelScreenCast::Shot). It owns itself until it answers.
++class OneShot {
++ public:
++  OneShot(aura::Window* window,
++          uint8_t* frame,
++          size_t frame_size,
++          int width,
++          int height,
++          NickelScreenCast::ShotCallback callback)
++      : frame_(frame),
++        frame_size_(frame_size),
++        width_(width),
++        height_(height),
++        callback_(std::move(callback)) {
++    window_.Add(window);
++  }
++
++  OneShot(const OneShot&) = delete;
++  OneShot& operator=(const OneShot&) = delete;
++
++  ~OneShot() { munmap(frame_, frame_size_); }
++
++  // Copies the source once its screen is still.
++  static void Take(std::unique_ptr<OneShot> shot) {
++    if (shot->window_.windows().empty()) {
++      // The source went away.
++      std::move(shot->callback_).Run(false);
++      return;
++    }
++    aura::Window* window = shot->window_.windows().front();
++    if (Animating(window->GetRootWindow()->layer()) &&
++        ++shot->tries_ < kShotSettleTries) {
++      base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
++          FROM_HERE, base::BindOnce(&OneShot::Take, std::move(shot)),
++          kShotSettleInterval);
++      return;
++    }
++    auto request = std::make_unique<viz::CopyOutputRequest>(
++        viz::CopyOutputRequest::ResultFormat::RGBA,
++        viz::CopyOutputRequest::ResultDestination::kSystemMemory,
++        base::BindOnce(&OneShot::OnCaptured, std::move(shot)));
++    request->set_result_task_runner(
++        base::SequencedTaskRunner::GetCurrentDefault());
++    window->layer()->RequestCopyOfOutput(std::move(request));
++  }
++
++ private:
++  static void OnCaptured(std::unique_ptr<OneShot> shot,
++                         std::unique_ptr<viz::CopyOutputResult> result) {
++    if (result->IsEmpty()) {
++      std::move(shot->callback_).Run(false);
++      return;
++    }
++    auto scoped_bitmap = result->ScopedAccessSkBitmap();
++    const SkBitmap& bitmap = scoped_bitmap.bitmap();
++    if (bitmap.drawsNothing()) {
++      std::move(shot->callback_).Run(false);
++      return;
++    }
++    CopyFrame(bitmap, shot->frame_, shot->width_, shot->height_);
++    std::move(shot->callback_).Run(true);
++  }
++
++  aura::WindowTracker window_;
++  uint8_t* const frame_;
++  const size_t frame_size_;
++  const int width_;
++  const int height_;
++  int tries_ = 0;
++  NickelScreenCast::ShotCallback callback_;
++};
++
+ void OnChosen(std::unique_ptr<DesktopMediaPicker> picker,
+               NickelScreenCast::ChooseCallback callback,
+               DesktopMediaPicker::DoneCallbackArgumentType result) {
+@@ -301,4 +401,38 @@ void NickelScreenCast::Stop(const std::string& source_id) {
+   Sessions().erase(source_id);
+ }
+ 
++// static
++void NickelScreenCast::Shot(const std::string& source_id,
++                            base::ScopedFD frame,
++                            int width,
++                            int height,
++                            ShotCallback callback) {
++  gfx::Size size;
++  aura::Window* window =
++      SourceWindow(content::DesktopMediaID::Parse(source_id), &size);
++  if (!window || width <= 0 || height <= 0 || width > kMaxShotSide ||
++      height > kMaxShotSide) {
++    std::move(callback).Run(false);
++    return;
++  }
++  // Writing past the end of a smaller buffer would crash Chrome.
++  const size_t frame_size = static_cast<size_t>(width) * height * 4;
++  struct stat frame_stat;
++  if (fstat(frame.get(), &frame_stat) < 0 ||
++      static_cast<size_t>(frame_stat.st_size) < frame_size) {
++    std::move(callback).Run(false);
++    return;
++  }
++  void* memory = mmap(nullptr, frame_size, PROT_READ | PROT_WRITE, MAP_SHARED,
++                      frame.get(), 0);
++  if (memory == MAP_FAILED) {
++    PLOG(ERROR) << "NickelOS screenshot: cannot map the frame buffer";
++    std::move(callback).Run(false);
++    return;
++  }
++  OneShot::Take(std::make_unique<OneShot>(window, static_cast<uint8_t*>(memory),
++                                          frame_size, width, height,
++                                          std::move(callback)));
++}
++
+ }  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_screen_cast.h b/chrome/browser/ash/dbus/vm/nickel_screen_cast.h
+index dc920e0ea3839..c44c20ba92002 100644
+--- a/chrome/browser/ash/dbus/vm/nickel_screen_cast.h
++++ b/chrome/browser/ash/dbus/vm/nickel_screen_cast.h
+@@ -43,6 +43,20 @@ class NickelScreenCast {
+                     bool cursor,
+                     const std::string& app_name);
+   static void Stop(const std::string& source_id);
++
++  using ShotCallback = base::OnceCallback<void(bool taken)>;
++
++  // NickelOS: screenshots for Linux apps. Copies |source_id| once into
++  // |frame| (|width| x |height|, BGRx) for the Screenshot portal's backend,
++  // answering whether it did. Taken once nothing on the screen is moving,
++  // so the picker that chose the source has faded out, and without the
++  // "sharing your screen" notification: the user just said yes in the
++  // picker, and nothing goes on being shared.
++  static void Shot(const std::string& source_id,
++                   base::ScopedFD frame,
++                   int width,
++                   int height,
++                   ShotCallback callback);
+ };
+ 
+ }  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index cd5c1a096f732..4deee1d9326e4 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "chrome/browser/ash/dbus/vm/vm_applications_service_provider.h"
+ 
++#include <climits>
+ #include <memory>
+ #include <optional>
+ #include <string>
+@@ -154,6 +155,8 @@ constexpr char kNickelOpenPathMethod[] = "NickelOpenPath";
+ constexpr char kNickelScreenCastChooseMethod[] = "NickelScreenCastChoose";
+ constexpr char kNickelScreenCastStartMethod[] = "NickelScreenCastStart";
+ constexpr char kNickelScreenCastStopMethod[] = "NickelScreenCastStop";
++// NickelOS: called by the Screenshot portal's backend (NickelScreenCast).
++constexpr char kNickelScreenCastShotMethod[] = "NickelScreenCastShot";
+ // NickelOS: called by the RemoteDesktop portal's backend (NickelRemoteDesktop).
+ constexpr char kNickelRemoteDesktopAskMethod[] = "NickelRemoteDesktopAsk";
+ constexpr char kNickelRemoteDesktopInputMethod[] = "NickelRemoteDesktopInput";
+@@ -248,6 +251,13 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelScreenCastShotMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelScreenCastShot,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+   exported_object->ExportMethod(
+       vm_tools::apps::kVmApplicationsServiceInterface,
+       kNickelRemoteDesktopAskMethod,
+@@ -495,6 +505,40 @@ void VmApplicationsServiceProvider::NickelScreenCastStop(
+   std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
+ }
+ 
++// NickelOS: the Screenshot portal's backend has the chosen source copied
++// once into its frame buffer (see NickelScreenCast::Shot), answering
++// whether it was.
++void VmApplicationsServiceProvider::NickelScreenCastShot(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string source_id;
++  base::ScopedFD frame;
++  uint32_t width = 0;
++  uint32_t height = 0;
++  if (!reader.PopString(&source_id) || !reader.PopFileDescriptor(&frame) ||
++      !reader.PopUint32(&width) || !reader.PopUint32(&height) ||
++      width > INT_MAX || height > INT_MAX) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected source, frame buffer, size"));
++    return;
++  }
++  NickelScreenCast::Shot(
++      source_id, std::move(frame), width, height,
++      base::BindOnce(
++          [](dbus::MethodCall* method_call,
++             dbus::ExportedObject::ResponseSender response_sender,
++             bool taken) {
++            std::unique_ptr<dbus::Response> response =
++                dbus::Response::FromMethodCall(method_call);
++            dbus::MessageWriter(response.get()).AppendBool(taken);
++            std::move(response_sender).Run(std::move(response));
++          },
++          method_call, std::move(response_sender)));
++}
++
+ // NickelOS: the RemoteDesktop portal's backend asks whether an app may
+ // control the keyboard and pointer; the answer is a token ("" for no).
+ void VmApplicationsServiceProvider::NickelRemoteDesktopAsk(
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index b998f4cd2b68d..ee59e9148b221 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -77,6 +77,9 @@ class VmApplicationsServiceProvider
+   void NickelScreenCastStop(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelScreenCastShot(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
+   void NickelRemoteDesktopAsk(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);

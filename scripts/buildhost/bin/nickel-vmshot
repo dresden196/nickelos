@@ -1,0 +1,6 @@
+#!/bin/bash
+# Capture the nickel-vmtest display to PNG via QMP.
+D=${NICKEL_VMTEST_DIR:-/srv/nickel/vmtest}; OUT=${1:-$D/screen.png}
+printf "%s\n" "{\"execute\":\"qmp_capabilities\"}" "{\"execute\":\"screendump\",\"arguments\":{\"filename\":\"$D/screen.ppm\"}}" | socat - UNIX-CONNECT:$D/qmp.sock >/dev/null
+for i in 1 2 3 4 5; do [ -s "$D/screen.ppm" ] && break; sleep 1; done
+pnmtopng "$D/screen.ppm" > "$OUT" 2>/dev/null && echo "$OUT"

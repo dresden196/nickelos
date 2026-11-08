@@ -1,0 +1,50 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] usermode-helper: allow elogind's cgroup release agent
+
+ChromeOS's kernel runs every helper program through usermode-helper, which
+aborts on programs it does not know. NickelOS runs elogind for session
+tracking; elogind sets /usr/lib/elogind/elogind-cgroups-agent as the
+release agent of its cgroup hierarchy, which the kernel runs when a
+session's cgroup becomes empty. usermode-helper refused it and aborted
+each time a session ended (a usermode_helper crash report per session),
+and elogind never heard that the session's processes were gone.
+
+Allow that program with its one argument, an absolute cgroup path.
+
+---
+diff -ruN a/init/usermode-helper_lib.cc b/init/usermode-helper_lib.cc
+--- a/init/usermode-helper_lib.cc
++++ b/init/usermode-helper_lib.cc
+@@ -141,6 +141,23 @@
+   return true;
+ }
+ 
++// NickelOS: elogind's cgroup release agent (sys-auth/elogind). The kernel runs
++// it with the path of a cgroup in elogind's hierarchy that became empty, so
++// that elogind can finish the session it belonged to.
++bool ValidateElogindCgroupsAgent(int argc, const char* argv[]) {
++  if (argc != 2) {
++    LOG(ERROR) << "elogind-cgroups-agent: argc must be 2";
++    return false;
++  }
++
++  if (argv[1][0] != '/') {
++    LOG(ERROR) << "elogind-cgroups-agent: argv[1] must be a cgroup path";
++    return false;
++  }
++
++  return true;
++}
++
+ }  // namespace
+ 
+ // Whether the arguments to the program are permitted.
+@@ -159,6 +176,8 @@
+     return ValidateRequestKey(argc, argv);
+   } else if (prog == "/sbin/bridge-stp") {
+     return ValidateBridgeStp(argc, argv);
++  } else if (prog == "/usr/lib/elogind/elogind-cgroups-agent") {
++    return ValidateElogindCgroupsAgent(argc, argv);
+   }
+ 
+   LOG(ERROR) << "program not permitted: " << argv[0];

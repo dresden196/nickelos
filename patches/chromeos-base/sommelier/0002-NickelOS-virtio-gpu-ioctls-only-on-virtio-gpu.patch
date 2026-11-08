@@ -1,0 +1,105 @@
+NickelOS: virtio-gpu's private ioctls only on a virtio-gpu device.
+Sommelier asks the DRM device it was given virtio-gpu questions and counts
+on other drivers to fail them: at startup (GETPARAM, RESOURCE_INFO), for
+every dma-buf a client attaches (RESOURCE_INFO_CROS, for Crostini's stride
+fixups) and as a fallback wait (WAIT). Driver-private ioctl numbers are
+per driver: on nvidia-drm, RESOURCE_INFO_CROS (0x45) is its prime fence
+context creation, which succeeded and was never undone, so every X11
+buffer leaked a fence context in sommelier's device file. After hours (or
+a burst: Steam's window after signing in), the GPU ran out of semaphore
+surfaces: "Failed to import fence semaphore surface" (ENOMEM), then
+Chrome's page flips timed out ("Flip event timeout on head 0"), the screen
+froze and Chrome's GPU process was killed by its watchdog, again and
+again. Now the device's driver name is checked once (drmGetVersion:
+virtio_gpu) and the virtio-gpu paths are skipped elsewhere.
+
+diff --git a/vm_tools/sommelier/compositor/sommelier-dmabuf-sync.cc b/vm_tools/sommelier/compositor/sommelier-dmabuf-sync.cc
+index 8a7907b..7e5c247 100644
+--- a/vm_tools/sommelier/compositor/sommelier-dmabuf-sync.cc
++++ b/vm_tools/sommelier/compositor/sommelier-dmabuf-sync.cc
+@@ -129,6 +129,12 @@ void sl_dmabuf_sync(struct sl_context* ctx, struct sl_sync_point* sync_point) {
+     return;
+   }
+ 
++  // NickelOS: the fallback below is virtio-gpu's (see
++  // sl_context.drm_is_virtgpu).
++  if (!ctx->drm_is_virtgpu) {
++    return;
++  }
++
+   // Fallback to waiting on a virtgpu buffer's implicit fence.
+   //
+   // First imports the prime fd to a gem handle. This will fail if this
+diff --git a/vm_tools/sommelier/compositor/sommelier-linux-dmabuf.cc b/vm_tools/sommelier/compositor/sommelier-linux-dmabuf.cc
+index 44c37ad..abecc2c 100644
+--- a/vm_tools/sommelier/compositor/sommelier-linux-dmabuf.cc
++++ b/vm_tools/sommelier/compositor/sommelier-linux-dmabuf.cc
+@@ -186,6 +186,10 @@ bool sl_linux_dmabuf_fixup_plane0_params(struct sl_context* ctx,
+    * and may have different stride for host buffer and shadow/guest buffer.
+    * For context, see: crbug.com/892242 and b/230510320.
+    */
++  // NickelOS: only virtio-gpu has these (see sl_context.drm_is_virtgpu).
++  if (!ctx->drm_is_virtgpu) {
++    return false;
++  }
+   int drm_fd = gbm_device_get_fd(ctx->gbm);
+   struct drm_prime_handle prime_handle;
+   int ret;
+diff --git a/vm_tools/sommelier/sommelier-ctx.cc b/vm_tools/sommelier/sommelier-ctx.cc
+index 9f654d0..15eeeea 100644
+--- a/vm_tools/sommelier/sommelier-ctx.cc
++++ b/vm_tools/sommelier/sommelier-ctx.cc
+@@ -149,6 +149,7 @@ void sl_context_init_default(struct sl_context* ctx) {
+   ctx->vm_id = DEFAULT_VM_NAME;
+   ctx->drm_device = nullptr;
+   ctx->gbm = nullptr;
++  ctx->drm_is_virtgpu = false;
+   ctx->xwayland = 0;
+   ctx->xwayland_pid = -1;
+   ctx->child_pid = -1;
+diff --git a/vm_tools/sommelier/sommelier-ctx.h b/vm_tools/sommelier/sommelier-ctx.h
+index 79eef25..259f2b5 100644
+--- a/vm_tools/sommelier/sommelier-ctx.h
++++ b/vm_tools/sommelier/sommelier-ctx.h
+@@ -126,6 +126,9 @@ struct sl_context {
+   std::unique_ptr<struct wl_event_source> virtwl_socket_event_source;
+   const char* drm_device;
+   bool drm_has_virtgpu_resource_info_type;
++  // NickelOS: whether the DRM device is virtio-gpu. Its private ioctls go to
++  // virtio-gpu only: other drivers have their own under the same numbers.
++  bool drm_is_virtgpu;
+   struct gbm_device* gbm;
+   int xwayland;
+   pid_t xwayland_pid;
+diff --git a/vm_tools/sommelier/sommelier.cc b/vm_tools/sommelier/sommelier.cc
+index f39635a..22c3ef4 100644
+--- a/vm_tools/sommelier/sommelier.cc
++++ b/vm_tools/sommelier/sommelier.cc
+@@ -43,6 +43,7 @@
+ #include <unistd.h>
+ #include <vector>
+ #include <wayland-client.h>
++#include <xf86drm.h>
+ #include <xcb/composite.h>
+ #include <xcb/shape.h>
+ #include <xcb/xcb.h>
+@@ -4515,8 +4516,18 @@ int real_main(int argc, char** argv) {
+         return EXIT_FAILURE;
+       }
+ 
++      // NickelOS: virtio-gpu's private ioctls only on virtio-gpu. On another
++      // driver the same numbers are that driver's own: on nvidia-drm,
++      // RESOURCE_INFO_CROS (0x45) creates a fence context, so every X11
++      // buffer leaked one until the GPU ran out of semaphores and display
++      // flips stalled (the screen froze).
++      drmVersionPtr version = drmGetVersion(drm_fd);
++      ctx.drm_is_virtgpu = version && version->name &&
++                           strcmp(version->name, "virtio_gpu") == 0;
++      drmFreeVersion(version);
+       ctx.drm_has_virtgpu_resource_info_type =
+-        sl_linux_dmabuf_has_virtgpu_resource_info_type(drm_fd);
++          ctx.drm_is_virtgpu &&
++          sl_linux_dmabuf_has_virtgpu_resource_info_type(drm_fd);
+ 
+       ctx.drm_device = drm_device;
+     }

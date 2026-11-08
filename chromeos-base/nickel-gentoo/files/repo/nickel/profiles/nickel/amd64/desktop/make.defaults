@@ -1,0 +1,37 @@
+# NickelOS's Gentoo world (docs/gentoo-at-root.md): Gentoo's 23.0 desktop
+# profile as it is, so Gentoo's binary packages fit, and what Gentoo's
+# packages must leave to the OS, ChromeOS's world, which runs the system
+# itself:
+#  - the system bus's services and policies (its dbus-daemon is ChromeOS's)
+#  - udev rules (ChromeOS's udevd handles devices, Steam's controllers
+#    included) and polkit rules (its polkitd is the OS's)
+#  - the session's autostart entries (the session is the OS's; Gentoo's
+#    PipeWire, for one, would start a second sound server)
+#  - launcher entries for daemons Gentoo never runs here
+#  - GTK 3's settings.ini: it names the "gnome" icon theme, which nothing
+#    installs, and both worlds' GTK read it (icons went missing); without
+#    it GTK uses its own defaults (Adwaita)
+# Gentoo's daemons are installed for their libraries and never started: no
+# Gentoo init runs.
+INSTALL_MASK="${INSTALL_MASK} /usr/share/dbus-1/system-services /usr/share/dbus-1/system.d /etc/dbus-1/system.d
+	/usr/lib/udev /lib/udev /etc/udev /usr/share/polkit-1/rules.d /etc/polkit-1/rules.d /etc/xdg/autostart
+	/usr/share/applications/cups.desktop /usr/share/applications/bssh.desktop /usr/share/applications/bvnc.desktop
+	/etc/gtk-3.0/settings.ini"
+# NickelOS (docs/unified.md, "OpenRC"): OpenRC runs your services
+# only; its scripts for what it does as init (mounts, the clock, the network,
+# killing every process at shutdown) stay out, since stopping them would
+# unmount ChromeOS's filesystems (nickel-os provides their names), and so do
+# its default runlevels (nickel-unify makes the image's).
+INSTALL_MASK="${INSTALL_MASK} /etc/runlevels
+	/etc/init.d/mount-ro /etc/init.d/save-termencoding /etc/init.d/seedrng /etc/init.d/binfmt
+	/etc/init.d/net-online /etc/init.d/bootmisc /etc/init.d/netmount /etc/init.d/killprocs
+	/etc/init.d/termencoding /etc/init.d/swclock /etc/init.d/numlock /etc/init.d/loopback
+	/etc/init.d/dmesg /etc/init.d/sysctl /etc/init.d/consolefont /etc/init.d/root /etc/init.d/mtab
+	/etc/init.d/sysfs /etc/init.d/save-keymaps /etc/init.d/localmount /etc/init.d/osclock
+	/etc/init.d/keymaps /etc/init.d/hostname /etc/init.d/savecache /etc/init.d/modules
+	/etc/init.d/devfs /etc/init.d/fsck /etc/init.d/cgroups /etc/init.d/swap /etc/init.d/procfs
+	/etc/init.d/agetty /etc/init.d/hwclock /etc/init.d/runsvdir /etc/init.d/s6-svscan"
+# ChromeOS's own: its /var layout (Gentoo's baselayout makes /var/lock and
+# /var/run links; ChromeOS's /var/lock is a directory) and its name
+# (/etc/os-release says NickelOS).
+INSTALL_MASK="${INSTALL_MASK} /var/lock /var/run /etc/os-release"

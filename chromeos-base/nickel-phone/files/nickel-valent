@@ -1,0 +1,30 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# NickelOS: Valent for the session (nickel-phone.conf), as the session user.
+# Phones list this computer by Valent's name for it, which is the hostname
+# unless the user names it, and ChromeOS's hostname is "localhost": name it
+# after the computer's model instead until the user picks a name. A Valent
+# started before this (by hand) may have saved "localhost" as the name.
+case "$(gsettings get ca.andyholmes.Valent name 2>/dev/null)" in
+  "''"|"'localhost'") rename=1 ;;
+  *) rename= ;;
+esac
+if [ -n "${rename}" ]; then
+  model=$(cat /sys/class/dmi/id/product_name 2>/dev/null)
+  case "${model}" in
+    ""|"System Product Name"|"To be filled by O.E.M."|"Default string")
+      model=NickelOS ;;
+  esac
+  gsettings set ca.andyholmes.Valent name "${model}"
+fi
+# GTK opens the display once, when Valent starts: a Valent started while
+# Chrome serves no Wayland socket never gets a display, and the first window
+# it is asked for crashes it. After a Chrome restart (Valent loses the
+# display, exits, and the job starts it again) wait for the socket here.
+i=0
+while [ ! -S "${XDG_RUNTIME_DIR}/wayland-0" ] && [ "${i}" -lt 60 ]; do
+  sleep 1
+  i=$((i + 1))
+done
+exec /usr/bin/valent --gapplication-service

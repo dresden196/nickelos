@@ -1,0 +1,1446 @@
+{
+ "IDS_ABOUT_CROS_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS.",
+  "t": "NickelOS imewezeshwa na BEGIN_LINK_CROS_OSSprogramu huriaEND_LINK_CROS_OSS za ziada."
+ },
+ "IDS_ABOUT_CROS_WITH_LINUX_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS, as is BEGIN_LINK_LINUX_OSSLinux development environmentEND_LINK_LINUX_OSS.",
+  "t": "NickelOS inawezeshwa na BEGIN_LINK_CROS_OSSprogramu huriaEND_LINK_CROS_OSS za ziada, kama vile BEGIN_LINK_LINUX_OSSmazingira ya wasanidi programu wa LinuxEND_LINK_LINUX_OSS."
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY": {
+  "en": "Manage accessibility settings button, Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "Kitufe cha \"Dhibiti mipangilio ya ufikivu\", bonyeza 'Enter' ili uweke mapendeleo ya zana zako za ufikivu katika mipangilio ya NickelOS"
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUFFIX": {
+  "en": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT, Press tab then Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT, Bonyeza 'tab' kisha 'Enter' ili uweke mapendeleo ya zana zako za ufikivu katika mipangilio ya NickelOS"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "Programu ya Linux, iliyosakinishwa kwa kutumia INSTALLER"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "Programu ya Linux"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "Hakikisha simu yako na kifaa chako cha NickelOS vimeunganishwa kwenye mtandao mmoja kisha ujaribu tena. LEARN_MORE"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "Simu yako inatumia mtandao wa simu. Hakikisha simu yako na kifaa chako cha NickelOS vimeunganishwa kwenye mtandao mmoja wa Wi-Fi kisha ujaribu tena. LEARN_MORE"
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "Kidhibiti cha Manenosiri kingependa kuthibitisha kuwa ni wewe"
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "Kifaa chako kinahitaji kubaki kikiwa kimewashwa na kuunganishwa kwenye chaja wakati huu. Hakikisha kuwa kebo za adapta au chaja zimechomekwa kabisa kwenye kifaa chako na soketi ya umeme. Usizime kifaa chako."
+ },
+ "IDS_ASH_MESSAGE_CENTER_SYSTEM_APP_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "Okoa muda kwa kujibu haraka ujumbe mfupi kwenye simu yako kupitia kifaa chako cha NickelOS"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "Eneo-kazi"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "Hamishia kwenye tupio"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "Tumia jina ambalo halianzi na nukta wala halina mkwaju."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "Tayari kuna kipengee chenye jina hilo."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "Folda mpya"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "Folda mpya"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "Fungua"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "Fungua Eneo-kazi katika Faili"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "Badilisha jina"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "Imeshindwa kubadilisha jina."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "Badilisha jina"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "Onyesha katika Faili"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "Vifaa vya Thunderbolt vilivyoidhinishwa pekee ndivyo vinavyooana na kifaa chako cha NickelOS"
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "Sakinisha NickelOS"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "Kifaa chako cha NickelOS au kifaa chako chenye Bluetooth kinatumia toleo la zamani la Bluetooth. Tumia maikrofoni ya ndani ili upate ubora wa sauti unaofaa."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "Hakikisha kuwa kifaa chako cha NickelOS kinatumia mtandao wa Wi-Fi unaotumika kwenye kifaa chako cha Chromecast."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "Fungua mwongozo wa NickelOS"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "Pata mwongozo wa haraka kuhusu PRODUCT_NAME yako: mahali programu zako zilipo, jinsi ya kupata zaidi, na Linux iliyo chini yake. Hatua 7."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "Hujambo. Karibu kwenye PRODUCT_NAME yako."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Hatua ya STEP kati ya TOTAL_STEPS. Unaweza kupata programu ya Faili kwenye Kifungua Programu. Nyumbani ni folda yako ya nyumbani ya Linux: programu za Linux na programu ya Faili huona faili zilezile, na hifadhi ya wingu unayoongeza katika Mipangilio huonekana hapa pia."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Nyumbani ni folda yako ya nyumbani ya Linux: programu za Linux na programu ya Faili huona faili zilezile, na hifadhi ya wingu unayoongeza katika Mipangilio huonekana hapa pia."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Hatua ya STEP kati ya TOTAL_STEPS. Waydroid huendesha programu za Android, kila moja katika kidirisha chake. Weka mipangilio yake katika Mipangilio, chini ya Programu, kisha Programu za Android. Baada ya hapo, kufungua faili ya APK husakinisha programu, na programu za Android huonekana kwenye Kifungua Programu."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Waydroid huendesha programu za Android, kila moja katika kidirisha chake. Weka mipangilio yake katika Mipangilio > Programu > Programu za Android. Baada ya hapo, kufungua faili ya APK husakinisha programu, na programu za Android huonekana kwenye Kifungua Programu."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Hatua ya STEP kati ya TOTAL_STEPS. Pata programu zaidi kwenye Bazaar: programu za Linux kutoka Flathub, zinazosakinishwa kama Flatpak. Huonekana kwenye Kifungua Programu kama programu nyingine yoyote."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Pata programu zaidi kwenye Bazaar: programu za Linux kutoka Flathub, zinazosakinishwa kama Flatpak. Huonekana kwenye Kifungua Programu kama programu nyingine yoyote."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Hatua ya STEP kati ya TOTAL_STEPS. Kituo ni shell halisi ya Linux, yenye sudo. NickelOS imejengwa juu ya Gentoo: eix hupata vifurushi na sudo emerge huvisakinisha, kama ilivyo kwenye Gentoo yoyote."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Kituo ni shell halisi ya Linux, yenye sudo. NickelOS imejengwa juu ya Gentoo: eix hupata vifurushi na sudo emerge huvisakinisha, kama ilivyo kwenye Gentoo yoyote."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "Hatua ya STEP kati ya TOTAL_STEPS. Baada ya Kifungua Programu kuanzishwa, utapata upau wa kutafutia. Anza kuandika ili utafute programu, faili na mipangilio kwenye PRODUCT_NAME yako."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "Tafuta programu, faili na mipangilio kwenye PRODUCT_NAME yako kupitia Kifungua Programu."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Hatua ya STEP kati ya TOTAL_STEPS. Unaweza kupata Mipangilio ya kifaa chako kwenye Kifungua Programu. Weka mapendeleo kwenye PRODUCT_NAME yako katika Mipangilio: mandhari yako, hali nyeusi au ya mwangaza, skrini na mengineyo. Umemaliza ziara! Mwongozo wa NickelOS una maelezo zaidi."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Badilisha upendavyo na uweke mapendeleo kwenye PRODUCT_NAME yako katika Mipangilio: mandhari yako, hali nyeusi au ya mwangaza, skrini na mengineyo. Umemaliza ziara! Mwongozo wa NickelOS una maelezo zaidi."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "Ili ufungue kifaa chako cha NickelOS, tumia alama yako ya kidole au ufungue simu yako"
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "Hakikisha kwamba kifaa chako chenye Bluetooth kipo katika hali ya kuunganisha na kipo karibu nawe. Unganisha na vifaa unavyoviamini tu. Vifaa vilivyounganishwa vitaonekana kwa akaunti zote kwenye kifaa hiki cha NickelOS."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "Hakikisha kwamba kifaa chako chenye Bluetooth kipo katika hali ya kuunganisha na kipo karibu nawe. Unganisha na vifaa unavyoviamini tu. Vifaa vilivyounganishwa vitaonekana kwa akaunti zote kwenye kifaa hiki cha NickelOS. BEGIN_LINK_LEARN_MOREPata maelezo zaidiEND_LINK_LEARN_MORE"
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Data yako itasawazishwa kwenye vivinjari vyote vya Chrome ambavyo umewasha usawazishaji wa akaunti hii. Kwa chaguo za usawazishaji za NickelOS, nenda kwenye LINK_BEGINmipangilio ya NickelOSLINK_END."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "Njia za mkato za kibodi"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "Tumia zana za walio na matatizo ya kuona au kusikia kwenye skrini ya kugusa"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "Kwenye kibodi nyingi, kitufe cha Tafuta ni kitufe cha Windows, kilicho karibu na kitufe cha Alt cha kushoto."
+ },
+ "IDS_CHROMEVOX_TUTORIAL_LEARN_MORE": {
+  "en": "Congratulations! You’ve learned the essentials to use ChromeVox successfully. Remember that you can open the ChromeVox command menu at any time by pressing Search+Period. To learn even more about ChromeVox and NickelOS, visit the following articles.\n    If you're done with the tutorial, use ChromeVox to navigate to the Close button and click it.",
+  "t": "Hongera! Umejifunza mambo muhimu kuhusu jinsi ya kutumia ChromeVox kwa ufasaha. Kumbuka kwamba unaweza kufungua menyu ya amri za ChromeVox wakati wowote kwa kubonyeza Search+Period. Ili upate maelezo zaidi kuhusu ChromeVox na NickelOS, soma makala yafuatayo.\n    Ikiwa umemaliza mafunzo, tumia ChromeVox kwenda kwenye kitufe cha Kufunga na ukibofye."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "Unapata sasisho la hivi karibuni la programu, pamoja na marekebisho mapya zaidi ya usalama na vipengele vipya."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_ERROR": {
+  "en": "To finish setting up Linux, update NickelOS and try again.",
+  "t": "Ili ukamilishe kuweka mipangilio ya Linux, sasisha NickelOS kisha ujaribu tena."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_TITLE": {
+  "en": "NickelOS update required",
+  "t": "Unahitaji kusasisha NickelOS"
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "BEGIN_H3Vipengele vya UtatuziEND_H3\n          BR\n          Unaweza kuwasha vipengele vya utatuzi kwenye kifaa chako cha NickelOS ili uweke na ujaribu misimbo maalum kwenye kifaa chako.  Hatua hii itakuruhusu:BR\n          BEGIN_LIST\n            LIST_ITEMUondoe uthibitishaji wa msingi ili uweze kurekebisha faili za Mfumo wa Uendeshaji\n            LIST_ITEMUwashe ufikiaji wa SSH kwenye kifaa ukitumia funguo za kawaida za jaribio ili uweze kufikia kifaa ukitumia zana kama vile BEGIN_CODE'cros flash'END_CODE\n            LIST_ITEMUruhusu kuwasha kupitia USB ili uweze kuweka nakala ya Mfumo wa Uendeshaji kutoka kwenye hifadhi ya USB\n            LIST_ITEMUweke mipangilio ya nenosiri la kuingia katika akaunti ya msingi ya mfumo na ya usanidi, iwe thamani maalum ili uweze kuweka mwenyewe SSH kwenye kifaa\n          END_LIST\n          BR\n          Baada ya kuwashwa, vipengele vingi vya utatuzi vitasalia katika hali ya kuwashwa hata baada ya kuondoa data iliyo kwenye kifaa isipatikane kabisa au kurejesha mipangilio kilichotoka nayo kiwandani kwenye kifaa kinachodhibitiwa na kampuni. Ili uzime kabisa vipengele vyote vya utatuzi, sakinisha upya NickelOS.\n          BR\n          BR\n          Ili upate maelezo zaidi kuhusu vipengele vya utatuzi angalia:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDKumbuka:END_BOLD  Mfumo utazima kisha kuwashwa tena wakati wa mchakato huu."
+ },
+ "IDS_ENABLE_DEBUGGING_SETUP_MESSAGE": {
+  "en": "You are enabling NickelOS debugging features which will set up sshd daemon and enable booting from USB drives.",
+  "t": "Unawasha vipengele vya utatuzi vya NickelOS ambavyo vitaweka mipangilio ya sshd daemon na kuruhusu uwashe kutoka kwenye hifadhi za USB."
+ },
+ "IDS_EULA_SCREEN_ACCESSIBLE_TITLE": {
+  "en": "NickelOS terms",
+  "t": "Sheria na masharti ya NickelOS"
+ },
+ "IDS_EXTENSION_INSTALL_KIOSK_MODE_ONLY": {
+  "en": "App with 'kiosk_only' manifest attribute must be installed in NickelOS kiosk mode",
+  "t": "Programu iliyo na kipengee cha maelezo ya 'kiosk_only' lazima isakinishwe kwenye skrini nzima ya NickelOS"
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_DIAGNOSTICS": {
+  "en": "Run NickelOS diagnostic tests",
+  "t": "Kutekeleza majaribio ya uchunguzi wa NickelOS"
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_TELEMETRY_SERIAL_NUMBER": {
+  "en": "Read NickelOS device and component serial numbers",
+  "t": "Kusoma namba za ufuatiliaji za kifaa na vipengele vinavyotumia NickelOS"
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "Pata makala ya usaidizi na majibu ya maswali ya kawaida"
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "Asante kwa maoni yako. Yatatumwa utakapokuwa mtandaoni tena."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "Asante kwa maoni yako."
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Faili hii imeundwa mahususi kwa ajili ya kompyuta inayotumia programu ya Macintosh. Kwa hivyo haioani na kifaa chako kinachotumia NickelOS. Tafadhali tafuta katika Duka la Chrome kwenye Wavuti ili upate programu mbadala inayofaa."
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Faili hii imeundwa mahususi kwa ajili ya kompyuta binafsi inayotumia programu ya Windows. Kwa hivyo haioani na kifaa chako kinachotumia NickelOS. Tafadhali tafuta katika Duka la Chrome kwenye Wavuti ili upate programu mbadala inayofaa."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "Nyumbani"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Faili hii imeundwa mahususi kwa ajili ya kompyuta inayotumia programu ya Macintosh. Kwa hivyo haioani na kifaa chako kinachotumia NickelOS. BEGIN_LINK_HELPPata Maelezo ZaidiEND_LINK_HELP kuhusu kufungua faili kwenye NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Faili hii imeundwa mahususi kwa ajili ya kompyuta binafsi inayotumia programu ya Windows. Kwa hivyo haioani na kifaa chako kinachotumia NickelOS. BEGIN_LINK_HELPPata Maelezo ZaidiEND_LINK_HELP kuhusu kufungua faili kwenye NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_FILE": {
+  "en": "This file type is not supported. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Aina hii ya faili haitumiki. BEGIN_LINK_HELPPata Maelezo ZaidiEND_LINK_HELP kuhusu kufungua faili kwenye NickelOS."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "Kifaa chako kitaacha kupokea masasisho hivi karibuni."
+ },
+ "IDS_IME_SERVICE_DISPLAY_NAME": {
+  "en": "NickelOS Input Method Service",
+  "t": "Huduma ya Mbinu ya Kuingiza Data kwenye NickelOS"
+ },
+ "IDS_INSTALLED_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "Ili uweke mipangilio kwenye simu yako ya Android, Bluetooth ya kifaa chako cha NickelOS inapaswa kuwa imewashwa"
+ },
+ "IDS_LOGIN_SYNC_CONSENT_SCREEN_SUBTITLE_2": {
+  "en": "Your saved preferences and activity will be ready on any NickelOS device when you sign in with your Google Account. You can choose what to sync in Settings.",
+  "t": "Mapendeleo na shughuli ulizohifadhi zitakuwa tayari kwenye kifaa chochote kinachotumia NickelOS ukiingia kwa kutumia Akaunti yako ya Google. Unaweza kuchagua unachotaka kusawazisha katika Mipangilio."
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "Msimamizi wako amewasha usawazishaji wa vipengee vifuatavyo kati ya vipindi vyako vya awali na vya sasa kwenye vifaa vyako vya NickelOS:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "Ruhusu"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "Usiruhusu"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "Si sasa"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "Weka nenosiri la NAME, msimamizi wa kompyuta hii."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "APP_NAME inataka kutumia kamera ya kifaa hiki. Jibu lako litakumbukwa kwa ajili ya programu hii."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "Ungependa kuruhusu APP_NAME itumie kamera?"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "APP_NAME inataka kutumia kamera. Ili uiruhusu, washa ufikiaji wa kamera katika Vidhibiti vya faragha."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "Fungua mipangilio"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "Ufikiaji wa kamera umezimwa"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "Ruhusu"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "Usiruhusu"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "Ili ubadilishe njia ya mkato, chagua vitufe vyake kisha ubonyeze vipya. Backspace huiondoa."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "APP_NAME inataka njia hizi za mkato zifanye kazi hata unapotumia programu nyingine. Inafahamu tu unapozibonyeza, haifahamu kitu kingine chochote unachoandika."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "Tumia Ctrl, Alt au Tafuta pamoja na kitufe, au tumia kitufe cha kukokotoa."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "Haijawekwa"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "Bonyeza vitufe…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "Vitufe hivyo tayari vinatumika. Jaribu vingine."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "Ungependa kuruhusu njia za mkato za kibodi?"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "Badilisha"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "Kompyuta ya mezani"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "Kompyuta"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "Kompyuta mpakato"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE ya NAME"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "Kompyuta kibao"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "Thibitisha nenosiri"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "Inafungua akaunti yako..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "Imeshindwa kufungua akaunti."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "Imeshindwa kufungua akaunti: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "Chagua nenosiri."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "Imeshindwa kuweka mipangilio ya akaunti: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "Jina hilo la mtumiaji tayari linatumika."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "Kufungua akaunti kumechukua muda mrefu mno. Jaribu tena."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "Majina ya watumiaji huanza na herufi ndogo na hutumia herufi ndogo, tarakimu, - na _ pekee (hadi 32)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "Manenosiri hayalingani"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "Jina lako"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "Nenosiri"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "Picha yako"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "Huonekana kwenye skrini ya kuingia katika akaunti na kwenye trei ya mfumo. Ili utumie picha yako mwenyewe, nenda kwenye Mipangilio baadaye."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "Chagua picha"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "Akaunti yako na faili zake zimehifadhiwa kwenye kifaa hiki, zikiwa zimesimbwa kwa njia fiche kwa nenosiri lako. Bila akaunti ya Google, hakuna njia ya kuzirejesha ukilisahau nenosiri."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "Fungua akaunti yako"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "Jina la mtumiaji"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "Anza na herufi ndogo; tumia herufi ndogo, tarakimu, - na _ (hadi 32)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "APP_NAME inataka kujua mahali kifaa hiki kilipo, kunakotambuliwa kupitia mitandao ya Wi-Fi iliyo karibu na anwani yake ya intaneti. Jibu lako litakumbukwa kwa ajili ya programu hii."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "Ungependa kuruhusu APP_NAME itumie data ya mahali ulipo?"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "APP_NAME inataka kutumia data ya mahali ulipo. Ili uiruhusu, washa ufikiaji wa data ya mahali katika Vidhibiti vya faragha."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "Ufikiaji wa data ya mahali umezimwa"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "APP_NAME inataka kudhibiti kibodi na kiashiria cha kifaa hiki. Ruhusu tu ikiwa unamwamini mtu anayeunganisha."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "APP_NAME inadhibiti kifaa hiki."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "Ungependa kuruhusu udhibiti wa mbali?"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "Ulichagua “Msingi” ulipoweka mipangilio ya NickelOS, kwa hivyo hukuchaguliwa mtambo wowote wa kutafuta. Mitambo hii ya kutafuta ni maarufu katika eneo lako na inaonyeshwa kwa mpangilio nasibu."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "Kwa vyovyote vile, utapata Bazaar ili upate programu zaidi, pamoja na programu za kufungua picha, video, muziki na hati zako."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "Matumizi kamili"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "Kila kitu kiko tayari, na ni cha faragha. DuckDuckGo hutafuta kwenye wavuti kupitia kivinjari na kizindua, uBlock Origin huzuia matangazo na vifuatiliaji kwenye kivinjari, programu za faragha za Proton (Mail, Calendar, Drive, Pass na nyinginezo) husakinishwa, na programu huria zisizolipishwa huja pamoja nayo: LibreOffice, OBS Studio, GIMP, Kdenlive na nyinginezo."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "Msingi"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "Mambo ya msingi tu. Kizindua hutafuta kwenye kompyuta hii pekee, na hakuna kitu kingine kinachowekwa kwa ajili yako."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "Unaweza kubadilisha haya yote baadaye katika Mipangilio."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "Ungependa kuanza vipi?"
+ },
+ "IDS_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUGGESTION_CONTENTS": {
+  "en": "Personalize your accessibility tools in NickelOS settings",
+  "t": "Weka mapendeleo ya zana zako za ufikivu katika mipangilio ya NickelOS"
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_LAPTOP": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press the space bar.",
+  "t": "Ungependa kuwasha ChromeVox, kisoma skrini kilichojumuishwa cha NickelOS? Ikiwa ndivyo, bonyeza kitufe cha nafasi."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_TABLET": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press and hold both volume keys for five seconds.",
+  "t": "Ungependa kuwasha ChromeVox, kisoma skrini kilichojumuishwa cha NickelOS? Ikiwa ndivyo, bonyeza na ushikilie vitufe vya sauti vyote viwili kwa sekunde tano."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_TEXT": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS?",
+  "t": "Ungependa kuwasha ChromeVox, kisoma skrini kilichojumuishwa cha NickelOS?"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "Kabla hujaanza, hakikisha kwamba una nakala ya data yako. Hatua ya kusakinisha DEVICE_OS itafuta data yote iliyo kwenye diski utakayochagua."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "DEVICE_OS ni programu huria inayotolewa jinsi ilivyo: huenda isifanye kazi kwenye kila kompyuta, na waundaji wake hawawajibiki kwa upotevu wowote wa data."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "Taarifa, chaguo za wasanidi programu"
+ },
+ "IDS_OS_SETTINGS_APP_DETAILS_TYPE_CROS_SYSTEM": {
+  "en": "NickelOS System App",
+  "t": "Programu ya Mfumo wa NickelOS"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "Simu, Uhamishaji wa Karibu"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "Simu, FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your apps and settings will sync across all NickelOS devices where you are signed in with your Google account. For browser sync options, go to LINK_BEGINChrome settingsLINK_END.",
+  "t": "Mipangilio na programu zako zitasawazishwa kwenye vifaa vyote vinavyotumia NickelOS, ambavyo umeingia kwa kutumia akaunti yako ya Google. Ili upate chaguo za kusawazisha kwenye kivinjari, nenda katika LINK_BEGINMipangilio ya ChromeLINK_END."
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "Hifadhi ya wingu"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Hifadhi ya Google"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "Ongeza akaunti ya wingu"
+ },
+ "IDS_OS_SETTINGS_TAG_OS_VERSION": {
+  "en": "NickelOS version",
+  "t": "Toleo la NickelOS"
+ },
+ "IDS_PASSWORD_CHANGE_NOTIFICATION_TITLE": {
+  "en": "NickelOS password updated",
+  "t": "Nenosiri la NickelOS limesasishwa"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "Picha zako"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "Onyesha picha zako, saa na maelezo ya maudhui wakati skrini haitumiki"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "Picha zako mwenyewe"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "Taswira ya skrini huonyesha picha zilizo kwenye folda yako ya Pictures na folda zilizo ndani yake. Ongeza angalau picha 2."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "Folda ya Pictures"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "Picha zinazokuja na NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "Taswira ya skrini huonyesha mandhari ya NickelOS. Washa chaguo hili ili uonyeshe picha zilizo katika Faili zangu > Pictures badala yake."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "Mandhari ya NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "Kutoka Open-Meteo, kwa makadirio ya mahali ulipo, ambayo beaconDB hubaini kutokana na anwani yako ya IP"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "Onyesha hali ya hewa"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "Hakikisha kuwa printa yako imewashwa na imeunganishwa kwenye mtandao sawa na kifaa chako cha NickelOS au utumie kebo ya USB"
+ },
+ "IDS_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_RELAUNCH_TO_UPDATE": {
+  "en": "Relaunch to update &NickelOS",
+  "t": "Fungua tena ili usasishe &NickelOS"
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "Nyumbani"
+ },
+ "IDS_SETTINGS_ABOUT_OS": {
+  "en": "About NickelOS",
+  "t": "Kuhusu NickelOS"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Ukiiwasha, data huhifadhiwa kwenye Akaunti yako ya Google na inaweza kutumiwa kwenye vifaa vyako vyote. Ukiizima, data huhifadhiwa kwenye kifaa hiki pekee. Kwa chaguo za usawazishaji wa NickelOS, nenda kwenye LINK_BEGINmipangilio ya NickelOSLINK_END."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "Zipe Programu za Android udhibiti wa vifaa vya USB kwenye kifaa hiki cha NickelOS. Utaombwa ruhusa kila wakati unapochomeka kifaa cha USB. Programu mahususi za Android zitaomba ruhusa za ziada."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Kifaa chako hakipokei tena masasisho ya usalama na programu."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Kifaa hiki hakipokei tena masasisho"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Kifaa chako hakipokei tena masasisho ya usalama na programu."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Kifaa hiki hakipokei tena masasisho"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "Zipe Programu za Android udhibiti wa vifaa vya USB kwenye kifaa hiki cha NickelOS"
+ },
+ "IDS_SETTINGS_LANGUAGES_OPEN_CHROME_OS_SETTINGS_LABEL": {
+  "en": "Manage languages in NickelOS settings",
+  "t": "Dhibiti lugha katika mipangilio ya NickelOS"
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "Chaguo hili linatumika kwenye vifaa vya NickelOS vyenye mpango wa data au kifaa cha mtandao wa simu au wakati wa kutumia mtandao pepe uliosambazwa"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "Ongeza mtu"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "Utaondolewa kwenye akaunti. Kwenye skrini ya kuingia katika akaunti, mtu mpya atachagua jina, jina la mtumiaji na nenosiri."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "Msimamizi"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Wasimamizi wanaweza kusakinisha programu kwa ajili ya kila mtu, kubadilisha mfumo na kudhibiti akaunti."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "Badilisha nenosiri"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "Thibitisha"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "Thibitisha nenosiri jipya"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "Nenosiri la sasa"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "Chagua nenosiri jipya"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Hitilafu fulani imetokea. Jaribu tena."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "Kifaa hiki kinahitaji angalau msimamizi mmoja"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "Ungependa kumfanya NAME kuwa msimamizi?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "Nenosiri jipya"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "Hakuna mtu mwingine aliye na akaunti kwenye kifaa hiki."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "Watu wengine kwenye kifaa hiki"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Kila mtu ana akaunti na faili zake. Wasimamizi wanaweza kusakinisha programu kwa ajili ya kila mtu, kubadilisha mfumo na kudhibiti akaunti."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "Mmiliki, msimamizi"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "Manenosiri mapya hayalingani"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "Ondoa"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "Ungependa kumfanya NAME kuwa mtumiaji wa kawaida?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "Akaunti yake na faili zake zote zitafutwa kwenye kifaa hiki. Hatua hii haiwezi kutenduliwa."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "Ungependa kumwondoa NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "Ondoka"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "Kawaida"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "Nenosiri hilo si sahihi"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "Akaunti yako"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "Nenosiri lako"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "Msimamizi wa kifaa hiki pekee ndiye anayeweza kubadilisha mipangilio hii."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "Kwa programu zilizoundwa kwa ajili ya vichakataji vya ARM vinavyotumiwa na simu pekee, zikiwemo michezo mingi. Ni programu isiyo huria, inayopakuliwa unapowasha kipengele hiki."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "Programu nyingi za Android, hasa michezo, zimeundwa kwa ajili ya vichakataji vya ARM vinavyotumiwa na simu pekee. Ili kuziendesha kwenye kompyuta hii, Android inahitaji kitafsiri. NickelOS haitengenezi wala haijumuishi kitafsiri: ukiwasha kipengele hiki, TRANSLATOR itapakuliwa kutoka GitHub, nakala ileile ambayo waydroid_script ya jumuiya ya Waydroid husakinisha."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "Ni programu isiyo huria, inayotumika chini ya masharti ya mmiliki wake, na wewe ndiye unayeisakinisha. Huenda baadhi ya programu zikaenda polepole au zisifanye kazi kabisa. Android itazima na kuwashwa ili kuitumia."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "Kubali na uwashe"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "Ungependa kuwasha uwezo wa kutumia programu za ARM?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "Uwezo wa kutumia programu za ARM"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "Inaondoa..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "Inapakua na kusakinisha..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "Inapakua Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "Upakuaji haukukamilika. Kagua muunganisho wako, kisha ujaribu tena."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Hitilafu fulani imetokea. Jaribu tena."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "Mipangilio ya Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "Inaweka mipangilio ya Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "Ondoa"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "Hufuta Android, programu zako za Android na data yake"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "Android, programu zako za Android na data yake zitafutwa kwenye kifaa hiki. Watu wengine wanaokitumia watabaki na data yao ya Android, lakini hawataweza kufungua programu zao za Android hadi Android iwekewe mipangilio tena."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "Ungependa kuondoa Android?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "Ondoa Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "Inaondoa Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "Weka mipangilio"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "Programu za Android hufunguka katika vidirisha vyake, kando ya programu zako nyingine. Kuweka mipangilio hupakua Android (LineageOS, kutoka mradi wa Waydroid): takribani GB 1, na GB 2.5 kwenye kifaa hiki."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "Endesha programu za Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "Programu za Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "Houdini ya Intel"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "Kitafsiri cha NDK cha Google"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "Programu za Android hazipatikani kwa sasa."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "Android inatumia SIZE kwenye kifaa hiki"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "Kitambulisho cha ufunguo wa kufikia"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "Ongeza akaunti"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "Rudi nyuma"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "Kitambulisho cha mteja"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "Siri ya mteja"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "Unganisha"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "Inaunganisha…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "Angalia Hifadhi ya Google, OneDrive, Dropbox na hifadhi nyingine za wingu katika Faili"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "Ongeza hifadhi ya wingu"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "ACCOUNT_NAME sasa iko katika Faili."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "Hifadhi ya Google inahitaji kitambulisho chako mwenyewe cha mteja na siri kutoka kwenye dashibodi ya Google Cloud."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "Barua pepe au jina la mtumiaji"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "Endpoint (acha wazi kwa Amazon S3)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "Imeshindwa kuunganisha. Kagua maelezo kisha ujaribu tena."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "Nimemaliza"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "Jinsi ya kuziunda"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "Iko katika Faili"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "Jina"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "Endelea"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "Haijaunganishwa"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "Nenosiri"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "NickelOS hutumia rclone kuonyesha hifadhi yako ya wingu katika Faili, ili ufikie faili zako kwa urahisi. Chagua huduma ya kuingia katika akaunti."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "Eneo (si lazima)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "Ondoa"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "Programu ya Faili itaacha kuonyesha akaunti hii. Faili zako zitabaki kwenye wingu, na unaweza kuongeza akaunti hii tena baadaye."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "Ungependa kuondoa ACCOUNT_NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "Inaondoa…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "Amazon S3 au huduma inayooana nayo"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "Ufunguo wa siri wa kufikia"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "Anwani ya seva"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "Huduma"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "Maliza kuingia katika akaunti kwenye ukurasa uliofunguka kwenye kivinjari chako."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "Ukiunganisha, ukurasa wa kuingia katika akaunti wa huduma hiyo utafunguka kwenye kivinjari chako."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "Hifadhi ya wingu"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "Msimbo wa uthibitishaji wa hatua 2 (ikiwa unautumia)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "Jina la mtumiaji"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "Nextcloud au WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "Msimamizi wa kompyuta hii pekee ndiye anayeweza kubadilisha jina lake."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "Badilisha"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "Vifaa vingine huona jina hili kwenye mtandao wako na kupitia Bluetooth, na Kituo pamoja na programu za Linux hulionyesha."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "Badilisha jina la kompyuta"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "Imeshindwa kubadilisha jina. Jaribu tena."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "Tumia angalau herufi moja kati ya A hadi Z au tarakimu moja."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "Jina la kompyuta"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "Kwenye Kituo: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "Programu zinazofungua kila aina ya faili, kutoka Faili na kutoka programu za Linux"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "Hati"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "Barua pepe"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "Picha"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "Muziki"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "Hakuna programu inayofungua hizi"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "Haijawekwa"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "Hati za PDF"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "Mawasilisho"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "Picha za skrini (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "Kurekodi skrini (zana ya mfumo)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "Majedwali"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "Faili za maandishi"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "Programu chaguomsingi"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "Video"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (tovuti)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "Hifadhi zilizo ndani ya kifaa hiki mbali na ile iliyo na NickelOS. Hifadhi iliyo na Windows hufunguka katika hali ya kusoma tu, ili Windows ibaki salama."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "Hifadhi nyingine"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "Ruhusu mabadiliko"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "Windows iko kwenye hifadhi hii. Iko katika hali ya kusoma tu isipokuwa ukiruhusu mabadiliko."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "Fast Startup ikiwa imewashwa, Windows haizimi kikamilifu, na mabadiliko unayofanya hapa yanaweza kupotea au kuharibu faili Windows itakapowashwa tena. Kabla ya kufanya mabadiliko, zima Fast Startup katika Windows, au ushikilie Shift unapozima Windows."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "Ungependa kuruhusu mabadiliko kwenye hifadhi ya Windows?"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "Windows haikuzimwa kikamilifu, kwa hivyo hifadhi inabaki katika hali ya kusoma tu. Zima Windows kikamilifu ili ufanye mabadiliko."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "Onyesha katika Faili"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "Pata usaidizi kutoka kwa watu"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "Jukwaa, Discord na GitHub kwenye nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "Kujifunza Gentoo"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "Portage na emerge tangu mwanzo, pamoja na amri zinazolingana za pacman na apt kando kwa kando"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "Mwongozo wa NickelOS"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "Jinsi NickelOS inavyofanya kazi. Nakala hii ilikuja na toleo lako la NickelOS na inafanya kazi hata nje ya mtandao."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "Mwongozo, kujifunza Gentoo, utatuzi wa matatizo"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "Mwongozo mtandaoni"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "Toleo jipya zaidi kwenye nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "Usaidizi"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "Utatuzi wa matatizo"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "Kumbukumbu, ripoti za programu kuacha kufanya kazi, na matatizo ya kawaida pamoja na jinsi ya kuyarekebisha"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "Programu za Linux"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "Kubali"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "Inapatikana ili kuoanishwa"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "Ghairi"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "Imeunganishwa"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "Imeunganishwa · Betri PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "Imeunganishwa · Inachaji, PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "Kupitia programu ya KDE Connect kwenye Android au iPhone, katika mtandao mmoja wa Wi‑Fi"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "Zaidi kuhusu DEVICE_NAME"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "Bado hakuna simu wala kompyuta kibao. Sakinisha KDE Connect kutoka Google Play, F‑Droid au App Store, ifungue katika mtandao mmoja wa Wi‑Fi, kisha uoanishe kutoka kwenye kifaa chochote kati ya hivyo."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "Muunganisho wa simu haufanyi kazi. Ondoka kisha uingie tena katika akaunti ili uuanzishe."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "Fungua Valent"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "Oanisha"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "Imeoanishwa · Haijaunganishwa"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "Inasubiri ikubali"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "Kataa"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "Piga mlio"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "Tuma faili"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "Tuma faili"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "Simu na kompyuta kibao"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "Acha kuoanisha"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "Inataka kuoanishwa na kifaa hiki"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "Huruhusu programu kama vile Discord kutumia kipengele cha bonyeza ili uzungumze ukiwa kwenye vidirisha vingine. Programu hizo huona tu vitufe vilivyobonyezwa pamoja na Ctrl, Alt au Tafuta na vitufe vya kukokotoa, kamwe si unachoandika."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "Vitufe vya njia za mkato kwa programu za zamani za Linux"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "Hakikisha kuwa printa yako imeunganishwa kwenye mtandao mmoja wa Wi-Fi sawa na kifaa chako cha NickelOS au utumie kebo ya USB. LINK_BEGINPata maelezo zaidi kuhusu hali ya uoanifuLINK_END"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "Imeshindwa kuunganisha kwenye printa. Hakikisha kuwa printa imewashwa na imeunganishwa kwenye kifaa chako cha NickelOS kwa kutumia Wi-Fi au USB."
+ },
+ "IDS_SETTINGS_SECURE_DNS_OPEN_CHROME_OS_SETTINGS_LABEL": {
+  "en": "Manage secure DNS in NickelOS settings",
+  "t": "Dhibiti kipengele cha DNS salama kwenye mipangilio ya NickelOS"
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "Nyumbani"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "Ili uanze, tafadhali hakikisha kwamba swichi yako ya USB au Bluetooth imeunganishwa kwenye kifaa chako cha NickelOS. Unaweza pia kutumia vitufe vya kibodi."
+ },
+ "IDS_SHORT_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_SIGNIN_ERROR_SECONDARY_ACCOUNT_DISPLAY_SOURCE": {
+  "en": "NickelOS System",
+  "t": "Mfumo wa NickelOS"
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "Ili kufungua kifaa chako cha NickelOS, hakikisha Bluetooth ya simu yako imewashwa"
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "Bluetooth imezimwa kwenye kifaa chako cha NickelOS. Ili ukifungue, weka nenosiri."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "Simu yako haina kipengele cha kufunga skrini. Ili ufungue kifaa chako cha NickelOS, weka nenosiri."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "Ili ufungue kifaa chako cha NickelOS, fungua simu yako kwanza"
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "Kifaa chako kinatumia kitambuzi kilicho ndani yake ili kutambua watu walioko mbele yake. Data yote inachakatwa kwenye kifaa chako papo hapo kisha inafutwa. Data ya vitambuzi haitumwi Google."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "Kumbukumbu za NickelOS"
+ },
+ "IDS_SYNC_OTHER_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data due to an error signing in.",
+  "t": "NickelOS haikuweza kusawazisha data yako kutokana na hitilafu wakati wa kuingia katika akaunti."
+ },
+ "IDS_SYNC_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because your account sign-in details are out of date.",
+  "t": "NickelOS haikusawazisha data yako kwa sababu maelezo ya kuingia katika akaunti yako yamepitwa na wakati."
+ },
+ "IDS_SYNC_UNAVAILABLE_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because Sync is not available for your domain.",
+  "t": "NickelOS haikusawazisha data yako kwa sababu Usawazishaji haupatikani kwa kikoa chako."
+ },
+ "IDS_TERMS_OF_SERVICE_SCREEN_SUBHEADING": {
+  "en": "MANAGER requires that you read and accept the following Terms of Service before using this device. These terms do not expand, modify or limit the NickelOS Terms.",
+  "t": "MANAGER inahitaji usome na ukubali Sheria na Masharti yafuatayo kabla ya kutumia kifaa hiki. Masharti haya hayapanui, hayarekebishi wala hayapunguzi Sheria na Masharti ya NickelOS."
+ },
+ "IDS_UPDATE_RECOMMENDED": {
+  "en": "NickelOS needs to be restarted to apply the update.",
+  "t": "NickelOS inahitaji kuzimwa na kuwashwa ili itekeleze usasishaji."
+ },
+ "IDS_UPDATE_RECOMMENDED_DIALOG_TITLE": {
+  "en": "Restart NickelOS",
+  "t": "Zima kisha uwashe NickelOS"
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "Utaingia katika kifaa chako ukitumia akaunti yako mwenyewe, na kila mtu anayekitumia anaweza kuwa na yake."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "Akaunti yako mwenyewe kwenye kifaa chako"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "NickelOS imebuniwa kwa kuzingatia usalama, na hujisasisha yenyewe kiotomatiki."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "NickelOS huendesha programu za wavuti na programu za Linux bega kwa bega. Pata programu za tija, burudani na zaidi."
+ },
+ "IDS_UPDATE_SLIDE_UPDATE_TEXT": {
+  "en": "This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.",
+  "t": "Huu ndio wakati pekee utakaposubiri sasisho. Kwenye NickelOS, masasisho ya programu hutendeka chinichini."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "Programu za Chrome hazifanyi kazi kwenye NickelOS. Zingatia kutumia programu mbadala."
+ },
+ "IDS_WRONG_HWID_SCREEN_MESSAGE_FIRST_PART": {
+  "en": "Unfortunately, your computer is configured with a malformed hardware ID. This prevents NickelOS from updating with the latest security fixes and your computer BEGIN_BOLDmay be vulnerable to malicious attacksEND_BOLD.",
+  "t": "Kwa bahati mbaya, kompyuta yako imewekewa mipangilio na kitambulisho cha maunzi yenye hitilafu. Hali hii huzuia NickelOS isisasishe marekebisho ya usalama ya hivi karibuni na kompyuta yako BEGIN_BOLDinaweza kuwa hatarini kutokana na mashambulizi hasidiEND_BOLD."
+ }
+}

@@ -1,0 +1,519 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: shortcut keys for X11 apps in the background
+
+Under Xwayland an X11 app sees keys only while one of its windows has the
+focus, so X11 apps that watch the keyboard themselves (the official
+Discord client's push-to-talk) stop working when another window is in
+front. KDE forwards keys to Xwayland for this; GNOME does not. NickelOS
+forwards what cannot be text:
+
+- NickelX11Keys, a pre-target handler after ChromeOS's accelerators,
+  passes on the modifier keys (not AltGr), keys pressed with Ctrl, Alt or
+  Search, and the function keys, never on the lock screen. Releases are
+  watched before the accelerators (tapping Search opens the launcher on
+  its release, which the accelerator takes), a second press that is not a
+  repeat releases first, and a held modifier the next key event shows up
+  is released: no key stays held in Xwayland.
+- They go to nickel-x11-keys in the Linux session, which connects with
+  VmApplicationsService.NickelX11KeysConnect(h socket) and presses them in
+  Xwayland (XTest) while no X11 window has the focus.
+- Settings > Apps > Linux apps: "Shortcut keys for older Linux apps", on
+  by default (guest_os pref nickel.x11_key_forwarding).
+
+The strings are in ui_chromeos_strings.grd.
+
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index 0c52ff93c4003..d8e65de94e662 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -14,6 +14,8 @@ static_library("vm") {
+     "nickel_remote_desktop.h",
+     "nickel_screen_cast.cc",
+     "nickel_screen_cast.h",
++    "nickel_x11_keys.cc",
++    "nickel_x11_keys.h",
+     "vm_applications_service_provider.cc",
+     "vm_applications_service_provider.h",
+     "vm_launch_service_provider.cc",
+diff --git a/chrome/browser/ash/dbus/vm/nickel_x11_keys.cc b/chrome/browser/ash/dbus/vm/nickel_x11_keys.cc
+new file mode 100644
+index 0000000000000..77be27333e062
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_x11_keys.cc
+@@ -0,0 +1,202 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/dbus/vm/nickel_x11_keys.h"
++
++#include <errno.h>
++#include <sys/socket.h>
++
++#include <string>
++#include <utility>
++
++#include "ash/session/session_controller_impl.h"
++#include "ash/shell.h"
++#include "base/functional/bind.h"
++#include "base/no_destructor.h"
++#include "base/posix/eintr_wrapper.h"
++#include "base/strings/strcat.h"
++#include "base/strings/string_number_conversions.h"
++#include "chrome/browser/ash/guest_os/guest_os_pref_names.h"
++#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/profiles/profile_manager.h"
++#include "components/prefs/pref_service.h"
++#include "ui/events/event.h"
++#include "ui/events/keycodes/dom/keycode_converter.h"
++
++namespace ash {
++
++namespace {
++
++// Modifier keys X11 apps may see pressed alone (not AltGr, which types
++// characters on many layouts, nor the locks).
++bool IsForwardedModifier(ui::KeyboardCode key) {
++  switch (key) {
++    case ui::VKEY_SHIFT:
++    case ui::VKEY_LSHIFT:
++    case ui::VKEY_RSHIFT:
++    case ui::VKEY_CONTROL:
++    case ui::VKEY_LCONTROL:
++    case ui::VKEY_RCONTROL:
++    case ui::VKEY_MENU:
++    case ui::VKEY_LMENU:
++    case ui::VKEY_RMENU:
++    case ui::VKEY_LWIN:
++    case ui::VKEY_RWIN:
++      return true;
++    default:
++      return false;
++  }
++}
++
++// The modifier flag a modifier key's evdev code holds down.
++int ModifierFlag(int evdev) {
++  switch (evdev) {
++    case 29:   // KEY_LEFTCTRL
++    case 97:   // KEY_RIGHTCTRL
++      return ui::EF_CONTROL_DOWN;
++    case 42:   // KEY_LEFTSHIFT
++    case 54:   // KEY_RIGHTSHIFT
++      return ui::EF_SHIFT_DOWN;
++    case 56:   // KEY_LEFTALT
++    case 100:  // KEY_RIGHTALT
++      return ui::EF_ALT_DOWN;
++    case 125:  // KEY_LEFTMETA
++    case 126:  // KEY_RIGHTMETA
++      return ui::EF_COMMAND_DOWN;
++    default:
++      return 0;
++  }
++}
++
++bool IsFunctionKey(ui::KeyboardCode key) {
++  return key >= ui::VKEY_F1 && key <= ui::VKEY_F24;
++}
++
++bool Enabled() {
++  Profile* profile = ProfileManager::GetPrimaryUserProfile();
++  return profile && profile->GetPrefs()->GetBoolean(
++                        guest_os::prefs::kNickelX11KeyForwarding);
++}
++
++}  // namespace
++
++// static
++NickelX11Keys* NickelX11Keys::Get() {
++  static base::NoDestructor<NickelX11Keys> keys;
++  return keys.get();
++}
++
++NickelX11Keys::NickelX11Keys() = default;
++
++NickelX11Keys::~NickelX11Keys() = default;
++
++void NickelX11Keys::Connect(base::ScopedFD socket) {
++  Disconnect();
++  if (!socket.is_valid() || !Shell::HasInstance()) {
++    return;
++  }
++  socket_ = std::move(socket);
++  watch_ = base::FileDescriptorWatcher::WatchReadable(
++      socket_.get(), base::BindRepeating(&NickelX11Keys::OnSocket,
++                                         base::Unretained(this)));
++  if (!observing_) {
++    // Presses after ChromeOS's own shortcuts (AcceleratorFilter), which
++    // keep their keys; releases before them.
++    Shell::Get()->AddPreTargetHandler(this);
++    Shell::Get()->AddPreTargetHandler(&release_watcher_,
++                                      ui::EventTarget::Priority::kSystem);
++    observing_ = true;
++  }
++}
++
++void NickelX11Keys::OnSocket() {
++  // The forwarder only ever closes its end (its session ended).
++  char buffer[16];
++  ssize_t n = HANDLE_EINTR(
++      recv(socket_.get(), buffer, sizeof(buffer), MSG_DONTWAIT));
++  if (n < 0 && errno == EAGAIN) {
++    return;
++  }
++  Disconnect();
++}
++
++void NickelX11Keys::Disconnect() {
++  watch_.reset();
++  socket_.reset();
++  held_.clear();
++  if (observing_ && Shell::HasInstance()) {
++    Shell::Get()->RemovePreTargetHandler(this);
++    Shell::Get()->RemovePreTargetHandler(&release_watcher_);
++  }
++  observing_ = false;
++}
++
++void NickelX11Keys::Send(char kind, int evdev) {
++  const std::string message =
++      base::StrCat({std::string(1, kind), " ", base::NumberToString(evdev)});
++  HANDLE_EINTR(send(socket_.get(), message.data(), message.size(),
++                    MSG_DONTWAIT | MSG_NOSIGNAL));
++}
++
++void NickelX11Keys::ReleaseLiftedModifiers(const ui::KeyEvent& event) {
++  for (auto it = held_.begin(); it != held_.end();) {
++    const int flag = ModifierFlag(*it);
++    if (flag && !(event.flags() & flag)) {
++      Send('u', *it);
++      it = held_.erase(it);
++    } else {
++      ++it;
++    }
++  }
++}
++
++void NickelX11Keys::ReleaseWatcher::OnKeyEvent(ui::KeyEvent* event) {
++  keys_->OnRelease(event);
++}
++
++void NickelX11Keys::OnRelease(ui::KeyEvent* event) {
++  if (!socket_.is_valid() || event->type() != ui::EventType::kKeyReleased) {
++    return;
++  }
++  const int evdev = ui::KeycodeConverter::DomCodeToEvdevCode(event->code());
++  if (held_.erase(evdev)) {
++    Send('u', evdev);
++  }
++  ReleaseLiftedModifiers(*event);
++}
++
++void NickelX11Keys::OnKeyEvent(ui::KeyEvent* event) {
++  if (!socket_.is_valid() || event->type() != ui::EventType::kKeyPressed) {
++    return;
++  }
++  const int evdev = ui::KeycodeConverter::DomCodeToEvdevCode(event->code());
++  if (evdev <= 0) {
++    return;
++  }
++  if (held_.count(evdev)) {
++    if (event->is_repeat()) {
++      // Held down: X11 apps saw it go down once.
++      return;
++    }
++    // Pressed again without a release seen: release it first.
++    held_.erase(evdev);
++    Send('u', evdev);
++  }
++  ReleaseLiftedModifiers(*event);
++  if (!Enabled() || Shell::Get()->session_controller()->IsUserSessionBlocked()) {
++    return;
++  }
++  const bool with_modifier =
++      event->flags() &
++      (ui::EF_CONTROL_DOWN | ui::EF_ALT_DOWN | ui::EF_COMMAND_DOWN);
++  if (!with_modifier && !IsForwardedModifier(event->key_code()) &&
++      !IsFunctionKey(event->key_code())) {
++    // Text: stays with the window that has the focus.
++    return;
++  }
++  held_.insert(evdev);
++  Send('d', evdev);
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_x11_keys.h b/chrome/browser/ash/dbus/vm/nickel_x11_keys.h
+new file mode 100644
+index 0000000000000..f2637a63762f1
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_x11_keys.h
+@@ -0,0 +1,80 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_DBUS_VM_NICKEL_X11_KEYS_H_
++#define CHROME_BROWSER_ASH_DBUS_VM_NICKEL_X11_KEYS_H_
++
++#include <memory>
++#include <set>
++
++#include "base/files/file_descriptor_watcher_posix.h"
++#include "base/files/scoped_file.h"
++#include "base/memory/raw_ptr.h"
++#include "ui/events/event_handler.h"
++
++namespace ash {
++
++// NickelOS: shortcut keys for X11 apps while other windows have the focus,
++// so that X11 apps that watch the keyboard themselves (the official Discord
++// client's push-to-talk) work as they do on an X11 desktop. Under Xwayland
++// an X11 app sees keys only while an X11 window has the focus; KDE forwards
++// keys to Xwayland for this, GNOME does not. NickelOS forwards only what
++// cannot be text: the modifier keys, keys pressed with Ctrl, Alt or Search,
++// and the function keys; never what the user types, never on the lock
++// screen. The user can turn it off (Settings > Apps,
++// guest_os::prefs::kNickelX11KeyForwarding; on by default).
++//
++// nickel-x11-keys, in the Linux session, connects through
++// VmApplicationsService with one end of a socket pair; each forwarded key
++// goes into it ("d EVDEV" pressed, "u EVDEV" released) and it presses the
++// key in Xwayland (XTest) while no X11 window has the focus; an X11 window
++// with the focus gets its keys from sommelier as always. Keys ChromeOS's
++// own shortcuts take are not forwarded, but every release of a key that was
++// is, even when a shortcut takes it (tapping Search opens the launcher on
++// its release): no key stays held in Xwayland.
++class NickelX11Keys : public ui::EventHandler {
++ public:
++  static NickelX11Keys* Get();
++
++  NickelX11Keys();
++  NickelX11Keys(const NickelX11Keys&) = delete;
++  NickelX11Keys& operator=(const NickelX11Keys&) = delete;
++  ~NickelX11Keys() override;
++
++  // A forwarder connected; a new one replaces the old.
++  void Connect(base::ScopedFD socket);
++
++  // ui::EventHandler: key presses, after ChromeOS's own shortcuts.
++  void OnKeyEvent(ui::KeyEvent* event) override;
++
++ private:
++  // Sees key releases before ChromeOS's shortcuts, which may take them.
++  class ReleaseWatcher : public ui::EventHandler {
++   public:
++    explicit ReleaseWatcher(NickelX11Keys* keys) : keys_(keys) {}
++    void OnKeyEvent(ui::KeyEvent* event) override;
++
++   private:
++    raw_ptr<NickelX11Keys> keys_;
++  };
++
++  void OnRelease(ui::KeyEvent* event);
++  // Releases held modifiers the event shows up (their release went
++  // elsewhere).
++  void ReleaseLiftedModifiers(const ui::KeyEvent& event);
++  void OnSocket();
++  void Disconnect();
++  void Send(char kind, int evdev);
++
++  base::ScopedFD socket_;
++  std::unique_ptr<base::FileDescriptorWatcher::Controller> watch_;
++  // Forwarded as pressed: their release follows them.
++  std::set<int> held_;
++  ReleaseWatcher release_watcher_{this};
++  bool observing_ = false;
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_ASH_DBUS_VM_NICKEL_X11_KEYS_H_
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index eb768c493b836..4a68c6b145113 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -24,6 +24,7 @@
+ #include "chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_notifications.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_tray.h"
++#include "chrome/browser/ash/dbus/vm/nickel_x11_keys.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_remote_desktop.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_screen_cast.h"
+ #include "chrome/browser/ash/exo/chrome_security_delegate.h"
+@@ -163,6 +164,9 @@ constexpr char kNickelTrayItemRemovedMethod[] = "NickelTrayItemRemoved";
+ // NickelOS: called by the GlobalShortcuts portal's backend
+ // (NickelGlobalShortcuts).
+ constexpr char kNickelShortcutsBindMethod[] = "NickelShortcutsBind";
++// NickelOS: called by nickel-x11-keys, which presses shortcut keys in
++// Xwayland for X11 apps (NickelX11Keys).
++constexpr char kNickelX11KeysConnectMethod[] = "NickelX11KeysConnect";
+ 
+ }  // namespace
+ 
+@@ -284,6 +288,13 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelX11KeysConnectMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelX11KeysConnect,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+ }
+ 
+ void VmApplicationsServiceProvider::OnExported(
+@@ -652,6 +663,23 @@ void VmApplicationsServiceProvider::NickelShortcutsBind(
+           method_call, std::move(response_sender)));
+ }
+ 
++// NickelOS: nickel-x11-keys connects: (h socket) the shortcut keys for
++// X11 apps go into.
++void VmApplicationsServiceProvider::NickelX11KeysConnect(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  base::ScopedFD socket;
++  if (!reader.PopFileDescriptor(&socket)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS, "Expected a socket"));
++    return;
++  }
++  NickelX11Keys::Get()->Connect(std::move(socket));
++  std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
++}
++
+ void VmApplicationsServiceProvider::LaunchTerminal(
+     dbus::MethodCall* method_call,
+     dbus::ExportedObject::ResponseSender response_sender) {
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index 31aa9e3b6f7d5..2ccf66064358d 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -95,6 +95,9 @@ class VmApplicationsServiceProvider
+   void NickelShortcutsBind(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelX11KeysConnect(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
+ 
+   // Exposed in the header so unit tests can call it.
+   static void ParseSelectFileDialogFileTypes(
+diff --git a/chrome/browser/ash/guest_os/guest_os_pref_names.cc b/chrome/browser/ash/guest_os/guest_os_pref_names.cc
+index 018f3920835a1..f2ccf2ccb703e 100644
+--- a/chrome/browser/ash/guest_os/guest_os_pref_names.cc
++++ b/chrome/browser/ash/guest_os/guest_os_pref_names.cc
+@@ -14,6 +14,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+   registry->RegisterDictionaryPref(kGuestOsMimeTypes);
+   registry->RegisterDictionaryPref(kGuestOsRegistry);
+   registry->RegisterDictionaryPref(kNickelGlobalShortcuts);
++  registry->RegisterBooleanPref(kNickelX11KeyForwarding, true);
+   registry->RegisterListPref(kGuestOsContainers);
+   registry->RegisterDictionaryPref(
+       kGuestOsTerminalSettings,
+diff --git a/chrome/browser/ash/guest_os/guest_os_pref_names.h b/chrome/browser/ash/guest_os/guest_os_pref_names.h
+index 4caabe6de8d58..f9afa521bfb13 100644
+--- a/chrome/browser/ash/guest_os/guest_os_pref_names.h
++++ b/chrome/browser/ash/guest_os/guest_os_pref_names.h
+@@ -31,6 +31,11 @@ inline constexpr char kGuestOsRegistry[] = "crostini.registry";
+ // ({"key": KeyboardCode, "flags": modifiers}; key 0 for none).
+ inline constexpr char kNickelGlobalShortcuts[] = "nickel.global_shortcuts";
+ 
++// NickelOS: whether X11 apps see shortcut keys (modifiers, keys pressed with
++// Ctrl, Alt or Search, function keys) while other windows have the focus
++// (NickelX11Keys), as push-to-talk in the official Discord client needs.
++inline constexpr char kNickelX11KeyForwarding[] = "nickel.x11_key_forwarding";
++
+ // Keys for the |kGuestOsRegistry| Dictionary stored in prefs for each app.
+ inline constexpr char kAppDesktopFileIdKey[] = "desktop_file_id";
+ inline constexpr char kAppExtensionsKey[] = "extensions";
+diff --git a/chrome/browser/extensions/api/settings_private/prefs_util.cc b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+index faea6fee54c8f..7df1b4bb30731 100644
+--- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
++++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+@@ -944,6 +944,8 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
+       settings_api::PrefType::kDictionary;
+   (*s_allowlist)[crostini::prefs::kCrostiniPortForwarding] =
+       settings_api::PrefType::kList;
++  (*s_allowlist)[guest_os::prefs::kNickelX11KeyForwarding] =
++      settings_api::PrefType::kBoolean;
+   (*s_allowlist)[guest_os::prefs::kGuestOSPathsSharedToVms] =
+       settings_api::PrefType::kDictionary;
+ 
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html b/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html
+index 3a77d9e354bca..045e7dbb8207b 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html
++++ b/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html
+@@ -164,6 +164,13 @@
+       </template>
+     </settings-card>
+     <nickel-default-apps></nickel-default-apps>
++    <settings-card header-text="$i18n{nickelLinuxAppsTitle}">
++      <settings-toggle-button id="nickelX11KeysToggle"
++          pref="{{prefs.nickel.x11_key_forwarding}}"
++          label="$i18n{nickelX11KeysLabel}"
++          sub-label="$i18n{nickelX11KeysDescription}">
++      </settings-toggle-button>
++    </settings-card>
+   </div>
+ 
+   <!-- APP NOTIFICATIONS -->
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
+index 9b01f11401e2c..02d406a452329 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
+@@ -52,6 +52,7 @@ static_library("apps") {
+     "//third_party/re2",
+     "//ui/base",
+     "//ui/chromeos",
++    "//ui/chromeos/strings:strings_grit",
+     "//ui/display",
+     "//ui/events:event_constants",
+     "//ui/webui",
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+index 1b93d1ade20a5..5732997d46320 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+@@ -37,6 +37,7 @@
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/webui/web_ui_util.h"
+ #include "ui/chromeos/devicetype_utils.h"
++#include "ui/chromeos/strings/grit/ui_chromeos_strings.h"
+ #include "ui/webui/webui_util.h"
+ 
+ namespace ash::settings {
+@@ -265,6 +266,9 @@ void AddAppManagementStrings(content::WebUIDataSource* html_source) {
+       {"nickelDefaultAppsText", IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT},
+       {"nickelDefaultAppsNotSet", IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET},
+       {"nickelDefaultAppsNone", IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE},
++      {"nickelLinuxAppsTitle", IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE},
++      {"nickelX11KeysLabel", IDS_SETTINGS_NICKEL_X11_KEYS_LABEL},
++      {"nickelX11KeysDescription", IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION},
+       {"appManagementAppDetailsTypeAndroidInstallReasonPolicy",
+        IDS_OS_SETTINGS_APP_DETAILS_TYPE_ANDROID_INSTALL_REASON_POLICY},
+       {"appManagementAppDetailsTypeChromeInstallReasonPolicy",
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index 13cdd4a75c80a..61d5df8700019 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -1997,6 +1997,16 @@
+       <message name="IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN" desc="NickelOS: the keys the user pressed for a Linux app's shortcut already belong to ChromeOS or another app.">
+         Those keys are already in use. Try others.
+       </message>
++      <!-- NickelOS: Settings > Apps > Linux apps (NickelX11Keys). -->
++      <message name="IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE" desc="NickelOS: in Settings > Apps, the title of the settings for Linux apps.">
++        Linux apps
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_X11_KEYS_LABEL" desc="NickelOS: in Settings > Apps > Linux apps, the switch that lets older (X11) Linux apps see shortcut keys while other windows have the focus.">
++        Shortcut keys for older Linux apps
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION" desc="NickelOS: under the switch that lets older (X11) Linux apps see shortcut keys while other windows have the focus: what it is for and what those apps see.">
++        Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.
++      </message>
+     </messages>
+   </release>
+ </grit>

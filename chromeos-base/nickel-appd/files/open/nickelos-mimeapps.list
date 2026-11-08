@@ -1,0 +1,45 @@
+# NickelOS: Linux apps open links and files through ChromeOS
+# (nickel-open), so ChromeOS's default apps apply to them too.
+# XDG_CURRENT_DESKTOP is NickelOS: GIO and xdg-open read this list first.
+[Default Applications]
+x-scheme-handler/http=org.nickelos.ChromeOS.desktop
+x-scheme-handler/https=org.nickelos.ChromeOS.desktop
+x-scheme-handler/mailto=org.nickelos.ChromeOS.desktop
+x-scheme-handler/ftp=org.nickelos.ChromeOS.desktop
+inode/directory=org.nickelos.ChromeOS.desktop
+text/html=org.nickelos.ChromeOS.desktop
+application/xhtml+xml=org.nickelos.ChromeOS.desktop
+application/pdf=org.nickelos.ChromeOS.desktop
+text/plain=org.nickelos.ChromeOS.desktop
+image/png=org.nickelos.ChromeOS.desktop
+image/jpeg=org.nickelos.ChromeOS.desktop
+image/gif=org.nickelos.ChromeOS.desktop
+image/webp=org.nickelos.ChromeOS.desktop
+image/bmp=org.nickelos.ChromeOS.desktop
+image/svg+xml=org.nickelos.ChromeOS.desktop
+image/avif=org.nickelos.ChromeOS.desktop
+image/heic=org.nickelos.ChromeOS.desktop
+image/tiff=org.nickelos.ChromeOS.desktop
+video/mp4=org.nickelos.ChromeOS.desktop
+video/webm=org.nickelos.ChromeOS.desktop
+video/x-matroska=org.nickelos.ChromeOS.desktop
+video/quicktime=org.nickelos.ChromeOS.desktop
+video/ogg=org.nickelos.ChromeOS.desktop
+audio/mpeg=org.nickelos.ChromeOS.desktop
+audio/ogg=org.nickelos.ChromeOS.desktop
+audio/flac=org.nickelos.ChromeOS.desktop
+audio/x-wav=org.nickelos.ChromeOS.desktop
+audio/wav=org.nickelos.ChromeOS.desktop
+audio/mp4=org.nickelos.ChromeOS.desktop
+audio/aac=org.nickelos.ChromeOS.desktop
+audio/webm=org.nickelos.ChromeOS.desktop
+application/zip=org.nickelos.ChromeOS.desktop
+application/vnd.oasis.opendocument.text=org.nickelos.ChromeOS.desktop
+application/vnd.oasis.opendocument.spreadsheet=org.nickelos.ChromeOS.desktop
+application/vnd.oasis.opendocument.presentation=org.nickelos.ChromeOS.desktop
+application/vnd.openxmlformats-officedocument.wordprocessingml.document=org.nickelos.ChromeOS.desktop
+application/vnd.openxmlformats-officedocument.spreadsheetml.sheet=org.nickelos.ChromeOS.desktop
+application/vnd.openxmlformats-officedocument.presentationml.presentation=org.nickelos.ChromeOS.desktop
+application/msword=org.nickelos.ChromeOS.desktop
+application/vnd.ms-excel=org.nickelos.ChromeOS.desktop
+application/vnd.ms-powerpoint=org.nickelos.ChromeOS.desktop

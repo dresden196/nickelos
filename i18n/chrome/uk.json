@@ -1,0 +1,1450 @@
+{
+ "IDS_ABOUT_CROS_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS.",
+  "t": "NickelOS працює завдяки додатковому BEGIN_LINK_CROS_OSSпрограмному забезпеченню з відкритим кодомEND_LINK_CROS_OSS."
+ },
+ "IDS_ABOUT_CROS_WITH_LINUX_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS, as is BEGIN_LINK_LINUX_OSSLinux development environmentEND_LINK_LINUX_OSS.",
+  "t": "NickelOS і BEGIN_LINK_LINUX_OSSсередовище для розробки LinuxEND_LINK_LINUX_OSS працюють завдяки додатковому BEGIN_LINK_CROS_OSSпрограмному забезпеченню з відкритим кодомEND_LINK_CROS_OSS."
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY": {
+  "en": "Manage accessibility settings button, Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "Кнопка \"Керувати налаштуваннями спеціальних можливостей\"; натисніть Enter, щоб персоналізувати інструменти спеціальних можливостей у налаштуваннях NickelOS."
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUFFIX": {
+  "en": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT, Press tab then Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT; натисніть Tab, а потім – Enter, щоб персоналізувати інструменти спеціальних можливостей у налаштуваннях NickelOS"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "Додаток Linux, установлено за допомогою INSTALLER"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "Додаток Linux"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "Переконайтеся, що телефон і пристрій із NickelOS підключено до однієї мережі, і повторіть спробу. LEARN_MORE"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "Телефон підключено до мобільної мережі. Переконайтеся, що телефон і пристрій із NickelOS підключено до однієї мережі Wi-Fi, і повторіть спробу. LEARN_MORE"
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "Потрібно підтвердити вашу особу для Менеджера паролів"
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "Не вимикайте та не відключайте пристрій від живлення впродовж цього часу. Переконайтеся, що кабелі зарядного пристрою або адаптера надійно під’єднано до вашого пристрою та розетки. Не вимикайте пристрій."
+ },
+ "IDS_ASH_MESSAGE_CENTER_SYSTEM_APP_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "Заощаджуйте час, швидко відповідаючи на повідомлення з телефона на своєму пристрої з NickelOS"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "Робочий стіл"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "Перемістити в кошик"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "Назва не може починатися з крапки або містити скісну риску."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "Об’єкт із такою назвою вже існує."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "Нова папка"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "Нова папка"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "Відкрити"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "Відкрити Робочий стіл у Файлах"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "Перейменувати"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "Не вдалося перейменувати."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "Перейменувати"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "Показати у Файлах"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "З вашим пристроєм із NickelOS сумісні лише схвалені пристрої Thunderbolt"
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "Установити NickelOS"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "На вашому пристрої з NickelOS або пристрої з Bluetooth використовується застаріла версія Bluetooth. Щоб покращити якість звуку, використовуйте вбудований мікрофон."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "Переконайтеся, що пристрій із NickelOS підключено до тієї самої мережі Wi-Fi, що й пристрій Chromecast."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "Відкрити посібник NickelOS"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "Ознайомтеся з коротким оглядом PRODUCT_NAME: де ваші додатки, як отримати нові та на якому Linux усе працює. 7 кроків."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "Привіт! Вітаємо в PRODUCT_NAME."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Огляд: крок STEP з TOTAL_STEPS. Додаток Файли можна знайти на Панелі запуску. Домівка – це ваша домашня папка Linux: додатки Linux і додаток Файли бачать ті самі файли, а хмарні сховища, які ви додасте в налаштуваннях, також з’являються тут."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Домівка – це ваша домашня папка Linux: додатки Linux і додаток Файли бачать ті самі файли, а хмарні сховища, які ви додасте в налаштуваннях, також з’являються тут."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Огляд: крок STEP з TOTAL_STEPS. Waydroid запускає додатки Android, кожен у власному вікні. Його можна налаштувати в налаштуваннях: розділ \"Додатки\", потім \"Додатки Android\". Після цього, щоб установити додаток, достатньо відкрити файл APK, а додатки Android з’являтимуться на Панелі запуску."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Waydroid запускає додатки Android, кожен у власному вікні. Налаштуйте його в меню \"Налаштування\" > \"Додатки\" > \"Додатки Android\". Після цього, щоб установити додаток, достатньо відкрити файл APK, а додатки Android з’являтимуться на Панелі запуску."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Огляд: крок STEP з TOTAL_STEPS. Більше додатків можна отримати в Bazaar: це додатки Linux із Flathub, які встановлюються як пакети Flatpak. Вони з’являються на Панелі запуску, як і будь-які інші додатки."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Більше додатків можна отримати в Bazaar: це додатки Linux із Flathub, які встановлюються як пакети Flatpak. Вони з’являються на Панелі запуску, як і будь-які інші додатки."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Огляд: крок STEP з TOTAL_STEPS. Термінал – це справжня оболонка Linux із sudo. В основі NickelOS – Gentoo: eix знаходить пакети, а sudo emerge їх установлює, як і в будь-якому Gentoo."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Термінал – це справжня оболонка Linux із sudo. В основі NickelOS – Gentoo: eix знаходить пакети, а sudo emerge їх установлює, як і в будь-якому Gentoo."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "Огляд: крок STEP з TOTAL_STEPS. Коли Панель запуску активується, ви побачите рядок пошуку. Почніть вводити текст, щоб шукати додатки, файли й налаштування в PRODUCT_NAME."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "На Панелі запуску можна шукати додатки, файли й налаштування в PRODUCT_NAME."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Огляд: крок STEP з TOTAL_STEPS. Налаштування пристрою можна знайти на Панелі запуску. У налаштуваннях можна персоналізувати PRODUCT_NAME: змінити фоновий малюнок, вибрати темну чи світлу тему, налаштувати екрани тощо. Огляд завершено! Більше інформації – у посібнику NickelOS."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "PRODUCT_NAME можна персоналізувати в налаштуваннях: змінити фоновий малюнок, вибрати темну чи світлу тему, налаштувати екрани тощо. Огляд завершено! Більше інформації – у посібнику NickelOS."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "Щоб розблокувати пристрій із NickelOS, скористайтеся відбитком пальця або розблокуйте телефон"
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "Переконайтеся, що пристрій із Bluetooth поруч і на ньому ввімкнено режим підключення. Під’єднуйте лише надійні пристрої. Підключені пристрої відображаються для всіх облікових записів на цьому пристрої з NickelOS."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "Переконайтеся, що пристрій із Bluetooth поруч і на ньому ввімкнено режим підключення. Під’єднуйте лише надійні пристрої. Підключені пристрої відображаються для всіх облікових записів на цьому пристрої з NickelOS. BEGIN_LINK_LEARN_MOREДокладнішеEND_LINK_LEARN_MORE"
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Ваші дані синхронізуватимуться в усіх веб-переглядачах Chrome, де ви ввімкнули синхронізацію для цього облікового запису. Щоб переглянути параметри синхронізації NickelOS, відкрийте відповідні LINK_BEGINналаштуванняLINK_END."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "Комбінації клавіш"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "Як користуватися спеціальними можливостями на сенсорному екрані"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "На більшості клавіатур клавішею Search є клавіша Windows поруч із лівою клавішею Alt."
+ },
+ "IDS_CHROMEVOX_TUTORIAL_LEARN_MORE": {
+  "en": "Congratulations! You’ve learned the essentials to use ChromeVox successfully. Remember that you can open the ChromeVox command menu at any time by pressing Search+Period. To learn even more about ChromeVox and NickelOS, visit the following articles.\n    If you're done with the tutorial, use ChromeVox to navigate to the Close button and click it.",
+  "t": "Вітаємо! Ви дізналися про основні функції ChromeVox. Ви завжди можете відкрити командне меню ChromeVox, натиснувши клавішу пошуку й клавішу крапки. Щоб дізнатися більше про ChromeVox і NickelOS, перегляньте статті нижче.\n    Щоб вийти з посібника, за допомогою ChromeVox перейдіть до кнопки \"Закрити\" й натисніть її."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "Ви встановлюєте останню версію програмного забезпечення з найновішими виправленнями системи безпеки та функціями."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_ERROR": {
+  "en": "To finish setting up Linux, update NickelOS and try again.",
+  "t": "Щоб завершити налаштування Linux, оновіть NickelOS і повторіть спробу."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_TITLE": {
+  "en": "NickelOS update required",
+  "t": "Оновіть NickelOS"
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "BEGIN_H3Функції налагодженняEND_H3\n          BR\n          Ви можете ввімкнути функції налагодження на своєму пристрої з NickelOS, щоб установити й перевірити на ньому спеціальний код. Після цього ви зможете:BR\n          BEGIN_LIST\n            LIST_ITEMскасувати підтвердження rootfs, щоб змінювати файли ОС;\n            LIST_ITEMувімкнути доступ SSH до пристрою за стандартними тестовими ключами, щоб використовувати такі інструменти, як BEGIN_CODEcros flashEND_CODE;\n            LIST_ITEMувімкнути запуск із USB, щоб встановлювати образ ОС із носія USB;\n            LIST_ITEMзадати власні значення паролів для входу в режим розробника й кореневий каталог системи, щоб вручну використовувати SSH на пристрої.\n          END_LIST\n          BR\n          Після ввімкнення більшість функцій налагодження не вимикатимуться, навіть якщо відновити заводські налаштування за допомогою функції Powerwash або очистити дані на корпоративному керованому пристрої. Щоб повністю вимкнути всі функції налагодження, перевстановіть NickelOS.\n          BR\n          BR\n          Докладніше про функції налагодження читайте на такій сторінці:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDПримітка.END_BOLD Під час процедури система перезавантажиться."
+ },
+ "IDS_ENABLE_DEBUGGING_SETUP_MESSAGE": {
+  "en": "You are enabling NickelOS debugging features which will set up sshd daemon and enable booting from USB drives.",
+  "t": "Ви ввімкнули функції налагодження NickelOS, які встановлять daemon SSHD та ввімкнуть запуск із носіїв USB."
+ },
+ "IDS_EULA_SCREEN_ACCESSIBLE_TITLE": {
+  "en": "NickelOS terms",
+  "t": "Умови використання NickelOS"
+ },
+ "IDS_EXTENSION_INSTALL_KIOSK_MODE_ONLY": {
+  "en": "App with 'kiosk_only' manifest attribute must be installed in NickelOS kiosk mode",
+  "t": "Додаток з атрибутом маніфесту \"kiosk_only\" потрібно встановлювати в режимі термінала NickelOS"
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_ENTERPRISE_REMOTE_APPS": {
+  "en": "Add remote apps to the NickelOS launcher",
+  "t": "Додайте віддалені додатки на панель запуску NickelOS"
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "Шукайте довідкові статті та відповіді на поширені запитання"
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "Дякуємо за відгук. Його буде надіслано, щойно ви знову під’єднаєтеся до Інтернету."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "Дякуємо за відгук."
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Цей файл створено для комп’ютерів із програмним забезпеченням Macintosh. Він несумісний із вашим пристроєм, на якому встановлено NickelOS. Знайдіть відповідний додаток у Веб-магазині Chrome."
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Цей файл створено для ПК з програмним забезпеченням Windows. Він несумісний із вашим пристроєм, на якому встановлено NickelOS. Знайдіть відповідний додаток у Веб-магазині Chrome."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "Домівка"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Цей файл створено для комп’ютерів із програмним забезпеченням Macintosh. Він несумісний із вашим пристроєм, на якому встановлено NickelOS. BEGIN_LINK_HELPДокладнішеEND_LINK_HELP про те, як відкривати файли в NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Цей файл створено для ПК з програмним забезпеченням Windows. Він несумісний із вашим пристроєм, на якому встановлено NickelOS. BEGIN_LINK_HELPДокладнішеEND_LINK_HELP про те, як відкривати файли в NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_FILE": {
+  "en": "This file type is not supported. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Цей тип файлу не підтримується. BEGIN_LINK_HELPДокладнішеEND_LINK_HELP про те, як відкривати файли в NickelOS."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "Ваш пристрій незабаром перестане отримувати оновлення."
+ },
+ "IDS_HELP_APP_WHATS_NEW_CONTINUE_TASK_TITLE": {
+  "en": "NickelOS update",
+  "t": "Оновлення NickelOS"
+ },
+ "IDS_HELP_APP_WHATS_NEW_SUGGESTION_CHIP": {
+  "en": "What's new with NickelOS",
+  "t": "Нові функції NickelOS"
+ },
+ "IDS_IME_SERVICE_DISPLAY_NAME": {
+  "en": "NickelOS Input Method Service",
+  "t": "Сервіс методів введення в NickelOS"
+ },
+ "IDS_INSTALLED_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "Щоб виконати налаштування за допомогою телефона Android, на пристрої з NickelOS потрібно ввімкнути Bluetooth."
+ },
+ "IDS_LOGIN_SYNC_CONSENT_SCREEN_SUBTITLE_2": {
+  "en": "Your saved preferences and activity will be ready on any NickelOS device when you sign in with your Google Account. You can choose what to sync in Settings.",
+  "t": "Ваші збережені параметри та дії будуть готові на будь-якому пристрої з NickelOS, коли ви ввійдете в обліковий запис Google. Ви можете вибрати дані для синхронізації в налаштуваннях."
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "Адміністратор увімкнув синхронізацію таких даних між попереднім і поточним сеансами на ваших пристроях із NickelOS:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "Дозволити"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "Не дозволяти"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "Не зараз"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "Введіть пароль адміністратора цього комп’ютера (NAME)."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "APP_NAME хоче використовувати камеру цього пристрою. Вашу відповідь буде збережено для цього додатка."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "Дозволити додатку APP_NAME використовувати камеру?"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "APP_NAME хоче використовувати камеру. Щоб дозволити це, увімкніть доступ до камери в розділі \"Керування конфіденційністю\"."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "Відкрити налаштування"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "Доступ до камери вимкнено"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "Дозволити"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "Не дозволяти"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "Щоб змінити комбінацію, виберіть її клавіші й натисніть нові. Клавіша Backspace видаляє комбінацію."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "APP_NAME хоче, щоб ці комбінації клавіш працювали й тоді, коли ви використовуєте інші додатки. Додаток дізнаватиметься лише про те, що ви їх натиснули, але не про те, що ви вводите."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "Натискайте клавішу разом із Ctrl, Alt або клавішею пошуку чи використовуйте функціональну клавішу."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "Не задано"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "Натисніть клавіші…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "Ці клавіші вже використовуються. Спробуйте інші."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "Дозволити комбінації клавіш?"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "Змінити"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "Настільний комп’ютер"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "Комп’ютер"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "Ноутбук"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE (NAME)"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "Планшет"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "Підтвердьте пароль"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "Створення облікового запису..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "Не вдалося створити обліковий запис."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "Не вдалося створити обліковий запис: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "Введіть пароль."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "Не вдалося налаштувати обліковий запис: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "Це ім’я користувача вже зайняте."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "Створення облікового запису тривало надто довго. Повторіть спробу."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "Ім’я користувача має починатися з малої літери й містити лише малі літери, цифри, - і _ (до 32 символів)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "Паролі не збігаються"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "Ваше ім’я"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "Пароль"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "Ваше зображення"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "Воно відображається на екрані входу й у системному треї. Щоб використати власне фото, пізніше перейдіть у налаштування."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "Виберіть зображення"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "Ваш обліковий запис і його файли зберігаються на цьому пристрої та зашифровані вашим паролем. Без облікового запису Google їх неможливо відновити, якщо ви забудете пароль."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "Створіть обліковий запис"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "Ім’я користувача"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "Почніть з малої літери; використовуйте малі літери, цифри, - і _ (до 32 символів)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "APP_NAME хоче знати, де знаходиться цей пристрій (це визначається за мережами Wi-Fi поблизу та його інтернет-адресою). Вашу відповідь буде збережено для цього додатка."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "Дозволити додатку APP_NAME використовувати ваше місцезнаходження?"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "APP_NAME хоче використовувати ваше місцезнаходження. Щоб дозволити це, увімкніть доступ до місцезнаходження в розділі \"Керування конфіденційністю\"."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "Доступ до місцезнаходження вимкнено"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "APP_NAME хоче керувати клавіатурою та вказівником цього пристрою. Дозволяйте це, лише якщо довіряєте тому, хто підключається."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "APP_NAME керує цим пристроєм."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "Дозволити віддалене керування?"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "Під час налаштування NickelOS ви вибрали варіант \"Мінімальний набір\", тому пошукову систему для вас не вибрано. Ці пошукові системи популярні у вашому регіоні й показані у випадковому порядку."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "У будь-якому разі ви отримаєте Bazaar для пошуку інших додатків, а також додатки, щоб відкривати фото, відео, музику й документи."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "Повний набір"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "Усе готово до роботи, а ваші дані залишаються конфіденційними. DuckDuckGo шукає в Інтернеті з веб-переглядача та Панелі запуску, uBlock Origin блокує рекламу й трекери у веб-переглядачі, установлено конфіденційні додатки Proton (Mail, Calendar, Drive, Pass тощо), а також безкоштовні додатки з відкритим кодом: LibreOffice, OBS Studio, GIMP, Kdenlive тощо."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "Мінімальний набір"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "Лише основне. Панель запуску шукає тільки на цьому комп’ютері, і більше нічого не налаштовується."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "Усе це можна змінити пізніше в налаштуваннях."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "Як ви хочете почати?"
+ },
+ "IDS_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUGGESTION_CONTENTS": {
+  "en": "Personalize your accessibility tools in NickelOS settings",
+  "t": "Персоналізуйте інструменти спеціальних можливостей у налаштуваннях NickelOS"
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_LAPTOP": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press the space bar.",
+  "t": "Активувати ChromeVox, вбудовану програму зчитування з екрана для NickelOS? Щоб зробити це, натисніть пробіл."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_TABLET": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press and hold both volume keys for five seconds.",
+  "t": "Активувати ChromeVox, вбудовану програму зчитування з екрана для NickelOS? Щоб зробити це, утримуйте обидві клавіші гучності впродовж п’яти секунд."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_TEXT": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS?",
+  "t": "Активувати ChromeVox, вбудовану програму зчитування з екрана для NickelOS?"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "Перш ніж почати, переконайтеся, що ви створили резервну копію даних. Під час встановлення ОС DEVICE_OS буде перезаписано вибраний диск."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "DEVICE_OS – це вільне програмне забезпечення, що надається \"як є\": воно може працювати не на кожному комп’ютері, а його автори не несуть відповідальності за втрату даних."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "Оновлення, параметри розробника"
+ },
+ "IDS_OS_SETTINGS_APP_DETAILS_TYPE_CROS_SYSTEM": {
+  "en": "NickelOS System App",
+  "t": "Системний додаток NickelOS"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "Телефони, Обмін поблизу"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "Телефони, FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your apps and settings will sync across all NickelOS devices where you are signed in with your Google account. For browser sync options, go to LINK_BEGINChrome settingsLINK_END.",
+  "t": "Ваші додатки й налаштування буде синхронізовано на всіх пристроях із NickelOS, де ви ввійшли в обліковий запис Google. Щоб переглянути параметри синхронізації веб-переглядача, відкрийте LINK_BEGINналаштування ChromeLINK_END."
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "Хмарне сховище"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Google Диск"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "Додати хмарний обліковий запис"
+ },
+ "IDS_OS_SETTINGS_TAG_OS_VERSION": {
+  "en": "NickelOS version",
+  "t": "Версія NickelOS"
+ },
+ "IDS_PASSWORD_CHANGE_NOTIFICATION_TITLE": {
+  "en": "NickelOS password updated",
+  "t": "Пароль NickelOS оновлено"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "Власні зображення"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "Показувати ваші зображення, час і медіадані на неактивному екрані"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "Ваші власні зображення"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "Заставка показує зображення з папки \"Зображення\" та її вкладених папок. Додайте принаймні 2."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "Папка \"Зображення\""
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "Зображення, які постачаються з NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "Заставка показує фонові малюнки NickelOS. Увімкніть цей параметр, щоб натомість показувати зображення з папки Мої файли > Pictures."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "Фонові малюнки NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "Дані Open-Meteo для вашого приблизного місцезнаходження, яке beaconDB визначає за вашою IP-адресою"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "Показувати погоду"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "Переконайтеся, що принтер увімкнено й підключено до тієї самої мережі, що й пристрій із NickelOS, або скористайтеся кабелем USB"
+ },
+ "IDS_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_RELAUNCH_TO_UPDATE": {
+  "en": "Relaunch to update &NickelOS",
+  "t": "Перезапустити, щоб оновити &NickelOS"
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "Домівка"
+ },
+ "IDS_SETTINGS_ABOUT_OS": {
+  "en": "About NickelOS",
+  "t": "Про NickelOS"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Якщо це налаштування ввімкнено, дані зберігаються в обліковому записі Google і можуть використовуватися на всіх ваших пристроях. Якщо його вимкнути, дані зберігатимуться лише на цьому пристрої. Щоб переглянути параметри синхронізації NickelOS, відкрийте відповідні LINK_BEGINналаштуванняLINK_END."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "Надайте додаткам для Android дозвіл керувати USB-пристроями на цьому пристрої з NickelOS. Ви отримуватимете запит на дозвіл щоразу, коли підключатимете USB-пристрій. Окремі додатки для Android запитуватимуть додаткові дозволи."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Ваш пристрій більше не отримує оновлення системи безпеки й програмного забезпечення."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Цей пристрій більше не отримує оновлення"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Ваш пристрій більше не отримує оновлення системи безпеки й програмного забезпечення."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Цей пристрій більше не отримує оновлення"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "Надайте додаткам для Android дозвіл керувати USB-пристроями на цьому пристрої з NickelOS"
+ },
+ "IDS_SETTINGS_LANGUAGES_OPEN_CHROME_OS_SETTINGS_LABEL": {
+  "en": "Manage languages in NickelOS settings",
+  "t": "Керувати мовами в налаштуваннях NickelOS"
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "Цей параметр застосовується для пристроїв із NickelOS, які мають тарифний план або модем мобільної мережі, а також під час прив’язки до портативної точки доступу"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "Додати користувача"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "Ви вийдете з облікового запису. На екрані входу новий користувач вибере ім’я, ім’я користувача та пароль."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "Адміністратор"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Адміністратори можуть установлювати програмне забезпечення для всіх, змінювати систему й керувати обліковими записами."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "Змінити пароль"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "Підтвердити"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "Підтвердьте новий пароль"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "Поточний пароль"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "Введіть новий пароль"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Сталася помилка. Повторіть спробу."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "На цьому пристрої має бути принаймні один адміністратор"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "Зробити користувача NAME адміністратором?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "Новий пароль"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "На цьому пристрої більше ні в кого немає облікового запису."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "Інші користувачі цього пристрою"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Кожен має власний обліковий запис і файли. Адміністратори можуть установлювати програмне забезпечення для всіх, змінювати систему й керувати обліковими записами."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "Власник, адміністратор"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "Нові паролі не збігаються"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "Видалити"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "Позбавити користувача NAME прав адміністратора?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "Обліковий запис цього користувача та всі його файли буде видалено з цього пристрою. Цю дію неможливо скасувати."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "Видалити користувача NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "Вийти"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "Стандартний"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "Неправильний пароль"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "Ваш обліковий запис"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "Ваш пароль"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "Змінювати ці налаштування може лише адміністратор цього пристрою."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "Для додатків, створених лише для процесорів ARM, які використовуються в телефонах, зокрема багатьох ігор. Це пропрієтарне програмне забезпечення, яке завантажується, коли ви вмикаєте цю функцію."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "Багато додатків Android, особливо ігри, створено лише для процесорів ARM, які використовуються в телефонах. Щоб запускати їх на цьому комп’ютері, Android потрібен транслятор. NickelOS не створює й не містить його: якщо ввімкнути цю функцію, буде завантажено TRANSLATOR із GitHub – ту саму копію, яку встановлює waydroid_script від спільноти Waydroid."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "Це пропрієтарне програмне забезпечення, на яке поширюються умови його власника, і встановлюєте його саме ви. Деякі додатки можуть працювати повільно або не працювати взагалі. Щоб використовувати транслятор, Android перезапуститься."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "Погодитися й увімкнути"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "Увімкнути підтримку додатків для ARM?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "Підтримка додатків для ARM"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "Видалення..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "Завантаження та встановлення..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "Завантаження Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "Не вдалося завершити завантаження. Перевірте з’єднання й повторіть спробу."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Сталася помилка. Повторіть спробу."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "Налаштування Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "Налаштування Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "Видалити"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "Видаляє Android, ваші додатки Android та їхні дані"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "Android, ваші додатки Android та їхні дані буде видалено з цього пристрою. Інші користувачі пристрою збережуть свої дані Android, але не зможуть відкривати свої додатки Android, доки Android не буде налаштовано знову."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "Видалити Android?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "Видалити Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "Видалення Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "Налаштувати"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "Додатки Android відкриваються у власних вікнах поруч з іншими вашими додатками. Під час налаштування завантажується Android (LineageOS від проекту Waydroid): близько 1 ГБ, а на цьому пристрої він займе 2,5 ГБ."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "Запускати додатки Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "Додатки Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "Houdini від Intel"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "Транслятор NDK від Google"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "Додатки Android зараз недоступні."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "Android займає SIZE на цьому пристрої"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "Ідентифікатор ключа доступу"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "Додати обліковий запис"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "Назад"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "Ідентифікатор клієнта"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "Секретний ключ клієнта"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "Підключити"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "Підключення…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "Переглядайте Google Диск, OneDrive, Dropbox та інші хмарні сховища у Файлах"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "Додати хмарне сховище"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "ACCOUNT_NAME тепер у Файлах."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "Для Google Диска потрібні власні ідентифікатор і секретний ключ клієнта з консолі Google Cloud."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "Електронна адреса або ім’я користувача"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "Кінцева точка (для Amazon S3 залиште порожнім)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "Не вдалося підключитися. Перевірте дані й повторіть спробу."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "Готово"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "Як їх створити"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "У Файлах"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "Назва"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "Далі"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "Не підключено"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "Пароль"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "NickelOS використовує rclone, щоб показувати ваше хмарне сховище у Файлах і ви легко отримували доступ до своїх файлів. Виберіть сервіс для входу."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "Регіон (необов’язково)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "Видалити"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "Додаток Файли більше не показуватиме цей обліковий запис. Ваші файли залишаться в хмарі, і ви зможете знову додати цей обліковий запис пізніше."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "Видалити обліковий запис ACCOUNT_NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "Видалення…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "Amazon S3 або сумісне сховище"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "Секретний ключ доступу"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "Адреса сервера"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "Сервіс"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "Завершіть вхід на сторінці, що відкрилася у веб-переглядачі."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "Під час підключення у веб-переглядачі відкриється сторінка входу сервісу."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "Хмарне сховище"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "Код двоетапної перевірки (якщо ви її використовуєте)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "Ім’я користувача"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "Nextcloud або WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "Змінити назву цього комп’ютера може лише його адміністратор."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "Змінити"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "Цю назву бачать інші пристрої у вашій мережі та через Bluetooth, а також її показують Термінал і додатки Linux."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "Змінити назву комп’ютера"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "Не вдалося змінити назву. Повторіть спробу."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "Використовуйте принаймні одну латинську літеру (від A до Z) або цифру."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "Назва комп’ютера"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "У Терміналі: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "Додатки, які відкривають файли кожного типу з Файлів і з додатків Linux"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "Документи"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "Ел. пошта"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "Зображення"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "Музика"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "Немає додатків, які можуть їх відкрити"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "Не вибрано"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "Документи PDF"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "Презентації"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "Знімки екрана (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "Знімок екрана (вбудований)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "Таблиці"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "Текстові файли"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "Додатки за умовчанням"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "Відео"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (веб-сайт)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "Диски в цьому пристрої, крім диска з NickelOS. Диск з ОС Windows відкривається лише для читання, тому Windows залишається неушкодженою."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "Інші диски"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "Дозволити зміни"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "На цьому диску встановлено ОС Windows. Він доступний лише для читання, якщо не дозволити зміни."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "Якщо ввімкнено швидкий запуск, Windows не завершує роботу повністю, і зміни, внесені тут, можуть бути втрачені або пошкодити файли під час наступного запуску Windows. Перш ніж вносити зміни, вимкніть швидкий запуск у Windows або утримуйте клавішу Shift, коли завершуєте роботу Windows."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "Дозволити зміни на диску Windows?"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "ОС Windows не завершила роботу повністю, тому диск залишається доступним лише для читання. Щоб вносити зміни, повністю завершіть роботу Windows."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "Показувати у Файлах"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "Допомога від інших користувачів"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "Форум, Discord і GitHub на сайті nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "Вивчення Gentoo"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "Portage і emerge з нуля, а поруч – відповідні команди pacman і apt"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "Посібник із NickelOS"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "Як працює NickelOS. Ця копія входить у вашу версію NickelOS і працює офлайн."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "Посібник, вивчення Gentoo, усунення несправностей"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "Онлайн-посібник"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "Найновіша версія на сайті nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "Довідка"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "Усунення несправностей"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "Журнали, звіти про збої, поширені проблеми та способи їх вирішення"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "Додатки Linux"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "Прийняти"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "Можна створити пару"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "Скасувати"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "Підключено"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "Підключено · Акумулятор PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "Підключено · Заряджається, PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "Через додаток KDE Connect на Android або iPhone в одній мережі Wi-Fi"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "Більше для пристрою DEVICE_NAME"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "Телефонів і планшетів ще немає. Установіть KDE Connect із Google Play, F-Droid або App Store, відкрийте його в тій самій мережі Wi-Fi і створіть пару з будь-якого з пристроїв."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "Підключення телефонів не працює. Щоб запустити його, вийдіть і знову ввійдіть в обліковий запис."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "Відкрити Valent"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "Створити пару"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "Пару створено · Не підключено"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "Очікування підтвердження"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "Відхилити"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "Відтворити звук"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "Надіслати файли"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "Надіслати файли"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "Телефони й планшети"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "Скасувати пару"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "Хоче створити пару з цим пристроєм"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "Дає змогу додаткам, як-от Discord, використовувати функцію \"Натисни й говори\", коли ви працюєте в інших вікнах. Вони бачать клавіші, натиснуті разом із Ctrl, Alt або клавішею пошуку, і функціональні клавіші, але ніколи не бачать, що ви вводите."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "Комбінації клавіш для старіших додатків Linux"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "Переконайтеся, що принтер підключено до тієї самої мережі Wi-Fi, що й пристрій із NickelOS, або скористайтеся кабелем USB. LINK_BEGINДокладніше про сумісністьLINK_END"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "Не вдається під’єднатися до принтера. Перевірте, чи принтер увімкнено та під’єднано до пристрою з NickelOS через Wi-Fi або USB."
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "Домівка"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "Перш ніж почати, переконайтеся, що ваш перемикач USB або Bluetooth підключено до пристрою з NickelOS. Ви також можете використовувати клавіші на клавіатурі."
+ },
+ "IDS_SHORT_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_SIGNIN_ERROR_SECONDARY_ACCOUNT_DISPLAY_SOURCE": {
+  "en": "NickelOS System",
+  "t": "Система NickelOS"
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "Щоб розблокувати пристрій із NickelOS, переконайтеся, що на телефоні ввімкнено Bluetooth"
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "На пристрої з NickelOS вимкнено Bluetooth. Щоб розблокувати пристрій, введіть пароль."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "На телефоні немає екрана блокування. Щоб розблокувати пристрій із NickelOS, введіть пароль."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "Щоб розблокувати пристрій із NickelOS, спершу розблокуйте телефон."
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "Ваш пристрій використовує вбудований датчик, щоб виявляти присутність людей перед екраном. Усі дані відразу обробляються на пристрої та видаляються. Вони ніколи не надсилаються в Google."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "Журнали NickelOS"
+ },
+ "IDS_SYNC_OTHER_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data due to an error signing in.",
+  "t": "NickelOS не вдалося синхронізувати ваші дані через помилку входу."
+ },
+ "IDS_SYNC_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because your account sign-in details are out of date.",
+  "t": "NickelOS не вдалося синхронізувати ваші дані, оскільки дані для входу в обліковий запис застаріли."
+ },
+ "IDS_SYNC_UNAVAILABLE_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because Sync is not available for your domain.",
+  "t": "NickelOS не вдалося синхронізувати ваші дані, оскільки синхронізація для вашого домену недоступна."
+ },
+ "IDS_TERMS_OF_SERVICE_SCREEN_SUBHEADING": {
+  "en": "MANAGER requires that you read and accept the following Terms of Service before using this device. These terms do not expand, modify or limit the NickelOS Terms.",
+  "t": "Перш ніж використовувати цей пристрій, потрібно прочитати й прийняти наведені нижче Умови використання MANAGER. Вони не розширюють, не змінюють і не обмежують Умови використання NickelOS."
+ },
+ "IDS_UPDATE_RECOMMENDED": {
+  "en": "NickelOS needs to be restarted to apply the update.",
+  "t": "Щоб застосувати це оновлення, потрібно перезапустити NickelOS."
+ },
+ "IDS_UPDATE_RECOMMENDED_DIALOG_TITLE": {
+  "en": "Restart NickelOS",
+  "t": "Перезапустіть NickelOS"
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "Ви входитимете на пристрій через власний обліковий запис, і кожен, хто ним користується, може мати свій."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "Власний обліковий запис на пристрої"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "NickelOS створено з урахуванням вимог безпеки, і система автоматично оновлюється."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "У NickelOS веб-додатки й додатки Linux працюють поруч. Установлюйте додатки для роботи, розваг тощо."
+ },
+ "IDS_UPDATE_SLIDE_UPDATE_TEXT": {
+  "en": "This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.",
+  "t": "Це перший і останній раз, коли вам доводиться чекати оновлення. У NickelOS програмне забезпечення оновлюється у фоновому режимі."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "Додатки Chrome не працюють у NickelOS. Спробуйте альтернативний додаток."
+ },
+ "IDS_UTILITY_PROCESS_IMAGE_WRITER_NAME": {
+  "en": "NickelOS System Image Writer",
+  "t": "Засіб створення образів NickelOS"
+ },
+ "IDS_WRONG_HWID_SCREEN_MESSAGE_FIRST_PART": {
+  "en": "Unfortunately, your computer is configured with a malformed hardware ID. This prevents NickelOS from updating with the latest security fixes and your computer BEGIN_BOLDmay be vulnerable to malicious attacksEND_BOLD.",
+  "t": "На жаль, ваш комп’ютер налаштовано за допомогою ідентифікатора апаратного забезпечення з неправильною структурою. Це перешкоджає оновленню NickelOS найновішими виправленнями системи безпеки, а тому ваш комп’ютер BEGIN_BOLDможе бути вразливим до атакEND_BOLD."
+ }
+}

@@ -1,0 +1,215 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] gptpriority: fall back when a new system doesn't boot
+
+ChromeOS firmware counts down a kernel partition's tries each time it
+boots one not yet marked successful, and skips it once they are used up.
+NickelOS boots through GRUB, whose gptpriority read only the priority, so
+an update that didn't boot stayed chosen. Reading a partition's priority
+now spends one of its tries, written back to both GPT copies (only when
+both tables' CRCs verify and the entry still holds what was read), and
+reports priority 0 once they are used up, so grub.cfg picks the other
+system. update_engine sets the tries and chromeos-setgoodkernel marks the
+new system successful once it is up, as on ChromeOS. Attempts are capped
+at three.
+---
+--- a/grub-core/commands/gptpriority.c	2026-10-12 10:09:25.048727731 -0400
++++ b/grub-core/commands/gptpriority.c	2026-10-12 10:09:25.050681481 -0400
+@@ -28,6 +28,189 @@
+ 
+ GRUB_MOD_LICENSE ("GPLv3+");
+ 
++/* NickelOS: a boot that never comes up falls back to the other system, as
++   ChromeOS firmware does with the same GPT attribute bits (priority 48-51,
++   tries 52-55, successful 56). update_engine gives a new system a priority
++   above the old one, some tries and successful=0; chromeos-setgoodkernel
++   marks it successful once it has booted. Here, reading the priority of a
++   kernel partition that is not marked successful costs it one try, written
++   back to both GPT copies; once its tries are used up its priority reads as
++   0, so grub.cfg's comparison picks the other system. Writes happen only
++   when both tables' CRCs verify and the entry still holds what was read;
++   on any error nothing is written and the priority is reported as before.
++   Attempts are capped at NICKEL_MAX_TRIES: update_engine sets 6, and a PC
++   with no firmware watchdog may need a power cycle per attempt.  */
++
++#define NICKEL_PRIO_SHIFT 48
++#define NICKEL_TRIES_SHIFT 52
++#define NICKEL_GOOD_SHIFT 56
++#define NICKEL_MAX_TRIES 3
++
++static grub_uint32_t
++nickel_crc32 (const grub_uint8_t *buf, grub_size_t len)
++{
++  grub_uint32_t crc = 0xffffffff;
++  grub_size_t i;
++  int k;
++
++  for (i = 0; i < len; i++)
++    {
++      crc ^= buf[i];
++      for (k = 0; k < 8; k++)
++        crc = (crc >> 1) ^ (0xedb88320 & (0 - (crc & 1)));
++    }
++  return crc ^ 0xffffffff;
++}
++
++static grub_uint32_t
++nickel_get32 (const grub_uint8_t *p)
++{
++  grub_uint32_t v;
++  grub_memcpy (&v, p, sizeof (v));
++  return grub_le_to_cpu32 (v);
++}
++
++static grub_uint64_t
++nickel_get64 (const grub_uint8_t *p)
++{
++  grub_uint64_t v;
++  grub_memcpy (&v, p, sizeof (v));
++  return grub_le_to_cpu64 (v);
++}
++
++static void
++nickel_put32 (grub_uint8_t *p, grub_uint32_t v)
++{
++  v = grub_cpu_to_le32 (v);
++  grub_memcpy (p, &v, sizeof (v));
++}
++
++static void
++nickel_put64 (grub_uint8_t *p, grub_uint64_t v)
++{
++  v = grub_cpu_to_le64 (v);
++  grub_memcpy (p, &v, sizeof (v));
++}
++
++/* Byte offsets go through GRUB's 512-byte sectors.  */
++static grub_err_t
++nickel_read (grub_disk_t disk, grub_uint64_t byte, grub_size_t size, void *buf)
++{
++  return grub_disk_read (disk, byte >> GRUB_DISK_SECTOR_BITS,
++                         byte & (GRUB_DISK_SECTOR_SIZE - 1), size, buf);
++}
++
++static grub_err_t
++nickel_write (grub_disk_t disk, grub_uint64_t byte, grub_size_t size,
++              const void *buf)
++{
++  return grub_disk_write (disk, byte >> GRUB_DISK_SECTOR_BITS,
++                          byte & (GRUB_DISK_SECTOR_SIZE - 1), size, buf);
++}
++
++/* Sets entry INDEX's attributes from OLD_ATTR to NEW_ATTR in the GPT whose
++   header is at HEADER_LBA, if that table is intact and agrees. Returns the
++   header's alternate LBA in *ALTERNATE.  */
++static grub_err_t
++nickel_set_attr (grub_disk_t disk, grub_uint64_t header_lba,
++                 grub_uint32_t index, grub_uint64_t old_attr,
++                 grub_uint64_t new_attr, grub_uint64_t *alternate)
++{
++  grub_size_t ss = (grub_size_t) 1 << disk->log_sector_size;
++  grub_uint8_t *hdr = 0, *entries = 0;
++  grub_uint32_t hsize, hcrc, n, esz, ecrc;
++  grub_uint64_t entries_lba;
++  grub_size_t total;
++  grub_err_t err = GRUB_ERR_BAD_PART_TABLE;
++
++  hdr = grub_malloc (ss);
++  if (!hdr)
++    return grub_errno;
++  if (nickel_read (disk, header_lba << disk->log_sector_size, ss, hdr))
++    goto out;
++  if (grub_memcmp (hdr, "EFI PART", 8) != 0)
++    goto out;
++  hsize = nickel_get32 (hdr + 12);
++  if (hsize < 92 || hsize > ss)
++    goto out;
++  hcrc = nickel_get32 (hdr + 16);
++  nickel_put32 (hdr + 16, 0);
++  if (nickel_crc32 (hdr, hsize) != hcrc)
++    goto out;
++  if (alternate)
++    *alternate = nickel_get64 (hdr + 32);
++  entries_lba = nickel_get64 (hdr + 72);
++  n = nickel_get32 (hdr + 80);
++  esz = nickel_get32 (hdr + 84);
++  ecrc = nickel_get32 (hdr + 88);
++  if (esz < 128 || esz % 8 != 0 || esz > 1024 || n == 0 || n > 1024
++      || index >= n)
++    goto out;
++  total = (grub_size_t) n * esz;
++  entries = grub_malloc (total);
++  if (!entries)
++    goto out;
++  if (nickel_read (disk, entries_lba << disk->log_sector_size, total, entries))
++    goto out;
++  if (nickel_crc32 (entries, total) != ecrc)
++    goto out;
++  if (nickel_get64 (entries + (grub_size_t) index * esz + 48) != old_attr)
++    goto out;
++
++  nickel_put64 (entries + (grub_size_t) index * esz + 48, new_attr);
++  nickel_put32 (hdr + 88, nickel_crc32 (entries, total));
++  nickel_put32 (hdr + 16, 0);
++  nickel_put32 (hdr + 16, nickel_crc32 (hdr, hsize));
++  /* The entry first, then the header that vouches for it.  */
++  if (nickel_write (disk, (entries_lba << disk->log_sector_size)
++                    + (grub_uint64_t) index * esz, esz,
++                    entries + (grub_size_t) index * esz))
++    goto out;
++  if (nickel_write (disk, header_lba << disk->log_sector_size, hsize, hdr))
++    goto out;
++  err = GRUB_ERR_NONE;
++
++ out:
++  grub_free (entries);
++  grub_free (hdr);
++  if (err != GRUB_ERR_NONE && grub_errno == GRUB_ERR_NONE)
++    grub_errno = err;
++  return err;
++}
++
++/* Spends one try of a partition not yet marked successful, or reports it
++   as unbootable (priority 0) once its tries are used up.  */
++static grub_uint64_t
++nickel_try_partition (grub_disk_t disk, grub_partition_t part)
++{
++  grub_uint64_t attr = part->gpt_attrib;
++  grub_uint64_t prio = (attr >> NICKEL_PRIO_SHIFT) & 0xf;
++  grub_uint64_t tries = (attr >> NICKEL_TRIES_SHIFT) & 0xf;
++  grub_uint64_t good = (attr >> NICKEL_GOOD_SHIFT) & 1;
++  grub_uint64_t new_attr, alternate = 0;
++
++  if (good || prio == 0)
++    return prio;
++  if (tries == 0)
++    {
++      grub_dprintf ("gptpriority", "partition %d: tries used up\n",
++                    part->number + 1);
++      return 0;
++    }
++  if (tries > NICKEL_MAX_TRIES)
++    tries = NICKEL_MAX_TRIES;
++  new_attr = (attr & ~((grub_uint64_t) 0xf << NICKEL_TRIES_SHIFT))
++             | ((tries - 1) << NICKEL_TRIES_SHIFT);
++  if (nickel_set_attr (disk, 1, part->number, attr, new_attr, &alternate)
++      == GRUB_ERR_NONE && alternate > 1)
++    nickel_set_attr (disk, alternate, part->number, attr, new_attr, 0);
++  grub_dprintf ("gptpriority", "partition %d: %d tries left\n",
++                part->number + 1, (int) (tries - 1));
++  /* A failed write leaves the table as it was: boot as before.  */
++  grub_errno = GRUB_ERR_NONE;
++  return prio;
++}
++
+ static grub_err_t
+ grub_cmd_gptpriority (grub_command_t cmd __attribute__ ((unused)),
+                       int argc, char **args)
+@@ -64,7 +247,7 @@
+     }
+ 
+   grub_snprintf (priority_str, sizeof(priority_str), "%" PRIuGRUB_UINT64_T,
+-                 (part->gpt_attrib >> 48) & 0xf);
++                 nickel_try_partition (disk, part));
+ 
+   if (argc == 3)
+     {

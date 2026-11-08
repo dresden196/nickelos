@@ -1,0 +1,34 @@
+sys-kernel/chromeos-kernel-6_12 nickel-kernel.bashrc nickel-patches.bashrc
+chromeos-base/dev-install nickel-patches.bashrc
+chromeos-base/cryptohome nickel-patches.bashrc
+chromeos-base/chromeos-chrome nickel-chrome.bashrc
+chromeos-base/os_install_service nickel-patches.bashrc
+chromeos-base/chromeos-login nickel-patches.bashrc
+chromeos-base/selinux-policy nickel-patches.bashrc
+chromeos-base/cros-disks nickel-patches.bashrc
+chromeos-base/crash-reporter nickel-patches.bashrc
+dev-util/patchelf nickel-cxx-exceptions.bashrc
+media-libs/libheif nickel-cxx-exceptions.bashrc
+media-video/ffmpegthumbnailer nickel-cxx-exceptions.bashrc
+chromeos-base/system_api nickel-patches.bashrc
+chromeos-base/chromeos-init nickel-patches.bashrc
+media-libs/mesa-reven nickel-mesa-codecs.bashrc nickel-mesa-apart.bashrc
+media-libs/minigbm nickel-patches.bashrc
+media-sound/adhd nickel-patches.bashrc
+media-sound/cras_rust nickel-patches.bashrc
+app-i18n/chromeos-hangul nickel-patches.bashrc
+media-libs/vulkan-loader nickel-vulkan-loader.bashrc
+chromeos-base/sommelier nickel-patches.bashrc
+sys-boot/grub nickel-grub.bashrc
+chromeos-base/update_engine nickel-patches.bashrc
+chromeos-base/shill nickel-patches.bashrc
+chromeos-base/libhwsec-foundation nickel-patches.bashrc
+chromeos-base/missive nickel-patches.bashrc
+chromeos-base/minijail nickel-patches.bashrc
+chromeos-base/spaced nickel-patches.bashrc
+chromeos-base/chromeos-test-init nickel-patches.bashrc
+chromeos-base/screen-capture-utils nickel-patches.bashrc
+chromeos-base/crosh-extension nickel-patches.bashrc
+chromeos-base/vboot_reference nickel-patches.bashrc
+x11-libs/libva-intel-driver nickel-va-drivers.bashrc
+x11-libs/libva-intel-media-driver nickel-va-drivers.bashrc

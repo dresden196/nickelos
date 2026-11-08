@@ -1,0 +1,36 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the GPU sandbox lets Mesa ask F_DUPFD_QUERY
+
+NickelOS Unified's Mesa is Gentoo's 26. It asks whether two of its file
+descriptors are one open file with fcntl(fd, F_DUPFD_QUERY, fd2) (Linux
+6.10), before falling back to kcmp, which the GPU policy already answers
+with ENOSYS. The baseline policy's fcntl rule doesn't know the command and
+killed the GPU process with SIGSYS: no GPU, and Chrome, with no software
+compositing, quit before the login screen (the AMD test PC, build 23i,
+2026-10-21; Intel's Mesa takes the same path). The GPU policy now allows
+it beside NVIDIA's F_ADD_SEALS: the answer is only about the process's
+own descriptors.
+
+diff --git a/sandbox/policy/linux/bpf_gpu_policy_linux.cc b/sandbox/policy/linux/bpf_gpu_policy_linux.cc
+index 74333b96d129f..eb74abbdcb6d2 100644
+--- a/sandbox/policy/linux/bpf_gpu_policy_linux.cc
++++ b/sandbox/policy/linux/bpf_gpu_policy_linux.cc
+@@ -66,7 +66,17 @@ ResultExpr GpuProcessPolicy::EvaluateSyscall(int sysno) const {
+       BoolExpr add_seals =
+           AllOf(cmd == F_ADD_SEALS, (arg & ~kAllowedMask) == 0);
+ 
+-      return If(add_seals, Allow()).Else(BPFBasePolicy::EvaluateSyscall(sysno));
++      // NickelOS: Mesa (Gentoo's, 26) asks whether two of its descriptors
++      // are one open file with fcntl(fd, F_DUPFD_QUERY, fd2), Linux 6.10,
++      // before falling back to kcmp. The baseline policy doesn't know the
++      // command and killed the GPU process: no GPU, and Chrome, with no
++      // software compositing, quit before the login screen (the AMD test PC,
++      // 2026-10-21). The answer is about the process's own descriptors.
++      constexpr unsigned int kDupfdQuery = 1027;  // F_LINUX_SPECIFIC_BASE + 3
++
++      return If(add_seals, Allow())
++          .ElseIf(cmd == kDupfdQuery, Allow())
++          .Else(BPFBasePolicy::EvaluateSyscall(sysno));
+     }
+     case __NR_fdatasync:
+     case __NR_ftruncate:

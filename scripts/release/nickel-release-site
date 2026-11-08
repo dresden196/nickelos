@@ -1,0 +1,52 @@
+#!/bin/bash
+# On the laptop: writes site/release.json for a release whose ISO
+# nickel-release iso has made on the build host, so site/build.sh makes the
+# download page and the front page's release wording (site/build-pages.py).
+# Deploying the site (site/deploy.sh) is the public step, with
+# server-access open, never before.
+#
+#   nickel-release-site VERSION [HOST] [DATE]
+#
+# HOST defaults to nickel-build; DATE to today, as "8 November 2026".
+set -euo pipefail
+VERSION=${1:?the version}
+HOST=${2:-nickel-build}
+DATE=${3:-$(date '+%-d %B %Y')}
+here=$(dirname "$(readlink -f "$0")")
+site=$here/../../site
+cert=$here/../secureboot/nickelos-secureboot.crt.pem
+R=/srv/nickel/src/.nickel/release/$VERSION
+ISO=nickelos-$VERSION.iso
+# shellcheck disable=SC2029
+sums=$(ssh "$HOST" "cat $R/SHA256SUMS")
+# shellcheck disable=SC2029
+bytes=$(ssh "$HOST" "stat -c %s $R/$ISO")
+sha=$(awk -v f="$ISO" '$2 == f || $2 == "*" f { print $1 }' <<<"$sums")
+[ ${#sha} = 64 ] || { echo "no SHA-256 for $ISO in $HOST:$R/SHA256SUMS" >&2; exit 1; }
+# The milestone (NickelOS 157), from the image directory's name (R157-...).
+# shellcheck disable=SC2029
+dir=$(ssh "$HOST" "sed -n 's/^IMAGE_DIR=//p' $R/release.env")
+name=$(basename "$dir" | sed -n 's/^R\([0-9]*\)-.*/\1/p')
+[ -n "$name" ] || { echo "no milestone in $dir" >&2; exit 1; }
+# MokManager shows the SHA-1 as spaced pairs ("75 9E 0D ..."): the site too.
+fp() { openssl x509 -in "$cert" -noout -fingerprint "-$1" | cut -d= -f2; }
+python3 - "$site/release.json" <<PY
+import json, sys
+base = "https://update.nickelos.dev/download/"
+json.dump({
+    "name": "$name",
+    "version": "$VERSION",
+    "date": "$DATE",
+    "iso": "$ISO",
+    "size": "%.1f GB" % ($bytes / 1e9),
+    "sha256": "$sha",
+    "iso_url": base + "$ISO",
+    "sums_url": base + "SHA256SUMS",
+    "cert_url": base + "nickelos-secureboot.cer",
+    "cert_sha1": "$(fp sha1 | tr ':' ' ')",
+    "cert_sha256": "$(fp sha256)",
+}, open(sys.argv[1], "w"), indent=1)
+PY
+cat "$site/release.json"
+echo
+echo "site/build.sh now makes the release pages; deploy (site/deploy.sh) only at the release."

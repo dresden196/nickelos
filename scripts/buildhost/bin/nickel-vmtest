@@ -1,0 +1,93 @@
+#!/bin/bash
+# Boot a NickelOS/ChromiumOS .bin under UEFI (OVMF, Secure Boot off) for verification.
+#
+# Disk is NVMe by default: stock reven builds VIRTIO_BLK as a module and has no
+# initramfs, so a virtio root disk hangs forever at boot. NVMe/AHCI/virtio-scsi
+# are built in. NICKEL_VMTEST_DISK=virtio tests a virtio-blk root disk (works on
+# the nickel board, which builds VIRTIO_BLK in).
+# Writes go to a throwaway overlay (snapshot=on); the image itself is never modified.
+# NICKEL_VMTEST_OVERLAY=<file.qcow2> instead keeps writes in that qcow2 (created
+# on first use, backed by the image), so state survives guest reboots and qemu
+# restarts. Delete the file to start clean.
+#
+# ssh: port ${NICKEL_VMTEST_SSHPORT:-9222} (test image, public test key) -> nickel-vmssh
+# Run a second VM alongside with its own NICKEL_VMTEST_DIR and NICKEL_VMTEST_SSHPORT.
+# QMP: $D/qmp.sock (screendump etc.)          -> nickel-vmshot
+#
+# NICKEL_VMTEST_KERNEL=<bzImage> boots that kernel directly with the image's own
+# cmdline plus earlyprintk. reven has no 8250 driver and no VT, and its GRUB
+# entry passes an empty console=, so this is the only way to see kernel output.
+# NICKEL_VMTEST_APPEND adds kernel args in that mode (e.g. "--verbose" makes
+# upstart log every job start/stop to kmsg).
+# NICKEL_VMTEST_NODEBUG=1 (with NICKEL_VMTEST_KERNEL) leaves cros_debug off the
+# kernel cmdline, so ChromeOS behaves as in release/normal mode: no dev-mode
+# /usr/local mount, no crosh shell. Test images keep sshd, so it stays testable.
+#
+# Installer tests: NICKEL_VMTEST_DISK=usb attaches the image as a removable USB
+# stick (boot the raw chromiumos_*_image.bin, which has the installer layout).
+# NICKEL_VMTEST_TARGETS="64 32" adds blank SATA disks of those sizes (GiB) with
+# model names "NickelTest Disk<N> <size>G", as $D/target<N>.qcow2; they are
+# recreated each run unless NICKEL_VMTEST_TARGETS_KEEP=1. An image argument of
+# "none" boots from the kept target disks only (after an install).
+set -euo pipefail
+IMG=${1:?image.bin or none}
+D=${NICKEL_VMTEST_DIR:-/srv/nickel/vmtest}
+mkdir -p "$D"
+cp /usr/share/OVMF/OVMF_VARS_4M.fd "$D/vars.fd"
+rm -f "$D/qmp.sock" "$D/serial.log"
+
+DRIVE="file=$IMG,format=raw,snapshot=on"
+if [ "$IMG" = none ]; then
+  DRIVE=
+elif [ -n "${NICKEL_VMTEST_OVERLAY:-}" ]; then
+  [ -e "$NICKEL_VMTEST_OVERLAY" ] || \
+    qemu-img create -q -f qcow2 -b "$(readlink -f "$IMG")" -F raw "$NICKEL_VMTEST_OVERLAY"
+  DRIVE="file=$NICKEL_VMTEST_OVERLAY,format=qcow2"
+fi
+DISK=()
+if [ -n "$DRIVE" ]; then
+  case "${NICKEL_VMTEST_DISK:-nvme}" in
+    nvme)   DISK=(-drive "$DRIVE,if=none,id=d0" -device nvme,serial=nickel0,drive=d0,bootindex=0) ;;
+    virtio) DISK=(-drive "$DRIVE,if=virtio") ;;
+    usb)    DISK=(-drive "$DRIVE,if=none,id=d0" -device usb-storage,bus=xhci.0,drive=d0,removable=on,bootindex=0) ;;
+    *) echo "NICKEL_VMTEST_DISK must be nvme, virtio or usb" >&2; exit 1 ;;
+  esac
+fi
+
+n=0
+for size in ${NICKEL_VMTEST_TARGETS:-}; do
+  t="$D/target$n.qcow2"
+  if [ "${NICKEL_VMTEST_TARGETS_KEEP:-0}" != 1 ] || [ ! -e "$t" ]; then
+    rm -f "$t"
+    qemu-img create -q -f qcow2 "$t" "${size}G"
+  fi
+  # Throwaway disks: the guest's discards are ignored and nothing waits for
+  # the host's disk. The installer's mke2fs discards the whole stateful
+  # partition, and a qcow2 punching that many holes stalled the VM for 9 s:
+  # the guest's lockup watchdog panicked mid-install (2026-10-18).
+  DISK+=(-drive "file=$t,format=qcow2,if=none,id=t$n,discard=ignore,cache=unsafe"
+         -device "ide-hd,drive=t$n,bus=ide.$n,model=NickelTest Disk$n ${size}G,serial=nickeltest$n,bootindex=$((n + 1))")
+  n=$((n + 1))
+done
+
+EXTRA=()
+DEBUGARG=cros_debug
+[ "${NICKEL_VMTEST_NODEBUG:-0}" = 1 ] && DEBUGARG=
+if [ -n "${NICKEL_VMTEST_KERNEL:-}" ]; then
+  PARTUUID=$(sgdisk -i 3 "$IMG" | awk '/unique GUID/{print $4}')
+  EXTRA=(-kernel "$NICKEL_VMTEST_KERNEL"
+         -append "init=/sbin/init rootwait ro noresume loglevel=7 noinitrd earlyprintk=serial,ttyS0,115200 keep_bootcon i915.modeset=1 cros_efi ${DEBUGARG} root=PARTUUID=$PARTUUID ${NICKEL_VMTEST_APPEND:-}")
+fi
+
+exec qemu-system-x86_64 -name nickel-vmtest "${EXTRA[@]}" \
+  -machine q35,accel=kvm -cpu host -smp 8 -m 8G \
+  -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
+  -drive if=pflash,format=raw,file="$D/vars.fd" \
+  -device qemu-xhci,id=xhci \
+  "${DISK[@]}" \
+  -netdev user,id=n0,hostfwd=tcp:127.0.0.1:${NICKEL_VMTEST_SSHPORT:-9222}-:22 -device virtio-net-pci,netdev=n0 \
+  -device virtio-vga -display none \
+  -device usb-tablet,bus=xhci.0 -device usb-mouse,bus=xhci.0 \
+  -device usb-kbd,bus=xhci.0 \
+  -serial file:"$D/serial.log" \
+  -qmp unix:"$D/qmp.sock",server=on,wait=off

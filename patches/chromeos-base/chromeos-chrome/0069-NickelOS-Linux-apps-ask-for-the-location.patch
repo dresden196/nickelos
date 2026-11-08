@@ -1,0 +1,275 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux apps ask for the location
+
+Linux apps get the location through GeoClue: Flatpak apps through
+xdg-desktop-portal's Location portal, which asks once per app through the
+Access portal's backend (NickelAccessAsk, 0060), and apps outside a
+sandbox from GeoClue directly. ChromeOS's location switch in Privacy
+controls decides for all of them, as for its own apps:
+
+- NickelAccessAsk: the Location portal's question ("find-location-symbolic")
+  in ChromeOS's words, with the location icon; with the switch off (or on
+  for ChromeOS only), the notice that location access is off, with the
+  button to Privacy controls, answered "off" (not remembered). The camera's
+  and the location's dialogs come from one table.
+- NickelLocationAllowed() -> (b): whether the switch lets apps use the
+  location. nickel-appd's GeoClue agent asks while GeoClue runs and gives
+  GeoClue no accuracy at all while it is off, which stops every app.
+
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index e87b1f1219d4a..36d731d9ddbea 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -87,6 +87,7 @@ static_library("vm") {
+     "//components/session_manager/core",
+     "//components/tabs:public",
+     "//components/user_manager",
++    "//components/vector_icons",
+     "//media/capture:capture_lib",
+     "//ui/base/clipboard",
+     "//ui/base/clipboard:file_info",
+diff --git a/chrome/browser/ash/dbus/vm/nickel_access.cc b/chrome/browser/ash/dbus/vm/nickel_access.cc
+index e1e9ee98c49db..b6a4272f250d1 100644
+--- a/chrome/browser/ash/dbus/vm/nickel_access.cc
++++ b/chrome/browser/ash/dbus/vm/nickel_access.cc
+@@ -13,6 +13,7 @@
+ #include "ash/shell.h"
+ #include "ash/style/system_dialog_delegate_view.h"
+ #include "ash/system/model/system_tray_model.h"
++#include "ash/system/privacy_hub/geolocation_privacy_switch_controller.h"
+ #include "base/functional/bind.h"
+ #include "base/memory/ref_counted.h"
+ #include "base/strings/utf_string_conversions.h"
+@@ -20,6 +21,7 @@
+ #include "chrome/browser/profiles/profile_manager.h"
+ #include "chrome/grit/generated_resources.h"
+ #include "components/prefs/pref_service.h"
++#include "components/vector_icons/vector_icons.h"
+ #include "ui/base/accelerators/accelerator.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/chromeos/strings/grit/ui_chromeos_strings.h"
+@@ -45,6 +47,39 @@ bool CameraTurnedOff() {
+   return profile && !profile->GetPrefs()->GetBoolean(prefs::kUserCameraAllowed);
+ }
+ 
++// The location switch there: off, or on for ChromeOS itself only.
++bool LocationTurnedOff() {
++  GeolocationPrivacySwitchController* controller =
++      GeolocationPrivacySwitchController::Get();
++  return controller && controller->IsReady() &&
++         !controller->IsGeolocationUsageAllowedForApps();
++}
++
++// What ChromeOS asks in its own words, with its privacy controls' switch:
++// the Camera and the Location portals, told apart by the portal's icon name
++// ("camera-web-symbolic", "find-location-symbolic").
++struct Kind {
++  const char* icon_name;
++  bool (*turned_off)();
++  int title;
++  int message;
++  int off_title;
++  int off_message;
++  const gfx::VectorIcon* icon;
++  const gfx::VectorIcon* off_icon;
++};
++
++const Kind kKinds[] = {
++    {"camera", &CameraTurnedOff, IDS_NICKEL_CAMERA_ACCESS_TITLE,
++     IDS_NICKEL_CAMERA_ACCESS_MESSAGE, IDS_NICKEL_CAMERA_OFF_TITLE,
++     IDS_NICKEL_CAMERA_OFF_MESSAGE, &kPrivacyIndicatorsCameraIcon,
++     &kPrivacyIndicatorsCameraIcon},
++    {"location", &LocationTurnedOff, IDS_NICKEL_LOCATION_ACCESS_TITLE,
++     IDS_NICKEL_LOCATION_ACCESS_MESSAGE, IDS_NICKEL_LOCATION_OFF_TITLE,
++     IDS_NICKEL_LOCATION_OFF_MESSAGE, &vector_icons::kLocationOnIcon,
++     &vector_icons::kLocationOffIcon},
++};
++
+ void Run(scoped_refptr<Answer> answer, bool accepted) {
+   // Accept and cancel close the dialog too: the first one counts.
+   if (answer->data) {
+@@ -119,7 +154,14 @@ void NickelAccess::Ask(const std::string& app_id,
+                        const std::string& icon,
+                        Callback callback) {
+   const std::u16string name = DisplayName(app_name);
+-  if (icon.find("camera") == std::string::npos) {
++  const Kind* kind = nullptr;
++  for (const Kind& k : kKinds) {
++    if (icon.find(k.icon_name) != std::string::npos) {
++      kind = &k;
++      break;
++    }
++  }
++  if (!kind) {
+     // Something else: the portal's own words.
+     ShowDialog(
+         base::UTF8ToUTF16(title), base::UTF8ToUTF16(body),
+@@ -137,14 +179,13 @@ void NickelAccess::Ask(const std::string& app_id,
+     return;
+   }
+ 
+-  if (CameraTurnedOff()) {
++  if (kind->turned_off()) {
+     // As ChromeOS does for its own apps: say so, and offer the switch.
+     ShowDialog(
+-        l10n_util::GetStringUTF16(IDS_NICKEL_CAMERA_OFF_TITLE),
+-        l10n_util::GetStringFUTF16(IDS_NICKEL_CAMERA_OFF_MESSAGE, name),
++        l10n_util::GetStringUTF16(kind->off_title),
++        l10n_util::GetStringFUTF16(kind->off_message, name),
+         l10n_util::GetStringUTF16(IDS_NICKEL_CAMERA_OFF_SETTINGS),
+-        l10n_util::GetStringUTF16(IDS_NICKEL_ACCESS_NOT_NOW),
+-        &kPrivacyIndicatorsCameraIcon,
++        l10n_util::GetStringUTF16(IDS_NICKEL_ACCESS_NOT_NOW), kind->off_icon,
+         base::BindOnce(
+             [](Callback callback, bool open_settings) {
+               if (open_settings) {
+@@ -160,11 +201,10 @@ void NickelAccess::Ask(const std::string& app_id,
+   }
+ 
+   ShowDialog(
+-      l10n_util::GetStringFUTF16(IDS_NICKEL_CAMERA_ACCESS_TITLE, name),
+-      l10n_util::GetStringFUTF16(IDS_NICKEL_CAMERA_ACCESS_MESSAGE, name),
++      l10n_util::GetStringFUTF16(kind->title, name),
++      l10n_util::GetStringFUTF16(kind->message, name),
+       l10n_util::GetStringUTF16(IDS_NICKEL_ACCESS_ALLOW),
+-      l10n_util::GetStringUTF16(IDS_NICKEL_ACCESS_DENY),
+-      &kPrivacyIndicatorsCameraIcon,
++      l10n_util::GetStringUTF16(IDS_NICKEL_ACCESS_DENY), kind->icon,
+       base::BindOnce(
+           [](Callback callback, bool allowed) {
+             std::move(callback).Run(allowed ? "allow" : "deny");
+@@ -172,4 +212,9 @@ void NickelAccess::Ask(const std::string& app_id,
+           std::move(callback)));
+ }
+ 
++// static
++bool NickelAccess::LocationAllowed() {
++  return !LocationTurnedOff();
++}
++
+ }  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_access.h b/chrome/browser/ash/dbus/vm/nickel_access.h
+index a94896822e98e..bf3e376b5888d 100644
+--- a/chrome/browser/ash/dbus/vm/nickel_access.h
++++ b/chrome/browser/ash/dbus/vm/nickel_access.h
+@@ -13,18 +13,18 @@ namespace ash {
+ 
+ // NickelOS: whether a Linux app may use something, asked for the Access
+ // portal's backend (xdg-desktop-portal-nickel, VmApplicationsService
+-// .NickelAccessAsk). Today that is the camera: the Camera portal asks before
+-// an app gets the webcams.
++// .NickelAccessAsk): the Camera portal asks before an app gets the webcams,
++// the Location portal before a Flatpak app gets the location.
+ class NickelAccess {
+  public:
+-  // "allow", "deny", or "off": the camera is off in ChromeOS's privacy
+-  // controls (the portal does not remember that answer, so the app is asked
+-  // again once it is on).
++  // "allow", "deny", or "off": the camera or the location is off in
++  // ChromeOS's privacy controls (the portal does not remember that answer,
++  // so the app is asked again once it is on).
+   using Callback = base::OnceCallback<void(const std::string& answer)>;
+ 
+   // `title`, `body` and the button labels are the portal's, used for what is
+-  // not the camera; `icon` is the icon name it gives ("camera-web-symbolic"
+-  // for the camera).
++  // neither; `icon` is the icon name it gives ("camera-web-symbolic" for the
++  // camera, "find-location-symbolic" for the location).
+   static void Ask(const std::string& app_id,
+                   const std::string& app_name,
+                   const std::string& title,
+@@ -33,6 +33,10 @@ class NickelAccess {
+                   const std::string& deny_label,
+                   const std::string& icon,
+                   Callback callback);
++
++  // Whether the location switch in Privacy controls lets apps use the
++  // location (nickel-appd's GeoClue agent follows it, for every Linux app).
++  static bool LocationAllowed();
+ };
+ 
+ }  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index b9a6130753780..f71676d733af4 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -174,6 +174,8 @@ constexpr char kNickelTrayItemRemovedMethod[] = "NickelTrayItemRemoved";
+ constexpr char kNickelShortcutsBindMethod[] = "NickelShortcutsBind";
+ // NickelOS: called by the Access portal's backend (NickelAccess).
+ constexpr char kNickelAccessAskMethod[] = "NickelAccessAsk";
++// NickelOS: called by nickel-appd's GeoClue agent (NickelAccess).
++constexpr char kNickelLocationAllowedMethod[] = "NickelLocationAllowed";
+ // NickelOS: called by the Inhibit portal's backend (NickelInhibit).
+ constexpr char kNickelInhibitMethod[] = "NickelInhibit";
+ // NickelOS: called by the Print portal's backend (NickelPrint).
+@@ -336,6 +338,14 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelLocationAllowedMethod,
++      base::BindRepeating(
++          &VmApplicationsServiceProvider::NickelLocationAllowed,
++          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+   exported_object->ExportMethod(
+       vm_tools::apps::kVmApplicationsServiceInterface,
+       kNickelX11KeysConnectMethod,
+@@ -821,6 +831,18 @@ void VmApplicationsServiceProvider::NickelAccessAsk(
+           method_call, std::move(response_sender)));
+ }
+ 
++// NickelOS: () -> (b): whether Privacy controls' location switch lets apps
++// use the location.
++void VmApplicationsServiceProvider::NickelLocationAllowed(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  std::unique_ptr<dbus::Response> response =
++      dbus::Response::FromMethodCall(method_call);
++  dbus::MessageWriter(response.get())
++      .AppendBool(NickelAccess::LocationAllowed());
++  std::move(response_sender).Run(std::move(response));
++}
++
+ // NickelOS: a Linux app keeps the screen on or the device awake: (app id,
+ // app name, reason, portal flags, h socket). The wake lock lasts while the
+ // socket stays open.
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index e6fb7b0686bc5..e06a0c327b39b 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -100,6 +100,9 @@ class VmApplicationsServiceProvider
+       dbus::ExportedObject::ResponseSender response_sender);
+   void NickelAccessAsk(dbus::MethodCall* method_call,
+                        dbus::ExportedObject::ResponseSender response_sender);
++  void NickelLocationAllowed(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
+   void NickelInhibit(dbus::MethodCall* method_call,
+                      dbus::ExportedObject::ResponseSender response_sender);
+   void NickelPrint(dbus::MethodCall* method_call,
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index 17488278e81d5..70c3c527a4742 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -2199,6 +2199,18 @@
+       <message name="IDS_NICKEL_CAMERA_OFF_SETTINGS" desc="NickelOS: button that opens Privacy controls, where camera access can be turned on.">
+         Open settings
+       </message>
++      <message name="IDS_NICKEL_LOCATION_ACCESS_TITLE" desc="NickelOS: title of the question whether a Linux app (a Flatpak, through the Location portal) may use the location.">
++        Allow <ph name="APP_NAME">$1<ex>Maps</ex></ph> to use your location?
++      </message>
++      <message name="IDS_NICKEL_LOCATION_ACCESS_MESSAGE" desc="NickelOS: the question whether a Linux app may use the location; the answer is remembered for the app.">
++        <ph name="APP_NAME">$1<ex>Maps</ex></ph> wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.
++      </message>
++      <message name="IDS_NICKEL_LOCATION_OFF_TITLE" desc="NickelOS: title of the notice that a Linux app asked for the location while location access is turned off in Privacy controls.">
++        Location access is off
++      </message>
++      <message name="IDS_NICKEL_LOCATION_OFF_MESSAGE" desc="NickelOS: a Linux app asked for the location while location access is turned off in Privacy controls.">
++        <ph name="APP_NAME">$1<ex>Maps</ex></ph> wants to use your location. To let it, turn on location access in Privacy controls.
++      </message>
+       <message name="IDS_NICKEL_ACCESS_ALLOW" desc="NickelOS: button that lets a Linux app use the camera (or other access it asked for).">
+         Allow
+       </message>

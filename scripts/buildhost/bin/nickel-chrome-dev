@@ -1,0 +1,84 @@
+#!/bin/bash
+# Fast loop for Chrome patches: build chromeos-chrome from the existing
+# checkout (LOCAL_SOURCE, as nickel-build-stock does) and copy it into the
+# running test VM's /opt/google/chrome, skipping the image build. Records the hook/patch stamp
+# so the next nickel-build-stock run does not rebuild Chrome again.
+#
+# Run as the build user: sudo -u nickel -H nickel-chrome-dev
+# NICKEL_BOARD (default nickel), NICKEL_VMTEST_SSHPORT (default 9222).
+set -euo pipefail
+
+BOARD=${NICKEL_BOARD:-nickel}
+PORT=${NICKEL_VMTEST_SSHPORT:-9222}
+export PATH=$HOME/depot_tools:$PATH
+cd /srv/nickel/src
+
+OVL="src/overlays/overlay-$BOARD"
+ATOM=chromeos-base/chromeos-chrome
+CHROME_SRC=.cache/distfiles/chrome-src/src
+
+pinned=$(cros_sdk -- bash -c "sed -n 's/^GIT_COMMIT=\"\\(.*\\)\"/\\1/p' \$(equery-$BOARD which $ATOM)")
+head=$(git -c safe.directory='*' -C "$CHROME_SRC" rev-parse HEAD)
+if [ "$pinned" != "$head" ]; then
+  echo "Chrome checkout is at $head, the ebuild pins $pinned:" >&2
+  echo "run nickel-build-stock (it syncs Chrome) first." >&2
+  exit 1
+fi
+
+cros_sdk -- env CHROME_ORIGIN=LOCAL_SOURCE \
+  CHROME_ROOT=/var/cache/chromeos-cache/distfiles/chrome-src \
+  emerge-"$BOARD" --usepkg=n --getbinpkg=n --oneshot "$ATOM"
+
+# Same content hash as nickel-build-stock: the package's bashrc files from
+# profiles/base/package.bashrc, its patches, then the translation scripts and
+# translations.
+files=()
+for f in $(awk -v a="$ATOM" '$1 == a { for (i = 2; i <= NF; i++) print $i }' \
+    "$OVL/profiles/base/package.bashrc"); do
+  files+=("$OVL/profiles/base/bashrc/$f")
+done
+files+=("$OVL"/patches/"$ATOM"/*.patch)
+files+=("$OVL"/scripts/i18n/*.py)
+for f in "$OVL"/i18n/chrome/*.json; do [ -e "$f" ] && files+=("$f"); done
+mkdir -p "$HOME/.nickel-state/hook-stamps/$BOARD"
+cat "${files[@]}" | sha256sum | cut -c1-16 \
+  > "$HOME/.nickel-state/hook-stamps/$BOARD/${ATOM//\//__}"
+
+key=$(mktemp)
+trap 'rm -f "$key"' EXIT
+install -m600 chromite/ssh_keys/testing_rsa "$key"
+vm() {
+  ssh -i "$key" -p "$PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    -o LogLevel=ERROR root@127.0.0.1 "$@"
+}
+
+# Once Portage is set up on the VM (nickel-portage-setup), its profile lists
+# the image's packages as provided, and cros deploy refuses to replace a
+# provided package. Take Chrome off that list for the deploy.
+# Chrome's files into the VM as the board root has them (/opt/google/chrome:
+# the binary, its resources, locales and D-Bus policies). Not cros deploy: it
+# installs the package with emerge on the device, and NickelOS's Portage
+# there (Gentoo at /) has a profile cros deploy's own doesn't know
+# ("ParseError: Parent ... not found", 2026-10-28).
+vm "mount -o remount,rw / 2>/dev/null"
+deploy_status=0
+rsync -a --delete -e "ssh -i $key -p $PORT -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR" \
+  "out/build/$BOARD/opt/google/chrome/" root@127.0.0.1:/opt/google/chrome/ ||
+  deploy_status=$?
+
+vm 'bash -s' <<'EOF'
+dirs="/etc/dbus-1/system.d /usr/share/dbus-1/system.d /opt/google/chrome/dbus"
+files=$(grep -rlE "user=[\"']chronos[\"']" $dirs 2>/dev/null)
+if [ -n "$files" ]; then
+  sed -i -E "s/user=([\"'])chronos([\"'])/group=\1chronos\2/g" $files
+  dbus-send --system --type=method_call --dest=org.freedesktop.DBus / \
+    org.freedesktop.DBus.ReloadConfig
+  echo "nickel: D-Bus policies granted to group chronos again:" $files
+fi
+EOF
+
+# Installing the package leaves the old Chrome running: start the new one
+# (back at the login screen).
+[ "$deploy_status" = 0 ] && vm 'restart ui'
+exit "$deploy_status"

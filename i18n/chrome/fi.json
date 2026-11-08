@@ -1,0 +1,1454 @@
+{
+ "IDS_ABOUT_CROS_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS.",
+  "t": "Toinen BEGIN_LINK_CROS_OSSavoimen lähdekoodin ohjelmistoEND_LINK_CROS_OSS tukee NickelOS:ää."
+ },
+ "IDS_ABOUT_CROS_WITH_LINUX_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS, as is BEGIN_LINK_LINUX_OSSLinux development environmentEND_LINK_LINUX_OSS.",
+  "t": "Toinen BEGIN_LINK_CROS_OSSavoimen lähdekoodin ohjelmistoEND_LINK_CROS_OSS tukee NickelOS:ää, kuten myös BEGIN_LINK_LINUX_OSSLinux-kehitysympäristöäEND_LINK_LINUX_OSS."
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY": {
+  "en": "Manage accessibility settings button, Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "Muuta saavutettavuusasetuksia ‑painike, personoi esteettömyystyökaluja NickelOS:n asetuksista painamalla Enter"
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUFFIX": {
+  "en": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT, Press tab then Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT, personoi esteettömyystyökalusi NickelOS:n asetuksista painamalla sarkainta ja sitten Enter"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "Linux-sovellus, asentaja: INSTALLER"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "Linux-sovellus"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "Varmista, että puhelin ja NickelOS-laite ovat samassa verkossa, ja yritä sitten uudelleen. LEARN_MORE"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "Puhelin käyttää mobiiliverkkoa. Varmista, että puhelin ja NickelOS-laite ovat samassa Wi-Fi-verkossa, ja yritä sitten uudelleen. LEARN_MORE"
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "Vahvista henkilöllisyytesi Salasanat-ominaisuudessa"
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "Laitteen täytyy pysyä päällä ja yhdistettynä virtalähteeseen tänä aikana. Varmista, että laturin tai virtalähteen johdot on liitetty kunnolla sekä laitteeseen että pistorasiaan. Älä sammuta laitetta."
+ },
+ "IDS_ASH_MESSAGE_CENTER_SYSTEM_APP_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "Säästä aikaa vastaamalla puhelimen tekstiviesteihin nopeasti NickelOS-laitteella"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "Työpöytä"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "Siirrä roskakoriin"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "Käytä nimeä, joka ei ala pisteellä eikä sisällä kauttaviivaa."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "Samanniminen kohde on jo olemassa."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "Uusi kansio"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "Uusi kansio"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "Avaa"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "Avaa Työpöytä Tiedostot-sovelluksessa"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "Nimeä uudelleen"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "Uudelleennimeäminen epäonnistui."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "Nimeä uudelleen"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "Näytä Tiedostot-sovelluksessa"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "Vain hyväksytyt Thunderbolt-laitteet ovat yhteensopivia NickelOS-laitteesi kanssa"
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "Asenna NickelOS"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "NickelOS-laitteessa tai Bluetooth-laitteessa on vanhempi Bluetooth-versio. Voit parantaa äänenlaatua käyttämällä sisäistä mikrofonia."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "Varmista, että NickelOS-laitteesi on yhdistetty samaan Wi-Fi-verkkoon kuin Chromecast-laitteesi."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "Avaa NickelOS-opas"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "Tutustu lyhyesti siihen, mitä PRODUCT_NAME tarjoaa: missä sovelluksesi ovat, miten saat niitä lisää ja millainen Linux pinnan alla on. 7 vaihetta."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "Hei. PRODUCT_NAME toivottaa sinut tervetulleeksi."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Esittelyn vaihe STEP/TOTAL_STEPS. Löydät Tiedostot-sovelluksen Käynnistysohjelmasta. Koti on Linux-kotikansiosi: Linux-sovellukset ja Tiedostot-sovellus näkevät samat tiedostot, ja asetuksissa lisäämäsi pilvitallennustila näkyy myös täällä."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Koti on Linux-kotikansiosi: Linux-sovellukset ja Tiedostot-sovellus näkevät samat tiedostot, ja asetuksissa lisäämäsi pilvitallennustila näkyy myös täällä."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Esittelyn vaihe STEP/TOTAL_STEPS. Waydroid suorittaa Android-sovelluksia, kunkin omassa ikkunassaan. Ota se käyttöön asetuksista: valitse Sovellukset ja sitten Android-sovellukset. Sen jälkeen APK-tiedoston avaaminen asentaa sovelluksen, ja Androidin sovellukset näkyvät Käynnistysohjelmassa."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Waydroid suorittaa Android-sovelluksia, kunkin omassa ikkunassaan. Ota se käyttöön kohdassa Asetukset > Sovellukset > Android-sovellukset. Sen jälkeen APK-tiedoston avaaminen asentaa sovelluksen, ja Androidin sovellukset näkyvät Käynnistysohjelmassa."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Esittelyn vaihe STEP/TOTAL_STEPS. Hanki lisää sovelluksia Bazaar-sovelluskaupasta: Flathubin Linux-sovelluksia, jotka asennetaan Flatpak-paketteina. Ne näkyvät Käynnistysohjelmassa muiden sovellusten tapaan."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Hanki lisää sovelluksia Bazaar-sovelluskaupasta: Flathubin Linux-sovelluksia, jotka asennetaan Flatpak-paketteina. Ne näkyvät Käynnistysohjelmassa muiden sovellusten tapaan."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Esittelyn vaihe STEP/TOTAL_STEPS. Terminal on oikea Linux-komentotulkki, jossa on sudo. NickelOS on pohjimmiltaan Gentoo: eix etsii paketteja ja sudo emerge asentaa ne, kuten missä tahansa Gentoo-järjestelmässä."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Terminal on oikea Linux-komentotulkki, jossa on sudo. NickelOS on pohjimmiltaan Gentoo: eix etsii paketteja ja sudo emerge asentaa ne, kuten missä tahansa Gentoo-järjestelmässä."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "Esittelyn vaihe STEP/TOTAL_STEPS. Kun käynnistysohjelma on aktivoitu, näet hakukentän. Aloita kirjoittaminen, niin voit hakea sovelluksia, tiedostoja ja asetuksia laitteelta (PRODUCT_NAME)."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "Hae käynnistysohjelmasta sovelluksia, tiedostoja ja asetuksia laitteelta (PRODUCT_NAME)."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Esittelyn vaihe STEP/TOTAL_STEPS. Löydät laitteen asetukset käynnistysohjelmasta. Muokkaa tuotteen (PRODUCT_NAME) käyttökokemusta asetuksista: taustakuva, tumma tai vaalea teema, näytöt ja paljon muuta. Esittely on valmis! NickelOS-oppaassa on lisää tietoa."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "PRODUCT_NAME on itsesi näköinen, kun muokkaat ja personoit sitä asetusten kautta: taustakuva, tumma tai vaalea teema, näytöt ja paljon muuta. Esittely on valmis! NickelOS-oppaassa on lisää tietoa."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "Voit avata NickelOS-laitteen lukituksen käyttämällä sormenjälkeä tai avaamalla puhelimesi lukituksen"
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "Varmista, että Bluetooth-laitteesi on parinmuodostustilassa ja lähellä. Yhdistä vain laitteita, joihin luotat. Pariliitetyt laitteet näkyvät kaikilla tämän NickelOS-laitteen tileillä."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "Varmista, että Bluetooth-laitteesi on parinmuodostustilassa ja lähellä. Yhdistä vain laitteita, joihin luotat. Pariliitetyt laitteet näkyvät kaikilla tämän NickelOS-laitteen tileillä. BEGIN_LINK_LEARN_MORELue lisääEND_LINK_LEARN_MORE"
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Datasi synkronoidaan kaikilla Chrome-selaimilla, joille olet laittanut synkronoinnin päälle tällä tilillä. Löydät NickelOS:n synkronointiasetukset LINK_BEGINNickelOS:n asetuksistaLINK_END."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "Pikanäppäimet"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "Kosketusnäytön esteettömyysominaisuuksien käyttö"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "Useimmissa näppäimistöissä hakunäppäin on Windows-näppäin, joka on vasemman Alt-näppäimen vieressä."
+ },
+ "IDS_CHROMEVOX_TUTORIAL_LEARN_MORE": {
+  "en": "Congratulations! You’ve learned the essentials to use ChromeVox successfully. Remember that you can open the ChromeVox command menu at any time by pressing Search+Period. To learn even more about ChromeVox and NickelOS, visit the following articles.\n    If you're done with the tutorial, use ChromeVox to navigate to the Close button and click it.",
+  "t": "Onnittelut! Olet oppinut ChromeVoxin käytön perusteet. Voit avata ChromeVoxin komentovalikon koska tahansa painamalla Haku + piste. Seuraavista artikkeleista voit lukea lisää ChromeVoxista ja NickelOS:stä.\n    Jos haluat poistua ohjeesta, siirry ChromeVox-komennoilla Sulje-painikkeeseen ja klikkaa sitä."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "Saat viimeisimmän ohjelmistopäivityksen, joka sisältää uusimmat tietoturvakorjaukset ja ominaisuudet."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_ERROR": {
+  "en": "To finish setting up Linux, update NickelOS and try again.",
+  "t": "Viimeistele Linuxin käyttöönotto päivittämällä NickelOS ja yrittämällä uudelleen."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_TITLE": {
+  "en": "NickelOS update required",
+  "t": "NickelOS-päivitys vaaditaan"
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "BEGIN_H3VirheenkorjausominaisuudetEND_H3\n          BR\n          Voit ottaa virheenkorjausominaisuudet käyttöön, jos haluat asentaa ja testata muokattua koodia NickelOS-laitteella. Tällöin voitBR\n          BEGIN_LIST\n            LIST_ITEMpoistaa rootfs-varmennuksen, jotta voit muokata OS:n tiedostoja\n            LIST_ITEMsallia SSH-pääsyn laitteelle vakiotestiavaimilla, jotta voit käyttää laitetta BEGIN_CODEcros flashinEND_CODE kaltaisilla työkaluilla\n            LIST_ITEMottaa käyttöön USB:ltä käynnistyksen, jotta voit asentaa käyttöjärjestelmän näköistiedoston USB-muistista\n            LIST_ITEMasettaa sekä kehittäjän että järjestelmän pääkäyttäjän kirjautumissalasanaksi muokatun arvon, jotta voit käyttää SSH:ta laitteessa manuaalisesti.\n          END_LIST\n          BR\n          Kun virheenkorjausominaisuudet ovat käytössä, suurin osa niistä jää käyttöön myös powerwashin tai datan pyyhkimisen jälkeen yrityksen hallinnoimalla laitteella. Jos haluat poistaa kaikki virheenkorjausominaisuudet käytöstä, asenna NickelOS uudelleen.\n          BR\n          BR\n          Lisätietoa virheenkorjausominaisuuksista:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDHuom.END_BOLD Järjestelmä käynnistyy uudelleen prosessin aikana."
+ },
+ "IDS_ENABLE_DEBUGGING_SETUP_MESSAGE": {
+  "en": "You are enabling NickelOS debugging features which will set up sshd daemon and enable booting from USB drives.",
+  "t": "Olet ottamassa käyttöön NickelOS:n virheenkorjausominaisuudet, jotka määrittävät sshd daemon -toiminnon ja ottavat käyttöön USB-muistitikulta käynnistyksen."
+ },
+ "IDS_EULA_SCREEN_ACCESSIBLE_TITLE": {
+  "en": "NickelOS terms",
+  "t": "NickelOS:n käyttöehdot"
+ },
+ "IDS_EXTENSION_INSTALL_KIOSK_MODE_ONLY": {
+  "en": "App with 'kiosk_only' manifest attribute must be installed in NickelOS kiosk mode",
+  "t": "Sovellukset, joilla on manifestiattribuutti kiosk_only, täytyy asentaa NickelOS:n kioskitilassa."
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_DIAGNOSTICS": {
+  "en": "Run NickelOS diagnostic tests",
+  "t": "Suorittaa NickelOS:n diagnostiikkatestit"
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_TELEMETRY_SERIAL_NUMBER": {
+  "en": "Read NickelOS device and component serial numbers",
+  "t": "Lukea NickelOS-laitteiden ja niiden osien sarjanumerot"
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_ENTERPRISE_REMOTE_APPS": {
+  "en": "Add remote apps to the NickelOS launcher",
+  "t": "Etäsovellusten lisääminen NickelOS:n käynnistysohjelmaan"
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "Etsi ohjeartikkeleita ja vastauksia yleisiin kysymyksiin"
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "Kiitos palautteestasi. Se lähetetään, kun olet taas verkossa."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "Kiitos palautteestasi."
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Tämä tiedosto on tarkoitettu Macintosh-käyttöjärjestelmää käyttävälle tietokoneelle. Se ei ole yhteensopiva NickelOS:ää käyttävän laitteesi kanssa. Etsi sopiva korvaava sovellus Chrome Web Storesta."
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Tämä tiedosto on tarkoitettu Windows-käyttöjärjestelmää käyttävälle tietokoneelle. Se ei ole yhteensopiva NickelOS:ää käyttävän laitteesi kanssa. Etsi sopiva korvaava sovellus Chrome Web Storesta."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "Koti"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Tämä tiedosto on tarkoitettu Macintosh-ohjelmistoa käyttävälle tietokoneelle. Se ei ole yhteensopiva NickelOS:ää käyttävän laitteesi kanssa. BEGIN_LINK_HELPLue lisääEND_LINK_HELP tiedostojen avaamisesta NickelOS:ssä."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Tämä tiedosto on tarkoitettu Windows-käyttöjärjestelmää käyttävälle tietokoneelle. Se ei ole yhteensopiva NickelOS:ää käyttävän laitteesi kanssa. BEGIN_LINK_HELPLue lisääEND_LINK_HELP tiedostojen avaamisesta NickelOS:ssä."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_FILE": {
+  "en": "This file type is not supported. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Tätä tiedostotyyppiä ei tueta. BEGIN_LINK_HELPLue lisääEND_LINK_HELP tiedostojen avaamisesta NickelOS:ssä."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "Laite ei pian enää saa päivityksiä."
+ },
+ "IDS_HELP_APP_WHATS_NEW_SUGGESTION_CHIP": {
+  "en": "What's new with NickelOS",
+  "t": "NickelOS: uutta"
+ },
+ "IDS_IME_SERVICE_DISPLAY_NAME": {
+  "en": "NickelOS Input Method Service",
+  "t": "NickelOS:n syöttötapapalvelu"
+ },
+ "IDS_INSTALLED_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "NickelOS-laitteen Bluetoothin täytyy olla päällä, jotta käyttöönotto onnistuu Android-puhelimella"
+ },
+ "IDS_LOGIN_SYNC_CONSENT_SCREEN_SUBTITLE_2": {
+  "en": "Your saved preferences and activity will be ready on any NickelOS device when you sign in with your Google Account. You can choose what to sync in Settings.",
+  "t": "Tallentamasi asetukset ja toiminta ovat valmiina millä tahansa NickelOS-laitteella, kun kirjaudut sisään Google-tilillesi. Voit valita synkronoitavan sisällön asetuksissa."
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "Järjestelmänvalvojasi on ottanut käyttöön seuraavien kohteiden synkronoinnin edellisten ja nykyisten istuntojesi välillä NickelOS-laitteillasi:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "Salli"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "Älä salli"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "Ei nyt"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "Kirjoita tämän tietokoneen järjestelmänvalvojan salasana (NAME)."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "APP_NAME haluaa käyttää tämän laitteen kameraa. Vastauksesi muistetaan tämän sovelluksen kohdalla."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "Sallitaanko, että APP_NAME käyttää kameraa?"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "APP_NAME haluaa käyttää kameraa. Jos haluat sallia sen, laita kameran käyttö päälle yksityisyysasetuksissa."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "Avaa asetukset"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "Kameran käyttö on pois päältä"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "Salli"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "Älä salli"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "Jos haluat muuttaa pikanäppäintä, valitse sen näppäimet ja paina uusia. Askelpalautin poistaa sen."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "APP_NAME haluaa näiden pikanäppäinten toimivan myös silloin, kun käytät muita sovelluksia. Se saa tietää vain, milloin painat niitä, ei sitä, mitä muuta kirjoitat."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "Paina näppäintä yhdessä Ctrl-, Alt- tai hakunäppäimen kanssa tai käytä toimintonäppäintä."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "Ei asetettu"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "Paina näppäimiä…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "Nämä näppäimet ovat jo käytössä. Kokeile muita."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "Sallitaanko pikanäppäimet?"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "Vaihda"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "Pöytäkone"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "Tietokone"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "Kannettava"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE (NAME)"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "Tabletti"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "Vahvista salasana"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "Luodaan tiliä..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "Tilin luominen epäonnistui."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "Tilin luominen epäonnistui: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "Valitse salasana."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "Tilin käyttöönotto epäonnistui: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "Käyttäjänimi on jo varattu."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "Tilin luominen kesti liian kauan. Yritä uudelleen."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "Käyttäjänimen on alettava pienellä kirjaimella, ja siinä voi olla vain pieniä kirjaimia, numeroita, - ja _ (enintään 32)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "Salasanat eivät täsmää"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "Nimesi"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "Salasana"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "Kuvasi"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "Kuva näkyy kirjautumisnäytöllä ja tila-alueella. Jos haluat käyttää omaa valokuvaa, voit vaihtaa sen myöhemmin asetuksista."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "Valitse kuva"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "Tilisi ja sen tiedostot säilytetään tällä laitteella salasanallasi salattuina. Ilman Google-tiliä niitä ei voi palauttaa, jos unohdat salasanan."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "Luo tili"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "Käyttäjänimi"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "Aloita pienellä kirjaimella ja käytä vain pieniä kirjaimia, numeroita, - ja _ (enintään 32)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "APP_NAME haluaa tietää, missä tämä laite on. Sijainti määritetään lähellä olevien Wi-Fi-verkkojen ja laitteen internetosoitteen perusteella. Vastauksesi muistetaan tämän sovelluksen kohdalla."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "Sallitaanko, että APP_NAME käyttää sijaintiasi?"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "APP_NAME haluaa käyttää sijaintiasi. Jos haluat sallia sen, laita sijainnin käyttö päälle yksityisyysasetuksissa."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "Sijainnin käyttö on pois päältä"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "APP_NAME haluaa ohjata tämän laitteen näppäimistöä ja osoitinta. Salli tämä vain, jos luotat yhteyden muodostajaan."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "APP_NAME ohjaa tätä laitetta."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "Sallitaanko etäohjaus?"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "Valitsit NickelOS:n käyttöönotossa vaihtoehdon Minimaalinen, joten sinulle ei valittu hakukonetta. Nämä hakukoneet ovat suosittuja alueellasi, ja ne näytetään satunnaisessa järjestyksessä."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "Kummassakin tapauksessa saat Bazaar-sovelluskaupan, josta löydät lisää sovelluksia, sekä sovellukset kuvien, videoiden, musiikin ja dokumenttien avaamiseen."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "Täysi käyttökokemus"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "Kaikki valmiina ja yksityisesti. DuckDuckGo hakee verkosta selaimessa ja käynnistysohjelmassa, uBlock Origin estää mainokset ja seurannan selaimessa, Protonin yksityisyyttä suojaavat sovellukset (Mail, Calendar, Drive, Pass ja muita) ovat valmiiksi asennettuina, ja mukana tulee ilmaisia avoimen lähdekoodin sovelluksia: LibreOffice, OBS Studio, GIMP, Kdenlive ja muita."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "Minimaalinen"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "Vain perusasiat. Käynnistysohjelma hakee vain tältä tietokoneelta, eikä mitään muuta oteta käyttöön puolestasi."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "Voit muuttaa kaikkia näitä myöhemmin asetuksissa."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "Miten haluat aloittaa?"
+ },
+ "IDS_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUGGESTION_CONTENTS": {
+  "en": "Personalize your accessibility tools in NickelOS settings",
+  "t": "Personoi saavutettavuustyökaluja NickelOS:n asetuksista"
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_LAPTOP": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press the space bar.",
+  "t": "Haluatko aktivoida ChromeVoxin, NickelOS:n sisäänrakennetun näytönlukuohjelman? Jos haluat, paina välilyöntiä."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_TABLET": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press and hold both volume keys for five seconds.",
+  "t": "Haluatko aktivoida ChromeVoxin, NickelOS:n sisäänrakennetun näytönlukuohjelman? Jos haluat, paina molempia äänenvoimakkuuspainikkeita viiden sekunnin ajan."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_TEXT": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS?",
+  "t": "Haluatko aktivoida ChromeVoxin, NickelOS:n sisäänrakennetun näytönlukuohjelman?"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "Varmista ennen aloittamista, että sinulla on varmuuskopio datastasi. Asentaminen (DEVICE_OS) korvaa valitsemasi levyn sisällön."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "DEVICE_OS on vapaa ohjelmisto, joka toimitetaan sellaisenaan. Se ei välttämättä toimi kaikilla tietokoneilla, eivätkä sen tekijät vastaa menetetystä datasta."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "Päivitykset, kehittäjäasetukset"
+ },
+ "IDS_OS_SETTINGS_APP_DETAILS_TYPE_CROS_SYSTEM": {
+  "en": "NickelOS System App",
+  "t": "NickelOS-järjestelmäsovellus"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "Puhelimet, lähijakaminen"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "Puhelimet, FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your apps and settings will sync across all NickelOS devices where you are signed in with your Google account. For browser sync options, go to LINK_BEGINChrome settingsLINK_END.",
+  "t": "Sovelluksesi ja asetuksesi synkronoidaan kaikilla NickelOS-laitteilla, joilla olet kirjautuneena Google-tilillesi. Näet selaimen synkronointiasetukset LINK_BEGINChromen asetuksistaLINK_END."
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "Pilvitallennustila"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Google Drive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "Lisää pilvitili"
+ },
+ "IDS_OS_SETTINGS_TAG_OS_VERSION": {
+  "en": "NickelOS version",
+  "t": "NickelOS:n versio"
+ },
+ "IDS_PASSWORD_CHANGE_NOTIFICATION_TITLE": {
+  "en": "NickelOS password updated",
+  "t": "NickelOS:n salasana vaihdettu"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "Omat kuvat"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "Kun näyttö on epäaktiivinen, näytä kuviasi, kellonaika sekä mediatietoja"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "Omat kuvasi"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "Näytönsäästäjä näyttää Kuvat-kansiosi ja sen alikansioiden kuvat. Lisää vähintään 2."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "Kuvat-kansio"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "NickelOS:n mukana tulevat kuvat"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "Näytönsäästäjä näyttää NickelOS:n taustakuvia. Ota tämä käyttöön, jos haluat näyttää niiden sijaan kuvat kansiosta Omat tiedostot > Pictures."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "NickelOS-taustakuvat"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "Open-Meteosta likimääräiselle sijainnillesi, jonka beaconDB päättelee IP-osoitteesi perusteella"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "Näytä sää"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "Varmista, että tulostin on päällä ja yhdistetty samaan verkkoon kuin NickelOS-laite tai käytät USB-johtoa."
+ },
+ "IDS_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_RELAUNCH_TO_UPDATE": {
+  "en": "Relaunch to update &NickelOS",
+  "t": "Päivitä &NickelOS käynnistämällä se uudelleen"
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "Koti"
+ },
+ "IDS_SETTINGS_ABOUT_OS": {
+  "en": "About NickelOS",
+  "t": "Tietoa NickelOS:stä"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Kun tämä on päällä, data tallennetaan Google-tilillesi ja sitä voidaan käyttää kaikilla laitteillasi. Kun asetus on pois päältä, data tallennetaan vain tälle laitteelle. Löydät NickelOS:n synkronointiasetukset LINK_BEGINNickelOS:n asetuksistaLINK_END."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "Salli Android-sovellusten hallita USB-laitteita tällä NickelOS-laitteella. Lupaa pyydetään aina, kun liität uuden USB-laitteen. Yksittäiset Android-sovellukset pyytävät lisälupia."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Laite ei enää saa tietoturva- ja ohjelmistopäivityksiä."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Tämä laite ei enää saa päivityksiä"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Laite ei enää saa tietoturva- ja ohjelmistopäivityksiä."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Tämä laite ei enää saa päivityksiä"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "Salli Android-sovellusten hallita USB-laitteita tällä NickelOS-laitteella"
+ },
+ "IDS_SETTINGS_LANGUAGES_OPEN_CHROME_OS_SETTINGS_LABEL": {
+  "en": "Manage languages in NickelOS settings",
+  "t": "Muuta kielivalintoja NickelOS:n asetuksista"
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "Tämä vaihtoehto koskee NickelOS-laitteita, joissa on datapaketin tai mobiiliverkon tikku, tai yhteyden jakamista kannettavaan hotspotiin"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "Lisää henkilö"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "Sinut kirjataan ulos. Uusi henkilö valitsee kirjautumisnäytöllä nimen, käyttäjänimen ja salasanan."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "Järjestelmänvalvoja"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Järjestelmänvalvojat voivat asentaa ohjelmistoja kaikille, muuttaa järjestelmää ja hallinnoida tilejä."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "Vaihda salasana"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "Vahvista"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "Vahvista uusi salasana"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "Nykyinen salasana"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "Valitse uusi salasana"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Jokin meni pieleen. Yritä uudelleen."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "Laitteella on oltava ainakin yksi järjestelmänvalvoja"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "Tehdäänkö käyttäjästä NAME järjestelmänvalvoja?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "Uusi salasana"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "Kenelläkään muulla ei ole tiliä tällä laitteella."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "Muut tämän laitteen käyttäjät"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Jokaisella on oma tili ja omat tiedostot. Järjestelmänvalvojat voivat asentaa ohjelmistoja kaikille, muuttaa järjestelmää ja hallinnoida tilejä."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "Omistaja, järjestelmänvalvoja"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "Uudet salasanat eivät täsmää"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "Poista"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "Tehdäänkö käyttäjästä NAME tavallinen käyttäjä?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "Henkilön tili ja kaikki hänen tiedostonsa poistetaan tältä laitteelta. Tätä ei voi kumota."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "Poistetaanko NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "Kirjaudu ulos"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "Tavallinen"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "Salasana on väärä"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "Tilisi"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "Salasanasi"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "Vain tämän laitteen järjestelmänvalvoja voi muuttaa näitä asetuksia."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "Sovelluksille, jotka on tehty vain puhelinten käyttämille ARM-suorittimille, kuten monille peleille. Suljettu ohjelmisto, joka ladataan, kun otat tämän käyttöön."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "Monet Android-sovellukset, etenkin pelit, on tehty vain puhelinten käyttämille ARM-suorittimille. Jotta niitä voi käyttää tällä tietokoneella, Android tarvitsee käännöskerroksen. NickelOS ei tee eikä sisällä sellaista: kun otat tämän käyttöön, TRANSLATOR ladataan GitHubista. Se on sama kopio, jonka Waydroid-yhteisön waydroid_script asentaa."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "Kyseessä on suljettu ohjelmisto, jota koskevat sen omistajan ehdot, ja asennat sen itse. Jotkin sovellukset voivat toimia hitaasti tai eivät toimi lainkaan. Android käynnistyy uudelleen ottaakseen sen käyttöön."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "Hyväksy ja ota käyttöön"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "Otetaanko ARM-sovellusten tuki käyttöön?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "ARM-sovellusten tuki"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "Poistetaan..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "Ladataan ja asennetaan..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "Ladataan Androidia"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "Lataus ei valmistunut. Tarkista yhteys ja yritä uudelleen."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Jokin meni pieleen. Yritä uudelleen."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "Android-asetukset"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "Otetaan Android käyttöön..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "Poista"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "Poistaa Androidin, Android-sovelluksesi ja niiden datan"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "Android, Android-sovelluksesi ja niiden data poistetaan tältä laitteelta. Laitteen muut käyttäjät säilyttävät Android-datansa, mutta he eivät voi avata Android-sovelluksiaan, ennen kuin Android otetaan uudelleen käyttöön."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "Poistetaanko Android?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "Poista Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "Poistetaan Androidia..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "Ota käyttöön"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "Android-sovellukset avautuvat omiin ikkunoihinsa muiden sovellustesi rinnalle. Käyttöönotto lataa Androidin (LineageOS, Waydroid-projektilta): noin 1 Gt, joka vie tällä laitteella 2,5 Gt."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "Käytä Android-sovelluksia"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "Android-sovellukset"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "Intelin Houdini"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "Googlen NDK-käännös"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "Android-sovellukset eivät ole juuri nyt käytettävissä."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "Android vie tällä laitteella SIZE"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "Käyttöavaimen tunnus"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "Lisää tili"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "Takaisin"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "Asiakastunnus"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "Asiakassalaisuus"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "Yhdistä"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "Yhdistetään…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "Näytä Google Drive, OneDrive, Dropbox ja muut pilvitallennustilat Tiedostot-sovelluksessa"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "Lisää pilvitallennustila"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "ACCOUNT_NAME näkyy nyt Tiedostot-sovelluksessa."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "Google Drive tarvitsee oman asiakastunnuksesi ja asiakassalaisuutesi Google Cloud Consolesta."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "Sähköposti tai käyttäjänimi"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "Päätepiste (tyhjä, jos Amazon S3)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "Yhdistäminen epäonnistui. Tarkista tiedot ja yritä uudelleen."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "Valmis"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "Näin luot ne"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "Tiedostot-sovelluksessa"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "Nimi"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "Seuraava"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "Ei yhdistetty"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "Salasana"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "NickelOS näyttää pilvitallennustilasi Tiedostot-sovelluksessa rclone-työkalun avulla, joten tiedostosi ovat helposti saatavilla. Valitse palvelu, johon kirjaudut."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "Alue (valinnainen)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "Poista"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "Tiedostot-sovellus lakkaa näyttämästä tätä tiliä. Tiedostosi pysyvät pilvessä, ja voit lisätä tilin myöhemmin uudelleen."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "Poistetaanko ACCOUNT_NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "Poistetaan…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "Amazon S3 tai yhteensopiva"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "Salainen käyttöavain"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "Palvelimen osoite"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "Palvelu"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "Viimeistele kirjautuminen selaimeen avautuneella sivulla."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "Kun muodostat yhteyden, palvelun kirjautumissivu avautuu selaimeesi."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "Pilvitallennustila"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "Kaksivaiheisen vahvistuksen koodi (jos käytössä)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "Käyttäjänimi"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "Nextcloud tai WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "Vain tämän tietokoneen järjestelmänvalvoja voi vaihtaa sen nimen."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "Vaihda"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "Muut laitteet näkevät tämän nimen verkossasi ja Bluetoothin kautta, ja se näkyy Terminal-sovelluksessa ja Linux-sovelluksissa."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "Vaihda tietokoneen nimi"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "Nimen vaihtaminen epäonnistui. Yritä uudelleen."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "Käytä vähintään yhtä kirjainta A–Z tai numeroa."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "Tietokoneen nimi"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "Terminal-sovelluksessa: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "Sovellukset, jotka avaavat kunkin tiedostotyypin Tiedostot-sovelluksesta ja Linux-sovelluksista"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "Dokumentit"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "Sähköposti"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "Kuvat"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "Musiikki"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "Mikään sovellus ei avaa näitä"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "Ei asetettu"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "PDF-dokumentit"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "Esitykset"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "Kuvakaappaukset (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "Kuvakaappaus (sisäänrakennettu)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "Laskentataulukot"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "Tekstitiedostot"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "Oletussovellukset"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "Videot"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (verkkosivusto)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "Tämän laitteen muut asemat kuin se, jolla NickelOS on. Windowsin sisältävä asema avataan vain luku ‑tilassa, jotta Windows pysyy ehjänä."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "Muut asemat"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "Salli muutokset"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "Tällä asemalla on Windows. Se on vain luku ‑tilassa, ellet salli muutoksia."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "Kun nopea käynnistys on käytössä, Windows ei sammu kokonaan, ja täällä tehdyt muutokset voivat kadota tai vahingoittaa tiedostoja, kun Windows käynnistyy uudelleen. Poista nopea käynnistys käytöstä Windowsissa tai pidä Shift-näppäintä painettuna, kun sammutat Windowsin, ennen kuin teet muutoksia."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "Sallitaanko muutokset Windows-asemaan?"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "Windowsia ei sammutettu kokonaan, joten asema pysyy vain luku ‑tilassa. Sammuta Windows kokonaan, jotta voit tehdä muutoksia."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "Näytä Tiedostot-sovelluksessa"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "Kysy apua muilta"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "Foorumi, Discord ja GitHub sivustolla nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "Gentoon opettelu"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "Portage ja emerge alusta asti, pacman- ja apt-komennot rinnakkain"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "NickelOS-opas"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "Näin NickelOS toimii. Tämä kopio tuli NickelOS-versiosi mukana ja toimii myös offline-tilassa."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "Opas, Gentoon opettelu, vianmääritys"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "Opas verkossa"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "Uusin versio sivustolla nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "Ohje"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "Vianmääritys"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "Lokit, kaatumisraportit sekä yleiset ongelmat ja niiden ratkaisut"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "Linux-sovellukset"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "Hyväksy"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "Valmis parin muodostamiseen"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "Peru"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "Yhdistetty"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "Yhdistetty · Akku PERCENT %"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "Yhdistetty · Latautuu, PERCENT %"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "KDE Connect ‑sovelluksella Android-laitteessa tai iPhonessa, samassa Wi‑Fi-verkossa"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "Lisävalinnat: DEVICE_NAME"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "Ei vielä puhelimia tai tabletteja. Asenna KDE Connect Google Playsta, F‑Droidista tai App Storesta, avaa se samassa Wi‑Fi-verkossa ja muodosta pari kummalla tahansa laitteella."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "Puhelinyhteys ei ole käynnissä. Käynnistä se kirjautumalla ulos ja takaisin sisään."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "Avaa Valent"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "Muodosta pari"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "Pariliitetty · Ei yhdistetty"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "Odotetaan hyväksyntää"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "Hylkää"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "Toista ääni"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "Lähetä tiedostoja"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "Lähetä tiedostoja"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "Puhelimet ja tabletit"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "Poista pariliitos"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "Haluaa muodostaa parin tämän laitteen kanssa"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "Sovellukset, kuten Discord, voivat käyttää paina puhuaksesi ‑toimintoa, kun olet muissa ikkunoissa. Ne näkevät näppäimet, joita painetaan Ctrl-, Alt- tai hakunäppäimen kanssa, sekä toimintonäppäimet, mutta eivät koskaan sitä, mitä kirjoitat."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "Pikanäppäimet vanhemmille Linux-sovelluksille"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "Varmista, että tulostin on yhdistetty samaan Wi-Fi-verkkoon kuin NickelOS-laite tai käytät USB-johtoa. LINK_BEGINLue lisää yhteensopivuudestaLINK_END"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "Tulostimeen yhdistäminen epäonnistui. Tarkista, että tulostin on päällä ja yhteydessä NickelOS-laitteeseen Wi-Fi-yhteydellä tai USB:llä."
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "Koti"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "Varmista aluksi, että USB- tai Bluetooth-kytkin on yhdistetty NickelOS-laitteeseesi. Voit käyttää myös näppäimistöä."
+ },
+ "IDS_SHORT_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_SIGNIN_ERROR_SECONDARY_ACCOUNT_DISPLAY_SOURCE": {
+  "en": "NickelOS System",
+  "t": "NickelOS-järjestelmä"
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "Jos haluat avata NickelOS-laitteen lukituksen, varmista, että puhelimen Bluetooth-yhteys on päällä"
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "NickelOS-laitteesi Bluetooth on poissa päältä. Avaa NickelOS-laitteen lukitus kirjoittamalla salasana."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "Puhelimessasi ei ole lukitusnäyttöä. Avaa NickelOS-laitteen lukitus kirjoittamalla salasana."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "Voit avata NickelOS-laitteen lukituksen avaamalla ensin puhelimesi lukituksen"
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "Laite käyttää sisäänrakennettua anturia, jonka avulla se havaitsee edessään olevat ihmiset. Kaikki data käsitellään heti laitteellasi ja poistetaan sitten. Anturidataa ei koskaan lähetetä Googlelle."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "NickelOS-lokit"
+ },
+ "IDS_SYNC_OTHER_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data due to an error signing in.",
+  "t": "NickelOS ei voi synkronoida dataa kirjautumisvirheen vuoksi."
+ },
+ "IDS_SYNC_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because your account sign-in details are out of date.",
+  "t": "NickelOS ei voi synkronoida tietoja, sillä tilin kirjautumistiedot ovat vanhentuneet."
+ },
+ "IDS_SYNC_UNAVAILABLE_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because Sync is not available for your domain.",
+  "t": "NickelOS ei voi synkronoida dataa, koska synkronointi ei ole käytettävissä verkkotunnuksessasi."
+ },
+ "IDS_TERMS_OF_SERVICE_SCREEN_SUBHEADING": {
+  "en": "MANAGER requires that you read and accept the following Terms of Service before using this device. These terms do not expand, modify or limit the NickelOS Terms.",
+  "t": "MANAGER edellyttää, että luet ja hyväksyt seuraavat käyttöehdot ennen tämän laitteen käyttöä. Nämä ehdot eivät laajenna, muokkaa tai rajoita NickelOS:n ehtoja."
+ },
+ "IDS_UPDATE_RECOMMENDED": {
+  "en": "NickelOS needs to be restarted to apply the update.",
+  "t": "NickelOS täytyy käynnistää uudelleen, jotta päivitys voidaan ottaa käyttöön."
+ },
+ "IDS_UPDATE_RECOMMENDED_DIALOG_TITLE": {
+  "en": "Restart NickelOS",
+  "t": "Käynnistä NickelOS uudelleen"
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "Kirjaudut laitteelle omalla tililläsi, ja jokainen laitteen käyttäjä voi saada oman tilinsä."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "Oma tili omalla laitteellasi"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "NickelOS on suunniteltu tietoturva edellä, ja se pitää itsensä ajan tasalla automaattisesti."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "NickelOS:ssä verkkosovellukset ja Linux-sovellukset toimivat rinnakkain. Lataa sovelluksia esim. tuottavuuden parantamista ja viihdettä varten."
+ },
+ "IDS_UPDATE_SLIDE_UPDATE_TEXT": {
+  "en": "This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.",
+  "t": "Tämän jälkeen et enää joudu odottamaan päivityksiä. NickelOS:ssä ohjelmistopäivitykset tehdään taustalla."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "Chrome-sovellukset eivät toimi NickelOS:ssä. Kokeile toista sovellusta."
+ },
+ "IDS_UTILITY_PROCESS_IMAGE_WRITER_NAME": {
+  "en": "NickelOS System Image Writer",
+  "t": "NickelOS:n näköistiedoston kirjoittaja"
+ },
+ "IDS_WRONG_HWID_SCREEN_MESSAGE_FIRST_PART": {
+  "en": "Unfortunately, your computer is configured with a malformed hardware ID. This prevents NickelOS from updating with the latest security fixes and your computer BEGIN_BOLDmay be vulnerable to malicious attacksEND_BOLD.",
+  "t": "Tietokoneesi on valitettavasti määritetty virheellisellä laitteistotunnuksella. Tämän takia NickelOS ei voi asentaa uusimpia tietoturvapäivityksiä ja tietokoneesi BEGIN_BOLDvoi altistua hyökkäyksilleEND_BOLD."
+ }
+}

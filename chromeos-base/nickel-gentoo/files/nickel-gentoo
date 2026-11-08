@@ -1,0 +1,1082 @@
+#!/usr/bin/python3
+# Distributed under the terms of the GNU General Public License v2
+#
+# NickelOS: your layer of the OS's Gentoo (docs/unified.md, "Your
+# layer"). The image (read-only, verified) holds the OS: Gentoo's packages,
+# ChromeOS's, NickelOS's and Portage, every one recorded
+# (/usr/share/nickel-gentoo/pkgdb.tar.zst). What you install or rebuild
+# goes to your layer on the data partition (/mnt/stateful_partition/
+# nickel-gentoo), which overlay mounts made at boot show in /usr and /etc
+# (lower: the image, upper: yours). /var/db/pkg is Portage's records of
+# both.
+#   nickel-gentoo mount    at boot: after an OS update the records first
+#                          (below), then the overlays (nickel-gentoo-mount.conf)
+#   nickel-gentoo boot     after the mounts: this device's Portage settings,
+#                          Gentoo's system accounts, the caches, 32-bit
+#                          NVIDIA libraries (nickel-gentoo.conf)
+#   nickel-gentoo setup    Gentoo's repository (the package tree) and the
+#                          compiler (the image has GCC's runtime only), now
+#   nickel-gentoo firstboot  the same at startup once the network answers,
+#                          until they are there, then what an OS update
+#                          left waiting rebuilt (nickel-gentoo-setup.conf)
+#   nickel-gentoo wait [S] wait for them (S seconds at most); 0 when there
+#   nickel-gentoo status   your layer's size, the repository, what waits
+#   nickel-gentoo restore PKG  the OS's version of PKG back in place of yours
+#   nickel-gentoo rebuild  rebuild what an OS update left waiting, now
+#   nickel-gentoo gpu      32-bit NVIDIA libraries for the running driver
+#   nickel-gentoo account  record a Gentoo system user or group (useradd's
+#                          stand-in calls it) and merge it into the accounts
+#   nickel-gentoo relabel CATEGORY/PF  SELinux labels by path for what a
+#                          package installed (Portage's bashrc calls it)
+# An OS update, at the next boot, before the overlays: the records of
+# packages you never touched become the new image's; your own packages
+# stay; your copy of an OS package the update made as new or newer is
+# cleared, and is rebuilt if your flags differ from the OS's; so are your
+# packages that need a library the update took away (once the network
+# answers, at idle priority: nickel-gentoo firstboot).
+import fcntl
+import grp
+import hashlib
+import json
+import os
+import pwd
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+
+G = '/mnt/stateful_partition/nickel-gentoo'
+OS = '/usr/share/nickel-gentoo'
+PKGDB = OS + '/pkgdb.tar.zst'
+VDB = '/var/db/pkg'
+LOWER = '/run/nickel-gentoo/lower'      # the image's root, without overlays
+SRC = '/run/nickel-gentoo/src'          # G, mounted exec and suid
+STATE = os.path.join(G, '.os')          # the OS build the records match
+WAITING = os.path.join(G, '.rebuild')   # packages waiting to be rebuilt
+ACCOUNTS = '/var/lib/nickel-gentoo/accounts'
+REPO = '/var/db/repos/gentoo'
+# Your layer over the OS's directories: /opt too, where Gentoo's binary
+# packages go (firefox-bin, libreoffice-bin, Discord's, Slack's...): the
+# image's /opt is read-only, and Portage refused to merge them (2026-10-20).
+# And root's home, which is the image's and read-only on ChromiumOS: tools
+# run with sudo keep their caches and settings there (`sudo eselect
+# repository enable guru` failed writing /root/.cache, 2026-10-21). Like
+# /etc, it stays yours across OS updates.
+TOPS = ('usr', 'etc', 'opt', 'root')
+ACCOUNT_FILES = ('passwd', 'group', 'shadow', 'gshadow')
+FIRST_FREE_ID = 25000   # Gentoo system ids that ChromeOS's take: from here
+LOCK = '/run/nickel-gentoo/setup.lock'   # held while a setup runs
+# What env-update and ldconfig make from the image's settings and yours.
+DERIVED = ('etc/ld.so.cache', 'etc/ld.so.conf', 'etc/profile.env', 'etc/csh.env',
+           'etc/environment.d/10-gentoo-env.conf')
+# Merged /usr: paths in records as packages wrote them, in the layer's form.
+MERGED = (('/bin/', '/usr/bin/'), ('/sbin/', '/usr/bin/'), ('/usr/sbin/', '/usr/bin/'),
+          ('/lib64/', '/usr/lib64/'), ('/lib/', '/usr/lib/'))
+
+
+def log(msg):
+    print('nickel-gentoo: %s' % msg, flush=True)
+
+
+def die(msg, rc=1):
+    print('nickel-gentoo: %s' % msg, file=sys.stderr, flush=True)
+    sys.exit(rc)
+
+
+def run(*a, check=True, **k):
+    return subprocess.run(a, check=check, **k)
+
+
+def as_root():
+    if os.geteuid() != 0:
+        os.execvp('sudo', ['sudo', sys.argv[0]] + sys.argv[1:])
+
+
+def open_or(p, default=''):
+    try:
+        return open(p).read().strip()
+    except OSError:
+        return default
+
+
+def binhost():
+    """The binhost's address: the device's own if it has one
+    (/usr/local/etc/nickel/binhost: a test PC that reaches the build host
+    another way), else the image's."""
+    for p in ('/usr/local/etc/nickel/binhost', '/etc/nickel/binhost'):
+        v = open_or(p)
+        if v:
+            return v
+    return 'https://update.nickelos.dev/binhost'
+
+
+def os_build():
+    """The running OS build: what the records must match. Its version, and
+    the records it carries: test builds share a version (16836.3.48 from
+    build 23f to 23m), and a new build's records went unread, so Portage
+    still saw the old one's packages (nvidia-open r7 under r8, masked by its
+    licence on every emerge, 2026-10-22)."""
+    h = hashlib.sha256()
+    try:
+        with open(PKGDB, 'rb') as f:
+            for chunk in iter(lambda: f.read(1 << 20), b''):
+                h.update(chunk)
+    except OSError:
+        pass
+    return open_or('/etc/lsb-release') + '\nrecords sha256 ' + h.hexdigest()
+
+
+def mount_points():
+    with open('/proc/self/mountinfo') as f:
+        return [l.split()[4] for l in f]
+
+
+def mounted(path):
+    with open('/proc/self/mountinfo') as f:
+        return any(l.split()[4] == path and ' - overlay ' in l for l in f)
+
+
+def label(path):
+    try:
+        return os.getxattr(path, 'security.selinux', follow_symlinks=False)
+    except OSError:
+        return None
+
+
+# ---------------------------------------------------------------- versions
+
+_SUF = {'alpha': 0, 'beta': 1, 'pre': 2, 'rc': 3, 'p': 5}
+_VER = re.compile(r'^(\d+(?:\.\d+)*)([a-z]?)((?:_(?:alpha|beta|pre|rc|p)\d*)*)(?:-r(\d+))?$')
+
+
+def vercmp(a, b):
+    """Gentoo's version order (PMS 3.3), enough for records: -1, 0, 1."""
+    ma, mb = _VER.match(a), _VER.match(b)
+    if not ma or not mb:
+        return (a > b) - (a < b)
+    na, nb = ma.group(1).split('.'), mb.group(1).split('.')
+    if int(na[0]) != int(nb[0]):
+        return 1 if int(na[0]) > int(nb[0]) else -1
+    for x, y in zip(na[1:], nb[1:]):
+        if x.startswith('0') or y.startswith('0'):
+            x, y = x.rstrip('0'), y.rstrip('0')
+            if x != y:
+                return 1 if x > y else -1
+        elif int(x) != int(y):
+            return 1 if int(x) > int(y) else -1
+    if len(na) != len(nb):
+        return 1 if len(na) > len(nb) else -1
+    if ma.group(2) != mb.group(2):
+        return 1 if ma.group(2) > mb.group(2) else -1
+    sa = [(_SUF[s], int(n or 0)) for s, n in re.findall(r'_(alpha|beta|pre|rc|p)(\d*)', ma.group(3))]
+    sb = [(_SUF[s], int(n or 0)) for s, n in re.findall(r'_(alpha|beta|pre|rc|p)(\d*)', mb.group(3))]
+    for x, y in zip(sa + [(4, 0)] * (len(sb) - len(sa)), sb + [(4, 0)] * (len(sa) - len(sb))):
+        if x != y:
+            return 1 if x > y else -1
+    ra, rb = int(ma.group(4) or 0), int(mb.group(4) or 0)
+    return (ra > rb) - (ra < rb)
+
+
+def split_pf(pf):
+    """'gtk+-3.24.49-r1' -> ('gtk+', '3.24.49-r1')."""
+    m = re.match(r'^(.+?)-(\d[^-]*(?:-r\d+)?)$', pf)
+    return (m.group(1), m.group(2)) if m else (pf, '0')
+
+
+# ---------------------------------------------------------------- records
+
+class Record:
+    def __init__(self, path):
+        self.path = path
+        self.cat = os.path.basename(os.path.dirname(path))
+        self.pf = os.path.basename(path)
+        self.pn, self.ver = split_pf(self.pf)
+        self.cp = '%s/%s' % (self.cat, self.pn)
+        self.slot = self.get('SLOT', '0').split('/')[0] or '0'
+        self.key = '%s:%s' % (self.cp, self.slot)
+
+    def get(self, k, default=''):
+        return open_or(os.path.join(self.path, k), default)
+
+    def cpv(self):
+        return '%s/%s' % (self.cat, self.pf)
+
+    def stamp(self):
+        """What tells one build of a package from another."""
+        return '%s %s' % (self.cpv(), self.get('BUILD_TIME'))
+
+    def paths(self):
+        """(kind, path) of each entry, in the layer's merged form."""
+        out = []
+        try:
+            f = open(os.path.join(self.path, 'CONTENTS'), errors='surrogateescape')
+        except OSError:
+            return out
+        for line in f:
+            line = line.rstrip('\n')
+            kind = line.split(' ', 1)[0]
+            rest = line[len(kind) + 1:]
+            if kind == 'obj':
+                p = rest.rsplit(' ', 2)[0]
+            elif kind == 'sym':
+                p = rest.split(' -> ')[0]
+            else:
+                p = rest
+            for a, b in MERGED:
+                if p.startswith(a):
+                    p = b + p[len(a):]
+                    break
+            out.append((kind, p))
+        return out
+
+
+def records(root):
+    out = {}
+    if not os.path.isdir(root):
+        return out
+    for cat in os.listdir(root):
+        d = os.path.join(root, cat)
+        if not os.path.isdir(d) or cat.startswith('.'):
+            continue
+        for pf in os.listdir(d):
+            if os.path.isfile(os.path.join(d, pf, 'CONTENTS')) or os.path.isfile(os.path.join(d, pf, 'SLOT')):
+                r = Record(os.path.join(d, pf))
+                out[r.cpv()] = r
+    return out
+
+
+def provides(recs):
+    """Every library soname the records provide (PROVIDES: 'x86_64: a.so b.so')."""
+    out = set()
+    for r in recs:
+        for part in re.split(r'\s+(?=\S+:)', r.get('PROVIDES')):
+            out.update(part.split()[1:])
+    return out
+
+
+def requires(r):
+    out = set()
+    for part in re.split(r'\s+(?=\S+:)', r.get('REQUIRES')):
+        out.update(part.split()[1:])
+    return out
+
+
+def clear_from_layer(paths):
+    """Your layer's copies of these paths go (files, links, whiteouts), so
+    the image's show again (/usr, /opt): /etc stays yours (your settings)."""
+    n = 0
+    for kind, p in paths:
+        if kind == 'dir' or not p.startswith(('/usr/', '/opt/')):
+            continue
+        up = os.path.join(G, p.lstrip('/'))
+        if os.path.lexists(up) and not (os.path.isdir(up) and not os.path.islink(up)):
+            os.unlink(up)
+            n += 1
+    return n
+
+
+def sync_records():
+    """After an OS update (or at the first boot): /var/db/pkg brought in
+    line with the image's records. Only while the overlays are down: your
+    layer changes under them. Returns what happened, for the log."""
+    image = os_build()
+    if open_or(os.path.join(STATE, 'build')) == image or not os.path.exists(PKGDB):
+        return None
+    new_dir = tempfile.mkdtemp(prefix='pkgdb-', dir='/run/nickel-gentoo')
+    try:
+        run('tar', '--zstd', '-xf', PKGDB, '-C', new_dir)
+        new = records(new_dir)
+        new_stamps = sorted(r.stamp() for r in new.values())
+        try:
+            old_stamps = set(json.load(open(os.path.join(STATE, 'records.json'))))
+        except (OSError, ValueError):
+            old_stamps = None
+        dev = records(VDB)
+        # Yours: every record that isn't one the last OS build brought. At
+        # the first boot nothing is yours, whatever /var/db/pkg held (the
+        # image build's own, or a test image's).
+        yours = {} if old_stamps is None else {
+            r.key: r for r in dev.values() if r.stamp() not in old_stamps}
+        cleared, waiting, kept = [], set(), []
+        for r in dev.values():
+            if r.key not in yours or yours[r.key] is not r:
+                shutil.rmtree(r.path, ignore_errors=True)
+        by_key = {r.key: r for r in new.values()}
+        for key, r in by_key.items():
+            mine = yours.get(key)
+            # The image has only part of some packages (GCC: its runtime
+            # libraries): your whole one stays unless the OS's is newer.
+            partial = os.path.exists(os.path.join(r.path, 'NICKEL_PARTIAL'))
+            if mine is not None:
+                if r.cp == 'nickel-base/chromeos-additions' or vercmp(r.ver, mine.ver) > (0 if partial else -1):
+                    # The OS caught up: its build in place of yours. Your
+                    # flags read first: your record goes (until 2026-10-25
+                    # they were read after, as none, and every package the
+                    # OS caught up with waited to be rebuilt into your layer).
+                    flags = sorted(mine.get('USE').split())
+                    clear_from_layer(mine.paths())
+                    shutil.rmtree(mine.path, ignore_errors=True)
+                    if partial or flags != sorted(r.get('USE').split()):
+                        waiting.add('%s:%s' % (r.cp, r.slot))
+                    cleared.append(mine.cpv())
+                    del yours[key]
+                else:
+                    kept.append(mine.cpv())
+                    continue
+            # The image's own files show: nothing of your layer over them.
+            clear_from_layer(r.paths())
+            dst = os.path.join(VDB, r.cat, r.pf)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.rmtree(dst, ignore_errors=True)
+            shutil.move(r.path, dst)
+        # Your packages that need a library no package provides any more.
+        have = provides(records(VDB).values())
+        for r in yours.values():
+            if requires(r) - have:
+                waiting.add('%s:%s' % (r.cp, r.slot))
+        if waiting:
+            old = set(open_or(WAITING).split())
+            with open(WAITING, 'w') as f:
+                f.write('\n'.join(sorted(old | waiting)) + '\n')
+        os.makedirs(STATE, exist_ok=True)
+        with open(os.path.join(STATE, 'records.json'), 'w') as f:
+            json.dump(new_stamps, f)
+        with open(os.path.join(STATE, 'build'), 'w') as f:
+            f.write(image + '\n')
+        return dict(os=len(new), yours=len(yours), cleared=cleared, kept=kept, waiting=sorted(waiting))
+    finally:
+        shutil.rmtree(new_dir, ignore_errors=True)
+
+
+# ---------------------------------------------------------------- mounts
+
+# ChromeOS's developer mode (test images) binds its own Portage records, those
+# of /usr/local's test packages, over /var/db/pkg and /var/lib/portage:
+# Portage's are there.
+DEV_VAR = ('/var/db/pkg', '/var/lib/portage')
+
+
+def unbind_dev_var():
+    for p in DEV_VAR:
+        while p in mount_points():
+            run('umount', '-l', p)
+
+
+# Portage builds in /var/tmp/portage and runs what it builds there; ChromeOS
+# mounts /var noexec. A directory of your layer instead, through SRC
+# (exec), nosuid and nodev.
+PTMP = '/var/tmp/portage'
+
+
+def mount_portage_tmp():
+    if PTMP in mount_points() or not os.path.ismount(SRC):
+        return
+    d = os.path.join(SRC, 'portage-tmp')
+    if not os.path.isdir(d):
+        os.makedirs(d)
+        os.chmod(d, 0o775)
+        try:
+            os.chown(d, pwd.getpwnam('portage').pw_uid, grp.getgrnam('portage').gr_gid)
+        except KeyError:
+            pass
+    os.makedirs(PTMP, exist_ok=True)
+    run('mount', '--bind', d, PTMP)
+    run('mount', '-o', 'remount,bind,exec,nosuid,nodev', PTMP)
+
+
+# The OS's own files that stay the verified image's above the overlays:
+# minijail0 loads a service's sandbox settings only from the root
+# filesystem ("Conf file must be in the rootfs": through the overlay every
+# ChromeOS service with a minijail config refused to start); the kernel
+# loads modules and firmware only from it (LoadPin: through the overlay
+# cfg80211 was denied, shill crashed without nl80211, and there was no
+# network). Merged /usr puts modules and firmware under /usr.
+OS_ONLY = ('usr/share/minijail', 'usr/share/policy', 'usr/lib/modules', 'usr/lib/firmware')
+
+
+def bind_os_only():
+    lower = lower_bind()
+    points = mount_points()
+    for d in OS_ONLY:
+        src, dst = os.path.join(lower, d), '/' + d
+        if os.path.isdir(src) and os.path.isdir(dst) and dst not in points:
+            run('mount', '--bind', src, dst)
+            run('mount', '-o', 'remount,bind,ro', dst)
+
+
+def lower_bind():
+    """The image's root filesystem, without the overlays: a plain bind of /
+    does not carry the overlays on /usr, /etc and /opt."""
+    if not os.path.ismount(LOWER):
+        os.makedirs(LOWER, exist_ok=True)
+        run('mount', '--bind', '/', LOWER)
+        run('mount', '-o', 'remount,bind,ro', LOWER)
+    return LOWER
+
+
+def mount_overlays():
+    """The overlays on /usr, /etc, /opt and /root (TOPS), at every
+    startup."""
+    if all(mounted('/' + t) for t in TOPS):
+        bind_os_only()
+        return
+    os.makedirs(SRC, exist_ok=True)
+    if not os.path.ismount(SRC):
+        run('mount', '--bind', G, SRC)
+        # Your programs run from here, setuid ones (fusermount3) included:
+        # the data partition itself is mounted noexec, nosuid.
+        run('mount', '-o', 'remount,bind,exec,suid,nodev', SRC)
+    lower_bind()
+    for top in TOPS:
+        if mounted('/' + top):
+            continue
+        for d in ('.work/' + top, top):
+            os.makedirs(os.path.join(G, d), exist_ok=True)
+        # The overlay's top directory shows the upper directory's SELinux
+        # label: the image's /usr or /etc's, not the data partition's, which
+        # ChromeOS's confined services may not even search (it kept
+        # cryptohome's mount helper out of /etc and /usr once: no new account
+        # could sign in).
+        lab = label(os.path.join(LOWER, top))
+        if lab:
+            os.setxattr(os.path.join(G, top), 'security.selinux', lab)
+        # What is mounted under /usr or /etc already (/usr/share/oem from
+        # ChromeOS's startup, nickel-accounts' account files over
+        # /etc/passwd) moves aside while the overlay goes on, and back onto
+        # it. A mount takes the mounts under it along, so only the topmost
+        # ones move; files to a file.
+        with open('/proc/self/mountinfo') as f:
+            subs = [l.split()[4] for l in f if l.split()[4].startswith('/' + top + '/')]
+        subs.sort(key=len)
+        kept = []
+        stash = tempfile.mkdtemp(prefix='stash-', dir='/run/nickel-gentoo')
+        try:
+            for i, m in enumerate(subs):
+                if any(m.startswith(k + '/') for k, _ in kept):
+                    continue
+                st = os.path.join(stash, '%d' % i)
+                if os.path.isdir(m):
+                    os.makedirs(st, exist_ok=True)
+                else:
+                    open(st, 'a').close()
+                run('mount', '--move', m, st)
+                kept.append((m, st))
+            # OS updates change the lower layer (the image) while the
+            # overlay is down, which overlayfs allows only without the
+            # features that record the lower layer in the upper (inode
+            # index, redirects, metadata-only copies, xino): off, whatever
+            # the kernel's defaults.
+            run('mount', '-t', 'overlay', 'overlay', '-o',
+                'lowerdir=/%s,upperdir=%s/%s,workdir=%s/.work/%s,'
+                'index=off,redirect_dir=off,metacopy=off,xino=off' % (top, SRC, top, SRC, top), '/' + top)
+        finally:
+            # Every one back, even when one fails (it stays in the stash).
+            for m, st in reversed(kept):
+                if run('mount', '--move', st, m, check=False).returncode == 0:
+                    (os.rmdir if os.path.isdir(st) else os.unlink)(st)
+                else:
+                    log('could not move %s back from %s' % (m, st))
+            if not os.listdir(stash):
+                os.rmdir(stash)
+    bind_os_only()
+
+
+# ---------------------------------------------------------------- accounts
+
+def read_db(path):
+    out = []
+    try:
+        for line in open(path):
+            line = line.rstrip('\n')
+            if line and not line.startswith('#'):
+                out.append(line.split(':'))
+    except OSError:
+        pass
+    return out
+
+
+def write_db(path, rows, mode=0o644):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + '.new'
+    with open(tmp, 'w') as f:
+        for r in rows:
+            f.write(':'.join(r) + '\n')
+    os.chmod(tmp, mode)
+    os.replace(tmp, path)
+
+
+def accounts_merge():
+    """Gentoo's system accounts into the merged account files
+    (nickel-accounts-setup --gentoo)."""
+    if os.path.exists('/usr/sbin/nickel-accounts-setup'):
+        run('/usr/sbin/nickel-accounts-setup', '--gentoo', check=False)
+
+
+def cmd_account(args):
+    """useradd/groupadd's stand-in (from Portage's acct-user and acct-group):
+    a Gentoo system user or group, kept with Gentoo's accounts and merged into
+    the account files. People's accounts are Settings > Accounts'."""
+    as_root()
+    kind, name = args[0], args[1]
+    opts = dict(zip(args[2::2], args[3::2]))
+    if kind == 'group':
+        if any(g.gr_name == name for g in grp.getgrall()):
+            return 0
+        taken = {g.gr_gid for g in grp.getgrall()}
+        gid = int(opts['gid']) if opts.get('gid') and int(opts['gid']) not in taken else None
+        if gid is None:
+            gid = FIRST_FREE_ID
+            while gid in taken:
+                gid += 1
+        rows = read_db(os.path.join(ACCOUNTS, 'group')) + [[name, 'x', str(gid), opts.get('members', '')]]
+        write_db(os.path.join(ACCOUNTS, 'group'), rows)
+        rows = read_db(os.path.join(ACCOUNTS, 'gshadow')) + [[name, '!', '', opts.get('members', '')]]
+        write_db(os.path.join(ACCOUNTS, 'gshadow'), rows, 0o600)
+    else:
+        if any(p.pw_name == name for p in pwd.getpwall()):
+            return 0
+        taken = {p.pw_uid for p in pwd.getpwall()}
+        uid = int(opts['uid']) if opts.get('uid') and int(opts['uid']) not in taken else None
+        if uid is None:
+            uid = FIRST_FREE_ID
+            while uid in taken:
+                uid += 1
+        group = opts.get('group') or name
+        try:
+            gid = grp.getgrnam(group).gr_gid if not group.isdigit() else int(group)
+        except KeyError:
+            die('no group %s for user %s' % (group, name))
+        rows = read_db(os.path.join(ACCOUNTS, 'passwd')) + [[
+            name, 'x', str(uid), str(gid), opts.get('comment', ''), opts.get('home', '/dev/null'),
+            opts.get('shell', '/sbin/nologin')]]
+        write_db(os.path.join(ACCOUNTS, 'passwd'), rows)
+        rows = read_db(os.path.join(ACCOUNTS, 'shadow')) + [[name, '!', '', '', '', '', '', '', '']]
+        write_db(os.path.join(ACCOUNTS, 'shadow'), rows, 0o600)
+        for g in filter(None, opts.get('groups', '').split(',')):
+            rows = read_db(os.path.join(ACCOUNTS, 'group'))
+            for r in rows:
+                if r[0] == g:
+                    r[3] = ','.join(filter(None, r[3].split(',') + [name]))
+            write_db(os.path.join(ACCOUNTS, 'group'), rows)
+    accounts_merge()
+    return 0
+
+
+# ---------------------------------------------------------------- labels
+
+FILE_CONTEXTS = '/etc/selinux/arc/contexts/files/file_contexts'
+
+
+def cmd_relabel(args):
+    """What a package of yours installed gets the SELinux labels its paths
+    have in the OS's policy (file_contexts), as the image's own files do,
+    not the label of the directory they were made in: ChromeOS's policy is
+    enforcing, and a library or helper with the wrong label may not load or
+    run where the OS's would. Portage's bashrc (post_pkg_postinst) calls it
+    with the package (CATEGORY/PF)."""
+    as_root()
+    if not args or not (os.path.exists(FILE_CONTEXTS) and shutil.which('setfiles')):
+        return 0
+    r = os.path.join(VDB, args[0])
+    paths = [p for kind, p in Record(r).paths() if kind != 'dir' and os.path.lexists(p)]
+    if not paths:
+        return 0
+    # setfiles stops at a label the running policy doesn't know (the image's
+    # list names a few): those lines left out, each label asked of the
+    # kernel once.
+    valid = {}
+
+    def ok(ctx):
+        if ctx not in valid:
+            try:
+                with open('/sys/fs/selinux/context', 'wb', buffering=0) as f:
+                    f.write(ctx.encode())
+                valid[ctx] = True
+            except OSError:
+                valid[ctx] = False
+        return valid[ctx]
+    os.makedirs('/run/nickel-gentoo', exist_ok=True)
+    fc = tempfile.NamedTemporaryFile('w', dir='/run/nickel-gentoo', suffix='.fc', delete=False)
+    lst = tempfile.NamedTemporaryFile('w', dir='/run/nickel-gentoo', suffix='.list', delete=False)
+    try:
+        with fc:
+            for line in open(FILE_CONTEXTS):
+                f = line.split()
+                if f and not f[0].startswith('#') and f[-1] != '<<none>>' and not ok(f[-1]):
+                    continue
+                fc.write(line)
+        with lst:
+            lst.write('\n'.join(paths) + '\n')
+        # Quiet: it notes every hard link as a conflict.
+        run('setfiles', '-F', '-f', lst.name, fc.name, check=False,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    finally:
+        os.unlink(fc.name)
+        os.unlink(lst.name)
+    return 0
+
+
+# ---------------------------------------------------------------- settings
+
+def device_config():
+    """What Portage's settings in the image can't know: NickelOS's binhost,
+    below Gentoo's (Gentoo's signed packages win where both fit; the 32-bit
+    builds Steam needs and NickelOS's own come from NickelOS's), whose
+    address is the device's (/etc/nickel/binhost: a test VM's is the build
+    host), the OS in your world, and this device's build jobs."""
+    # Two of NickelOS's: the OS's packages and the binhost's own, and the
+    # 32-bit builds (Steam's chain: GLib, Mesa, libdrm... with abi_x86_32)
+    # in a repository of their own, so the image's build never takes one
+    # for the OS. Portage takes a binary whose USE flags are yours, so a
+    # 32-bit GLib only once you turn 32-bit on for it. A third holds the
+    # GPU compute stacks Gentoo's binhost has no binaries of (Intel's
+    # OpenCL and Level Zero with its graphics compiler, ROCm), which take a
+    # PC hours to build.
+    want = ('# NickelOS (nickel-gentoo writes this from /etc/nickel/binhost).\n'
+            '[nickelos]\npriority = 1\nsync-uri = %s/gentoo/packages\n'
+            'location = /var/cache/binhost/nickelos\nverify-signature = false\n'
+            '\n[nickelos-multilib]\npriority = 1\nsync-uri = %s/gentoo/multilib\n'
+            'location = /var/cache/binhost/nickelos-multilib\nverify-signature = false\n'
+            '\n[nickelos-compute]\npriority = 1\nsync-uri = %s/gentoo/compute\n'
+            'location = /var/cache/binhost/nickelos-compute\nverify-signature = false\n'
+            % (binhost(), binhost(), binhost()))
+    nb = '/etc/portage/binrepos.conf/nickelos.conf'
+    if open_or(nb) != want.strip():
+        os.makedirs(os.path.dirname(nb), exist_ok=True)
+        with open(nb + '.new', 'w') as f:
+            f.write(want)
+        os.chmod(nb + '.new', 0o644)
+        os.replace(nb + '.new', nb)
+    # The OS's packages are in your world, as the set @nickel-os (the
+    # image's /etc/portage/sets/nickel-os): emerge --depclean keeps them.
+    ws = '/var/lib/portage/world_sets'
+    if os.path.exists('/etc/portage/sets/nickel-os') and '@nickel-os' not in open_or(ws).split():
+        os.makedirs(os.path.dirname(ws), exist_ok=True)
+        with open(ws, 'a') as f:
+            f.write('@nickel-os\n')
+    dev = '/etc/portage/make.conf/0200_nickelos_device.conf'
+    if not os.path.exists(dev):
+        n = os.cpu_count() or 1
+        os.makedirs(os.path.dirname(dev), exist_ok=True)
+        with open(dev, 'w') as f:
+            f.write('# NickelOS: written by nickel-gentoo for this device.\n'
+                    'MAKEOPTS="-j%d -l%d"\n' % (n, n))
+
+
+def layer_has(top_rel):
+    return os.path.lexists(os.path.join(G, top_rel))
+
+
+def caches():
+    """Caches your packages' install steps rewrote in your layer (GSettings
+    schemas, MIME, launcher entries, icons) are made again over the image's
+    data and yours: the image's half changes with OS updates."""
+    quiet = dict(check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for rel, cmd in (('usr/share/glib-2.0/schemas/gschemas.compiled',
+                      ['glib-compile-schemas', '/usr/share/glib-2.0/schemas']),
+                     ('usr/share/mime/mime.cache', ['update-mime-database', '/usr/share/mime']),
+                     ('usr/share/applications/mimeinfo.cache',
+                      ['update-desktop-database', '-q', '/usr/share/applications'])):
+        if layer_has(rel) and shutil.which(cmd[0]):
+            run(*cmd, **quiet)
+    if shutil.which('gtk-update-icon-cache'):
+        import glob
+        for cache in glob.glob(os.path.join(G, 'usr/share/icons/*/icon-theme.cache')):
+            run('gtk-update-icon-cache', '-q', '-t', '-f', os.path.dirname('/' + os.path.relpath(cache, G)), **quiet)
+    if (layer_has('usr/lib64') or layer_has('usr/lib')) and not layer_has('etc/ld.so.cache'):
+        run('ldconfig', **quiet)
+
+
+# ---------------------------------------------------------------- NVIDIA
+
+NV32 = '/usr/lib/nickel-nvidia'
+NVCONF = '/etc/ld.so.conf.d/50nickel-nvidia.conf'
+
+
+def gpu():
+    """NVIDIA's userspace must be the kernel module's version exactly. The
+    image's 64-bit libraries are in /usr/lib64; 32-bit programs (Steam's)
+    need the same version's 32-bit ones, downloaded for it."""
+    ver = open_or('/sys/module/nvidia/version')
+    changed = False
+    if not ver:
+        if os.path.isdir(NV32):
+            shutil.rmtree(NV32)
+            changed = True
+        if os.path.exists(NVCONF):
+            os.unlink(NVCONF)
+            changed = True
+    else:
+        if open_or(NVCONF) != NV32:
+            os.makedirs(os.path.dirname(NVCONF), exist_ok=True)
+            with open(NVCONF, 'w') as f:
+                f.write(NV32 + '\n')
+            changed = True
+        if open_or(os.path.join(NV32, '.version')) != ver and os.path.exists('/usr/lib/ld-linux.so.2'):
+            changed |= nvidia32(ver)
+    if changed:
+        run('ldconfig', check=False)
+
+
+def nvidia32(ver):
+    url = '%s/gentoo/nvidia/nvidia-lib32-%s.tar.zst' % (binhost(), ver)
+    tmp = tempfile.mkdtemp(dir='/var/tmp')
+    try:
+        if run('curl', '-fsSL', '-o', tmp + '/l.tar.zst', url, check=False).returncode or \
+                run('curl', '-fsSL', '-o', tmp + '/l.sha256', url + '.sha256', check=False).returncode:
+            log('no 32-bit NVIDIA %s libraries at %s yet' % (ver, url))
+            return False
+        want = open(tmp + '/l.sha256').read().split()[0]
+        if hashlib.sha256(open(tmp + '/l.tar.zst', 'rb').read()).hexdigest() != want:
+            log('32-bit NVIDIA libraries: checksum mismatch')
+            return False
+        os.makedirs(tmp + '/lib32')
+        run('tar', '--zstd', '-C', tmp + '/lib32', '-xf', tmp + '/l.tar.zst')
+        if open_or(tmp + '/lib32/.version') != ver:
+            return False
+        shutil.rmtree(NV32, ignore_errors=True)
+        shutil.move(tmp + '/lib32', NV32)
+        os.chmod(NV32, 0o755)
+        return True
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+# ---------------------------------------------------------------- repository
+
+def setup_lock(wait=True):
+    os.makedirs(os.path.dirname(LOCK), exist_ok=True)
+    f = open(LOCK, 'a')
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        if not wait:
+            f.close()
+            return None
+        log('the repository is being fetched already: waiting for that ...')
+        fcntl.flock(f, fcntl.LOCK_EX)
+    return f
+
+
+def have_repo():
+    return os.path.isdir(os.path.join(REPO, 'profiles'))
+
+
+# What every build from source needs and the image leaves out, as a
+# Gentoo stage3 has it: GCC's compiler (the image has its runtime libraries
+# only, the records' partial GCC), binutils, make, patch, and the build tools
+# a stage3 keeps from building its system, which ebuilds rely on without
+# listing them (intel-graphics-compiler's "Could NOT find BISON",
+# 2026-10-22). Not the profile's whole @system: it brings Gentoo's SELinux
+# policy, and ChromeOS has its own.
+TOOLCHAIN = ('sys-devel/binutils', 'dev-build/make', 'sys-devel/patch', 'sys-devel/gnuconfig',
+             'sys-apps/diffutils', 'sys-apps/gawk', 'app-alternatives/yacc', 'app-alternatives/lex',
+             'sys-devel/m4', 'dev-build/autoconf', 'dev-build/automake', 'dev-build/libtool',
+             'sys-devel/gettext', 'dev-util/pkgconf')
+
+
+def partial():
+    """Packages the image has only part of (their records' NICKEL_PARTIAL),
+    unless yours replaced them."""
+    return ['%s:%s' % (r.cp, r.slot) for r in records(VDB).values()
+            if os.path.exists(os.path.join(r.path, 'NICKEL_PARTIAL'))]
+
+
+def have_toolchain():
+    return not partial() and all(shutil.which(c) for c in (
+        'gcc', 'ld', 'make', 'patch', 'gawk', 'bison', 'flex', 'm4', 'autoconf', 'libtool'))
+
+
+# Repositories on by default besides Gentoo's (their repos.conf files come
+# with the image; one a user turned off with eselect repository is left so).
+EXTRA_REPOS = ('guru', 'steam-overlay')
+
+
+def extra_repos_missing():
+    return [r for r in EXTRA_REPOS
+            if os.path.exists('/etc/portage/repos.conf/%s.conf' % r)
+            and not os.path.isdir('/var/db/repos/%s/profiles' % r)]
+
+
+def fetch_extra_repos():
+    """GURU and steam-overlay, fetched once (git); emerge --sync keeps them
+    current. Returns whether one came."""
+    missing = extra_repos_missing()
+    if not missing or not have_repo() or not os.path.exists('/usr/bin/git'):
+        return False
+    # Gentoo's git first: a test image's /usr/local has a git of its own
+    # that can't find its https helper.
+    env = dict(os.environ, PATH='/usr/bin:/usr/sbin:/bin:/sbin:' + os.environ.get('PATH', ''))
+    for r in missing:
+        # One at a time: emaint sync takes only the last of several -r.
+        run('emaint', 'sync', '-r', r, check=False, env=env)
+    got = [r for r in missing if r not in extra_repos_missing()]
+    if got:
+        log('fetched: %s' % ', '.join(got))
+    return bool(got)
+
+
+def eix_index(force=False):
+    """eix's index of the tree, when there's a tree and no index yet (the
+    Welcome Tour and the guide show eix), or a repository just came. emerge
+    --sync keeps it up to date (eix's postsync.d hook), but the first copy of
+    the tree comes from emerge-webrsync, and devices set up before eix came
+    had none."""
+    if have_repo() and shutil.which('eix-update') and \
+            (force or not os.path.exists('/var/cache/eix/portage.eix')):
+        idle_priority()
+        run('eix-update', '--quiet', check=False)
+
+
+def cmd_setup(_):
+    """Gentoo's repository (the package tree emerge reads), from Gentoo's
+    daily snapshot, signed by Gentoo (emerge-webrsync checks it); then the
+    compiler and the tools every build needs, as Gentoo's binary packages."""
+    as_root()
+    lock = setup_lock()
+    if not have_repo():
+        rc = run('emerge-webrsync', '--quiet', check=False).returncode
+        if rc or not have_repo():
+            die("Gentoo's repository could not be fetched (emerge-webrsync: %d)" % rc)
+        log("Gentoo's repository is there; emerge --sync brings it up to date.")
+    eix_index(force=fetch_extra_repos())
+    if not have_toolchain():
+        env = dict(os.environ, FEATURES='-news')
+        rc = 0
+        # Binary packages only: with no compiler yet there is nothing to build
+        # with, and with --usepkg Portage prefers building over a binary
+        # package whose dependencies changed since it was made.
+        if partial():
+            rc |= run('emerge', '--oneshot', '--quiet', '--usepkgonly', '--getbinpkg', *partial(),
+                      check=False, env=env).returncode
+        rc |= run('emerge', '--oneshot', '--quiet', '--noreplace', '--usepkgonly', '--getbinpkg',
+                  *TOOLCHAIN, check=False, env=env).returncode
+        if rc or not have_toolchain():
+            die('the compiler could not be installed (emerge: %d)' % rc)
+        log('the compiler is there: emerge builds from source too.')
+    lock.close()
+    log("Done: emerge installs into /usr (sudo emerge <package>).")
+    return 0
+
+
+def idle_priority():
+    try:
+        os.nice(19)
+    except OSError:
+        pass
+    try:
+        import ctypes
+        # ioprio_set(IOPRIO_WHO_PROCESS, 0, IOPRIO_CLASS_IDLE << 13)
+        ctypes.CDLL(None, use_errno=True).syscall(251, 1, 0, 3 << 13)
+    except (OSError, AttributeError):
+        pass
+
+
+def cmd_firstboot(_):
+    """At startup, until the repository and the compiler are there, and
+    after an OS update what it left waiting rebuilt: once the device's own
+    setup (OOBE) is done and Gentoo's mirrors answer, at idle priority. Not
+    on the installer's USB stick."""
+    as_root()
+    eix_index()
+    if have_repo() and have_toolchain() and not extra_repos_missing() and \
+            not open_or(WAITING).split():
+        return 0
+    st = subprocess.run(['/usr/sbin/is_running_from_installer'], capture_output=True, text=True)
+    if st.stdout.strip() == 'yes':
+        return 0
+    idle_priority()
+    while not os.path.exists('/home/chronos/.oobe_completed'):
+        time.sleep(30)
+    for _ in range(120):
+        if subprocess.run(['curl', '-sf', '--max-time', '10', '-o', '/dev/null',
+                           'https://distfiles.gentoo.org/snapshots/']).returncode == 0:
+            break
+        time.sleep(30)
+    else:
+        log("Gentoo's mirrors did not answer: the next startup tries again")
+        return 0
+    if not (have_repo() and have_toolchain()) or extra_repos_missing():
+        cmd_setup(None)
+    return cmd_rebuild(None)
+
+
+def being_set_up():
+    """Whether a repository fetch holds the lock (for anyone: /proc/locks)."""
+    try:
+        st = os.stat(LOCK)
+    except OSError:
+        return False
+    me = '%02x:%02x:%d' % (os.major(st.st_dev), os.minor(st.st_dev), st.st_ino)
+    with open('/proc/locks') as f:
+        return any(len(l.split()) > 5 and l.split()[5] == me for l in f)
+
+
+def cmd_wait(args):
+    """Waits for the setup at startup (args[0] seconds at most); exits 0
+    when the repository and the compiler are there."""
+    end = time.monotonic() + (float(args[0]) if args else 3600)
+    while not (have_repo() and have_toolchain()) and time.monotonic() < end:
+        time.sleep(5)
+    return 0 if have_repo() and have_toolchain() else 1
+
+
+# ---------------------------------------------------------------- commands
+
+def cmd_mount(_):
+    """At boot: after an OS update the records first (your layer changes
+    only while the overlays are down), then the overlays."""
+    as_root()
+    os.makedirs('/run/nickel-gentoo', exist_ok=True)
+    unbind_dev_var()
+    if not any(mounted('/' + t) for t in TOPS):
+        os.makedirs(G, exist_ok=True)
+        # Packages put back to the OS's version since the last startup:
+        # your layer's copies of their paths go now.
+        restore = os.path.join(STATE, 'restore')
+        back = set(open_or(restore).split())
+        if back:
+            for r in records(VDB).values():
+                if r.cp in back:
+                    clear_from_layer(r.paths())
+            os.unlink(restore)
+            log("the OS's version back: %s" % ' '.join(sorted(back)))
+        done = sync_records()
+        if done:
+            # Made from the image's settings and yours: the image's changed,
+            # so your layer's copies go and are made again after the mounts
+            # (nickel-gentoo boot).
+            for rel in DERIVED:
+                p = os.path.join(G, rel)
+                if os.path.lexists(p):
+                    os.unlink(p)
+            log('records for this OS build: %d of the OS\'s, %d of yours' % (done['os'], done['yours']))
+            for c in sorted(done['cleared']):
+                log('the OS has %s now or newer: yours cleared' % c)
+            for c in sorted(done['kept']):
+                log('yours stays (newer than the OS\'s): %s' % c)
+            if done['waiting']:
+                log('waiting to be rebuilt (nickel-gentoo rebuild): %s' % ' '.join(done['waiting']))
+    mount_overlays()
+    mount_portage_tmp()
+    return 0
+
+
+def cmd_boot(_):
+    """After the mounts: this device's Portage settings, Gentoo's accounts,
+    the caches, NVIDIA's 32-bit libraries."""
+    as_root()
+    if not all(mounted('/' + t) for t in TOPS):
+        return 0
+    device_config()
+    accounts_merge()
+    # The image's environment and loader settings are made from its own
+    # /etc/env.d; yours (your packages') are added to them again, since an
+    # OS update may change the image's half.
+    if layer_has('etc/env.d') and os.path.exists('/usr/bin/env-update'):
+        run('/usr/bin/env-update', check=False, stdout=subprocess.DEVNULL)
+    caches()
+    gpu()
+    return 0
+
+
+def cmd_restore(args):
+    """The OS's version of a package back, in place of yours."""
+    as_root()
+    if not args:
+        die('usage: nickel-gentoo restore CATEGORY/PACKAGE')
+    want = args[0]
+    tmp = tempfile.mkdtemp(prefix='pkgdb-', dir='/var/tmp')
+    try:
+        run('tar', '--zstd', '-xf', PKGDB, '-C', tmp)
+        osr = [r for r in records(tmp).values() if r.cp == want]
+        if not osr:
+            die('the OS has no %s: remove yours with emerge --unmerge %s' % (want, want))
+        mine = [r for r in records(VDB).values() if r.cp == want]
+        stamps = set(json.load(open(os.path.join(STATE, 'records.json'))))
+        mine = [r for r in mine if r.stamp() not in stamps]
+        if not mine:
+            log('%s is the OS\'s already' % want)
+            return 0
+        # Through the overlay: what your layer has over the OS's paths goes
+        # (removing a path the image has would only hide it).
+        lower = lower_bind()
+        for r in mine:
+            # By path: CONTENTS' order changes from build to build.
+            for kind, p in sorted(r.paths(), key=lambda e: e[1]):
+                if kind == 'dir' or not p.startswith(('/usr/', '/opt/')):
+                    continue
+                up = os.path.join(G, p.lstrip('/'))
+                if not os.path.lexists(up):
+                    continue
+                if os.path.lexists(os.path.join(lower, p.lstrip('/'))):
+                    log('needs a restart to show the OS\'s %s' % p)
+                elif os.path.lexists(p) and not (os.path.isdir(p) and not os.path.islink(p)):
+                    os.unlink(p)
+            shutil.rmtree(r.path)
+        for r in osr:
+            dst = os.path.join(VDB, r.cat, r.pf)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.move(r.path, dst)
+        # The paths the OS's version has come back from your layer at the
+        # next startup (overlayfs changes its layers only while unmounted).
+        os.makedirs(STATE, exist_ok=True)
+        with open(os.path.join(STATE, 'restore'), 'a') as f:
+            f.write(want + '\n')
+        log('%s is the OS\'s again (fully after the next restart)' % want)
+        return 0
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def cmd_rebuild(_):
+    """What an OS update left waiting, rebuilt with your flags: at the next
+    startup after the update (nickel-gentoo firstboot), or now."""
+    as_root()
+    waiting = open_or(WAITING).split()
+    if not waiting:
+        log('nothing waits to be rebuilt')
+        return 0
+    log('rebuilding what the OS update left waiting: %s' % ' '.join(waiting))
+    rc = run('emerge', '--oneshot', *waiting, check=False).returncode
+    if rc == 0:
+        os.unlink(WAITING)
+        log('rebuilt: %s' % ' '.join(waiting))
+    else:
+        log('the rebuild failed (emerge: %d): the next startup tries again, '
+            'or sudo nickel-gentoo rebuild' % rc)
+    return rc
+
+
+def cmd_gpu(_):
+    as_root()
+    gpu()
+    return 0
+
+
+def cmd_status(_):
+    size = subprocess.run(['du', '-sh', G], capture_output=True, text=True).stdout.split() or ['0']
+    print('Your layer: %s on the data partition%s.' % (
+        size[0], '' if all(mounted('/' + t) for t in TOPS) else ' (not mounted)'))
+    todo = 'being fetched' if being_set_up() else 'not yet (sudo nickel-gentoo setup)'
+    print("Gentoo's repository: %s" % ('there' if have_repo() else todo))
+    print('The compiler: %s' % ('there' if have_toolchain() else todo))
+    waiting = open_or(WAITING).split()
+    if waiting:
+        print('Waiting to be rebuilt (sudo nickel-gentoo rebuild): %s' % ' '.join(waiting))
+    return 0
+
+
+def main():
+    cmds = dict(setup=cmd_setup, firstboot=cmd_firstboot, wait=cmd_wait, status=cmd_status, mount=cmd_mount,
+                boot=cmd_boot, restore=cmd_restore, rebuild=cmd_rebuild, gpu=cmd_gpu,
+                account=cmd_account, relabel=cmd_relabel)
+    if len(sys.argv) < 2 or sys.argv[1] not in cmds:
+        die('usage: nickel-gentoo %s' % '|'.join(cmds), 2)
+    return cmds[sys.argv[1]](sys.argv[2:])
+
+
+if __name__ == '__main__':
+    sys.exit(main())

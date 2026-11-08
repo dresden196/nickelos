@@ -1,0 +1,6 @@
+# NickelOS: registers a user session with elogind (nickel-logind-session).
+# The user signed in through Chrome already: nothing authenticates here.
+auth      required  pam_deny.so
+account   required  pam_permit.so
+password  required  pam_deny.so
+session   required  pam_elogind.so

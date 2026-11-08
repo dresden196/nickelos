@@ -1,0 +1,1454 @@
+{
+ "IDS_ABOUT_CROS_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS.",
+  "t": "NickelOS este posibil datorită unui BEGIN_LINK_CROS_OSSsoftware open sourceEND_LINK_CROS_OSS suplimentar."
+ },
+ "IDS_ABOUT_CROS_WITH_LINUX_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS, as is BEGIN_LINK_LINUX_OSSLinux development environmentEND_LINK_LINUX_OSS.",
+  "t": "NickelOS este posibil datorită unui BEGIN_LINK_CROS_OSSsoftware open sourceEND_LINK_CROS_OSS suplimentar, la fel cum este și BEGIN_LINK_LINUX_OSSmediul de dezvoltare LinuxEND_LINK_LINUX_OSS."
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY": {
+  "en": "Manage accessibility settings button, Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "Butonul Gestionează setările de accesibilitate, apasă pe Enter pentru a personaliza instrumentele de accesibilitate în setările NickelOS"
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUFFIX": {
+  "en": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT, Press tab then Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT, apasă pe Tab, apoi pe Enter pentru a personaliza instrumentele de accesibilitate în setările NickelOS"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "Aplicație Linux, instalată cu INSTALLER"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "Aplicație Linux"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "Verifică dacă telefonul și dispozitivul NickelOS sunt în aceeași rețea, apoi încearcă din nou. LEARN_MORE"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "Telefonul folosește o rețea mobilă. Verifică dacă telefonul și dispozitivul NickelOS sunt în aceeași rețea Wi-Fi, apoi încearcă din nou. LEARN_MORE"
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "Managerul de parole dorește să îți confirme identitatea"
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "În această perioadă, dispozitivul trebuie să rămână deschis și conectat la o sursă de alimentare. Asigură-te că ai conectat corect cablurile de la încărcător sau de la adaptor, atât la dispozitiv, cât și la priza electrică. Nu opri dispozitivul."
+ },
+ "IDS_ASH_MESSAGE_CENTER_SYSTEM_APP_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "Economisește timp răspunzând rapid la mesajele text ale telefonului de pe dispozitivul NickelOS"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "Desktop"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "Mută în coșul de gunoi"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "Folosește un nume care nu începe cu punct și nu conține bară oblică."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "Există deja un element cu acest nume."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "Dosar nou"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "Dosar nou"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "Deschide"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "Deschide dosarul Desktop în Fișiere"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "Redenumește"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "Nu s-a putut redenumi."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "Redenumește"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "Afișează în Fișiere"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "Numai dispozitivele Thunderbolt aprobate sunt compatibile cu dispozitivul NickelOS"
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "Instalează NickelOS"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "Dispozitivul NickelOS sau dispozitivul Bluetooth folosește o versiune Bluetooth mai veche. Folosește microfonul intern pentru o calitate audio mai bună."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "Verifică dacă dispozitivul NickelOS este conectat la aceeași rețea Wi-Fi ca dispozitivul Chromecast."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "Deschide ghidul NickelOS"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "Fă un tur rapid al dispozitivului PRODUCT_NAME: unde sunt aplicațiile, cum obții mai multe și sistemul Linux de la bază. Șapte pași."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "Salut! Bun venit pe PRODUCT_NAME."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Pasul STEP din TOTAL_STEPS al turului. Aplicația Fișiere se găsește în Lansator. Dosarul personal este dosarul tău principal din Linux: aplicațiile Linux și aplicația Fișiere văd aceleași fișiere, iar stocarea în cloud pe care o adaugi în Setări apare tot aici."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Dosarul personal este dosarul tău principal din Linux: aplicațiile Linux și aplicația Fișiere văd aceleași fișiere, iar stocarea în cloud pe care o adaugi în Setări apare tot aici."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Pasul STEP din TOTAL_STEPS al turului. Waydroid rulează aplicații Android, fiecare în propria fereastră. Configurează-l în Setări, la Aplicații, apoi la Aplicații Android. După aceea, când deschizi un fișier APK, aplicația se instalează, iar aplicațiile Android apar în Lansator."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Waydroid rulează aplicații Android, fiecare în propria fereastră. Configurează-l din Setări > Aplicații > Aplicații Android. După aceea, când deschizi un fișier APK, aplicația se instalează, iar aplicațiile Android apar în Lansator."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Pasul STEP din TOTAL_STEPS al turului. Obține mai multe aplicații din Bazaar: aplicații Linux de pe Flathub, instalate ca Flatpak. Apar în Lansator la fel ca orice altă aplicație."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Obține mai multe aplicații din Bazaar: aplicații Linux de pe Flathub, instalate ca Flatpak. Apar în Lansator la fel ca orice altă aplicație."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Pasul STEP din TOTAL_STEPS al turului. Terminalul este un shell Linux adevărat, cu sudo. La bază, NickelOS este Gentoo: eix găsește pachete, iar sudo emerge le instalează, ca pe orice Gentoo."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Terminalul este un shell Linux adevărat, cu sudo. La bază, NickelOS este Gentoo: eix găsește pachete, iar sudo emerge le instalează, ca pe orice Gentoo."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "Pasul STEP din TOTAL_STEPS al turului. După ce ai activat Lansatorul, vei vedea o bară de căutare. Începe să introduci text pentru a căuta aplicații, fișiere și setări pe PRODUCT_NAME."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "Caută aplicații, fișiere și setări pe PRODUCT_NAME din Lansator."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Pasul STEP din TOTAL_STEPS al turului. Setările dispozitivului se găsesc în Lansator. Personalizează dispozitivul PRODUCT_NAME din Setări: imaginea de fundal, modul întunecat sau luminos, ecranele și altele. Acesta a fost turul! Află mai multe din ghidul NickelOS."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Personalizează-ți PRODUCT_NAME din Setări: imaginea de fundal, modul întunecat sau luminos, ecranele și altele. Acesta a fost turul! Află mai multe din ghidul NickelOS."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "Pentru a debloca dispozitivul NickelOS, folosește amprenta sau deblochează telefonul"
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "Verifică dacă dispozitivul Bluetooth este în modul de asociere și în apropiere. Asociază-l numai cu dispozitive în care ai încredere. Dispozitivele asociate sunt vizibile pentru toate conturile de pe acest dispozitiv NickelOS."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "Verifică dacă dispozitivul Bluetooth este în modul de asociere și în apropiere. Asociază-l numai cu dispozitive în care ai încredere. Dispozitivele asociate sunt vizibile pentru toate conturile de pe acest dispozitiv NickelOS. BEGIN_LINK_LEARN_MOREAflă mai multeEND_LINK_LEARN_MORE"
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Datele vor fi sincronizate în toate browserele Chrome în care ai activat sincronizarea pentru acest cont. Pentru opțiunile de sincronizare NickelOS, accesează LINK_BEGINSetările NickelOSLINK_END."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "Comenzile rapide de la tastatură"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "Folosește funcțiile de accesibilitate pentru ecranul tactil"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "Pe majoritatea tastaturilor, tasta de căutare este tasta Windows, de lângă tasta Alt din stânga."
+ },
+ "IDS_CHROMEVOX_TUTORIAL_LEARN_MORE": {
+  "en": "Congratulations! You’ve learned the essentials to use ChromeVox successfully. Remember that you can open the ChromeVox command menu at any time by pressing Search+Period. To learn even more about ChromeVox and NickelOS, visit the following articles.\n    If you're done with the tutorial, use ChromeVox to navigate to the Close button and click it.",
+  "t": "Felicitări! Ai învățat noțiunile de bază cu privire la folosirea ChromeVox. Reține că poți deschide oricând meniul de comenzi ChromeVox apăsând pe tasta de căutare + tasta punct. Pentru a afla mai multe despre ChromeVox și NickelOS, accesează următoarele articole.\n    Dacă ai terminat tutorialul, folosește ChromeVox pentru a naviga la butonul Închide și dă clic pe el."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "Instalezi cea mai recentă actualizare de software, cu cele mai noi remedieri de securitate și funcții."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_ERROR": {
+  "en": "To finish setting up Linux, update NickelOS and try again.",
+  "t": "Pentru a finaliza configurarea Linux, actualizează NickelOS și încearcă din nou."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_TITLE": {
+  "en": "NickelOS update required",
+  "t": "Este necesară actualizarea NickelOS"
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "BEGIN_H3Funcțiile de remediere a erorilorEND_H3\n          BR\n          Pentru a instala și a testa cod personalizat pe dispozitiv, poți activa funcțiile de remediere a erorilor pe dispozitivul NickelOS. Astfel, vei putea:BR\n          BEGIN_LIST\n            LIST_ITEMsă elimini verificarea sistemului rootfs, pentru a putea modifica fișierele sistemului de operare;\n      LIST_ITEMsă activezi accesul SSH la dispozitiv folosind cheile de testare standard, pentru a putea folosi instrumente precum BEGIN_CODEcros flashEND_CODE pentru a accesa dispozitivul;\n      LIST_ITEMsă activezi pornirea de pe USB, pentru a putea instala imaginea unui sistem de operare de pe o unitate USB;\n      LIST_ITEMsă setezi parola de conectare, atât pentru dezvoltator, cât și pentru rădăcina sistemului, la o valoare personalizată, pentru a putea instala manual SSH pe dispozitiv.\n          END_LIST\n          BR\n          După activare, majoritatea funcțiilor de remediere a erorilor vor rămâne activate, chiar și după realizarea unui powerwash sau ștergerea datelor pe un dispozitiv gestionat de companie. Pentru a dezactiva complet toate funcțiile de remediere a erorilor, reinstalează NickelOS.\n    BR\n    BR\n    Pentru mai multe informații despre funcțiile de remediere a erorilor, consultăBR\n    https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n    BR\n    BR\n    BEGIN_BOLDNotă:END_BOLD sistemul va reporni în timpul acestui proces."
+ },
+ "IDS_ENABLE_DEBUGGING_SETUP_MESSAGE": {
+  "en": "You are enabling NickelOS debugging features which will set up sshd daemon and enable booting from USB drives.",
+  "t": "Activezi funcțiile de remediere a erorilor în NickelOS, care vor configura SSH daemon și vor activa pornirea de pe unități USB."
+ },
+ "IDS_EULA_SCREEN_ACCESSIBLE_TITLE": {
+  "en": "NickelOS terms",
+  "t": "Condiții pentru NickelOS"
+ },
+ "IDS_EXTENSION_INSTALL_KIOSK_MODE_ONLY": {
+  "en": "App with 'kiosk_only' manifest attribute must be installed in NickelOS kiosk mode",
+  "t": "Aplicația cu atributul „kiosk_only” din manifest trebuie să fie instalată în modul chioșc pentru NickelOS"
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_ENTERPRISE_REMOTE_APPS": {
+  "en": "Add remote apps to the NickelOS launcher",
+  "t": "Adaugă aplicații la distanță în lansatorul NickelOS"
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "Găsește articole de ajutor și răspunsuri la întrebările frecvente"
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "Mulțumim pentru feedback. Va fi trimis când revii online."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "Mulțumim pentru feedback."
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Fișierul este creat pentru un computer care folosește software Macintosh. Acesta nu este compatibil cu dispozitivul tău care rulează NickelOS. Caută o aplicație de înlocuire potrivită în Magazinul web Chrome."
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Fișierul este creat pentru un PC care folosește software Windows. Acesta nu este compatibil cu dispozitivul tău care rulează NickelOS. Caută o aplicație de înlocuire potrivită în Magazinul web Chrome."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "Dosar personal"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Fișierul este creat pentru un computer care folosește software Macintosh. Acesta nu este compatibil cu dispozitivul tău care rulează NickelOS. BEGIN_LINK_HELPAflă mai multeEND_LINK_HELP despre deschiderea fișierelor în NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Fișierul este creat pentru un PC care folosește software Windows. Acesta nu este compatibil cu dispozitivul tău care rulează NickelOS. BEGIN_LINK_HELPAflă mai multeEND_LINK_HELP despre deschiderea fișierelor în NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_FILE": {
+  "en": "This file type is not supported. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Acest tip de fișier nu este acceptat. BEGIN_LINK_HELPAflă mai multeEND_LINK_HELP despre deschiderea fișierelor în NickelOS."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "În curând, dispozitivul nu va mai primi actualizări."
+ },
+ "IDS_HELP_APP_WHATS_NEW_CONTINUE_TASK_TITLE": {
+  "en": "NickelOS update",
+  "t": "Actualizare NickelOS"
+ },
+ "IDS_HELP_APP_WHATS_NEW_SUGGESTION_CHIP": {
+  "en": "What's new with NickelOS",
+  "t": "Noutăți în NickelOS"
+ },
+ "IDS_IME_SERVICE_DISPLAY_NAME": {
+  "en": "NickelOS Input Method Service",
+  "t": "Serviciul metodei de introducere a textului din NickelOS"
+ },
+ "IDS_INSTALLED_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "Pentru configurarea cu telefonul Android, trebuie să activezi conexiunea Bluetooth a dispozitivului NickelOS"
+ },
+ "IDS_LOGIN_SYNC_CONSENT_SCREEN_SUBTITLE_2": {
+  "en": "Your saved preferences and activity will be ready on any NickelOS device when you sign in with your Google Account. You can choose what to sync in Settings.",
+  "t": "Preferințele și activitățile salvate vor fi disponibile pe orice dispozitiv NickelOS dacă te conectezi folosind Contul Google. Poți să alegi ce să sincronizezi în Setări."
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "Administratorul a activat sincronizarea următoarelor elemente între sesiunile anterioare și cele actuale de pe dispozitivele tale NickelOS:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "Permite"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "Nu permite"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "Nu acum"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "Introdu parola pentru NAME, administrator al acestui computer."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "APP_NAME vrea să folosească camera acestui dispozitiv. Răspunsul tău va fi reținut pentru această aplicație."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "Permiți ca APP_NAME să folosească camera?"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "APP_NAME vrea să folosească camera. Pentru a permite acest lucru, activează accesul la cameră în Comenzile pentru confidențialitate."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "Deschide setările"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "Accesul la cameră este dezactivat"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "Permite"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "Nu permite"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "Pentru a schimba o comandă rapidă, selectează-i tastele și apasă altele noi. Tasta Backspace o elimină."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "APP_NAME vrea ca aceste comenzi rapide să funcționeze și când folosești alte aplicații. Află doar când le apeși, nu și ce altceva tastezi."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "Folosește Ctrl, Alt sau tasta de căutare împreună cu tasta ori o tastă funcțională."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "Nesetat"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "Apasă tastele…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "Aceste taste sunt deja folosite. Încearcă altele."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "Permiți comenzile rapide de la tastatură?"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "Schimbă"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "Desktop"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "Computer"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "Laptop"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE (NAME)"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "Tabletă"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "Confirmă parola"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "Se creează contul..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "Contul nu a putut fi creat."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "Contul nu a putut fi creat: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "Alege o parolă."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "Contul nu a putut fi configurat: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "Numele de utilizator este deja folosit."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "Crearea contului a durat prea mult. Încearcă din nou."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "Numele de utilizator încep cu o literă mică și conțin doar litere mici, cifre, - și _ (maximum 32)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "Parolele nu se potrivesc"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "Numele tău"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "Parolă"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "Imaginea ta"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "Apare pe ecranul de conectare și în bara de sistem. Pentru a folosi o fotografie proprie, accesează mai târziu Setările."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "Alege o imagine"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "Contul și fișierele sale sunt stocate pe acest dispozitiv, criptate cu parola ta. Fără un Cont Google, nu le poți recupera dacă uiți parola."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "Creează-ți contul"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "Nume de utilizator"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "Începe cu o literă mică; folosește litere mici, cifre, - și _ (maximum 32)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "APP_NAME vrea să știe unde se află acest dispozitiv, pe baza rețelelor Wi-Fi din apropiere și a adresei sale de internet. Răspunsul tău va fi reținut pentru această aplicație."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "Permiți ca APP_NAME să îți folosească locația?"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "APP_NAME vrea să îți folosească locația. Pentru a permite acest lucru, activează accesul la locație în Comenzile pentru confidențialitate."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "Accesul la locație este dezactivat"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "APP_NAME vrea să controleze tastatura și cursorul acestui dispozitiv. Permite doar dacă ai încredere în persoana care se conectează."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "APP_NAME controlează acest dispozitiv."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "Permiți controlul de la distanță?"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "Ai ales Minim când ai configurat NickelOS, așa că nu a fost selectat niciun motor de căutare pentru tine. Aceste motoare de căutare sunt populare în regiunea ta și sunt afișate în ordine aleatorie."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "Oricum ai alege, primești Bazaar pentru a găsi mai multe aplicații, precum și aplicații pentru a deschide fotografii, videoclipuri, muzică și documente."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "Experiență completă"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "Totul gata de folosit și privat. DuckDuckGo caută pe web din browser și din Lansator, uBlock Origin blochează anunțurile și instrumentele de urmărire în browser, aplicațiile private Proton (Mail, Calendar, Drive, Pass și altele) sunt instalate și primești și aplicații gratuite, open source: LibreOffice, OBS Studio, GIMP, Kdenlive și altele."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "Minim"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "Doar elementele de bază. Lansatorul caută numai pe acest computer și nu se configurează nimic altceva pentru tine."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "Poți schimba toate acestea mai târziu din Setări."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "Cum vrei să începi?"
+ },
+ "IDS_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUGGESTION_CONTENTS": {
+  "en": "Personalize your accessibility tools in NickelOS settings",
+  "t": "Personalizează instrumentele de accesibilitate în setările NickelOS"
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_LAPTOP": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press the space bar.",
+  "t": "Vrei să activezi ChromeVox, cititorul de ecran încorporat pentru NickelOS? Dacă da, apasă bara de spațiu."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_TABLET": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press and hold both volume keys for five seconds.",
+  "t": "Vrei să activezi ChromeVox, cititorul de ecran încorporat pentru NickelOS? Dacă da, apasă lung ambele butoane de volum timp de cinci secunde."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_TEXT": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS?",
+  "t": "Vrei să activezi ChromeVox, cititorul de ecran încorporat pentru NickelOS?"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "Înainte de a începe, asigură-te că ai făcut backup pentru date. Instalarea DEVICE_OS va înlocui datele de pe discul pe care îl alegi."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "DEVICE_OS este software liber oferit ca atare: este posibil să nu funcționeze pe orice computer, iar autorii săi nu răspund pentru pierderea datelor."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "Actualizări, opțiuni pentru dezvoltatori"
+ },
+ "IDS_OS_SETTINGS_APP_DETAILS_TYPE_CROS_SYSTEM": {
+  "en": "NickelOS System App",
+  "t": "Aplicație de sistem NickelOS"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "Telefoane, Trimitere în apropiere"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "Telefoane, FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your apps and settings will sync across all NickelOS devices where you are signed in with your Google account. For browser sync options, go to LINK_BEGINChrome settingsLINK_END.",
+  "t": "Aplicațiile și setările se vor sincroniza pe toate dispozitivele NickelOS pe care te-ai conectat folosind contul Google. Pentru opțiunile de sincronizare a browserului, accesează LINK_BEGINSetările ChromeLINK_END."
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "Stocare în cloud"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Google Drive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "Adaugă un cont cloud"
+ },
+ "IDS_OS_SETTINGS_TAG_OS_VERSION": {
+  "en": "NickelOS version",
+  "t": "Versiunea NickelOS"
+ },
+ "IDS_PASSWORD_CHANGE_NOTIFICATION_TITLE": {
+  "en": "NickelOS password updated",
+  "t": "Parola NickelOS a fost actualizată"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "Imaginile tale"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "Când ecranul este inactiv, se afișează imaginile dvs., ora și informații despre media"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "Propriile tale imagini"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "Screensaverul afișează imaginile din dosarul Pictures și din dosarele din el. Adaugă cel puțin 2."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "Dosarul Pictures"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "Imagini incluse în NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "Screensaverul afișează imaginile de fundal NickelOS. Activează opțiunea pentru a afișa în schimb imaginile din Fișierele mele > Pictures."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "Imagini de fundal NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "De la Open-Meteo, pentru locația ta aproximativă, pe care beaconDB o stabilește pe baza adresei tale IP"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "Afișează vremea"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "Verifică dacă imprimanta este pornită și conectată la rețeaua folosită de dispozitivul NickelOS sau folosește un cablu USB"
+ },
+ "IDS_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_RELAUNCH_TO_UPDATE": {
+  "en": "Relaunch to update &NickelOS",
+  "t": "Relansează pentru a actualiza &NickelOS"
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "Dosar personal"
+ },
+ "IDS_SETTINGS_ABOUT_OS": {
+  "en": "About NickelOS",
+  "t": "Despre NickelOS"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Când opțiunea este activată, datele se salvează în Contul Google și se pot folosi pe toate dispozitivele. Când este dezactivată, datele se salvează numai pe acest dispozitiv. Pentru opțiunile de sincronizare NickelOS, accesează LINK_BEGINSetările NickelOSLINK_END."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "Oferă aplicațiilor pentru Android control asupra dispozitivelor USB de pe acest dispozitiv NickelOS. Permisiunea va fi solicitată de fiecare dată când conectezi un dispozitiv USB. Aplicațiile pentru Android individuale vor solicita permisiuni suplimentare."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Dispozitivul nu mai primește actualizări de securitate și de software."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Acest dispozitiv nu mai primește actualizări"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Dispozitivul nu mai primește actualizări de securitate și de software."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Acest dispozitiv nu mai primește actualizări"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "Oferă aplicațiilor pentru Android control asupra dispozitivelor USB de pe acest dispozitiv NickelOS"
+ },
+ "IDS_SETTINGS_LANGUAGES_OPEN_CHROME_OS_SETTINGS_LABEL": {
+  "en": "Manage languages in NickelOS settings",
+  "t": "Gestionează limbile în setările NickelOS"
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "Această opțiune se aplică dispozitivelor NickelOS cu un plan de date sau un dongle de rețea mobilă ori atunci când folosești un hotspot portabil"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "Adaugă o persoană"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "Vei fi deconectat. Pe ecranul de conectare, persoana nouă își alege un nume, un nume de utilizator și o parolă."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "Administrator"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Administratorii pot instala software pentru toți, pot modifica sistemul și pot gestiona conturile."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "Schimbă parola"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "Confirmă"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "Confirmă parola nouă"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "Parola actuală"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "Alege o parolă nouă"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "A apărut o eroare. Încearcă din nou."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "Acest dispozitiv trebuie să aibă cel puțin un administrator"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "Setezi contul NAME ca administrator?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "Parola nouă"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "Nimeni altcineva nu are cont pe acest dispozitiv."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "Alte persoane de pe acest dispozitiv"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Fiecare persoană are propriul cont și propriile fișiere. Administratorii pot instala software pentru toți, pot modifica sistemul și pot gestiona conturile."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "Proprietar, administrator"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "Parolele noi nu se potrivesc"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "Elimină"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "Setezi contul NAME ca utilizator standard?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "Contul acestei persoane și toate fișierele sale vor fi șterse de pe acest dispozitiv. Acțiunea nu poate fi anulată."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "Elimini contul NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "Deconectează-te"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "Standard"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "Parola nu este corectă"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "Contul tău"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "Parola ta"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "Doar un administrator al acestui dispozitiv poate modifica aceste setări."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "Pentru aplicațiile create doar pentru procesoarele ARM folosite de telefoane, printre care multe jocuri. Software proprietar, descărcat când activezi opțiunea."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "Multe aplicații Android, mai ales jocurile, sunt create doar pentru procesoarele ARM folosite de telefoane. Pentru a le rula pe acest computer, Android are nevoie de un translator. NickelOS nu creează și nu include un astfel de translator: dacă activezi această opțiune, se descarcă TRANSLATOR de pe GitHub, aceeași copie pe care o instalează waydroid_script al comunității Waydroid."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "Este software proprietar, supus condițiilor proprietarului său, iar tu ești cel care îl instalează. Unele aplicații pot rula lent sau deloc. Android repornește pentru a-l folosi."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "Acceptă și activează"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "Activezi compatibilitatea cu aplicațiile ARM?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "Compatibilitate cu aplicațiile ARM"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "Se elimină..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "Se descarcă și se instalează..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "Se descarcă Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "Descărcarea nu s-a finalizat. Verifică conexiunea, apoi încearcă din nou."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "A apărut o eroare. Încearcă din nou."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "Setări Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "Se configurează Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "Elimină"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "Șterge Android, aplicațiile Android și datele acestora"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "Android, aplicațiile Android și datele acestora vor fi șterse de pe acest dispozitiv. Celelalte persoane care îl folosesc își păstrează datele Android, dar nu își pot deschide aplicațiile Android până când Android nu este configurat din nou."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "Elimini Android?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "Elimină Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "Se elimină Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "Configurează"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "Aplicațiile Android se deschid în ferestre proprii, lângă celelalte aplicații. Configurarea descarcă Android (LineageOS, din proiectul Waydroid): aproximativ 1 GB, iar pe acest dispozitiv ocupă 2,5 GB."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "Rulează aplicații Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "Aplicații Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "Houdini de la Intel"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "Traducerea NDK de la Google"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "Aplicațiile Android nu sunt disponibile momentan."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "Android ocupă SIZE pe acest dispozitiv"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "ID cheie de acces"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "Adaugă un cont"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "Înapoi"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "ID client"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "Secret client"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "Conectează"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "Se conectează…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "Accesează Google Drive, OneDrive, Dropbox și alte servicii de stocare în cloud din Fișiere"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "Adaugă stocare în cloud"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "ACCOUNT_NAME apare acum în Fișiere."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "Google Drive are nevoie de propriul tău ID client și secret din consola Google Cloud."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "Adresă de e-mail sau nume de utilizator"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "Endpoint (gol pentru Amazon S3)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "Nu s-a putut conecta. Verifică detaliile și încearcă din nou."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "Terminat"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "Cum le creezi"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "În Fișiere"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "Nume"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "Înainte"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "Neconectat"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "Parolă"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "NickelOS folosește rclone pentru a afișa stocarea în cloud în Fișiere, ca să ajungi ușor la fișiere. Alege un serviciu la care să te conectezi."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "Regiune (opțional)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "Elimină"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "Fișiere nu va mai afișa acest cont. Fișierele tale rămân în cloud și poți adăuga din nou contul mai târziu."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "Elimini ACCOUNT_NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "Se elimină…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "Amazon S3 sau compatibil"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "Cheie de acces secretă"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "Adresa serverului"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "Serviciu"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "Finalizează conectarea pe pagina care s-a deschis în browser."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "Când te conectezi, pagina de conectare a serviciului se deschide în browser."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "Stocare în cloud"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "Cod de verificare în doi pași (dacă îl folosești)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "Nume de utilizator"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "Nextcloud sau WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "Doar un administrator al acestui computer îi poate schimba numele."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "Schimbă"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "Alte dispozitive văd acest nume în rețea și prin Bluetooth, iar Terminalul și aplicațiile Linux îl afișează."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "Schimbă numele computerului"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "Numele nu a putut fi schimbat. Încearcă din nou."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "Folosește cel puțin o literă de la A la Z sau o cifră."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "Numele computerului"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "În Terminal: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "Aplicațiile care deschid fiecare tip de fișier, din Fișiere și din aplicațiile Linux"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "Documente"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "E-mail"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "Imagini"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "Muzică"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "Nicio aplicație nu le deschide"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "Nesetat"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "Documente PDF"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "Prezentări"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "Capturi de ecran (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "Captură de ecran (integrată)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "Foi de calcul"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "Fișiere text"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "Aplicații prestabilite"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "Videoclipuri"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (site)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "Unitățile din acest dispozitiv, în afară de cea cu NickelOS. Unitatea pe care se află Windows se deschide doar în citire, ca Windows să rămână intact."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "Alte unități"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "Permite modificări"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "Windows se află pe această unitate. Este doar în citire dacă nu permiți modificări."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "Cu Pornire rapidă, Windows nu se închide complet, iar modificările făcute aici se pot pierde sau pot deteriora fișiere când Windows pornește din nou. Înainte să faci modificări, dezactivează Pornirea rapidă în Windows sau ține apăsată tasta Shift în timp ce închizi Windows."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "Permiți modificări pe unitatea Windows?"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "Windows nu s-a închis complet, așa că unitatea rămâne doar în citire. Închide complet Windows pentru a face modificări."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "Afișează în Fișiere"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "Primește ajutor de la alte persoane"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "Forumul, Discord și GitHub, pe nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "Învață Gentoo"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "Portage și emerge de la zero, cu comenzile pacman și apt alături"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "Ghidul NickelOS"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "Cum funcționează NickelOS. Această copie a venit cu versiunea ta de NickelOS și funcționează offline."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "Ghid, învățarea Gentoo, remedierea problemelor"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "Ghidul online"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "Cea mai nouă versiune, pe nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "Ajutor"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "Remedierea problemelor"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "Jurnale, rapoarte de blocare și problemele obișnuite, cu soluțiile lor"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "Aplicații Linux"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "Acceptă"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "Disponibil pentru asociere"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "Anulează"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "Conectat"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "Conectat · Baterie PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "Conectat · Se încarcă, PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "Cu aplicația KDE Connect pe Android sau iPhone, în aceeași rețea Wi-Fi"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "Mai multe pentru DEVICE_NAME"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "Nu există încă telefoane sau tablete. Instalează KDE Connect din Google Play, F-Droid sau App Store, deschide aplicația în aceeași rețea Wi-Fi, apoi asociază dispozitivele de pe oricare dintre ele."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "Conexiunea cu telefoanele nu rulează. Deconectează-te și conectează-te din nou pentru a o porni."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "Deschide Valent"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "Asociază"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "Asociat · Neconectat"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "Se așteaptă acceptarea"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "Respinge"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "Sună"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "Trimite fișiere"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "Trimite fișiere"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "Telefoane și tablete"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "Anulează asocierea"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "Vrea să se asocieze cu acest dispozitiv"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "Permite aplicațiilor precum Discord să folosească funcția push-to-talk când ești în alte ferestre. Acestea văd tastele apăsate cu Ctrl, Alt sau tasta de căutare și tastele funcționale, dar niciodată ce tastezi."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "Taste de comenzi rapide pentru aplicațiile Linux mai vechi"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "Asigură-te că imprimanta este conectată la aceeași rețea Wi-Fi ca dispozitivul NickelOS sau folosește un cablu USB. LINK_BEGINAflă mai multe despre compatibilitateLINK_END"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "Nu se poate conecta imprimanta. Asigură-te că este pornită și conectată la dispozitivul NickelOS prin Wi-Fi sau USB."
+ },
+ "IDS_SETTINGS_SECURE_DNS_OPEN_CHROME_OS_SETTINGS_LABEL": {
+  "en": "Manage secure DNS in NickelOS settings",
+  "t": "Gestionează DNS-ul securizat în setările NickelOS"
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "Dosar personal"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "Pentru început, asigură-te că USB-ul sau Bluetooth-ul este conectat la dispozitivul NickelOS. Poți folosi și tastele de pe tastatură."
+ },
+ "IDS_SHORT_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_SIGNIN_ERROR_SECONDARY_ACCOUNT_DISPLAY_SOURCE": {
+  "en": "NickelOS System",
+  "t": "Sistemul NickelOS"
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "Pentru a debloca dispozitivul NickelOS, asigură-te că funcția Bluetooth a telefonului este activată"
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "Bluetooth-ul dispozitivului NickelOS este dezactivat. Pentru a-ți debloca dispozitivul NickelOS, introdu parola."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "Telefonul nu are ecran de blocare. Pentru a debloca dispozitivul NickelOS, introdu parola."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "Pentru a debloca dispozitivul NickelOS, mai întâi deblochează telefonul"
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "Dispozitivul folosește un senzor încorporat pentru a detecta persoanele din fața lui. Toate datele sunt prelucrate imediat pe dispozitiv, apoi sunt șterse. Datele de la senzor nu sunt trimise niciodată la Google."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "Jurnale NickelOS"
+ },
+ "IDS_SYNC_OTHER_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data due to an error signing in.",
+  "t": "NickelOS nu a putut sincroniza datele din cauza unei erori la conectare."
+ },
+ "IDS_SYNC_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because your account sign-in details are out of date.",
+  "t": "NickelOS nu a putut sincroniza datele, deoarece detaliile de conectare pentru contul tău nu sunt actualizate."
+ },
+ "IDS_SYNC_UNAVAILABLE_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because Sync is not available for your domain.",
+  "t": "NickelOS nu a putut sincroniza datele, deoarece sincronizarea nu este disponibilă pentru domeniu."
+ },
+ "IDS_TERMS_OF_SERVICE_SCREEN_SUBHEADING": {
+  "en": "MANAGER requires that you read and accept the following Terms of Service before using this device. These terms do not expand, modify or limit the NickelOS Terms.",
+  "t": "MANAGER îți solicită să citești și să accepți Termenii și condițiile următoare înainte de a folosi acest dispozitiv. Aceste condiții nu extind, nu modifică și nu limitează Condițiile NickelOS."
+ },
+ "IDS_UPDATE_RECOMMENDED": {
+  "en": "NickelOS needs to be restarted to apply the update.",
+  "t": "Pentru a se aplica actualizarea, NickelOS trebuie să fie repornit."
+ },
+ "IDS_UPDATE_RECOMMENDED_DIALOG_TITLE": {
+  "en": "Restart NickelOS",
+  "t": "Repornește NickelOS"
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "Te vei conecta la dispozitiv cu propriul cont, iar oricine îl folosește poate avea unul."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "Propriul tău cont pe dispozitiv"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "NickelOS este proiectat cu accent pe securitate și se actualizează automat."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "NickelOS rulează aplicații web și aplicații Linux una lângă alta. Descarcă aplicații pentru productivitate, divertisment și altele."
+ },
+ "IDS_UPDATE_SLIDE_UPDATE_TEXT": {
+  "en": "This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.",
+  "t": "Este singura dată când vei aștepta o actualizare. Pe NickelOS, actualizările software au loc în fundal."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "Aplicațiile Chrome nu rulează pe NickelOS. Ia în considerare o aplicație alternativă."
+ },
+ "IDS_UTILITY_PROCESS_IMAGE_WRITER_NAME": {
+  "en": "NickelOS System Image Writer",
+  "t": "Instrument de scriere a imaginilor de sistem pentru NickelOS"
+ },
+ "IDS_WRONG_HWID_SCREEN_MESSAGE_FIRST_PART": {
+  "en": "Unfortunately, your computer is configured with a malformed hardware ID. This prevents NickelOS from updating with the latest security fixes and your computer BEGIN_BOLDmay be vulnerable to malicious attacksEND_BOLD.",
+  "t": "Din păcate, computerul este configurat cu un ID de hardware incorect. Acest lucru împiedică actualizarea NickelOS cu cele mai recente remedieri de securitate, iar computerul BEGIN_BOLDar putea fi vulnerabil la atacuriEND_BOLD."
+ }
+}

@@ -1,0 +1,21 @@
+NickelOS: bind the CUPS socket at /run/cups/cups.sock in the sandbox.
+
+Flatpak makes /var/run a symlink to ../run in the sandbox and bound the
+socket at /var/run/cups/cups.sock. bubblewrap 0.12 creates mount points
+without following symlinks (O_NOFOLLOW), so it stopped at /var/run: "Can't
+mkdir parents for /var/run/cups/cups.sock: Too many levels of symbolic
+links", and no app with --socket=cups (KDE apps, LibreOffice...) started.
+Through the symlink, /var/run/cups/cups.sock, libcups' default, is still
+the socket.
+
+--- a/common/flatpak-run-cups.c
++++ b/common/flatpak-run-cups.c
+@@ -112,7 +112,7 @@
+ void
+ flatpak_run_add_cups_args (FlatpakBwrap *bwrap)
+ {
+-  g_autofree char * sandbox_server_name = g_strdup ("/var/run/cups/cups.sock");
++  g_autofree char * sandbox_server_name = g_strdup ("/run/cups/cups.sock");
+   g_autofree char * cups_server_name = flatpak_run_get_cups_server_name ();
+ 
+   if (!g_file_test (cups_server_name, G_FILE_TEST_EXISTS))

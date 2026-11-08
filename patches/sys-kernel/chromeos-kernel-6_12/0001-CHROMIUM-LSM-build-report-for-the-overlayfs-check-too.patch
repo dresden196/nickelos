@@ -1,0 +1,29 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] CHROMIUM: LSM: build report() for the overlayfs check too
+
+The overlayfs check in chromiumos_security_sb_mount() calls report()
+unconditionally, but report() is only compiled when
+NO_UNPRIVILEGED_UNSAFE_MOUNTS or NO_SYMLINK_MOUNT is enabled. NickelOS
+turns both off (Flatpak's bubblewrap mounts inside user namespaces and
+through symlinked paths), so build report() unconditionally.
+
+---
+--- a/security/chromiumos/lsm.c
++++ b/security/chromiumos/lsm.c
+@@ -51,8 +51,6 @@
+ }
+ __setup("chromiumos.allow_overlayfs", allow_overlayfs_set);
+ 
+-#if defined(CONFIG_SECURITY_CHROMIUMOS_NO_UNPRIVILEGED_UNSAFE_MOUNTS) || \
+-	defined(CONFIG_SECURITY_CHROMIUMOS_NO_SYMLINK_MOUNT)
+ static void report(const char *origin, const struct path *path, char *operation)
+ {
+ 	char *alloced = NULL, *cmdline;
+@@ -85,7 +83,6 @@
+ 	kfree(cmdline);
+ 	kfree(alloced);
+ }
+-#endif
+ 
+ static int chromiumos_security_sb_mount(const char *dev_name,
+ 					const struct path *path,

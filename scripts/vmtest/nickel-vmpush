@@ -1,0 +1,7 @@
+#!/bin/bash
+# nickel-vmpush DEST [MODE] < FILE: puts a program (or script) built for
+# ChromeOS into the test VM, as `nickel-vmssh "cat > DEST; chmod MODE DEST"`.
+set -u
+dest=${1:?destination in the VM}
+mode=${2:-755}
+nickel-vmssh "cat > '$dest' && chmod $mode '$dest'"

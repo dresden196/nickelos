@@ -1,0 +1,49 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Google's AMD DRI driver from /usr/lib64/cros/dri, loaded RTLD_LOCAL
+
+minigbm's amdgpu backend allocates through Mesa's DRI driver interface
+(radeonsi_dri.so). NickelOS Unified's Mesa is Gentoo's 26, whose
+dri/radeonsi_dri.so is only the stub that loads libgallium and no longer
+offers that interface: Google's driver (Mesa 24, LLVM inside) is kept for
+minigbm alone in /usr/lib64/cros/dri, linked -Bsymbolic
+(nickel-mesa-apart.bashrc) so its calls to what it defines itself
+(amdgpu_winsys_create) don't land in Gentoo's libgallium, which exports
+the same names. It loads RTLD_LOCAL now, so none of its symbols become
+everyone's either: Gentoo's Mesa in the same process (Chrome's EGL) keeps
+its own. Not RTLD_DEEPBIND: that binds the driver's free() to glibc's
+under Chrome's own allocator ("double free or corruption" in the GPU
+process, the AMD test PC, 2026-10-20).
+---
+--- a/dri.c	2026-09-30 22:56:30.217182346 +0000
++++ b/dri.c	2026-10-20 23:20:51.348081656 +0000
+@@ -173,7 +173,12 @@
+ 
+ void *dri_dlopen(const char *dri_so_path)
+ {
+-	return dlopen(dri_so_path, RTLD_NOW | RTLD_GLOBAL);
++	/*
++	 * NickelOS: loaded RTLD_LOCAL, so the driver's symbols stay its own:
++	 * on AMD it is Google's radeonsi, beside Gentoo's Mesa, whose
++	 * libgallium exports names it does too (DRI_PATH in amdgpu.c).
++	 */
++	return dlopen(dri_so_path, RTLD_NOW | RTLD_LOCAL);
+ }
+ 
+ void dri_dlclose(void *dri_so_handle)
+--- a/amdgpu.c	2026-09-30 22:56:30.209182373 +0000
++++ b/amdgpu.c	2026-10-20 23:20:51.348081656 +0000
+@@ -25,7 +25,13 @@
+ #include "util.h"
+ 
+ // clang-format off
+-#define DRI_PATH STRINGIZE(DRI_DRIVER_DIR/radeonsi_dri.so)
++/*
++ * NickelOS: Google's radeonsi DRI driver, kept for minigbm alone in
++ * /usr/lib64/cros/dri (nickel-unify) and linked -Bsymbolic: /usr/lib64/dri
++ * has Gentoo's Mesa's, which no longer offers the DRI interface minigbm
++ * calls.
++ */
++#define DRI_PATH "/usr/lib64/cros/dri/radeonsi_dri.so"
+ // clang-format on
+ 
+ #define TILE_TYPE_LINEAR 0

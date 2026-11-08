@@ -1,0 +1,24 @@
+{
+  "app_url": "https://calendar.proton.me/",
+  "launch_container": "window",
+  "user_type": [
+    "unmanaged"
+  ],
+  "feature_name": "NickelFullExperience",
+  "only_use_offline_manifest": true,
+  "offline_manifest": {
+    "name": "Proton Calendar",
+    "start_url": "https://calendar.proton.me/",
+    "scope": "https://calendar.proton.me/",
+    "display": "standalone",
+    "icon_any_pngs": [
+      "icons/proton-calendar-192.png",
+      "icons/proton-calendar-512.png"
+    ],
+    "icon_maskable_pngs": [
+      "icons/proton-calendar-maskable-192.png",
+      "icons/proton-calendar-maskable-512.png"
+    ],
+    "theme_color_argb_hex": "FF1B1340"
+  }
+}

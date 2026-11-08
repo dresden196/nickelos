@@ -1,0 +1,132 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the screen saver's card and tile show NickelOS's
+ wallpapers
+
+The screen saver shows NickelOS's wallpapers (0117), but Wallpaper &
+style still showed ChromeOS's coast photo for it: on the screen saver
+page's "Slide show" tile and on the card while the screen saver is off;
+and the card's row of thumbnails, which only Google Photos fills, was an
+empty box under the picture. The tile and the card show NickelOS's
+default wallpaper now (the app's nickel-wallpaper/preview.jpg), the row
+three more of NickelOS's wallpapers (preview-2.jpg to preview-4.jpg,
+chromeos-bsp-nickel), and nothing at all while the screen saver shows the
+user's own pictures.
+
+---
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts
+@@ -205,6 +205,14 @@
+     return classes.join(' ');
+   }
+ 
++  // NickelOS: the screen saver's picture while it's off: NickelOS's default
++  // wallpaper, not ChromeOS's coast photo.
++  protected getDisabledPreviewImage_(): string {
++    return this.isNickelPictures_ ?
++        'chrome://personalization/nickel-wallpaper/preview.jpg' :
++        '//personalization/images/slideshow.png';
++  }
++
+   private getPreviewImage_(album: AmbientModeAlbum|null): string {
+     // NickelOS: a local account's own pictures have no album picture: the
+     // slideshow theme's.
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.html b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.html
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.html
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.html
+@@ -169,6 +169,10 @@
+     border-radius: 12px;
+   }
+ 
++  #thumbnailContainer.nickel-hidden {
++    display: none;
++  }
++
+   #thumbnailContainer.thumbnail-1 .thumbnail-item {
+     border-radius: 60px;
+   }
+@@ -273,7 +277,7 @@
+             id="imageContainer">
+           <div class="preview-image-border"></div>
+           <img class="preview-image disabled"
+-              src="//personalization/images/slideshow.png">
++              src="[[getDisabledPreviewImage_()]]">
+         </div>
+         <div id="messageContainer">
+           <ambient-zero-state-svg></ambient-zero-state-svg>
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.ts
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.ts
+@@ -40,7 +40,8 @@
+     return {
+       thumbnailImages: {
+         type: Array,
+-        computed: 'computeThumbnailImages_(topicSource_, previewImages_)',
++        computed:
++            'computeThumbnailImages_(topicSource_, previewImages_, nickelOwnPictures_)',
+       },
+     };
+   }
+@@ -49,6 +50,14 @@
+ 
+   /** Returns the array of thumbnail images. */
+   private computeThumbnailImages_(): Url[] {
++    // NickelOS: three more of NickelOS's wallpapers beside the preview
++    // (chromeos-bsp-nickel's thumbnails), none for the user's own pictures.
++    if (this.isNickelPictures_) {
++      return this.nickelOwnPictures_ ?
++          [] :
++          ['preview-2.jpg', 'preview-3.jpg', 'preview-4.jpg'].map(
++              name => `chrome://personalization/nickel-wallpaper/${name}`);
++    }
+     if (isNonEmptyArray(this.previewImages_)) {
+       const maxLength = Math.min(
+           this.previewImages_.length,
+@@ -87,7 +96,10 @@
+   }
+ 
+   private getThumbnailContainerClass_(): string {
+-    return `thumbnail-${this.thumbnailImages.length} clickable`;
++    // NickelOS: no empty box where there's nothing to show.
++    const hidden = this.isNickelPictures_ && this.thumbnailImages.length === 0;
++    return `thumbnail-${this.thumbnailImages.length} clickable${
++        hidden ? ' nickel-hidden' : ''}`;
+   }
+ }
+ 
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_small_element.html b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_small_element.html
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_small_element.html
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_small_element.html
+@@ -80,7 +80,7 @@
+           class="preview-image-container"
+           id="imageContainer">
+         <div class="preview-image-border"></div>
+-        <img class="preview-image disabled" src="//personalization/images/slideshow.png">
++        <img class="preview-image disabled" src="[[getDisabledPreviewImage_()]]">
+       </div>
+       <h2 id="zeroStateTextContainer"
+           class="preview-text-container zero-state-info-subpage"
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_theme_item_element.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_theme_item_element.ts
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_theme_item_element.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_theme_item_element.ts
+@@ -13,6 +13,7 @@
+ import {assertNotReached} from 'chrome://resources/js/assert.js';
+ 
+ import {AmbientTheme} from '../../personalization_app.mojom-webui.js';
++import {isNickelPicturesScreenSaver} from '../load_time_booleans.js';
+ import {WithPersonalizationStore} from '../personalization_store.js';
+ import {isSelectionEvent} from '../utils.js';
+ 
+@@ -82,6 +83,12 @@
+   /** Return the display image for ambient theme option. */
+   private computeImgSrc_(ambientTheme: AmbientThemeItemElement['ambientTheme']):
+       string {
++    // NickelOS: the slideshow shows NickelOS's wallpapers (or the user's
++    // pictures), not ChromeOS's coast photo.
++    if (isNickelPicturesScreenSaver() &&
++        ambientTheme === AmbientTheme.kSlideshow) {
++      return 'chrome://personalization/nickel-wallpaper/preview.jpg';
++    }
+     if (this.ambientThemePreviews_ === null) {
+       return '';
+     }

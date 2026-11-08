@@ -1,0 +1,71 @@
+#!/bin/sh
+# NickelOS: loads the driver for this machine's NVIDIA GPUs when udev asks
+# for nvidia or nouveau (modprobe install rules, nickel-nvidia.conf).
+#   nickel-nvidia-driver nvidia|nouveau
+# nvidia-open if NVIDIA's open modules support a GPU here (their list,
+# /usr/share/nickel/nvidia-open-gpus), else nouveau. With nvidia-open it also
+# loads nvidia-drm (Chrome's display device) and makes the /dev/nvidia*
+# nodes NVIDIA's userspace opens.
+
+requested=$1
+list=/usr/share/nickel/nvidia-open-gpus
+
+# modprobe's --ignore-install covers only the module it names, not its
+# dependencies: loading one of them (nvidia, for nvidia-drm) comes back here.
+# Then just load it.
+if [ -n "${NICKEL_NVIDIA_DRIVER}" ]; then
+  exec modprobe --ignore-install "${requested}"
+fi
+export NICKEL_NVIDIA_DRIVER=1
+
+open_gpus=0
+for dev in /sys/bus/pci/devices/*; do
+  [ "$(cat "${dev}/vendor" 2>/dev/null)" = 0x10de ] || continue
+  case "$(cat "${dev}/class" 2>/dev/null)" in
+    0x03*) ;;  # display controllers only, not their audio functions
+    *) continue ;;
+  esac
+  if grep -qix "$(cat "${dev}/device")" "${list}"; then
+    open_gpus=$((open_gpus + 1))
+  fi
+done
+
+if [ "${open_gpus}" -eq 0 ]; then
+  # Older GPUs: nouveau, and nothing from nvidia-open.
+  [ "${requested}" = nouveau ] || exit 0
+  exec modprobe --ignore-install nouveau
+fi
+
+# nvidia-open; nouveau must not take the GPU.
+[ "${requested}" = nvidia ] || exit 0
+for module in nvidia nvidia-modeset nvidia-drm; do
+  modprobe --ignore-install "${module}" || exit 1
+done
+# CUDA (video decode through NVDEC) also needs nvidia-uvm; not fatal.
+modprobe --ignore-install nvidia-uvm
+# Register NVIDIA's EGL with glvnd, its Vulkan driver with the Vulkan loader
+# and its OpenCL with the OpenCL loader (their files link here; see the
+# ebuild).
+mkdir -p /run/nickel/nvidia
+ln -sf /usr/share/nvidia/egl_vendor.d/10_nvidia.json /run/nickel/nvidia/10_nvidia.json
+ln -sf /usr/share/nvidia/vulkan/icd.d/nvidia_icd.json /run/nickel/nvidia/nvidia_icd.json
+ln -sf /usr/share/nvidia/OpenCL/vendors/nvidia.icd /run/nickel/nvidia/nvidia.icd
+major=$(awk '$2 == "nvidia-frontend" || $2 == "nvidia" { print $1; exit }' \
+  /proc/devices)
+[ -n "${major}" ] || exit 1
+node() {  # NAME MINOR
+  [ -e "/dev/$1" ] || mknod -m 0666 "/dev/$1" c "${major}" "$2"
+}
+node nvidiactl 255
+node nvidia-modeset 254
+i=0
+while [ "${i}" -lt "${open_gpus}" ]; do
+  node "nvidia${i}" "${i}"
+  i=$((i + 1))
+done
+uvm=$(awk '$2 == "nvidia-uvm" { print $1; exit }' /proc/devices)
+if [ -n "${uvm}" ]; then
+  major=${uvm}
+  node nvidia-uvm 0
+  node nvidia-uvm-tools 1
+fi

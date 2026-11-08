@@ -1,0 +1,46 @@
+#!/bin/bash
+# Checks that the whole Chrome patch series applies, in order, to pristine
+# sources: every file the patches touch is taken from git HEAD of the Chrome
+# checkout into a temporary tree, and patches 0001..N go on top. Reports
+# patches that fail or apply with fuzz or offsets, and with -t, files whose
+# result differs from the working Chrome tree (a scratch copy that missed the
+# tree, or the reverse). Runs inside the SDK chroot (git in the checkout
+# needs the chroot's /tmp/git-cache alternates):
+#   cros_sdk -- /mnt/host/source/src/overlays/overlay-nickel/scripts/buildhost/bin/nickel-chrome-patch-check [-t]
+set -u
+SRC=${CHROME_SRC:-/var/cache/chromeos-cache/distfiles/chrome-src/src}
+P=$(dirname "$(readlink -f "$0")")/../../../patches/chromeos-base/chromeos-chrome
+compare=
+[ "${1:-}" = -t ] && compare=1
+T=$(mktemp -d /tmp/nickel-patch-check.XXXX)
+trap 'rm -rf "$T"' EXIT
+git_() { git -c safe.directory='*' "$@"; }
+
+for f in $(grep -h '^+++ b/' "$P"/*.patch | sed 's|^+++ b/||' | sort -u); do
+  d=$(dirname "$SRC/$f")
+  [ -d "$d" ] || continue
+  if git_ -C "$d" ls-files --error-unmatch -- "${f##*/}" >/dev/null 2>&1; then
+    mkdir -p "$T/$(dirname "$f")"
+    git_ -C "$d" show "HEAD:./${f##*/}" > "$T/$f" || echo "cannot read $f from git"
+  fi
+done
+
+bad=0
+cd "$T" || exit 1
+for p in "$P"/*.patch; do
+  out=$(patch -p1 -N --no-backup-if-mismatch < "$p" 2>&1)
+  rc=$?
+  if [ $rc -ne 0 ] || grep -q -E "fuzz|offset|FAILED|reversed" <<< "$out"; then
+    echo "== ${p##*/} (exit ${rc})"
+    grep -E "fuzz|offset|FAILED|reversed|rej" <<< "$out" | head -5
+    bad=1
+  fi
+done
+echo "$(ls "$P"/*.patch | wc -l) patches applied to pristine sources$([ $bad = 1 ] && echo ', with the problems above')"
+
+if [ -n "$compare" ]; then
+  for f in $(grep -h '^+++ b/' "$P"/*.patch | sed 's|^+++ b/||' | sort -u); do
+    cmp -s "$T/$f" "$SRC/$f" || echo "differs from the Chrome tree: $f"
+  done
+fi
+exit $bad

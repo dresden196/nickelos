@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Android apps · NickelOS guide</title>
+<meta name="description" content="Android apps on NickelOS through Waydroid. Setting it up, installing APKs, ARM apps and the translators, how Android draws on Intel, AMD and NVIDIA, what runs underneath, the waydroid command, and what to do when an app won&#x27;t install.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1b18" media="(prefers-color-scheme: dark)">
+<link rel="preload" href="assets/fonts/GoogleSansFlex-nickelos.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to the content</a>
+
+<header class="masthead">
+  <div class="wrap masthead-row">
+    <a class="brand" href="https://nickelos.dev/" aria-label="NickelOS home">
+      <img src="assets/img/nickelos-logo-v3.png" alt="" width="32" height="32">
+      <span>NickelOS</span>
+    </a>
+    <nav aria-label="Site">
+      <a href="index.html">Guide</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="community.html">Get help</a>
+    </nav>
+    <span class="chip" title="NickelOS has not been released yet">Alpha</span>
+  </div>
+</header>
+
+<main id="main" class="guide">
+  <div class="wrap guide-layout">
+    <nav class="guide-nav" aria-label="Guide">
+      <p class="eyebrow">Guide</p>
+      <ul>
+        <li><a href="index.html">Start here</a></li>
+        <li><a href="install.html">Installing</a></li>
+        <li><a href="basics.html">Getting around</a></li>
+        <li><a href="apps.html">Apps</a></li>
+        <li><a href="android.html" aria-current="page">Android apps</a></li>
+        <li><a href="gentoo.html">Gentoo and Portage</a></li>
+        <li><a href="learning-gentoo.html">Learning Gentoo</a></li>
+        <li><a href="terminal.html">Terminal and system</a></li>
+        <li><a href="graphics.html">Graphics</a></li>
+        <li><a href="sound.html">Sound and camera</a></li>
+        <li><a href="games.html">Steam and games</a></li>
+        <li><a href="files.html">Your files</a></li>
+        <li><a href="input.html">Typing and keyboard</a></li>
+        <li><a href="updates.html">Updates</a></li>
+        <li><a href="under-the-hood.html">Under the hood</a></li>
+        <li><a href="troubleshooting.html">Troubleshooting</a></li>
+        <li><a href="community.html">Getting help</a></li>
+      </ul>
+    </nav>
+    <article class="guide-page">
+<h1>Android apps</h1>
+<p>NickelOS runs Android apps with <strong>Waydroid</strong>: a full Android system in a container on the device, sharing the Linux kernel with everything else. It isn't an emulator or a virtual machine. Each Android app opens in a window of its own, with its own shelf icon, next to your Linux apps.</p>
+      <nav class="toc" aria-label="On this page"><a href="#setting-it-up">Setting it up</a><a href="#your-android">Your Android</a><a href="#installing-apps">Installing apps</a><a href="#arm-apps">ARM apps</a><a href="#graphics">Graphics</a><a href="#what-runs-underneath">What runs underneath</a><a href="#the-waydroid-command">The waydroid command</a><a href="#removing-android">Removing Android</a><a href="#when-something-goes-wrong">When something goes wrong</a></nav>
+
+<h2 id="setting-it-up">Setting it up</h2>
+<p>Android isn't on the system image. It's about 1 GB to download, so it waits until you want it. Go to <strong>Settings &gt; Apps &gt; Android apps</strong> and choose <strong>Set up</strong>. A progress bar shows the download, and <strong>Cancel</strong> stops it and cleans up. When it's done, Android takes about 2.5 GB on the device.</p>
+<p>What gets downloaded is Waydroid's own Android image: LineageOS 20 (Android 13) without Google's apps, from the Waydroid project's servers. It's stored once, in <code>/var/lib/waydroid</code>, for everyone on the device. Only an administrator can set it up or remove it. Everyone else sees the same page with its controls turned off.</p>
+<p>If you'd rather use the Terminal, this does the same thing:</p>
+<pre><code>sudo waydroid init
+sudo start waydroid-container</code></pre>
+<h2 id="your-android">Your Android</h2>
+<p>Each person on the device gets their own Android: their own apps, accounts and data, in <code>~/.local/share/waydroid</code>. Android starts the first time you open an Android app or an APK, which takes about 15 seconds, and then keeps running while you're signed in. On Intel and AMD, Waydroid freezes it while it's idle, so it uses no CPU.</p>
+<p>The apps you install appear in the launcher, and they stay there. Waydroid writes a desktop file for each one into <code>~/.local/share/applications</code> (named <code>waydroid.&lt;package&gt;.desktop</code>), and keeps them in step as apps come and go. Android's own apps (Calculator, Clock, Files, Gallery, Settings and the rest) are kept out of the launcher, so they don't sit beside NickelOS's own Files and Settings. They're on Android's home screen, which the <strong>Waydroid</strong> entry in the launcher opens in a window.</p>
+<p><strong>Android settings</strong>, on the same Settings page, opens Android's own Settings app. That's where you manage Android's apps, their permissions and their storage. Android uses ChromeOS's time zone, and follows it when it changes.</p>
+<h2 id="installing-apps">Installing apps</h2>
+<p>Open an APK file from Files (or any app that opens files) and NickelOS installs it. A notification says when the app is installed, with <strong>Open</strong>. If an app can't be installed, the notification says why. If Android wasn't running, it starts first.</p>
+<p>Installing a newer version of an app works the same way: open its APK, and the notification says the app was updated.</p>
+<p>For an app store, <a href="https://f-droid.org">F-Droid</a> works well: download its APK from their site, open it, and install apps from there.</p>
+<p><strong>Uninstalling.</strong> Right-click the app in the launcher or on the shelf and choose <strong>Uninstall</strong>, as with any app. It goes through Android's own package manager, in your Android (which starts first if it isn't running). Uninstalling from <strong>Android settings</strong>, under Apps, works too. Either way, the app's launcher entry goes away by itself.</p>
+<h2 id="arm-apps">ARM apps</h2>
+<p>Phones use ARM processors, and many Android apps, games especially, are built only for ARM. Your computer's processor runs x86 code. To run ARM-only apps, Android needs a translator, which it loads as its "native bridge".</p>
+<p>NickelOS doesn't make or include a translator. <strong>ARM app support</strong>, on the Android apps page in Settings, downloads one for you, after you agree. It's proprietary software, under its owner's terms, and you're the one installing it. Which translator you get depends on your processor:</p>
+<div class="table"><table><thead><tr><th>Your processor</th><th>The translator</th><th>Download</th></tr></thead><tbody><tr><td>Intel (<code>vendor_id</code> is <code>GenuineIntel</code> in <code>/proc/cpuinfo</code>)</td><td>Intel's Houdini, <code>libhoudini</code></td><td>about 75 MB</td></tr><tr><td>AMD, or anything else</td><td>Google's NDK translation, <code>libndk_translation</code></td><td>about 18 MB</td></tr></tbody></table></div>
+<p>Both come from GitHub, at the exact commits the Waydroid community's <a href="https://github.com/casualsnek/waydroid_script">waydroid_script</a> installs, and each download is checked against waydroid_script's MD5 checksum and our own SHA-256 before anything is installed. The download is kept in <code>/mnt/stateful_partition/nickel/waydroid-arm</code>.</p>
+<p>The translator's files go into Waydroid's overlay (<code>/var/lib/waydroid/overlay/system</code>), which sits over Android's system image without changing it. Android's properties are set so it uses the translator and lists ARM among the CPU types it runs: <code>x86_64, x86, arm64-v8a, armeabi-v7a, armeabi</code>. Android restarts to use it, so open Android apps close.</p>
+<p>Turning the switch off takes the translator's files and properties back out, and Android restarts again. ARM-only apps you installed stay installed, but won't run until you turn it back on.</p>
+<p>If you open an ARM-only APK while ARM app support is off, the notification says so and has a <strong>Turn on</strong> button that takes you to the switch.</p>
+<h2 id="graphics">Graphics</h2>
+<p>Android draws on your GPU, like your Linux apps do:</p>
+<ul><li><strong>Intel and AMD:</strong> Android uses its own Mesa, from Waydroid's image, on your GPU's render node (<code>iris</code> on Intel, <code>radeonsi</code> on AMD).</li><li><strong>NVIDIA:</strong> NickelOS sets Android up for <a href="https://github.com/Shiro836/waydroid-nvidia">waydroid-nvidia</a> by itself when Android's container starts on an NVIDIA GPU. Inside Android, Mesa's Venus driver sends Vulkan calls over a socket (<code>/run/waydroid-venus/venus.sock</code>) to a render server in your session (the <code>nickel-waydroid-venus</code> job), which runs them on NVIDIA's own driver. OpenGL ES runs through ANGLE, on top of that Vulkan. It needs NVIDIA's open kernel modules, so a GeForce GTX 16 or RTX 20 series card or newer (see <a href="graphics.html#nvidia">Graphics</a>).</li></ul>
+<p>Each app window reaches the screen as a GPU buffer handed to ChromeOS's Wayland server, the same way a Linux app's does.</p>
+<h2 id="what-runs-underneath">What runs underneath</h2>
+<div class="table"><table><thead><tr><th>Piece</th><th>What it does</th></tr></thead><tbody><tr><td><code>waydroid-container</code> (an upstart job, as root)</td><td>Waydroid's container manager. Starts at boot once Android is set up. Before it starts, <code>nickel-waydroid-prepare</code> mounts the cgroup v2 hierarchy, so Android's network filters stay inside Android, and sets Android's options</td></tr><tr><td>Waydroid's session (in your session, as you)</td><td>Starts and stops your Android, writes the launcher entries, and brings Android's windows, input and notifications to the desktop</td></tr><tr><td><code>nickel-waydroidd</code> (an upstart job, as root)</td><td>The system service behind the Settings page and the APK handler: setting Android up, ARM app support, removing Android, and installing APKs through Android's own package manager</td></tr><tr><td><code>nickel-waydroid-apk</code></td><td>What opens APK files, and sends the notifications</td></tr><tr><td><code>waydroid0</code></td><td>The network bridge Android sits behind. Android gets an address in <code>192.168.240.0/24</code> and uses ChromeOS's DNS. ChromeOS's network manager knows to leave the bridge alone</td></tr></tbody></table></div>
+<h2 id="the-waydroid-command">The waydroid command</h2>
+<div class="table"><table><thead><tr><th>Command</th><th>What it does</th></tr></thead><tbody><tr><td><code>waydroid status</code></td><td>Whether your Android is running</td></tr><tr><td><code>waydroid app list</code></td><td>Your Android's apps and their package names (while Android is running)</td></tr><tr><td><code>waydroid app launch &lt;package&gt;</code></td><td>Opens an app, and starts Android if it isn't running</td></tr><tr><td><code>waydroid session stop</code></td><td>Stops your Android</td></tr><tr><td><code>sudo waydroid shell</code></td><td>A root shell inside Android</td></tr><tr><td><code>sudo waydroid logcat</code></td><td>Android's log</td></tr></tbody></table></div>
+<h2 id="removing-android">Removing Android</h2>
+<p><strong>Settings &gt; Apps &gt; Android apps &gt; Remove Android</strong> (administrators only) deletes Android's image, ARM app support, and your Android apps and data. Other people on the device keep their Android data in their own home folders. They can't open their Android apps until Android is set up again, and their launcher entries for Android apps are removed the next time they sign in.</p>
+<h2 id="when-something-goes-wrong">When something goes wrong</h2>
+<p><strong>An APK won't install.</strong> The notification says why. The usual reasons:</p>
+<div class="table"><table><thead><tr><th>The notification says</th><th>What it means</th></tr></thead><tbody><tr><td>Needs ARM app support</td><td>The app has only ARM code. Turn on ARM app support, then open the APK again</td></tr><tr><td>It needs a newer version of Android</td><td>The app wants a newer Android than Android 13</td></tr><tr><td>A newer version of this app is already installed</td><td>Android doesn't install an older version over a newer one. Uninstall the app first</td></tr><tr><td>A copy of this app signed by someone else is installed</td><td>The installed app came from a different developer or store. Uninstall it first</td></tr><tr><td>This is only part of an app</td><td>A "split" app, which comes as several APK files (often in an <code>.apks</code> or <code>.xapk</code> file)</td></tr><tr><td>The file isn't a working Android app</td><td>The download is damaged or incomplete, or it isn't an APK</td></tr><tr><td>Android said: …</td><td>Android's own error code, for anything else</td></tr></tbody></table></div>
+<p><strong>An app wants Google Play services.</strong> Android here is LineageOS without Google's apps. Apps that rely on Play services to sign in, get notifications or check licenses may not work.</p>
+<p><strong>Android doesn't start, or its windows don't appear.</strong> Check that the container manager is running (<code>status waydroid-container</code>), then look at Waydroid's log, <code>/var/lib/waydroid/waydroid.log</code>, and the system log: <code>sudo grep -E &#x27;waydroid|nickel-waydroidd&#x27; /var/log/messages | tail -50</code>. <code>waydroid session stop</code>, then opening an Android app again, starts your Android fresh.</p>
+<p><strong>On NVIDIA, a game shows grey or placeholder textures.</strong> It uses ETC2 compressed textures, which waydroid-nvidia doesn't convert for NVIDIA's driver.</p>
+    </article>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-row">
+    <div class="footer-brand">
+      <img src="assets/img/nickelos-logo-v3.png" alt="" width="48" height="48">
+      <div>
+        <p><strong>NickelOS</strong> &middot; Project Crowbar</p>
+        <p class="small">nickelos.dev</p>
+      </div>
+    </div>
+    <div class="small footer-notes">
+      <p>This copy of the guide came with NickelOS and works offline. The newest is at <a href="https://nickelos.dev/help/">nickelos.dev/help</a>.</p>
+      <p>NickelOS is a community project, not affiliated with or endorsed by Google. ChromeOS, ChromiumOS, Chrome, Chromebook and Googlebook are trademarks of Google LLC. Other names belong to their owners.</p>
+      <p>No trackers or analytics. Set in Google Sans Flex and Google Sans Code (<a href="assets/fonts/OFL.txt">SIL Open Font License</a>).</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

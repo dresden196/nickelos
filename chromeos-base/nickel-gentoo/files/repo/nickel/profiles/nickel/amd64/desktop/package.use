@@ -1,0 +1,11 @@
+# NickelOS: the base Gentoo world every device starts with stays without Qt;
+# Qt comes with the apps that need it. GnuPG's passphrase prompt is GNOME's
+# (gcr, there for the keyring anyway) instead of Qt's, and AppStream comes
+# without its Qt binding.
+app-crypt/pinentry -qt6
+dev-libs/appstream -qt6
+# Sound is the session's PipeWire's (the OS's, into ChromeOS's audio
+# server): Gentoo's PipeWire gives apps its libraries, without a sound
+# server of its own or its settings, which the session's WirePlumber read
+# too (one required Bluetooth audio).
+media-video/pipewire -sound-server

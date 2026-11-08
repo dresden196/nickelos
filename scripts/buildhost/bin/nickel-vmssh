@@ -1,0 +1,4 @@
+#!/bin/bash
+# ssh into the nickel-vmtest guest (test image, public test key).
+# NICKEL_VMTEST_SSHPORT selects another test VM (default 9222).
+exec ssh -i /root/.ssh/cros_testing_rsa -p "${NICKEL_VMTEST_SSHPORT:-9222}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 -o LogLevel=ERROR root@127.0.0.1 "$@"

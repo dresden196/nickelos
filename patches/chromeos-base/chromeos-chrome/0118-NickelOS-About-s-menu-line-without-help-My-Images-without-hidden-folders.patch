@@ -1,0 +1,45 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: About's menu line without "help"; My Images without
+ hidden folders
+
+- Settings' menu said "Updates, help, developer options" under About;
+  help has its own entry now (0115): "Updates, developer options".
+- Wallpaper & style's My Images listed pictures from hidden folders in the
+  home, the icons Flatpak apps keep under ~/.local and the like: it skips
+  hidden folders and hidden files now, as Files and the launcher's search
+  do.
+
+---
+diff --git a/chrome/app/os_settings_strings.grdp b/chrome/app/os_settings_strings.grdp
+--- a/chrome/app/os_settings_strings.grdp
++++ b/chrome/app/os_settings_strings.grdp
+@@ -62,7 +62,7 @@
+ 
+   <!-- About (OS Settings) -->
+   <message name="IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION" desc="Description for the About ChromeOS menu item in the left menu.">
+-    Updates, help, developer options
++    Updates, developer options
+   </message>
+   <message name="IDS_OS_SETTINGS_ABOUT_PAGE_BUILD_DETAILS" desc="Label of the row button that clicks into Build details">
+     Build details
+diff --git a/chrome/browser/ash/wallpaper/wallpaper_enumerator.cc b/chrome/browser/ash/wallpaper/wallpaper_enumerator.cc
+--- a/chrome/browser/ash/wallpaper/wallpaper_enumerator.cc
++++ b/chrome/browser/ash/wallpaper/wallpaper_enumerator.cc
+@@ -37,6 +37,17 @@
+   for (base::FilePath image_path = image_enumerator.Next();
+        !image_path.empty() && out->size() < kMaximumImageCount;
+        image_path = image_enumerator.Next()) {
++    // NickelOS: none from hidden folders or hidden files, as Files and the
++    // launcher's search show them: My Images listed the icons Flatpak apps
++    // keep under ~/.local and the like.
++    base::FilePath relative;
++    if (path.AppendRelativePath(image_path, &relative) &&
++        std::ranges::any_of(relative.GetComponents(),
++                            [](const std::string& component) {
++                              return component.starts_with('.');
++                            })) {
++      continue;
++    }
+     if (std::ranges::any_of(
+             trash_paths, [&image_path](const base::FilePath& trash_path) {
+               // Equivalent to

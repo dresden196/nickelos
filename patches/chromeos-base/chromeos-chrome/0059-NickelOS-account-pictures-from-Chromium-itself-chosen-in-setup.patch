@@ -1,0 +1,1024 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: account pictures from Chromium itself, chosen in
+ setup
+
+ChromeOS's default account pictures are downloaded from Google's server
+(gstatic.com), so offline an account shows the anonymous picture. Chromium
+has 29 of them itself: the desktop browser's profile avatars
+(chrome/app/theme/default_100_percent/common/modern_avatars: illustrations,
+food and origami animals, 96 px), the same artwork under the same names.
+
+- webui_theme_resources.grd builds them on ChromeOS too.
+- default_user_images.cc: those 29 are the current set (kBundledImages maps
+  each default image index to its IDR_PROFILE_AVATAR_N); their URLs are
+  chrome://theme/IDR_PROFILE_AVATAR_N, the others' the anonymous picture's.
+- UserImageManagerImpl loads a default picture from the resource pack, PNG
+  bytes included, never from the network. An account whose picture
+  Chromium does not have (given before) keeps the copy saved then.
+- Personalization's avatar page shows chrome://theme URLs as they are and no
+  longer needs to be online to show or pick them.
+- Creating an account (LocalAccountCreationScreen) shows the picture it
+  will get, a random one, and "Change" opens a grid of the 29. The choice
+  waits in the local state pref nickel.setup.pending_avatars, by the
+  account's email, until the account's first sign-in gives it its first
+  picture (SetInitialUserImage), in whichever Chrome signs in first.
+  A photo of one's own stays in Settings (Personalization), after setup.
+
+diff --git a/ash/ash_prefs.cc b/ash/ash_prefs.cc
+index b6dedc4df7dac..2bf46b75629c9 100644
+--- a/ash/ash_prefs.cc
++++ b/ash/ash_prefs.cc
+@@ -264,6 +264,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry,
+ void RegisterLocalStatePrefs(PrefRegistrySimple* registry, bool for_test) {
+   registry->RegisterStringPref(prefs::kNickelSetupPendingExperience,
+                                std::string());
++  registry->RegisterDictionaryPref(prefs::kNickelSetupPendingAvatars);
+   PaletteTray::RegisterLocalStatePrefs(registry);
+   WallpaperPrefManager::RegisterLocalStatePrefs(registry);
+   ColorPaletteController::RegisterLocalStatePrefs(registry);
+diff --git a/ash/constants/nickel_pref_names.h b/ash/constants/nickel_pref_names.h
+index c3770c138a0f3..a5bf3424d4bd3 100644
+--- a/ash/constants/nickel_pref_names.h
++++ b/ash/constants/nickel_pref_names.h
+@@ -18,6 +18,12 @@ inline constexpr char kNickelSetupExperience[] = "nickel.setup.experience";
+ inline constexpr char kNickelSetupPendingExperience[] =
+     "nickel.setup.pending_experience";
+ 
++// Local state: the picture (a default image index) chosen while creating an
++// account, by the account's email, until the account's first sign-in gives
++// it its first picture (UserImageManagerImpl::SetInitialUserImage).
++inline constexpr char kNickelSetupPendingAvatars[] =
++    "nickel.setup.pending_avatars";
++
+ }  // namespace ash::prefs
+ 
+ #endif  // ASH_CONSTANTS_NICKEL_PREF_NAMES_H_
+diff --git a/ash/webui/personalization_app/resources/js/user/avatar_list_element.html b/ash/webui/personalization_app/resources/js/user/avatar_list_element.html
+index 0796e4e057dcd..794e296fc9192 100644
+--- a/ash/webui/personalization_app/resources/js/user/avatar_list_element.html
++++ b/ash/webui/personalization_app/resources/js/user/avatar_list_element.html
+@@ -118,7 +118,6 @@
+           class$="[[getOptionInnerContainerClass_(item, image_)]]"
+           role="option"
+           on-click="onOptionSelected_" on-keypress="onOptionSelected_"
+-          on-error="onAvatarNetworkError_"
+           tabindex$="[[tabIndex]]"
+           aria-posinset$="[[getAriaIndex_(index)]]"
+           aria-selected$="[[getAriaSelected_(item, image_)]]"
+diff --git a/ash/webui/personalization_app/resources/js/user/avatar_list_element.ts b/ash/webui/personalization_app/resources/js/user/avatar_list_element.ts
+index c093e339ed595..a2798503d04ee 100644
+--- a/ash/webui/personalization_app/resources/js/user/avatar_list_element.ts
++++ b/ash/webui/personalization_app/resources/js/user/avatar_list_element.ts
+@@ -15,7 +15,6 @@ import type {Url} from 'chrome://resources/mojo/url/mojom/url.mojom-webui.js';
+ 
+ import type {DefaultUserImage, UserImage} from '../../personalization_app.mojom-webui.js';
+ import {isUserAvatarCustomizationSelectorsEnabled} from '../load_time_booleans.js';
+-import {setErrorAction} from '../personalization_actions.js';
+ import {WithPersonalizationStore} from '../personalization_store.js';
+ import {isSelectionEvent} from '../utils.js';
+ 
+@@ -148,13 +147,9 @@ export class AvatarListElement extends WithPersonalizationStore {
+     this.watch<AvatarListElement['lastExternalUserImageUrl_']>(
+         'lastExternalUserImageUrl_', selectLastExternalUserImageUrl);
+     this.updateFromStore();
++    // NickelOS: the default avatars come with the OS, so being offline
++    // does not matter to them.
+     fetchDefaultUserImages(getUserProvider(), this.getStore());
+-    window.addEventListener('offline', this.onAvatarNetworkError_);
+-  }
+-
+-  override disconnectedCallback() {
+-    super.disconnectedCallback();
+-    window.removeEventListener('offline', this.onAvatarNetworkError_);
+   }
+ 
+   /** Invoked to update |options_|. */
+@@ -291,21 +286,6 @@ export class AvatarListElement extends WithPersonalizationStore {
+     divElement.setAttribute('hidden', 'true');
+   }
+ 
+-  /**
+-   * Called when (1) avatar images fail to load, (2) the device goes
+-   * offline while the avatar picker window is open, or (3) the user
+-   * tries to select an avatar while the device is offline.
+-   */
+-  private onAvatarNetworkError_ = () => {
+-    this.dispatch(setErrorAction({
+-      id: 'AvatarList',
+-      message: this.i18n('avatarNetworkError'),
+-      dismiss: {
+-        message: this.i18n('dismiss'),
+-      },
+-    }));
+-  };
+-
+   private getImageClassForOption_(option: Option) {
+     if (option.imgSrc) {
+       return '';
+@@ -314,11 +294,6 @@ export class AvatarListElement extends WithPersonalizationStore {
+   }
+ 
+   private onSelectDefaultImage_(event: Event) {
+-    if (!window.navigator.onLine) {
+-      this.onAvatarNetworkError_();
+-      return;
+-    }
+-
+     if (!isSelectionEvent(event)) {
+       return;
+     }
+diff --git a/ash/webui/personalization_app/resources/js/user/utils.ts b/ash/webui/personalization_app/resources/js/user/utils.ts
+index 25ba7a48252fb..d93a2f38ed10d 100644
+--- a/ash/webui/personalization_app/resources/js/user/utils.ts
++++ b/ash/webui/personalization_app/resources/js/user/utils.ts
+@@ -19,8 +19,10 @@ export function getAvatarUrl(
+   if (!url) {
+     return '';
+   }
++  // NickelOS: the default avatars are in the resource pack
++  // (chrome://theme), not on a web server.
+   if (url.startsWith('data') || url.startsWith('blob') ||
+-      url === AVATAR_PLACEHOLDER_URL) {
++      url.startsWith('chrome://theme/') || url === AVATAR_PLACEHOLDER_URL) {
+     return url;
+   }
+   if (!staticEncode) {
+diff --git a/chrome/app/theme/webui_theme_resources.grd b/chrome/app/theme/webui_theme_resources.grd
+index 7444f3f98a562..fdb3593f6b6cc 100644
+--- a/chrome/app/theme/webui_theme_resources.grd
++++ b/chrome/app/theme/webui_theme_resources.grd
+@@ -59,7 +59,9 @@
+         <structure type="chrome_scaled_image" name="IDR_PROFILE_AVATAR_25" file="common/profile_avatar_sun_cloud.png" />
+       </if>
+       <structure type="chrome_scaled_image" name="IDR_PROFILE_AVATAR_26" file="common/profile_avatar_placeholder.png" />
+-      <if expr="not is_android and not is_chromeos">
++      <!-- NickelOS: on ChromeOS too, as its default user images
++           (default_user_images.cc), which ChromeOS otherwise downloads. -->
++      <if expr="not is_android">
+         <structure type="chrome_scaled_image" name="IDR_PROFILE_AVATAR_27" file="common/modern_avatars/origami/avatar_cat.png" />
+         <structure type="chrome_scaled_image" name="IDR_PROFILE_AVATAR_28" file="common/modern_avatars/origami/avatar_corgi.png" />
+         <structure type="chrome_scaled_image" name="IDR_PROFILE_AVATAR_29" file="common/modern_avatars/origami/avatar_dragon.png" />
+diff --git a/chrome/browser/ash/login/screens/local_account_creation_screen.cc b/chrome/browser/ash/login/screens/local_account_creation_screen.cc
+index f78e8a3b90099..1475b1b51f1a1 100644
+--- a/chrome/browser/ash/login/screens/local_account_creation_screen.cc
++++ b/chrome/browser/ash/login/screens/local_account_creation_screen.cc
+@@ -4,11 +4,14 @@
+ 
+ #include "chrome/browser/ash/login/screens/local_account_creation_screen.h"
+ 
++#include "ash/constants/nickel_pref_names.h"
+ #include "ash/public/cpp/login_screen.h"
+ #include "base/functional/bind.h"
+ #include "base/logging.h"
+ #include "base/strings/string_util.h"
+ #include "chrome/browser/ash/login/existing_user_controller.h"
++#include "chrome/browser/ash/login/users/default_user_image/default_user_images.h"
++#include "chrome/browser/browser_process.h"
+ #include "chrome/browser/ui/ash/login/login_display_host.h"
+ #include "chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.h"
+ #include "chromeos/ash/components/dbus/dbus_thread_manager.h"
+@@ -16,6 +19,8 @@
+ #include "chromeos/ash/components/login/auth/public/auth_types.h"
+ #include "chromeos/ash/components/login/auth/public/key.h"
+ #include "chromeos/ash/components/login/auth/public/user_context.h"
++#include "components/prefs/pref_service.h"
++#include "components/prefs/scoped_user_pref_update.h"
+ #include "components/user_manager/nickel_local_account.h"
+ #include "components/user_manager/user_manager.h"
+ #include "components/user_manager/user_type.h"
+@@ -80,9 +85,20 @@ void LocalAccountCreationScreen::ShowImpl() {
+   // Keeps "Browse as Guest" and friends on the shelf, as on the screens this
+   // one replaces.
+   LoginScreen::Get()->SetIsFirstSigninStep(true);
+-  if (view_) {
+-    view_->Show();
++  if (!view_) {
++    return;
+   }
++  // The pictures to choose from: the default images, which come with the OS
++  // (chrome://theme).
++  base::ListValue avatars;
++  for (const default_user_image::DefaultUserImage& image :
++       default_user_image::GetCurrentImageSet()) {
++    avatars.Append(base::DictValue()
++                       .Set("index", image.index)
++                       .Set("url", image.url.spec())
++                       .Set("title", image.title));
++  }
++  view_->Show(base::DictValue().Set("avatars", std::move(avatars)));
+ }
+ 
+ void LocalAccountCreationScreen::HideImpl() {}
+@@ -91,9 +107,10 @@ void LocalAccountCreationScreen::OnUserAction(const base::ListValue& args) {
+   const std::string& action_id = args[0].GetString();
+   if (action_id == kUserActionBack) {
+     exit_callback_.Run(Result::BACK);
+-  } else if (action_id == kUserActionCreate && args.size() == 4) {
++  } else if (action_id == kUserActionCreate && args.size() == 5) {
+     HandleCreate(args[1].GetString(), args[2].GetString(),
+-                 args[3].GetString());
++                 args[3].GetString(),
++                 static_cast<int>(args[4].GetIfDouble().value_or(-1)));
+   } else {
+     BaseScreen::OnUserAction(args);
+   }
+@@ -101,7 +118,8 @@ void LocalAccountCreationScreen::OnUserAction(const base::ListValue& args) {
+ 
+ void LocalAccountCreationScreen::HandleCreate(const std::string& display_name,
+                                               const std::string& username,
+-                                              const std::string& password) {
++                                              const std::string& password,
++                                              int avatar_index) {
+   if (!IsValidUsername(username)) {
+     return ShowError(
+         "Usernames start with a lowercase letter and use only lowercase "
+@@ -125,6 +143,8 @@ void LocalAccountCreationScreen::HandleCreate(const std::string& display_name,
+   writer.AppendString(display_name.empty() ? username : display_name);
+   writer.AppendString(password);
+   writer.AppendBool(admin);
++  // Before signing in, which gives the account its first picture.
++  SetPendingAvatar(username, avatar_index);
+   AccountsProxy()->CallMethodWithErrorResponse(
+       &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
+       base::BindOnce(&LocalAccountCreationScreen::OnUserCreated,
+@@ -136,6 +156,7 @@ void LocalAccountCreationScreen::OnUserCreated(const std::string& username,
+                                                dbus::Response* response,
+                                                dbus::ErrorResponse* error) {
+   if (!response) {
++    SetPendingAvatar(username, -1);
+     std::string message = "Could not create the account.";
+     if (error) {
+       std::string detail;
+@@ -179,6 +200,7 @@ void LocalAccountCreationScreen::OnAuthFailure(const AuthFailure& error) {
+     AccountsProxy()->CallMethodWithErrorResponse(
+         &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
+         base::DoNothing());
++    SetPendingAvatar(pending_username_, -1);
+     pending_username_.clear();
+   }
+   ShowError("Could not set up the account: " + error.GetErrorString());
+@@ -196,6 +218,25 @@ void LocalAccountCreationScreen::ShowError(const std::string& message) {
+   }
+ }
+ 
++void LocalAccountCreationScreen::SetPendingAvatar(const std::string& username,
++                                                  int avatar_index) {
++  PrefService* local_state = g_browser_process->local_state();
++  const std::string email =
++      user_manager::MakeNickelLocalAccountId(username).GetUserEmail();
++  {
++    ScopedDictPrefUpdate update(local_state,
++                                prefs::kNickelSetupPendingAvatars);
++    if (default_user_image::IsInCurrentImageSet(avatar_index)) {
++      update->Set(email, avatar_index);
++    } else {
++      update->Remove(email);
++    }
++  }
++  // NickelOS restarts Chrome right after signing in (as the account's Linux
++  // user): the choice must be on disk by then.
++  local_state->CommitPendingWrite();
++}
++
+ void LocalAccountCreationScreen::StopObservingLogin() {
+   if (!observing_login_) {
+     return;
+diff --git a/chrome/browser/ash/login/screens/local_account_creation_screen.h b/chrome/browser/ash/login/screens/local_account_creation_screen.h
+index e25c608ececc4..fde332e14e8ee 100644
+--- a/chrome/browser/ash/login/screens/local_account_creation_screen.h
++++ b/chrome/browser/ash/login/screens/local_account_creation_screen.h
+@@ -55,15 +55,20 @@ class LocalAccountCreationScreen : public BaseScreen,
+   void HideImpl() override;
+   void OnUserAction(const base::ListValue& args) override;
+ 
++  // `avatar_index` is the default image picked for the account (-1: none).
+   void HandleCreate(const std::string& display_name,
+                     const std::string& username,
+-                    const std::string& password);
++                    const std::string& password,
++                    int avatar_index);
+   void OnUserCreated(const std::string& username,
+                      const std::string& password,
+                      dbus::Response* response,
+                      dbus::ErrorResponse* error);
+   void ShowError(const std::string& message);
+   void StopObservingLogin();
++  // The picture chosen for `username`'s account, for its first sign-in
++  // (prefs::kNickelSetupPendingAvatars), or none.
++  void SetPendingAvatar(const std::string& username, int avatar_index);
+ 
+   base::WeakPtr<LocalAccountCreationView> view_;
+   ScreenExitCallback exit_callback_;
+diff --git a/chrome/browser/ash/login/users/avatar/user_image_manager_impl.cc b/chrome/browser/ash/login/users/avatar/user_image_manager_impl.cc
+index b48c76f3d0629..17531ccfac308 100644
+--- a/chrome/browser/ash/login/users/avatar/user_image_manager_impl.cc
++++ b/chrome/browser/ash/login/users/avatar/user_image_manager_impl.cc
+@@ -9,10 +9,12 @@
+ #include <stddef.h>
+ 
+ #include <memory>
++#include <optional>
+ #include <string>
+ #include <utility>
+ 
+ #include "ash/constants/ash_paths.h"
++#include "ash/constants/nickel_pref_names.h"
+ #include "ash/public/cpp/image_downloader.h"
+ #include "base/check.h"
+ #include "base/check_deref.h"
+@@ -21,6 +23,7 @@
+ #include "base/files/file_util.h"
+ #include "base/functional/bind.h"
+ #include "base/memory/raw_ptr.h"
++#include "base/memory/ref_counted_memory.h"
+ #include "base/metrics/histogram_functions.h"
+ #include "base/path_service.h"
+ #include "base/strings/string_util.h"
+@@ -116,6 +119,30 @@ const char* ChooseExtensionFromImageFormat(
+   }
+ }
+ 
++// NickelOS: a default image is one of Chromium's own avatars, in the
++// resource pack (default_user_images.cc), so nothing is downloaded. Its PNG
++// goes with it, for WebUI (chrome://userimage) and for saving.
++std::unique_ptr<user_manager::UserImage> LoadBundledDefaultImage(int index) {
++  ui::ResourceBundle& bundle = ui::ResourceBundle::GetSharedInstance();
++  int resource_id = default_user_image::GetDefaultImageResourceId(index);
++  if (!resource_id) {
++    resource_id = IDR_LOGIN_DEFAULT_USER;
++  }
++  const gfx::ImageSkia& image = *bundle.GetImageSkiaNamed(resource_id);
++  scoped_refptr<base::RefCountedMemory> png =
++      bundle.LoadDataResourceBytesForScale(resource_id, ui::k100Percent);
++  if (!png) {
++    return std::make_unique<user_manager::UserImage>(image);
++  }
++  auto user_image = std::make_unique<user_manager::UserImage>(
++      image,
++      base::MakeRefCounted<base::RefCountedBytes>(
++          base::span<const uint8_t>(*png)),
++      user_manager::UserImage::FORMAT_PNG);
++  user_image->MarkAsSafe();
++  return user_image;
++}
++
+ }  // namespace
+ 
+ // static
+@@ -278,29 +305,19 @@ void UserImageManagerImpl::Job::LoadImage(base::FilePath image_path,
+       image_cache_updated_ =
+           image_properties->FindBool(kImageCacheUpdated).value_or(false);
+     }
+-    // Load default image from local cached version if available,
+-    // otherwise download from gstatic resources if possible.
+-    if (image_cache_updated_ && !image_path_.empty()) {
++    // NickelOS: from the resource pack, never downloaded. An image Chromium
++    // does not have (given before NickelOS bundled them) stays the copy
++    // saved when it was downloaded, if there is one.
++    if (!default_user_image::GetDefaultImageResourceId(image_index_) &&
++        image_cache_updated_ && !image_path_.empty()) {
+       user_image_loader::StartWithFilePathAnimated(
+           parent_->background_task_runner_, image_path_,
+           base::BindOnce(&Job::OnLoadImageDone, weak_factory_.GetWeakPtr(),
+                          false));
+-    } else {
+-      if (g_skip_default_user_image_download) {
+-        auto user_image = std::make_unique<user_manager::UserImage>(
+-            *ui::ResourceBundle::GetSharedInstance().GetImageSkiaNamed(
+-                IDR_LOGIN_DEFAULT_USER));
+-        UpdateUser(std::move(user_image));
+-        UpdateLocalState();
+-        NotifyJobDone();
+-        return;
+-      }
+-      // Fetch the default image from cloud before caching it.
+-      image_url_ = default_user_image::GetDefaultImageUrl(image_index_);
+-      user_image_loader_delegate()->FromGURLAnimated(
+-          image_url_, base::BindOnce(&Job::OnLoadImageDone,
+-                                     weak_factory_.GetWeakPtr(), true));
++      return;
+     }
++    image_url_ = default_user_image::GetDefaultImageUrl(image_index_);
++    OnLoadImageDone(false, LoadBundledDefaultImage(image_index_));
+   } else if (image_index_ == user_manager::UserImage::Type::kExternal ||
+              image_index_ == user_manager::UserImage::Type::kProfile) {
+     // Load the user image from a file referenced by `image_path`. This happens
+@@ -328,25 +345,10 @@ void UserImageManagerImpl::Job::SetToDefaultImage(int default_image_index) {
+ 
+   image_index_ = default_image_index;
+ 
+-  // Fetch the default image from cloud before caching it.
++  // NickelOS: from the resource pack (LoadBundledDefaultImage), saved as
++  // any picture is.
+   image_url_ = default_user_image::GetDefaultImageUrl(image_index_);
+-
+-  // Set user image to a temp stub image while fetching the default image from
+-  // the cloud.
+-  auto user_image = std::make_unique<user_manager::UserImage>(
+-      *ui::ResourceBundle::GetSharedInstance().GetImageSkiaNamed(
+-          IDR_LOGIN_DEFAULT_USER));
+-  UpdateUser(std::move(user_image));
+-  UpdateLocalState();
+-
+-  if (g_skip_default_user_image_download) {
+-    NotifyJobDone();
+-    return;
+-  }
+-
+-  user_image_loader_delegate()->FromGURLAnimated(
+-      image_url_,
+-      base::BindOnce(&Job::OnLoadImageDone, weak_factory_.GetWeakPtr(), true));
++  OnLoadImageDone(true, LoadBundledDefaultImage(image_index_));
+ }
+ 
+ void UserImageManagerImpl::Job::SetToImage(
+@@ -921,6 +923,20 @@ void UserImageManagerImpl::OnProfileDownloadFailure(
+ }
+ 
+ void UserImageManagerImpl::SetInitialUserImage() {
++  // NickelOS: the picture chosen while creating the account
++  // (LocalAccountCreationScreen), if any.
++  const std::string email = GetUser()->GetAccountId().GetUserEmail();
++  if (const base::DictValue& pending =
++          local_state_->GetDict(prefs::kNickelSetupPendingAvatars);
++      pending.contains(email)) {
++    const std::optional<int> chosen = pending.FindInt(email);
++    ScopedDictPrefUpdate(&local_state_.get(), prefs::kNickelSetupPendingAvatars)
++        ->Remove(email);
++    if (chosen && default_user_image::IsInCurrentImageSet(*chosen)) {
++      SaveUserDefaultImageIndex(*chosen);
++      return;
++    }
++  }
+   // Choose a random default image.
+   SaveUserDefaultImageIndex(default_user_image::GetRandomDefaultImageIndex());
+ }
+diff --git a/chrome/browser/ash/login/users/default_user_image/BUILD.gn b/chrome/browser/ash/login/users/default_user_image/BUILD.gn
+index b010169039d14..e0076229c0954 100644
+--- a/chrome/browser/ash/login/users/default_user_image/BUILD.gn
++++ b/chrome/browser/ash/login/users/default_user_image/BUILD.gn
+@@ -19,6 +19,7 @@ static_library("default_user_image") {
+ 
+   deps = [
+     "//ash/constants",
++    "//chrome/app/theme:webui_theme_resources",
+     "//chrome/common",
+     "//ui/chromeos/resources",
+     "//ui/chromeos/strings",
+diff --git a/chrome/browser/ash/login/users/default_user_image/default_user_images.cc b/chrome/browser/ash/login/users/default_user_image/default_user_images.cc
+index 1dde198f51cec..2c7a5b806d1a5 100644
+--- a/chrome/browser/ash/login/users/default_user_image/default_user_images.cc
++++ b/chrome/browser/ash/login/users/default_user_image/default_user_images.cc
+@@ -15,13 +15,13 @@
+ #include "base/command_line.h"
+ #include "base/compiler_specific.h"
+ #include "base/logging.h"
+-#include "base/notimplemented.h"
+ #include "base/rand_util.h"
+ #include "base/strings/strcat.h"
+ #include "base/strings/string_number_conversions.h"
+ #include "base/strings/string_util.h"
+ #include "base/strings/stringprintf.h"
+ #include "base/system/sys_info.h"
++#include "chrome/grit/webui_theme_resources.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/resource/resource_bundle.h"
+ #include "ui/chromeos/resources/grit/ui_chromeos_resources.h"
+@@ -97,19 +97,19 @@ constexpr auto kDefaultImageInfo = std::to_array<DefaultImageInfo>({
+     {0, IDS_LOGIN_DEFAULT_USER_DESC_32, Eligibility::kDeprecated, "legacy/avatar_upsidedown.png"},
+     {0, IDS_LOGIN_DEFAULT_USER_DESC_33, Eligibility::kDeprecated, "legacy/avatar_cat.png"},
+     // Third set of images.
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_34, Eligibility::kDeprecated, "origami/avatar_penguin.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_35, Eligibility::kDeprecated, "origami/avatar_fox.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_34, Eligibility::kEligible, "origami/avatar_penguin.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_35, Eligibility::kEligible, "origami/avatar_fox.png"},
+     {0, IDS_LOGIN_DEFAULT_USER_DESC_36, Eligibility::kDeprecated, "origami/avatar_snail.png"},
+     {0, IDS_LOGIN_DEFAULT_USER_DESC_37, Eligibility::kDeprecated, "origami/avatar_redbutterfly.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_38, Eligibility::kDeprecated, "origami/avatar_cat.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_39, Eligibility::kDeprecated, "origami/avatar_corgi.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_40, Eligibility::kDeprecated, "origami/avatar_rabbit.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_41, Eligibility::kDeprecated, "origami/avatar_pinkbutterfly.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_42, Eligibility::kDeprecated, "origami/avatar_monkey.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_43, Eligibility::kDeprecated, "origami/avatar_dragon.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_44, Eligibility::kDeprecated, "origami/avatar_elephant.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_45, Eligibility::kDeprecated, "origami/avatar_panda.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_46, Eligibility::kDeprecated, "origami/avatar_unicorn.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_38, Eligibility::kEligible, "origami/avatar_cat.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_39, Eligibility::kEligible, "origami/avatar_corgi.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_40, Eligibility::kEligible, "origami/avatar_rabbit.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_41, Eligibility::kEligible, "origami/avatar_pinkbutterfly.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_42, Eligibility::kEligible, "origami/avatar_monkey.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_43, Eligibility::kEligible, "origami/avatar_dragon.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_44, Eligibility::kEligible, "origami/avatar_elephant.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_45, Eligibility::kEligible, "origami/avatar_panda.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_46, Eligibility::kEligible, "origami/avatar_unicorn.png"},
+     {0, IDS_LOGIN_DEFAULT_USER_DESC_47, Eligibility::kDeprecated, "origami/avatar_butterflies.png"},
+     {0, IDS_LOGIN_DEFAULT_USER_DESC_48, Eligibility::kEligible,   "illustration/avatar_bird.png"},
+     {0, IDS_LOGIN_DEFAULT_USER_DESC_49, Eligibility::kEligible,   "illustration/avatar_ramen.png"},
+@@ -134,34 +134,34 @@ constexpr auto kDefaultImageInfo = std::to_array<DefaultImageInfo>({
+     {0, IDS_LOGIN_DEFAULT_USER_DESC_68, Eligibility::kDeprecated, "geo/avatar_geo3.png"},
+     {0, IDS_LOGIN_DEFAULT_USER_DESC_69, Eligibility::kDeprecated, "geo/avatar_geo4.png"},
+     {0, IDS_LOGIN_DEFAULT_USER_DESC_70, Eligibility::kDeprecated, "geo/avatar_geo5.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_71, Eligibility::kEligible,   "imaginary/avatar_botanist.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_72, Eligibility::kEligible,   "imaginary/avatar_burger.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_73, Eligibility::kEligible,   "imaginary/avatar_graduate.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_74, Eligibility::kEligible,   "imaginary/avatar_guitar.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_75, Eligibility::kEligible,   "imaginary/avatar_waving.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_76, Eligibility::kEligible,   "imaginary/avatar_lion.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_77, Eligibility::kEligible,   "imaginary/avatar_planet.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_78, Eligibility::kEligible,   "imaginary/avatar_instant_camera.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_79, Eligibility::kEligible,   "imaginary/avatar_robot.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_80, Eligibility::kEligible,   "imaginary/avatar_sneaker.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_81, Eligibility::kEligible,   "imaginary/avatar_van.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_82, Eligibility::kEligible,   "imaginary/avatar_watermelon.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_71, Eligibility::kDeprecated,  "imaginary/avatar_botanist.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_72, Eligibility::kDeprecated,  "imaginary/avatar_burger.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_73, Eligibility::kDeprecated,  "imaginary/avatar_graduate.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_74, Eligibility::kDeprecated,  "imaginary/avatar_guitar.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_75, Eligibility::kDeprecated,  "imaginary/avatar_waving.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_76, Eligibility::kDeprecated,  "imaginary/avatar_lion.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_77, Eligibility::kDeprecated,  "imaginary/avatar_planet.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_78, Eligibility::kDeprecated,  "imaginary/avatar_instant_camera.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_79, Eligibility::kDeprecated,  "imaginary/avatar_robot.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_80, Eligibility::kDeprecated,  "imaginary/avatar_sneaker.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_81, Eligibility::kDeprecated,  "imaginary/avatar_van.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_82, Eligibility::kDeprecated,  "imaginary/avatar_watermelon.png"},
+     // Material design avatars.
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_83, Eligibility::kEligible, "material_design/avatar_person_watering_plants.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_84, Eligibility::kEligible, "material_design/avatar_person_daydreaming.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_85, Eligibility::kEligible, "material_design/avatar_person_with_flowers.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_86, Eligibility::kEligible, "material_design/avatar_person_with_cats.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_87, Eligibility::kEligible, "material_design/avatar_artist.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_88, Eligibility::kEligible, "material_design/avatar_person_doing_taichi.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_89, Eligibility::kEligible, "material_design/avatar_signing_thankyou.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_90, Eligibility::kEligible, "material_design/avatar_person_with_coffee.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_91, Eligibility::kEligible, "material_design/avatar_dog_wagging_tail.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_92, Eligibility::kEligible, "material_design/avatar_nurse.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_93, Eligibility::kEligible, "material_design/avatar_gamer.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_94, Eligibility::kEligible, "material_design/avatar_bookworm.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_95, Eligibility::kEligible, "material_design/avatar_biking.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_96, Eligibility::kEligible, "material_design/avatar_person_in_snow.png"},
+-    {0, IDS_LOGIN_DEFAULT_USER_DESC_97, Eligibility::kEligible, "material_design/avatar_person_with_megaphone.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_83, Eligibility::kDeprecated, "material_design/avatar_person_watering_plants.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_84, Eligibility::kDeprecated, "material_design/avatar_person_daydreaming.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_85, Eligibility::kDeprecated, "material_design/avatar_person_with_flowers.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_86, Eligibility::kDeprecated, "material_design/avatar_person_with_cats.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_87, Eligibility::kDeprecated, "material_design/avatar_artist.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_88, Eligibility::kDeprecated, "material_design/avatar_person_doing_taichi.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_89, Eligibility::kDeprecated, "material_design/avatar_signing_thankyou.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_90, Eligibility::kDeprecated, "material_design/avatar_person_with_coffee.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_91, Eligibility::kDeprecated, "material_design/avatar_dog_wagging_tail.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_92, Eligibility::kDeprecated, "material_design/avatar_nurse.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_93, Eligibility::kDeprecated, "material_design/avatar_gamer.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_94, Eligibility::kDeprecated, "material_design/avatar_bookworm.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_95, Eligibility::kDeprecated, "material_design/avatar_biking.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_96, Eligibility::kDeprecated, "material_design/avatar_person_in_snow.png"},
++    {0, IDS_LOGIN_DEFAULT_USER_DESC_97, Eligibility::kDeprecated, "material_design/avatar_person_with_megaphone.png"},
+ });
+ // clang-format on
+ 
+@@ -170,23 +170,8 @@ constexpr auto kDefaultImageInfo = std::to_array<DefaultImageInfo>({
+ // indexes of egligible default images listed above.
+ // clang-format off
+ constexpr int kCurrentImageIndexes[] = {
+-    // Material design avatars.
+-    83,
+-    84,
+-    85,
+-    86,
+-    87,
+-    88,
+-    89,
+-    90,
+-    91,
+-    92,
+-    93,
+-    94,
+-    95,
+-    96,
+-    97,
+-    // Third set of images.
++    // NickelOS: the images Chromium has itself (kBundledImages).
++    // Illustrations and food.
+     48,
+     49,
+     50,
+@@ -205,18 +190,18 @@ constexpr int kCurrentImageIndexes[] = {
+     63,
+     64,
+     65,
+-    71,
+-    72,
+-    73,
+-    74,
+-    75,
+-    76,
+-    77,
+-    78,
+-    79,
+-    80,
+-    81,
+-    82,
++    // Origami animals.
++    34,
++    35,
++    38,
++    39,
++    40,
++    41,
++    42,
++    43,
++    44,
++    45,
++    46,
+ };
+ // clang-format on
+ 
+@@ -296,24 +281,58 @@ const DefaultImageSourceInfoIds kDefaultImageSourceInfoIds[] = {
+     {IDS_LOGIN_DEFAULT_USER_AUTHOR_33, IDS_LOGIN_DEFAULT_USER_WEBSITE_33},
+ };
+ 
+-constexpr char kGstaticImagePrefix[] =
+-    "https://www.gstatic.com/chromecast/home/chromeos/avatars/";
+-constexpr char k100PercentPrefix[] = "default_100_percent/";
+-constexpr char k200PercentPrefix[] = "default_200_percent/";
++// NickelOS: the default images Chromium has itself, the desktop's profile
++// avatars (chrome/app/theme/default_100_percent/common/modern_avatars, in
++// webui_theme_resources.grd), by index. They are what ChromeOS shows, from
++// the resource pack instead of Google's server (96 px; the server's are
++// twice that).
++struct BundledImage {
++  int index;
++  int resource_id;
++  const char* resource_name;
++};
++#define NICKEL_BUNDLED_IMAGE(index, n) \
++  {index, IDR_PROFILE_AVATAR_##n, "IDR_PROFILE_AVATAR_" #n}
++constexpr BundledImage kBundledImages[] = {
++    NICKEL_BUNDLED_IMAGE(34, 34),
++    NICKEL_BUNDLED_IMAGE(35, 31),
++    NICKEL_BUNDLED_IMAGE(38, 27),
++    NICKEL_BUNDLED_IMAGE(39, 28),
++    NICKEL_BUNDLED_IMAGE(40, 36),
++    NICKEL_BUNDLED_IMAGE(41, 35),
++    NICKEL_BUNDLED_IMAGE(42, 32),
++    NICKEL_BUNDLED_IMAGE(43, 29),
++    NICKEL_BUNDLED_IMAGE(44, 30),
++    NICKEL_BUNDLED_IMAGE(45, 33),
++    NICKEL_BUNDLED_IMAGE(46, 37),
++    NICKEL_BUNDLED_IMAGE(48, 40),
++    NICKEL_BUNDLED_IMAGE(49, 43),
++    NICKEL_BUNDLED_IMAGE(50, 46),
++    NICKEL_BUNDLED_IMAGE(51, 41),
++    NICKEL_BUNDLED_IMAGE(52, 42),
++    NICKEL_BUNDLED_IMAGE(53, 38),
++    NICKEL_BUNDLED_IMAGE(54, 47),
++    NICKEL_BUNDLED_IMAGE(55, 45),
++    NICKEL_BUNDLED_IMAGE(56, 39),
++    NICKEL_BUNDLED_IMAGE(57, 44),
++    NICKEL_BUNDLED_IMAGE(58, 54),
++    NICKEL_BUNDLED_IMAGE(59, 55),
++    NICKEL_BUNDLED_IMAGE(60, 49),
++    NICKEL_BUNDLED_IMAGE(61, 51),
++    NICKEL_BUNDLED_IMAGE(62, 50),
++    NICKEL_BUNDLED_IMAGE(63, 53),
++    NICKEL_BUNDLED_IMAGE(64, 52),
++    NICKEL_BUNDLED_IMAGE(65, 48),
++};
++#undef NICKEL_BUNDLED_IMAGE
+ 
+-const std::string GetUrlPrefixForScaleFactor(
+-    ui::ResourceScaleFactor scale_factor) {
+-  switch (scale_factor) {
+-    case ui::kScaleFactorNone:
+-    case ui::k100Percent:
+-      return k100PercentPrefix;
+-    case ui::k200Percent:
+-      return k200PercentPrefix;
+-    case ui::k300Percent:
+-    case ui::NUM_SCALE_FACTORS:
+-      NOTIMPLEMENTED();
+-      return k100PercentPrefix;
++const BundledImage* FindBundledImage(int index) {
++  for (const BundledImage& image : kBundledImages) {
++    if (image.index == index) {
++      return &image;
++    }
+   }
++  return nullptr;
+ }
+ 
+ ui::ResourceScaleFactor GetMaximumScaleFactorForDefaultImage(int index) {
+@@ -364,15 +383,19 @@ GURL GetDefaultImageUrl(
+     ui::ResourceScaleFactor scale_factor /*= ui::k200Percent*/) {
+   CHECK(index >= 0 && index < kDefaultImagesCount, base::NotFatalUntil::M160);
+ 
+-  ui::ResourceScaleFactor adjusted_scale_factor =
+-      GetAdjustedScaleFactorForDefaultImage(index, scale_factor);
+-  auto scale_factor_prefix = GetUrlPrefixForScaleFactor(adjusted_scale_factor);
+-
+-  return GURL(base::StrCat({kGstaticImagePrefix, scale_factor_prefix,
+-                            kDefaultImageInfo[index].path}));
++  // NickelOS: from the resource pack, which chrome://theme serves; images
++  // Chromium does not have show as the stub (the anonymous avatar).
++  const BundledImage* image = FindBundledImage(index);
++  return GURL(base::StrCat({"chrome://theme/", image ? image->resource_name
++                                                     : "IDR_LOGIN_DEFAULT_USER"}));
+ }
+ 
+ int GetDefaultImageResourceId(int index) {
++  // NickelOS: the bundled image's (kBundledImages), else 0 (none) or the
++  // stub's.
++  if (const BundledImage* image = FindBundledImage(index)) {
++    return image->resource_id;
++  }
+   return kDefaultImageInfo[index].resource_id;
+ }
+ 
+diff --git a/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.html b/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.html
+index d75a6e659b861..7f5094bd8af1c 100644
+--- a/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.html
++++ b/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.html
+@@ -5,7 +5,7 @@ found in the LICENSE file.
+ -->
+ 
+ <!--
+-  NickelOS: create a local account (name, username, password).
++  NickelOS: create a local account (name, username, password, picture).
+ -->
+ <style include="oobe-dialog-host-styles cros-color-overrides">
+   cr-input {
+@@ -16,6 +16,59 @@ found in the LICENSE file.
+   #errorMessage {
+     color: var(--cros-sys-error);
+   }
++
++  #pictureRow {
++    align-items: center;
++    display: flex;
++    gap: 16px;
++    margin-top: 4px;
++  }
++
++  #pictureRow[hidden] {
++    display: none;
++  }
++
++  #pictureRow .label {
++    flex: 1;
++  }
++
++  #picture {
++    border-radius: 50%;
++    height: 48px;
++    width: 48px;
++  }
++
++  #pictureGrid {
++    display: grid;
++    gap: 12px;
++    grid-template-columns: repeat(auto-fill, 68px);
++  }
++
++  .picture-option {
++    background: none;
++    border: 2px solid transparent;
++    border-radius: 50%;
++    cursor: pointer;
++    height: 68px;
++    padding: 0;
++    width: 68px;
++  }
++
++  .picture-option img {
++    border-radius: 50%;
++    display: block;
++    height: 64px;
++    width: 64px;
++  }
++
++  .picture-option[aria-checked='true'] {
++    border-color: var(--cros-sys-primary);
++  }
++
++  .picture-option:focus-visible {
++    outline: 2px solid var(--cros-sys-focus_ring);
++    outline-offset: 2px;
++  }
+ </style>
+ <oobe-adaptive-dialog role="dialog" for-step="form">
+   <iron-icon slot="icon" icon="oobe-32:avatar"></iron-icon>
+@@ -47,6 +100,15 @@ found in the LICENSE file.
+                          'localAccountCreationMismatch')]]"
+         on-keydown="onKeydown">
+     </cr-input>
++    <div id="pictureRow" hidden="[[!avatars.length]]">
++      <img id="picture" src="[[avatarUrl(avatars, avatarIndex)]]" alt="">
++      <div class="label">
++        [[i18nDynamic(locale, 'localAccountCreationPicture')]]
++      </div>
++      <cr-button id="changePictureButton" on-click="onChangePicture">
++        [[i18nDynamic(locale, 'localAccountCreationChangePicture')]]
++      </cr-button>
++    </div>
+     <p id="errorMessage" hidden="[[!errorMessage]]" aria-live="polite">
+       [[errorMessage]]
+     </p>
+@@ -61,6 +123,29 @@ found in the LICENSE file.
+     </oobe-next-button>
+   </div>
+ </oobe-adaptive-dialog>
++<oobe-adaptive-dialog id="pictureDialog" role="dialog" for-step="picture">
++  <iron-icon slot="icon" icon="oobe-32:avatar"></iron-icon>
++  <h1 slot="title">
++    [[i18nDynamic(locale, 'localAccountCreationPictureTitle')]]
++  </h1>
++  <p slot="subtitle">
++    [[i18nDynamic(locale, 'localAccountCreationPictureSubtitle')]]
++  </p>
++  <div slot="content" id="pictureGrid" role="radiogroup">
++    <template is="dom-repeat" items="[[avatars]]">
++      <button class="picture-option" role="radio"
++          aria-checked$="[[isChosen(item.index, avatarIndex)]]"
++          aria-label$="[[item.title]]" title$="[[item.title]]"
++          data-index$="[[item.index]]" on-click="onPictureClicked">
++        <img src="[[item.url]]" alt="">
++      </button>
++    </template>
++  </div>
++  <div slot="back-navigation">
++    <oobe-back-button id="pictureBackButton" on-click="onPictureBack">
++    </oobe-back-button>
++  </div>
++</oobe-adaptive-dialog>
+ <oobe-loading-dialog id="progress" role="dialog" for-step="progress"
+     title-key="localAccountCreationCreating">
+   <iron-icon slot="icon" icon="oobe-32:avatar"></iron-icon>
+diff --git a/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts b/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts
+index 8fddeb837a28a..3b12eeed59545 100644
+--- a/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts
++++ b/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts
+@@ -9,6 +9,7 @@
+ 
+ import '//resources/ash/common/cr_elements/cros_color_overrides.css.js';
+ import '//resources/ash/common/cr_elements/cr_shared_style.css.js';
++import '//resources/ash/common/cr_elements/cr_button/cr_button.js';
+ import '//resources/ash/common/cr_elements/cr_input/cr_input.js';
+ import '//resources/polymer/v3_0/iron-icon/iron-icon.js';
+ import '../../components/oobe_icons.html.js';
+@@ -32,9 +33,18 @@ import {getTemplate} from './local_account_creation.html.js';
+ 
+ enum LocalAccountCreationStep {
+   FORM = 'form',
++  PICTURE = 'picture',
+   PROGRESS = 'progress',
+ }
+ 
++// A picture to choose from: one of the default images, which come with the
++// OS (chrome://theme).
++interface Avatar {
++  index: number;
++  url: string;
++  title: string;
++}
++
+ // Same rule as nickel-accountsd.
+ const USERNAME_PATTERN = /^[a-z_][a-z0-9_-]{0,31}$/;
+ 
+@@ -58,6 +68,8 @@ export class LocalAccountCreation extends LocalAccountCreationBase {
+       confirm: {type: String, value: ''},
+       errorMessage: {type: String, value: ''},
+       usernameEdited: {type: Boolean, value: false},
++      avatars: {type: Array, value: () => []},
++      avatarIndex: {type: Number, value: -1},
+     };
+   }
+ 
+@@ -67,6 +79,9 @@ export class LocalAccountCreation extends LocalAccountCreationBase {
+   declare private confirm: string;
+   declare private errorMessage: string;
+   declare private usernameEdited: boolean;
++  declare private avatars: Avatar[];
++  // The picture chosen (a default image index), -1 for none.
++  declare private avatarIndex: number;
+ 
+   override get EXTERNAL_API(): string[] {
+     return ['showError'];
+@@ -99,6 +114,11 @@ export class LocalAccountCreation extends LocalAccountCreationBase {
+     this.confirm = '';
+     this.errorMessage = '';
+     this.usernameEdited = false;
++    // A picture at random to start with, as ChromeOS gives new accounts.
++    this.avatars = (data && data.avatars) || [];
++    this.avatarIndex = this.avatars.length ?
++        this.avatars[Math.floor(Math.random() * this.avatars.length)].index :
++        -1;
+     this.setUIStep(LocalAccountCreationStep.FORM);
+   }
+ 
+@@ -134,14 +154,49 @@ export class LocalAccountCreation extends LocalAccountCreationBase {
+     this.userActed('back');
+   }
+ 
++  private avatarUrl(avatars: Avatar[], avatarIndex: number): string {
++    const avatar = avatars.find(a => a.index === avatarIndex);
++    return avatar ? avatar.url : '';
++  }
++
++  private isChosen(index: number, avatarIndex: number): string {
++    return String(index === avatarIndex);
++  }
++
++  private onChangePicture(): void {
++    this.setUIStep(LocalAccountCreationStep.PICTURE);
++    const chosen = this.shadowRoot!.querySelector<HTMLElement>(
++        '.picture-option[aria-checked="true"]');
++    chosen?.focus();
++  }
++
++  private onPictureClicked(e: Event): void {
++    const index = Number((e.currentTarget as HTMLElement).dataset['index']);
++    if (!Number.isNaN(index)) {
++      this.avatarIndex = index;
++    }
++    this.onPictureBack();
++  }
++
++  private onPictureBack(): void {
++    this.setUIStep(LocalAccountCreationStep.FORM);
++    this.shadowRoot!.querySelector<HTMLElement>('#changePictureButton')
++        ?.focus();
++  }
++
+   private onSubmit(): void {
+     if (!this.isValid(this.username, this.password, this.confirm)) {
+       return;
+     }
+     this.errorMessage = '';
+     this.setUIStep(LocalAccountCreationStep.PROGRESS);
+-    this.userActed(
+-        ['create', this.displayName.trim(), this.username, this.password]);
++    this.userActed([
++      'create',
++      this.displayName.trim(),
++      this.username,
++      this.password,
++      this.avatarIndex,
++    ]);
+   }
+ 
+   private usernameOk(username: string): boolean {
+diff --git a/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.cc b/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.cc
+index f05767b8a683c..c052240975a20 100644
+--- a/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.cc
++++ b/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.cc
+@@ -31,10 +31,16 @@ void LocalAccountCreationScreenHandler::DeclareLocalizedValues(
+   builder->Add("localAccountCreationConfirm", "Confirm password");
+   builder->Add("localAccountCreationMismatch", "The passwords don't match");
+   builder->Add("localAccountCreationCreating", "Creating your account...");
++  builder->Add("localAccountCreationPicture", "Your picture");
++  builder->Add("localAccountCreationChangePicture", "Change");
++  builder->Add("localAccountCreationPictureTitle", "Choose a picture");
++  builder->Add("localAccountCreationPictureSubtitle",
++               "It shows on the sign-in screen and in the system tray. To "
++               "use a photo of your own, go to Settings later.");
+ }
+ 
+-void LocalAccountCreationScreenHandler::Show() {
+-  ShowInWebUI();
++void LocalAccountCreationScreenHandler::Show(base::DictValue data) {
++  ShowInWebUI(std::move(data));
+ }
+ 
+ void LocalAccountCreationScreenHandler::ShowError(const std::string& message) {
+diff --git a/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.h b/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.h
+index 453cb17e64ae7..83be582d33a9b 100644
+--- a/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.h
++++ b/chrome/browser/ui/webui/ash/login/local_account_creation_screen_handler.h
+@@ -8,6 +8,7 @@
+ #include <string>
+ 
+ #include "base/memory/weak_ptr.h"
++#include "base/values.h"
+ #include "chrome/browser/ui/webui/ash/login/base_screen_handler.h"
+ 
+ namespace ash {
+@@ -20,7 +21,8 @@ class LocalAccountCreationView {
+ 
+   virtual ~LocalAccountCreationView() = default;
+ 
+-  virtual void Show() = 0;
++  // `data`: "avatars", the pictures to choose from ({index, url, title}).
++  virtual void Show(base::DictValue data) = 0;
+   // Shows `message` and returns to the form.
+   virtual void ShowError(const std::string& message) = 0;
+   virtual base::WeakPtr<LocalAccountCreationView> AsWeakPtr() = 0;
+@@ -41,7 +43,7 @@ class LocalAccountCreationScreenHandler final
+ 
+  private:
+   // LocalAccountCreationView:
+-  void Show() override;
++  void Show(base::DictValue data) override;
+   void ShowError(const std::string& message) override;
+   base::WeakPtr<LocalAccountCreationView> AsWeakPtr() override;
+ 

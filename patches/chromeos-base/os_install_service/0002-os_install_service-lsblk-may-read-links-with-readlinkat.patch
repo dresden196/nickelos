@@ -1,0 +1,19 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] os_install_service: lsblk may read links with readlinkat
+
+NickelOS Unified runs Gentoo's util-linux, whose lsblk reads links with
+readlinkat: the installer's disk list came back empty (lsblk killed by
+this policy) and setup said it couldn't find a place to install.
+
+---
+--- a/conf/os_install_service-seccomp-amd64.policy
++++ b/conf/os_install_service-seccomp-amd64.policy
+@@ -114,6 +114,8 @@
+ pwrite64: 1
+ read: 1
+ readlink: 1
++# NickelOS Unified: Gentoo's util-linux lsblk reads links with readlinkat.
++readlinkat: 1
+ recvmsg: 1
+ restart_syscall: 1
+ rt_sigaction: 1

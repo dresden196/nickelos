@@ -1,0 +1,1286 @@
+{
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "‏برنامه Linux، نصب‌شده با INSTALLER"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "‏برنامه Linux"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "‏مطمئن شوید تلفن و دستگاه NickelOS به یک شبکه متصل باشند و سپس دوباره امتحان کنید. LEARN_MORE"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "‏تلفن شما از شبکه تلفن همراه استفاده می‌کند. مطمئن شوید تلفن و دستگاه NickelOS به یک شبکه Wi-Fi متصل باشند و سپس دوباره امتحان کنید. LEARN_MORE"
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "«مدیر گذرواژه» می‌خواهد تأیید کند که این فرد شما هستید"
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "دستگاه باید در این مدت روشن بماند و به برق متصل باشد. مطمئن شوید سیم شارژر یا آداپتور کاملاً متصل باشد، هم به دستگاه و هم به پریز برق. دستگاه را خاموش نکنید."
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "‏با پاسخ دادن سریع به پیامک‌های تلفن از دستگاه NickelOS در زمان صرفه‌جویی کنید"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "میز کار"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "انتقال به سطل زباله"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "نامی انتخاب کنید که با نقطه شروع نشود و خط مورب نداشته باشد."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "موردی با این نام ازقبل وجود دارد."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "پوشه جدید"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "پوشه جدید"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "باز کردن"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "‏باز کردن «میز کار» در Files"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "تغییر نام"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "تغییر نام انجام نشد."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "تغییر نام"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "‏نمایش در Files"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "‏فقط دستگاه‌های Thunderbolt تأییدشده با دستگاه NickelOS شما سازگار هستند"
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "‏نصب NickelOS"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "‏دستگاه NickelOS یا دستگاه بلوتوث شما از نسخه قدیمی بلوتوث استفاده می‌کند. برای کیفیت صدای بهتر، از میکروفون داخلی استفاده کنید."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "‏مطمئن شوید دستگاه NickelOS روشن و به همان شبکه Wi-Fi متصل باشد که دستگاه Chromecast شما متصل است."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "‏باز کردن راهنمای NickelOS"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "‏گشتی سریع در PRODUCT_NAME بزنید: برنامه‌هایتان کجا هستند، چطور برنامه‌های بیشتری دریافت کنید و Linux که زیربنای آن است. ۷ مرحله."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "سلام. به PRODUCT_NAME خوش آمدید."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "‏مرحله STEP از TOTAL_STEPS در مراحل گشت. می‌توانید برنامه Files را در «راه‌انداز» پیدا کنید. «پوشه خانه» همان پوشه خانه شما در Linux است: برنامه‌های Linux و برنامه Files فایل‌های یکسانی را می‌بینند، و فضای ذخیره‌سازی ابری‌ای که در «تنظیمات» اضافه می‌کنید هم اینجا نشان داده می‌شود."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "‏«پوشه خانه» همان پوشه خانه شما در Linux است: برنامه‌های Linux و برنامه Files فایل‌های یکسانی را می‌بینند، و فضای ذخیره‌سازی ابری‌ای که در «تنظیمات» اضافه می‌کنید هم اینجا نشان داده می‌شود."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "‏مرحله STEP از TOTAL_STEPS در مراحل گشت. Waydroid برنامه‌های Android را اجرا می‌کند، هرکدام در پنجره‌ای جداگانه. آن را در «تنظیمات»، بخش «برنامه‌ها» و سپس «برنامه‌های Android» راه‌اندازی کنید. پس‌از آن، با باز کردن فایل APK برنامه نصب می‌شود و برنامه‌های Android در «راه‌انداز» نشان داده می‌شوند."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "‏Waydroid برنامه‌های Android را اجرا می‌کند، هرکدام در پنجره‌ای جداگانه. آن را در «تنظیمات» > «برنامه‌ها» > «برنامه‌های Android» راه‌اندازی کنید. پس‌از آن، با باز کردن فایل APK برنامه نصب می‌شود و برنامه‌های Android در «راه‌انداز» نشان داده می‌شوند."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "‏مرحله STEP از TOTAL_STEPS در مراحل گشت. برنامه‌های بیشتری از Bazaar دریافت کنید: برنامه‌های Linux از Flathub که به‌صورت Flatpak نصب می‌شوند. این برنامه‌ها هم مثل هر برنامه دیگری در «راه‌انداز» نشان داده می‌شوند."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "‏برنامه‌های بیشتری از Bazaar دریافت کنید: برنامه‌های Linux از Flathub که به‌صورت Flatpak نصب می‌شوند. این برنامه‌ها هم مثل هر برنامه دیگری در «راه‌انداز» نشان داده می‌شوند."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "‏مرحله STEP از TOTAL_STEPS در مراحل گشت. «پایانه» یک پوسته واقعی Linux با sudo است. NickelOS بر پایه Gentoo ساخته شده است: eix بسته‌ها را پیدا می‌کند و sudo emerge آن‌ها را نصب می‌کند، درست مثل هر Gentoo دیگری."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "‏«پایانه» یک پوسته واقعی Linux با sudo است. NickelOS بر پایه Gentoo ساخته شده است: eix بسته‌ها را پیدا می‌کند و sudo emerge آن‌ها را نصب می‌کند، درست مثل هر Gentoo دیگری."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "مرحله STEP از TOTAL_STEPS در مراحل گشت. پس‌از فعال شدن «راه‌انداز»، نوار جستجو خواهید داشت. برای جستجوی برنامه‌ها، فایل‌ها و تنظیمات در PRODUCT_NAME، شروع به تایپ کنید."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "برنامه‌ها، فایل‌ها و تنظیمات PRODUCT_NAME را از «راه‌انداز» جستجو کنید."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "‏مرحله STEP از TOTAL_STEPS در مراحل گشت. می‌توانید «تنظیمات» دستگاهتان را در «راه‌انداز» پیدا کنید. PRODUCT_NAME را در «تنظیمات» سفارشی‌سازی کنید: کاغذ دیواری، حالت تاریک یا روشن، صفحه‌نمایش‌ها و موارد دیگر. گشت تمام شد! در راهنمای NickelOS اطلاعات بیشتری پیدا می‌کنید."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "‏PRODUCT_NAME را در «تنظیمات» سفارشی‌سازی و شخصی‌سازی کنید: کاغذ دیواری، حالت تاریک یا روشن، صفحه‌نمایش‌ها و موارد دیگر. گشت تمام شد! در راهنمای NickelOS اطلاعات بیشتری پیدا می‌کنید."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "‏برای باز کردن قفل دستگاه NickelOS، از اثر انگشت استفاده کنید یا قفل تلفنتان را باز کنید"
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "‏مطمئن شوید دستگاه بلوتوث درحالت جفت‌سازی و در همین اطراف باشد. فقط با دستگاه‌هایی که به آن‌ها اعتماد دارید جفت شوید. دستگاه‌های جفت‌شده برای همه حساب‌های موجود در این دستگاه NickelOS قابل‌مشاهده است."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "‏مطمئن شوید دستگاه بلوتوث درحالت جفت‌سازی و در همین اطراف باشد. فقط با دستگاه‌هایی که به آن‌ها اعتماد دارید جفت شوید. دستگاه‌های جفت‌شده برای همه حساب‌های موجود در این دستگاه NickelOS قابل‌مشاهده است. BEGIN_LINK_LEARN_MOREبیشتر بدانیدEND_LINK_LEARN_MORE"
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "‏داده‌هایتان در همه مرورگرهای Chrome که در آن‌ها همگام‌سازی داده برای این حساب روشن است همگام‌سازی خواهد شد. برای گزینه‌های همگام‌سازی NickelOS، به LINK_BEGINتنظیمات NickelOSLINK_END بروید."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "میان‌برهای صفحه‌کلید"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "استفاده از قابلیت‌های دسترس‌پذیری صفحه لمسی"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "‏در بیشتر صفحه‌کلیدها، کلید «جستجو» همان کلید Windows است که کنار کلید Alt چپ قرار دارد."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "درحال دریافت آخرین به‌روزرسانی نرم‌افزار، همراه با جدیدترین اصلاحات امنیتی و ویژگی‌ها هستید."
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "‏BEGIN_H3ویژگی‌های اشکال‌زداییEND_H3\n      BR\n       می‌توانید ویژگی‌های اشکال‌زدایی را در دستگاه NickelOS خود فعال کرده تا بتوانید کد سفارشی را روی دستگاهتان نصب و آزمایش کنید. با این کار می‌توانید:BR\n      BEGIN_LIST\n        LIST_ITEMدرستی‌سنجی rootfs را بردارید تا بتوانید فایل‌های سیستم‌عامل را اصلاح کنید\n        LIST_ITEMدسترسی SSH به دستگاه را بااستفاده از کلیدهای استاندارد آزمایشی فعال کرده تا بتوانید از ابزارهایی مثل BEGIN_CODE'cros flash'END_CODE برای دسترسی به دستگاه استفاده کنید\n        LIST_ITEMراه‌اندازی ازطریق USB را فعال کرده تا بتوانید تصویر سیستم‌عامل را ازطریق درایو USB نصب کنید\n        LIST_ITEMبرای اینکه بتوانید SSH را به‌صورت دستی در دستگاه اجرا کنید، گذرواژه ورود به سیستم توسعه‌دهنده و ریشه سیستم را به یک مقدار سفارشی تنظیم کنید \n      END_LIST\n      BR\n      پس‌از فعال‌سازی، بیشتر ویژگی‌های اشکال‌زدایی حتی پس‌از اجرا Powerwash یا «محو کردن داده‌ها» در یک دستگاه تحت مدیریت سازمانی نیز فعال باقی می‌مانند. برای غیرفعال کردن کامل همه ویژگی‌های اشکال‌زدایی، NickelOS را دوباره نصب کنید.\n          BR\n          BR\n          برای کسب اطلاعات بیشتر درباره ویژگی‌های اشکال‌زدایی به این نشانی مراجعه کنید:BR\n      https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n      BR\n      BR\n      BEGIN_BOLDتوجه:END_BOLD  سیستم درطول پردازش باز راه‌اندازی می‌شود."
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "برای سؤالات متداول، مقاله راهنما و پاسخ پیدا کنید"
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "از بازخوردتان سپاس‌گزاریم. وقتی دوباره آنلاین شوید، ارسال می‌شود."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "از بازخوردتان سپاس‌گزاریم."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "پوشه خانه"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "‏این فایل برای رایانه‌ای که از نرم‌افزار Macintosh استفاده می‌کند طراحی شده است. این فایل با دستگاه شما که NickelOS را اجرا می‌کند سازگار نیست. درباره باز کردن فایل‌ها در NickelOS BEGIN_LINK_HELPبیشتر بدانیدEND_LINK_HELP."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "‏این فایل برای رایانه شخصی‌ای که از نرم‌افزار Windows استفاده می‌کند طراحی شده است. این فایل با دستگاه شما که NickelOS را اجرا می‌کند سازگار نیست. درباره باز کردن فایل‌ها در NickelOS BEGIN_LINK_HELPبیشتر بدانیدEND_LINK_HELP."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "دستگاه شما به‌زودی دیگر به‌روزرسانی دریافت نخواهد کرد."
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "‏برای راه‌اندازی با تلفن Android، بلوتوث دستگاه NickelOS باید روشن باشد"
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "‏سرپرست شما همگام‌سازی موارد زیر را بین جلسه‌های قبلی و فعلی‌تان در دستگاه‌های NickelOS فعال کرده است:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "اجازه دادن"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "اجازه ندادن"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "اکنون نه"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "گذرواژه NAME، یکی از سرپرست‌های این رایانه، را وارد کنید."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "APP_NAME می‌خواهد از دوربین این دستگاه استفاده کند. پاسخ شما برای این برنامه به‌خاطر سپرده می‌شود."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "به APP_NAME اجازه استفاده از دوربین داده شود؟"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "APP_NAME می‌خواهد از دوربین استفاده کند. برای اجازه دادن، دسترسی به دوربین را در «کنترل‌های حریم خصوصی» روشن کنید."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "باز کردن تنظیمات"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "دسترسی به دوربین خاموش است"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "اجازه دادن"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "اجازه ندادن"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "‏برای تغییر میان‌بر، کلیدهای آن را انتخاب کنید و کلیدهای جدید را فشار دهید. با Backspace، میان‌بر برداشته می‌شود."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "APP_NAME می‌خواهد این میان‌برها هنگام استفاده از برنامه‌های دیگر هم کار کنند. این برنامه فقط متوجه می‌شود چه زمانی آن‌ها را فشار می‌دهید، نه اینکه چه چیز دیگری تایپ می‌کنید."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "‏از Ctrl، Alt یا «جستجو» همراه با کلید استفاده کنید، یا از یک کلید عملکردی."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "تنظیم نشده"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "کلیدها را فشار دهید…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "این کلیدها ازقبل استفاده می‌شوند. کلیدهای دیگری را امتحان کنید."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "اجازه استفاده از میان‌برهای صفحه‌کلید داده شود؟"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "تغییر"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "رایانه رومیزی"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "رایانه"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "لپ‌تاپ"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE NAME"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "رایانه لوحی"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "تأیید گذرواژه"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "درحال ایجاد حساب..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "حساب ایجاد نشد."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "حساب ایجاد نشد: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "گذرواژه‌ای انتخاب کنید."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "حساب راه‌اندازی نشد: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "این نام کاربری قبلاً استفاده شده است."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "ایجاد حساب خیلی طول کشید. دوباره امتحان کنید."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "نام کاربری باید با حرف کوچک لاتین شروع شود و فقط شامل حروف کوچک لاتین، رقم، - و _ باشد (حداکثر ۳۲ نویسه)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "گذرواژه‌ها مطابقت ندارند"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "نام شما"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "گذرواژه"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "عکس شما"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "در صفحه ورود به سیستم و سینی سیستم نشان داده می‌شود. برای استفاده از عکس خودتان، بعداً به «تنظیمات» بروید."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "انتخاب عکس"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "‏حساب و فایل‌هایتان در این دستگاه قرار دارند و با گذرواژه‌تان رمزگذاری می‌شوند. بدون حساب Google، اگر گذرواژه را فراموش کنید هیچ راهی برای بازیابی آن‌ها وجود ندارد."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "ایجاد حساب"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "نام کاربری"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "با حرف کوچک لاتین شروع کنید؛ از حروف کوچک لاتین، رقم، - و _ استفاده کنید (حداکثر ۳۲ نویسه)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "‏APP_NAME می‌خواهد بداند این دستگاه کجاست؛ مکان دستگاه براساس شبکه‌های Wi-Fi اطراف و نشانی اینترنتی آن پیدا می‌شود. پاسخ شما برای این برنامه به‌خاطر سپرده می‌شود."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "به APP_NAME اجازه استفاده از مکانتان داده شود؟"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "APP_NAME می‌خواهد از مکان شما استفاده کند. برای اجازه دادن، دسترسی به مکان را در «کنترل‌های حریم خصوصی» روشن کنید."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "دسترسی به مکان خاموش است"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "APP_NAME می‌خواهد صفحه‌کلید و نشانگر این دستگاه را کنترل کند. فقط درصورتی اجازه دهید که به فردی که متصل می‌شود اعتماد دارید."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "APP_NAME درحال کنترل این دستگاه است."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "اجازه کنترل از راه دور داده شود؟"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "‏هنگام راه‌اندازی NickelOS گزینه «حداقلی» را انتخاب کردید، بنابراین هیچ موتور جستجویی برایتان انتخاب نشد. این موتورهای جستجو در منطقه شما محبوب هستند و به ترتیب تصادفی نشان داده می‌شوند."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "‏در هر صورت، Bazaar را برای پیدا کردن برنامه‌های بیشتر، و برنامه‌هایی برای باز کردن عکس‌ها، ویدیوها، موسیقی و اسنادتان خواهید داشت."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "تجربه کامل"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "‏همه‌چیز آماده و خصوصی. DuckDuckGo وب را از مرورگر و «راه‌انداز» جستجو می‌کند، uBlock Origin آگهی‌ها و ردیاب‌ها را در مرورگر مسدود می‌کند، برنامه‌های خصوصی Proton (Mail، Calendar، Drive، Pass و غیره) نصب می‌شوند، و برنامه‌های رایگان و متن‌باز هم همراه آن ارائه می‌شوند: LibreOffice، OBS Studio، GIMP، Kdenlive و غیره."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "حداقلی"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "فقط موارد ضروری. «راه‌انداز» فقط این رایانه را جستجو می‌کند و هیچ چیز دیگری برایتان راه‌اندازی نمی‌شود."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "همه این موارد را بعداً می‌توانید در «تنظیمات» تغییر دهید."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "می‌خواهید چطور شروع کنید؟"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "پیش‌از شروع، حتماً از داده‌هایتان پشتیبان‌گیری کنید. نصب DEVICE_OS داده‌های دیسکی را که انتخاب می‌کنید بازنویسی خواهد کرد."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "DEVICE_OS نرم‌افزاری آزاد است که «همان‌طور که هست» ارائه می‌شود: ممکن است در همه رایانه‌ها کار نکند و سازندگان آن مسئولیتی درقبال ازدست رفتن داده ندارند."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "به‌روزرسانی‌ها، گزینه‌های توسعه‌دهندگان"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "تلفن‌ها، هم‌رسانی با اطراف"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "تلفن‌ها، FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "فضای ذخیره‌سازی ابری"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Google Drive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "افزودن حساب ابری"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "تصاویر خودتان"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "وقتی صفحه‌نمایش بدون فعالیت است، تصاویر شما، ساعت، و اطلاعات رسانه نمایش داده می‌شود"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "تصاویر خودتان"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "محافظ صفحه تصاویر موجود در پوشه «تصاویر» و پوشه‌های داخل آن را نشان می‌دهد. حداقل ۲ تصویر اضافه کنید."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "پوشه «تصاویر»"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "تصاویری که همراه NickelOS ارائه می‌شوند"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "محافظ صفحه کاغذ دیواری‌های NickelOS را نشان می‌دهد. برای نمایش تصاویر موجود در فایل‌های من > Pictures به‌جای آن‌ها، این گزینه را روشن کنید."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "کاغذ دیواری‌های NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "از Open-Meteo، برای مکان تقریبی شما که beaconDB آن را از نشانی IP شما تعیین می‌کند"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "نمایش آب‌وهوا"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "‏مطمئن شوید چاپگر روشن باشد و به همان شبکه‌ای متصل باشد که دستگاه NickelOS متصل است یا از سیم USB استفاده کنید"
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "پوشه خانه"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "‏وقتی روشن باشد، داده‌ها در «حساب Google» شما ذخیره می‌شود و می‌توانید از آن روی همه دستگاه‌هایتان استفاده کنید. و وقتی خاموش باشد، داده‌ها فقط در این دستگاه ذخیره می‌شود. برای گزینه‌های همگام‌سازی NickelOS، به LINK_BEGINتنظیمات NickelOSLINK_END بروید."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "‏به برنامه‌های Android امکان داده می‌شود دستگاه‌های USB را در این دستگاه NickelOS کنترل کنند. هربار دستگاه USB را وصل کنید، اجازه درخواست خواهد شد. هرکدام از برنامه‌های Android به‌صورت جداگانه اجازه‌های اضافی درخواست خواهند کرد."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "دستگاه شما دیگر به‌روزرسانی‌های امنیتی و نرم‌افزاری را دریافت نمی‌کند."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "این دستگاه دیگر به‌روزرسانی دریافت نمی‌کند"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "دستگاه شما دیگر به‌روزرسانی‌های امنیتی و نرم‌افزاری را دریافت نمی‌کند."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "این دستگاه دیگر به‌روزرسانی دریافت نمی‌کند"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "‏به برنامه‌های Android امکان داده می‌شود دستگاه‌های USB را در این دستگاه NickelOS کنترل کنند"
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "‏این گزینه برای دستگاه‌های NickelOS که قفل سخت‌افزاری شبکه تلفن همراه یا طرح داده دارند یا هنگام اشتراک‌گذاری اینترنت با نقطه اتصال قابل‌حمل اعمال می‌شود."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "افزودن فرد"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "از سیستم خارج می‌شوید. در صفحه ورود به سیستم، فرد جدید یک نام، نام کاربری و گذرواژه انتخاب می‌کند."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "سرپرست"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "سرپرست‌ها می‌توانند برای همه نرم‌افزار نصب کنند، سیستم را تغییر دهند و حساب‌ها را مدیریت کنند."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "تغییر گذرواژه"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "تأیید"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "تأیید گذرواژه جدید"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "گذرواژه فعلی"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "گذرواژه جدیدی انتخاب کنید"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "مشکلی پیش آمد. دوباره امتحان کنید."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "این دستگاه حداقل به یک سرپرست نیاز دارد"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "NAME سرپرست شود؟"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "گذرواژه جدید"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "هیچ فرد دیگری در این دستگاه حساب ندارد."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "افراد دیگر در این دستگاه"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "هرکسی حساب و فایل‌های خودش را دارد. سرپرست‌ها می‌توانند برای همه نرم‌افزار نصب کنند، سیستم را تغییر دهند و حساب‌ها را مدیریت کنند."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "مالک، سرپرست"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "گذرواژه‌های جدید مطابقت ندارند"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "برداشتن"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "NAME کاربر عادی شود؟"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "حساب این فرد و همه فایل‌هایش از این دستگاه حذف می‌شود. این کار واگردشدنی نیست."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "NAME برداشته شود؟"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "خروج از سیستم"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "عادی"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "این گذرواژه درست نیست"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "حساب شما"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "گذرواژه شما"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "فقط سرپرست این دستگاه می‌تواند این موارد را تغییر دهد."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "‏برای برنامه‌هایی که فقط برای پردازنده‌های ARM تلفن‌ها ساخته شده‌اند، ازجمله بسیاری از بازی‌ها. نرم‌افزاری انحصاری است که با روشن کردن این گزینه بارگیری می‌شود."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "‏بسیاری از برنامه‌های Android، به‌ویژه بازی‌ها، فقط برای پردازنده‌های ARM تلفن‌ها ساخته شده‌اند. برای اجرای آن‌ها در این رایانه، Android به یک مترجم نیاز دارد. NickelOS مترجمی نمی‌سازد و آن را همراه ندارد: با روشن کردن این گزینه، TRANSLATOR از GitHub بارگیری می‌شود، همان نسخه‌ای که waydroid_script انجمن Waydroid نصب می‌کند."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "‏این نرم‌افزار انحصاری است و تابع شرایط مالک آن، و خود شما آن را نصب می‌کنید. ممکن است برخی برنامه‌ها کند اجرا شوند یا اصلاً اجرا نشوند. Android برای استفاده از آن دوباره راه‌اندازی می‌شود."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "موافقم، روشن شود"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "‏پشتیبانی از برنامه‌های ARM روشن شود؟"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "‏پشتیبانی از برنامه‌های ARM"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "درحال برداشتن..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "درحال بارگیری و نصب..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "‏درحال بارگیری Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "بارگیری تمام نشد. اتصال را بررسی کنید و دوباره امتحان کنید."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "مشکلی پیش آمد. دوباره امتحان کنید."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "‏تنظیمات Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "‏درحال راه‌اندازی Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "برداشتن"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "‏Android، برنامه‌های Android شما و داده‌هایشان حذف می‌شوند"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "‏Android، برنامه‌های Android شما و داده‌هایشان از این دستگاه حذف می‌شوند. افراد دیگری که از این دستگاه استفاده می‌کنند داده‌های Android خود را حفظ می‌کنند، اما تا وقتی Android دوباره راه‌اندازی نشود نمی‌توانند برنامه‌های Android خود را باز کنند."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "‏Android برداشته شود؟"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "‏برداشتن Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "‏درحال برداشتن Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "راه‌اندازی"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "‏برنامه‌های Android در پنجره‌های خودشان و کنار برنامه‌های دیگرتان باز می‌شوند. با راه‌اندازی، Android (LineageOS از پروژه Waydroid) بارگیری می‌شود: حدود ۱ گیگابایت، و ۲٫۵ گیگابایت در این دستگاه."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "‏اجرای برنامه‌های Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "‏برنامه‌های Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "‏Houdini از Intel"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "‏ترجمه NDK از Google"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "‏درحال‌حاضر برنامه‌های Android دردسترس نیستند."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "‏Android در این دستگاه SIZE فضا اشغال کرده است"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "شناسه کلید دسترسی"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "افزودن حساب"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "برگشتن"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "شناسه کارخواه"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "رمز کارخواه"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "اتصال"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "درحال اتصال…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "‏دیدن Google Drive، OneDrive، Dropbox و دیگر فضاهای ذخیره‌سازی ابری در Files"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "افزودن فضای ذخیره‌سازی ابری"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "‏ACCOUNT_NAME اکنون در Files است."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "‏Google Drive به شناسه و رمز کارخواه خودتان از کنسول Google Cloud نیاز دارد."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "ایمیل یا نام کاربری"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "‏نقطه پایانی (برای Amazon S3 خالی بگذارید)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "متصل نشد. جزئیات را بررسی و دوباره امتحان کنید."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "تمام"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "نحوه ساختن آن‌ها"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "‏در Files"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "نام"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "بعدی"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "متصل نیست"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "گذرواژه"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "‏NickelOS از rclone استفاده می‌کند تا فضای ذخیره‌سازی ابری شما را در Files نشان دهد و به‌راحتی به فایل‌هایتان دسترسی داشته باشید. سرویسی را برای ورود به سیستم انتخاب کنید."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "منطقه (اختیاری)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "برداشتن"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "‏Files دیگر این حساب را نشان نمی‌دهد. فایل‌هایتان در فضای ابری می‌مانند و می‌توانید بعداً حساب را دوباره اضافه کنید."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "ACCOUNT_NAME برداشته شود؟"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "درحال برداشتن…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "‏Amazon S3 یا سازگار با آن"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "کلید دسترسی محرمانه"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "نشانی سرور"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "سرویس"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "ورود به سیستم را در صفحه‌ای که در مرورگرتان باز شد تکمیل کنید."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "وقتی متصل شوید، صفحه ورود به سیستم سرویس در مرورگرتان باز می‌شود."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "فضای ذخیره‌سازی ابری"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "کد تأیید ۲مرحله‌ای (اگر از آن استفاده می‌کنید)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "نام کاربری"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "‏Nextcloud یا WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "فقط سرپرست این رایانه می‌تواند نام آن را تغییر دهد."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "تغییر"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "‏دستگاه‌های دیگر این نام را در شبکه شما و ازطریق بلوتوث می‌بینند، و «پایانه» و برنامه‌های Linux هم آن را نشان می‌دهند."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "تغییر نام رایانه"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "نام تغییر نکرد. دوباره امتحان کنید."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "‏حداقل از یک حرف A تا Z یا یک عدد استفاده کنید."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "نام رایانه"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "در «پایانه»: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "‏برنامه‌هایی که هر نوع فایل را از Files و از برنامه‌های Linux باز می‌کنند"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "اسناد"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "ایمیل"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "تصاویر"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "موسیقی"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "هیچ برنامه‌ای این‌ها را باز نمی‌کند"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "تنظیم نشده"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "‏اسناد PDF"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "ارائه‌ها"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "‏نماگرفت‌ها (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "ضبط صفحه‌نمایش (داخلی)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "صفحه‌گسترده‌ها"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "فایل‌های متنی"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "برنامه‌های پیش‌فرض"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "ویدیوها"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (وب‌سایت)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "‏درایوهای داخل این دستگاه به‌جز درایوی که NickelOS روی آن است. درایوی که Windows روی آن است به‌صورت فقط‌خواندنی باز می‌شود تا Windows دست‌نخورده بماند."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "درایوهای دیگر"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "اجازه دادن به تغییرات"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "‏Windows روی این درایو است. تا وقتی اجازه تغییرات ندهید، فقط‌خواندنی است."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "‏با «راه‌اندازی سریع»، Windows کاملاً خاموش نمی‌شود و تغییراتی که اینجا ایجاد می‌کنید ممکن است ازبین برود یا هنگام راه‌اندازی دوباره Windows به فایل‌ها آسیب بزند. پیش‌از ایجاد تغییرات، «راه‌اندازی سریع» را در Windows خاموش کنید یا هنگام خاموش کردن Windows کلید Shift را نگه دارید."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "‏اجازه تغییرات در درایو Windows داده شود؟"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "‏Windows کاملاً خاموش نشده است، بنابراین درایو فقط‌خواندنی می‌ماند. برای ایجاد تغییرات، Windows را کاملاً خاموش کنید."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "‏نمایش در Files"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "کمک گرفتن از دیگران"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "انجمن، Discord و GitHub در nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "یادگیری Gentoo"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "Portage و emerge از ابتدا، با فرمان‌های pacman و apt در کنارشان"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "راهنمای NickelOS"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "نحوه کار NickelOS. این رونوشت همراه نسخه NickelOS شما آمده است و آفلاین کار می‌کند."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "راهنمای NickelOS، یادگیری Gentoo، عیب‌یابی"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "راهنمای آنلاین"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "جدیدترین نسخه در nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "راهنما"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "عیب‌یابی"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "فایل‌های گزارش، گزارش‌های خرابی، و مشکلات رایج و راه‌حل‌هایشان"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "‏برنامه‌های Linux"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "پذیرفتن"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "آماده جفت‌سازی"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "لغو"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "متصل"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "متصل · باتری PERCENT٪"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "متصل · درحال شارژ، PERCENT٪"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "‏با برنامه KDE Connect در Android یا iPhone، در همان شبکه Wi-Fi"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "موارد بیشتر برای DEVICE_NAME"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "‏هنوز تلفن یا رایانه لوحی‌ای وجود ندارد. KDE Connect را از Google Play، F-Droid یا App Store نصب کنید، آن را در همان شبکه Wi-Fi باز کنید، سپس از هرکدام از دو دستگاه جفت‌سازی کنید."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "اتصال تلفن اجرا نمی‌شود. برای راه‌اندازی آن، از سیستم خارج شوید و دوباره وارد شوید."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "‏باز کردن Valent"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "جفت کردن"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "جفت‌شده · متصل نیست"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "درانتظار پذیرش"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "رد کردن"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "به صدا درآوردن"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "ارسال فایل"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "ارسال فایل"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "تلفن‌ها و رایانه‌های لوحی"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "لغو جفت‌سازی"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "می‌خواهد با این دستگاه جفت شود"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "‏به برنامه‌هایی مثل Discord امکان می‌دهد وقتی در پنجره‌های دیگر هستید از «فشار برای صحبت» استفاده کنند. این برنامه‌ها فقط کلیدهایی را که همراه با Ctrl، Alt یا «جستجو» فشار داده می‌شوند و کلیدهای عملکردی را می‌بینند، و هرگز آنچه را تایپ می‌کنید نمی‌بینند."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "‏کلیدهای میان‌بر برای برنامه‌های قدیمی‌تر Linux"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "‏مطمئن شوید چاپگر و دستگاه NickelOS به شبکه Wi-Fi یکسانی متصل باشند یا از سیم USB استفاده کنید. LINK_BEGINدرباره سازگاری بیشتر بدانیدLINK_END"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "‏چاپگر متصل نشد. بررسی کنید چاپگر روشن و ازطریق Wi-Fi یا USB به دستگاه NickelOS متصل باشد."
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "پوشه خانه"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "‏برای شروع کار، لطفاً مطمئن شوید که کلید بلوتوث یا USB به دستگاه NickelOS متصل باشد. می‌توانید از کلیدهای صفحه‌کلید هم استفاده کنید."
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "‏برای باز کردن قفل دستگاه NickelOS، از روشن بودن بلوتوث تلفن مطمئن شوید"
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "‏بلوتوث دستگاه NickelOS خاموش است. برای باز کردن قفل دستگاه NickelOS، گذرواژه را وارد کنید."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "‏تلفنتان صفحه قفل ندارد. برای باز کردن قفل دستگاه NickelOS، گذرواژه را وارد کنید."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "‏برای باز کردن قفل دستگاه NickelOS، ابتدا قفل تلفنتان را باز کنید"
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "‏دستگاهتان از حسگر داخلی برای شناسایی افراد مقابل آن استفاده می‌کند. همه داده‌ها بلافاصله در دستگاهتان پردازش و سپس حذف می‌شود. داده‌های حسگر هرگز به Google ارسال نمی‌شود."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "‏گزارش‌های NickelOS"
+ },
+ "IDS_TERMS_OF_SERVICE_SCREEN_SUBHEADING": {
+  "en": "MANAGER requires that you read and accept the following Terms of Service before using this device. These terms do not expand, modify or limit the NickelOS Terms.",
+  "t": "‏MANAGER لازم می‌داند که شما «شرایط خدمات» زیر را قبل‌از استفاده از این دستگاه بخوانید و بپذیرید. این شرایط بسط داده نمی‌شود، اصلاح نمی‌شود، و شرایط NickelOS را محدود نمی‌کند."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "برای ورود به سیستم در دستگاه از حساب خودتان استفاده خواهید کرد و هرکسی که از آن استفاده می‌کند می‌تواند حساب خودش را داشته باشد."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "حساب خودتان در دستگاهتان"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "‏NickelOS با درنظر گرفتن امنیت طراحی شده است و به‌طور خودکار خودش را به‌روز نگه می‌دارد."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "‏NickelOS برنامه‌های وب و برنامه‌های Linux را درکنار هم اجرا می‌کند. برنامه‌هایی ویژه بهره‌وری، سرگرمی، و غیره دریافت کنید."
+ },
+ "IDS_UPDATE_SLIDE_UPDATE_TEXT": {
+  "en": "This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.",
+  "t": "‏فقط همین یک‌بار باید برای به‌روزرسانی صبر کنید. در NickelOS، به‌روزرسانی‌های نرم‌افزار در پس‌زمینه انجام می‌شود."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "‏برنامه‌های Chrome در NickelOS اجرا نمی‌شوند. بهتر است از برنامه دیگری استفاده کنید."
+ }
+}

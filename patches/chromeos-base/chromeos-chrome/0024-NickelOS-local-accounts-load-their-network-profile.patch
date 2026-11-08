@@ -1,0 +1,48 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: local accounts load their network profile
+
+At sign-in Chrome asks session_manager to load the user's shill profile
+(the load-shill-profile event, shill_login_user), once user network
+policy has been applied: UserNetworkConfigurationUpdaterAsh votes
+PasswordConsumingService::kNetwork and UserSessionManager loads the
+profile, in the session's first Chrome only (StartSessionType kPrimary).
+A Chrome restarted after a crash picks the session up without
+StartSession() (kNone) and skips it, the first Chrome having loaded the
+profile already.
+
+A local account's session runs in the Chrome that restarted as its Linux
+user (0008), which picks the session up that way, and the login screen's
+Chrome restarted before network policy was applied. So shill never had
+the user's profile: networks not shared with other users (the default
+for secured Wi-Fi) failed with "Error configuring network", and per-user
+VPNs and certificates had nowhere to go. That Chrome now loads it when
+the primary user is a local account; loading it again is harmless.
+
+diff --git a/chrome/browser/ash/login/session/user_session_manager.cc b/chrome/browser/ash/login/session/user_session_manager.cc
+index 42de977d943c6..40ed4933aa97b 100644
+--- a/chrome/browser/ash/login/session/user_session_manager.cc
++++ b/chrome/browser/ash/login/session/user_session_manager.cc
+@@ -1419,6 +1419,23 @@ void UserSessionManager::VoteForSavingLoginPassword(
+   CHECK_LT(service, PasswordConsumingService::kCount,
+            base::NotFatalUntil::M161);
+ 
++  // NickelOS: a local account's session runs in the Chrome that restarted as
++  // its Linux user, which picks the session up the way it does after a crash
++  // (no StartSession(): kNone), and the Chrome before it never got this far:
++  // the session's shill profile is loaded here, or the user's own networks
++  // (and anything else in that profile) cannot be saved.
++  if (service == PasswordConsumingService::kNetwork &&
++      start_session_type_ == StartSessionType::kNone) {
++    const user_manager::User* primary =
++        user_manager::UserManager::Get()->GetPrimaryUser();
++    if (primary && user_manager::IsNickelLocalAccount(primary->GetAccountId())) {
++      base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++          FROM_HERE, base::BindOnce(&UserSessionManager::LoadShillProfile,
++                                    GetUserSessionManagerAsWeakPtr(),
++                                    primary->GetAccountId()));
++    }
++  }
++
+   // VoteForSavingLoginPassword should only be called for the primary user
+   // session. It also should not be called when restarting the browser after a
+   // crash, because in that case a password is not available to chrome anymore.

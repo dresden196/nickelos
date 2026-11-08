@@ -1,0 +1,414 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Print Screen can open a screenshot app
+
+Dresden, 2026-10-23: people who prefer another screenshot tool (GNOME
+Screenshot, Flameshot, Spectacle, ksnip) should be able to have Print
+Screen open it. ChromeOS's own screen capture stays the default.
+
+- Settings > Apps > Default apps gets a Screenshots (Print Screen) row:
+  ChromeOS's screen capture, or an installed Linux app whose name or
+  keywords say it takes screenshots. The choice is the profile pref
+  nickel.tools.screenshot (the app's desktop file id; empty for the
+  screen capture).
+- Ash's snip key command asks the capture mode delegate first. Chrome's
+  delegate has nickel-appd start the chosen app
+  (org.nickelos.Apps.LaunchTool, kind "screenshot"), which uses the app's
+  capture action when it has one (Flameshot's Capture: launched as it is,
+  Flameshot only starts its tray icon). If the app can't be started,
+  ChromeOS's capture mode opens as before.
+- Only the snip key changes: Ctrl+Show windows and the other capture
+  shortcuts stay ChromeOS's.
+
+diff --git a/ash/accelerators/accelerator_commands.cc b/ash/accelerators/accelerator_commands.cc
+index 3bb8c539f7bfb..1a82584c44773 100644
+--- a/ash/accelerators/accelerator_commands.cc
++++ b/ash/accelerators/accelerator_commands.cc
+@@ -1289,10 +1289,20 @@ void TakeScreenshot(bool from_snapshot_key) {
+   auto* capture_mode_controller = CaptureModeController::Get();
+   if (from_snapshot_key &&
+       !Shell::Get()->session_controller()->IsUserSessionBlocked()) {
+-    if (capture_mode_controller->IsActive())
++    if (capture_mode_controller->IsActive()) {
+       capture_mode_controller->Stop();
+-    else
+-      capture_mode_controller->Start(CaptureModeEntryType::kSnipKey);
++      return;
++    }
++    // NickelOS: the screenshot app chosen in Settings > Apps > Default apps
++    // takes the key instead; capture mode if it can't start.
++    if (capture_mode_controller->NickelLaunchScreenshotTool(
++            base::BindOnce([] {
++              CaptureModeController::Get()->Start(
++                  CaptureModeEntryType::kSnipKey);
++            }))) {
++      return;
++    }
++    capture_mode_controller->Start(CaptureModeEntryType::kSnipKey);
+     return;
+   }
+   capture_mode_controller->CaptureScreenshotsOfAllDisplays();
+diff --git a/ash/ash_prefs.cc b/ash/ash_prefs.cc
+index 2bf46b75629c9..5c4d656b8c906 100644
+--- a/ash/ash_prefs.cc
++++ b/ash/ash_prefs.cc
+@@ -179,6 +179,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry,
+   MessageCenterController::RegisterProfilePrefs(registry);
+   NickelDesktopController::RegisterProfilePrefs(registry);
+   registry->RegisterStringPref(prefs::kNickelSetupExperience, std::string());
++  registry->RegisterStringPref(prefs::kNickelScreenshotTool, std::string());
+   NightLightControllerImpl::RegisterProfilePrefs(registry);
+   OnboardingNudgeController::RegisterProfilePrefs(registry);
+   PaletteTray::RegisterProfilePrefs(registry);
+diff --git a/ash/capture_mode/capture_mode_controller.h b/ash/capture_mode/capture_mode_controller.h
+index 5111f9143c95a..f0ed0ea326f19 100644
+--- a/ash/capture_mode/capture_mode_controller.h
++++ b/ash/capture_mode/capture_mode_controller.h
+@@ -454,6 +454,11 @@ class ASH_EXPORT CaptureModeController
+   void RemoveObserver(CaptureModeObserver* observer);
+ 
+   CaptureModeDelegate* delegate_for_testing() const { return delegate_.get(); }
++
++  // NickelOS: CaptureModeDelegate::NickelLaunchScreenshotTool().
++  bool NickelLaunchScreenshotTool(base::OnceClosure on_failure) {
++    return delegate_->NickelLaunchScreenshotTool(std::move(on_failure));
++  }
+   VideoRecordingWatcher* video_recording_watcher_for_testing() const {
+     return video_recording_watcher_.get();
+   }
+diff --git a/ash/constants/nickel_pref_names.h b/ash/constants/nickel_pref_names.h
+index a5bf3424d4bd3..35dfdf9c7be83 100644
+--- a/ash/constants/nickel_pref_names.h
++++ b/ash/constants/nickel_pref_names.h
+@@ -24,6 +24,11 @@ inline constexpr char kNickelSetupPendingExperience[] =
+ inline constexpr char kNickelSetupPendingAvatars[] =
+     "nickel.setup.pending_avatars";
+ 
++// Profile: the app Print Screen opens instead of ChromeOS's screen capture
++// (a Linux app's desktop file id; empty: the screen capture), chosen in
++// Settings > Apps > Default apps.
++inline constexpr char kNickelScreenshotTool[] = "nickel.tools.screenshot";
++
+ }  // namespace ash::prefs
+ 
+ #endif  // ASH_CONSTANTS_NICKEL_PREF_NAMES_H_
+diff --git a/ash/public/cpp/capture_mode/capture_mode_delegate.h b/ash/public/cpp/capture_mode/capture_mode_delegate.h
+index 2975e5cd83433..0ebe3081101b4 100644
+--- a/ash/public/cpp/capture_mode/capture_mode_delegate.h
++++ b/ash/public/cpp/capture_mode/capture_mode_delegate.h
+@@ -290,6 +290,14 @@ class ASH_PUBLIC_EXPORT CaptureModeDelegate {
+   // Returns true if Google is the default search engine for the active user,
+   // and false otherwise.
+   virtual bool ActiveUserDefaultSearchProviderIsGoogle() const = 0;
++
++  // NickelOS: starts the app the snip key (Print Screen) opens instead of
++  // capture mode, when the active user chose one in Settings > Apps > Default
++  // apps. Returns false when none is chosen; `on_failure` runs if the app
++  // can't be started.
++  virtual bool NickelLaunchScreenshotTool(base::OnceClosure on_failure) {
++    return false;
++  }
+ };
+ 
+ }  // namespace ash
+diff --git a/chrome/app/os_settings_strings.grdp b/chrome/app/os_settings_strings.grdp
+index 10776f08f4b68..e724c495ff03c 100644
+--- a/chrome/app/os_settings_strings.grdp
++++ b/chrome/app/os_settings_strings.grdp
+@@ -7245,6 +7245,12 @@ Press &amp; hold keyboard keys to see accent marks and special characters. This
+   <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT" desc="NickelOS: a kind of file in the Default apps card.">
+     Text files
+   </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS" desc="NickelOS: a row in the Default apps card: the app the Print Screen key opens to take screenshots. 'Print Screen' is the key's name.">
++    Screenshots (Print Screen)
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE" desc="NickelOS: in the Default apps card's Screenshots menu, ChromeOS's own screen capture (screenshots and screen recordings), as opposed to an installed screenshot app.">
++    Screen capture (built in)
++  </message>
+   <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET" desc="NickelOS: shown in a Default apps menu when no default app is set for that kind of file.">
+     Not set
+   </message>
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts b/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts
+index de931a913e60b..4e2c34e537015 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts
++++ b/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts
+@@ -36,6 +36,7 @@ const KIND_NAMES: Record<string, string> = {
+   music: 'nickelDefaultAppsMusic',
+   pdf: 'nickelDefaultAppsPdf',
+   text: 'nickelDefaultAppsText',
++  screenshot: 'nickelDefaultAppsScreenshots',
+ };
+ 
+ const NickelDefaultAppsElementBase = I18nMixin(PolymerElement);
+diff --git a/chrome/browser/ui/ash/capture_mode/BUILD.gn b/chrome/browser/ui/ash/capture_mode/BUILD.gn
+index 8642cf9bb180c..677daa8ecc95d 100644
+--- a/chrome/browser/ui/ash/capture_mode/BUILD.gn
++++ b/chrome/browser/ui/ash/capture_mode/BUILD.gn
+@@ -36,6 +36,7 @@ static_library("capture_mode") {
+     "//chrome/common",
+     "//chromeos/ash/components/browser_context_helper",
+     "//chromeos/ash/components/browser_delegate",
++    "//chromeos/ash/components/dbus",
+     "//chromeos/ash/components/drivefs/mojom",
+     "//chromeos/ash/components/login/login_state",
+     "//chromeos/ash/components/search_engines",
+@@ -51,6 +52,7 @@ static_library("capture_mode") {
+     "//components/session_manager/core",
+     "//components/user_manager",
+     "//content/public/browser",
++    "//dbus",
+     "//services/screen_ai/public/mojom",
+     "//services/video_capture/public/mojom",
+     "//third_party/lens_server_proto:lens_overlay_proto",
+diff --git a/chrome/browser/ui/ash/capture_mode/chrome_capture_mode_delegate.cc b/chrome/browser/ui/ash/capture_mode/chrome_capture_mode_delegate.cc
+index 4cf431c35663a..075b170a4e6d5 100644
+--- a/chrome/browser/ui/ash/capture_mode/chrome_capture_mode_delegate.cc
++++ b/chrome/browser/ui/ash/capture_mode/chrome_capture_mode_delegate.cc
+@@ -16,6 +16,7 @@
+ #include "ash/constants/ash_features.h"
+ #include "ash/constants/ash_pref_names.h"
+ #include "ash/constants/chrome_pref_names.h"
++#include "ash/constants/nickel_pref_names.h"
+ #include "ash/constants/web_app_id_constants.h"
+ #include "ash/public/cpp/capture_mode/capture_mode_api.h"
+ #include "ash/public/cpp/capture_mode/capture_mode_delegate.h"
+@@ -61,6 +62,7 @@
+ #include "chrome/browser/ui/ash/system_web_apps/system_web_app_ui_utils.h"
+ #include "chrome/browser/ui/webui/ash/cloud_upload/cloud_upload_util.h"
+ #include "chromeos/ash/components/browser_context_helper/browser_context_helper.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
+ #include "chromeos/ash/components/login/login_state/login_state.h"
+ #include "chromeos/ash/components/search_engines/template_url_service_provider.h"
+ #include "chromeos/ash/components/signin/identity_manager_provider.h"
+@@ -72,6 +74,9 @@
+ #include "components/lens/lens_overlay_mime_type.h"
+ #include "components/lens/lens_overlay_permission_utils.h"
+ #include "components/prefs/pref_service.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_proxy.h"
+ #include "components/search/search.h"
+ #include "components/search_engines/template_url_service.h"
+ #include "components/services/app_service/public/cpp/app_launch_util.h"
+@@ -845,6 +850,45 @@ bool ChromeCaptureModeDelegate::ActiveUserDefaultSearchProviderIsGoogle()
+   return search::DefaultSearchProviderIsGoogle(template_url_service);
+ }
+ 
++bool ChromeCaptureModeDelegate::NickelLaunchScreenshotTool(
++    base::OnceClosure on_failure) {
++  Profile* profile = ProfileManager::GetActiveUserProfile();
++  if (!profile || !profile->GetPrefs()) {
++    return false;
++  }
++  const std::string tool =
++      profile->GetPrefs()->GetString(ash::prefs::kNickelScreenshotTool);
++  dbus::Bus* bus = ash::DBusThreadManager::IsInitialized()
++                       ? ash::DBusThreadManager::Get()->GetSystemBus()
++                       : nullptr;
++  if (tool.empty() || !bus) {
++    return false;
++  }
++  // nickel-appd starts it in the session, with its capture action when it
++  // has one (org.nickelos.Apps, as crostini_util.h names it).
++  dbus::ObjectProxy* proxy = bus->GetObjectProxy(
++      "org.nickelos.Apps", dbus::ObjectPath("/org/nickelos/Apps"));
++  dbus::MethodCall method_call("org.nickelos.Apps", "LaunchTool");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(tool);
++  writer.AppendString("screenshot");
++  proxy->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(
++          [](const std::string& tool, base::OnceClosure on_failure,
++             dbus::Response* response, dbus::ErrorResponse* error) {
++            if (response) {
++              return;
++            }
++            LOG(WARNING) << "NickelOS: the screenshot app " << tool
++                         << " did not start: "
++                         << (error ? error->GetErrorName() : "no answer");
++            std::move(on_failure).Run();
++          },
++          tool, std::move(on_failure)));
++  return true;
++}
++
+ void ChromeCaptureModeDelegate::OnGetDriveQuotaUsage(
+     ash::OnGotDriveFsFreeSpace callback,
+     drive::FileError error,
+diff --git a/chrome/browser/ui/ash/capture_mode/chrome_capture_mode_delegate.h b/chrome/browser/ui/ash/capture_mode/chrome_capture_mode_delegate.h
+index 8b775738e29d3..0c49f4344a1fa 100644
+--- a/chrome/browser/ui/ash/capture_mode/chrome_capture_mode_delegate.h
++++ b/chrome/browser/ui/ash/capture_mode/chrome_capture_mode_delegate.h
+@@ -142,6 +142,7 @@ class ChromeCaptureModeDelegate : public ash::CaptureModeDelegate {
+   void DeleteRemoteFile(const base::FilePath& path,
+                         base::OnceCallback<void(bool)> callback) override;
+   bool ActiveUserDefaultSearchProviderIsGoogle() const override;
++  bool NickelLaunchScreenshotTool(base::OnceClosure on_failure) override;
+ 
+   void set_optical_character_recognizer_for_testing(
+       scoped_refptr<screen_ai::OpticalCharacterRecognizer>
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
+index fad237096dc06..804528acb8189 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
+@@ -39,6 +39,8 @@ static_library("apps") {
+     "//chrome/browser/ash/arc",
+     "//chrome/browser/ash/arc:arc_util",
+     "//chrome/browser/ash/child_accounts/on_device_controls",
++    "//chrome/browser/ash/file_manager",
++    "//chrome/browser/ash/guest_os",
+     "//chrome/browser/profiles:profile",
+     "//chrome/browser/resources/ash/settings:resources",
+     "//chrome/browser/ui/webui/ash/settings/pages/crostini",
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+index a2cd4a9088703..3314f4ad885ae 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+@@ -265,6 +265,8 @@ void AddAppManagementStrings(content::WebUIDataSource* html_source) {
+       {"nickelDefaultAppsMusic", IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC},
+       {"nickelDefaultAppsPdf", IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF},
+       {"nickelDefaultAppsText", IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT},
++      {"nickelDefaultAppsScreenshots",
++       IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS},
+       {"nickelDefaultAppsNotSet", IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET},
+       {"nickelDefaultAppsNone", IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE},
+       {"nickelLinuxAppsTitle", IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE},
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc
+index 5435d02127ed5..aebcd21361c0f 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc
+@@ -4,19 +4,27 @@
+ 
+ #include "chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.h"
+ 
++#include <algorithm>
+ #include <optional>
+ #include <set>
+ #include <utility>
+ #include <vector>
+ 
++#include "ash/constants/nickel_pref_names.h"
+ #include "base/functional/bind.h"
+ #include "base/strings/string_split.h"
++#include "base/strings/string_util.h"
+ #include "chrome/browser/ash/file_manager/file_tasks.h"
+ #include "chrome/browser/ash/file_manager/fileapi_util.h"
+ #include "chrome/browser/ash/file_manager/path_util.h"
++#include "chrome/browser/ash/guest_os/guest_os_registry_service.h"
++#include "chrome/browser/ash/guest_os/guest_os_registry_service_factory.h"
+ #include "chrome/browser/profiles/profile.h"
++#include "chrome/grit/generated_resources.h"
++#include "components/prefs/pref_service.h"
+ #include "content/public/browser/web_ui.h"
+ #include "extensions/browser/entry_info.h"
++#include "ui/base/l10n/l10n_util.h"
+ #include "url/gurl.h"
+ 
+ namespace ash::settings {
+@@ -55,6 +63,69 @@ std::set<std::string> SplitSet(const char* list) {
+   return std::set<std::string>(items.begin(), items.end());
+ }
+ 
++// The app Print Screen opens: ChromeOS's screen capture (this id; the pref
++// is empty for it) or a Linux app that takes screenshots (its desktop file
++// id), which nickel-appd starts (CaptureModeDelegate::
++// NickelLaunchScreenshotTool).
++constexpr char kScreenshotKind[] = "screenshot";
++constexpr char kScreenCapture[] = "chromeos";
++
++// A Linux app whose name or keywords say it takes screenshots: Flameshot,
++// Spectacle, GNOME Screenshot, ksnip...
++bool IsScreenshotApp(
++    const guest_os::GuestOsRegistryService::Registration& app) {
++  auto mentions = [](const std::string& text) {
++    const std::string lower = base::ToLowerASCII(text);
++    return lower.find("screenshot") != std::string::npos ||
++           lower.find("screen shot") != std::string::npos ||
++           lower.find("screen capture") != std::string::npos;
++  };
++  if (mentions(app.Name())) {
++    return true;
++  }
++  for (const std::string& keyword : app.Keywords()) {
++    if (mentions(keyword)) {
++      return true;
++    }
++  }
++  return false;
++}
++
++base::DictValue ScreenshotKind(Profile* profile) {
++  base::ListValue apps;
++  apps.Append(base::DictValue()
++                  .Set("taskId", kScreenCapture)
++                  .Set("title", l10n_util::GetStringUTF16(
++                                    IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE)));
++  const std::string chosen =
++      profile->GetPrefs()->GetString(ash::prefs::kNickelScreenshotTool);
++  bool chosen_there = false;
++  if (auto* registry =
++          guest_os::GuestOsRegistryServiceFactory::GetForProfile(profile)) {
++    std::vector<std::pair<std::string, std::string>> found;  // Name, id.
++    // NickelOS's own Linux apps (nickel-appd's, VM type NICKEL_HOST).
++    for (const auto& [app_id, app] :
++         registry->GetRegisteredApps(guest_os::VmType::NICKEL_HOST)) {
++      if (!app.NoDisplay() && IsScreenshotApp(app)) {
++        found.emplace_back(app.Name(), app.DesktopFileId());
++      }
++    }
++    std::sort(found.begin(), found.end());
++    for (const auto& [name, desktop_file_id] : found) {
++      apps.Append(base::DictValue()
++                      .Set("taskId", desktop_file_id)
++                      .Set("title", name));
++      chosen_there |= desktop_file_id == chosen;
++    }
++  }
++  // An app removed since it was chosen: Print Screen falls back to the
++  // screen capture, as shown.
++  return base::DictValue()
++      .Set("id", kScreenshotKind)
++      .Set("apps", std::move(apps))
++      .Set("defaultTaskId", chosen_there ? chosen : kScreenCapture);
++}
++
+ }  // namespace
+ 
+ NickelDefaultAppsHandler::NickelDefaultAppsHandler(Profile* profile)
+@@ -83,6 +154,7 @@ void NickelDefaultAppsHandler::FindApps(std::string callback_id,
+                                         base::ListValue categories,
+                                         size_t index) {
+   if (index == std::size(kKinds)) {
++    categories.Append(ScreenshotKind(profile_));
+     ResolveJavascriptCallback(base::Value(callback_id),
+                               base::Value(std::move(categories)));
+     return;
+@@ -143,6 +215,13 @@ void NickelDefaultAppsHandler::HandleSetDefaultApp(
+   AllowJavascript();
+   const base::Value& callback_id = args[0];
+   const std::string& kind_id = args[1].GetString();
++  if (kind_id == kScreenshotKind) {
++    const std::string& tool = args[2].GetString();
++    profile_->GetPrefs()->SetString(ash::prefs::kNickelScreenshotTool,
++                                    tool == kScreenCapture ? "" : tool);
++    ResolveJavascriptCallback(callback_id, base::Value(true));
++    return;
++  }
+   std::optional<file_manager::file_tasks::TaskDescriptor> task =
+       file_manager::file_tasks::ParseTaskID(args[2].GetString());
+   for (const Kind& kind : kKinds) {
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.h b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.h
+index fbd0bdf30a8ef..56fdf2cd3dbf5 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.h
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.h
+@@ -25,7 +25,9 @@ namespace ash::settings {
+ // videos, music, PDF, text), the apps that can open it (ChromeOS's own, web
+ // apps, Linux apps) and the one it opens with. Choosing one makes it Files'
+ // default for that kind, the default Files' "Change default" sets; Linux apps
+-// open files through ChromeOS (nickel-open), so it applies to them too.
++// open files through ChromeOS (nickel-open), so it applies to them too. Also
++// the app Print Screen opens: ChromeOS's screen capture or a Linux
++// screenshot app (prefs::kNickelScreenshotTool).
+ class NickelDefaultAppsHandler : public content::WebUIMessageHandler {
+  public:
+   explicit NickelDefaultAppsHandler(Profile* profile);

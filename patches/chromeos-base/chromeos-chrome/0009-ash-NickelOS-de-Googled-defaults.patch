@@ -1,0 +1,96 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] ash: NickelOS de-Googled defaults
+
+- Google's app storefront (the Mall system web app, "Apps & games") is
+  never enabled, so it is neither installed nor pinned to the shelf
+  after Chrome; Bazaar is NickelOS's app store.
+- The setup screens no longer warn that users cannot be added because
+  Google API keys are missing: NickelOS accounts are local.
+- A local account's wrong-password bubble on the login screen offers no
+  "Recover user" and no hint to recover the user: its password cannot be
+  recovered. The hint now shows only where recovery is offered.
+
+diff --git a/ash/login/ui/auth_error_bubble.cc b/ash/login/ui/auth_error_bubble.cc
+index 68f9c44480451..d85ad8a778106 100644
+--- a/ash/login/ui/auth_error_bubble.cc
++++ b/ash/login/ui/auth_error_bubble.cc
+@@ -137,7 +137,9 @@ void AuthErrorBubble::ShowAuthError(base::WeakPtr<views::View> anchor_view,
+     *bold_start += shortcut_offset_in_string;
+   }
+ 
+-  if (unlock_attempt > 1) {
++  // NickelOS: the hint to recover the user only where recovery is offered
++  // (the login screen, and not for local accounts; see LockContentsView).
++  if (unlock_attempt > 1 && is_login_screen) {
+     base::StrAppend(&error_text,
+                     {u"\n\n", l10n_util::GetStringUTF16(
+                                   authenticated_by_pin
+diff --git a/ash/login/ui/lock_contents_view.cc b/ash/login/ui/lock_contents_view.cc
+index f72eff73a14e5..d42f89928cb73 100644
+--- a/ash/login/ui/lock_contents_view.cc
++++ b/ash/login/ui/lock_contents_view.cc
+@@ -72,6 +72,7 @@
+ #include "chromeos/strings/grit/chromeos_strings.h"
+ #include "chromeos/ui/vector_icons/vector_icons.h"
+ #include "components/user_manager/known_user.h"
++#include "components/user_manager/nickel_local_account.h"
+ #include "components/user_manager/multi_user/multi_user_sign_in_policy.h"
+ #include "components/user_manager/user_type.h"
+ #include "ui/accessibility/ax_node_data.h"
+@@ -2097,11 +2098,17 @@ void LockContentsView::ShowAuthErrorMessage(bool authenticated_by_pin) {
+     return;
+   }
+ 
++  // NickelOS: a local account's password cannot be recovered, so its error
++  // bubble offers no "Recover user" (the bubble offers it on the login
++  // screen only).
++  const bool can_recover =
++      !user_manager::IsNickelLocalAccount(account_id);
+   auth_error_bubble_->ShowAuthError(
+       /*anchor_view = */ big_view->auth_user()->GetActiveInputView(),
+       /*unlock_attempt = */ unlock_attempt,
+       /*authenticated_by_pin = */ authenticated_by_pin,
+-      /*is_login_screen = */ screen_type_ == LockScreen::ScreenType::kLogin);
++      /*is_login_screen = */ screen_type_ == LockScreen::ScreenType::kLogin &&
++          can_recover);
+ }
+ 
+ void LockContentsView::HideAuthErrorMessage() {
+diff --git a/chrome/browser/ash/system_web_apps/apps/mall_system_web_app_info.cc b/chrome/browser/ash/system_web_apps/apps/mall_system_web_app_info.cc
+index 8d63d66171cd8..5280f0b9aae88 100644
+--- a/chrome/browser/ash/system_web_apps/apps/mall_system_web_app_info.cc
++++ b/chrome/browser/ash/system_web_apps/apps/mall_system_web_app_info.cc
+@@ -53,14 +53,9 @@ MallSystemAppDelegate::GetWebAppInfo() const {
+ }
+ 
+ bool MallSystemAppDelegate::IsAppEnabled() const {
+-  if (apps::DetermineUserType(profile()) != apps::kUserTypeUnmanaged) {
+-    return false;
+-  }
+-  // Do not enable Mall on Flex devices, which do  not support apps on ARC.
+-  if (ash::switches::IsRevenBranding()) {
+-    return false;
+-  }
+-  return true;
++  // NickelOS: Google's app storefront is not part of NickelOS (Bazaar is its
++  // app store), so it is neither installed nor pinned.
++  return false;
+ }
+ 
+ std::vector<std::string> MallSystemAppDelegate::GetAppIdsToUninstallAndReplace()
+diff --git a/chrome/browser/ui/webui/ash/login/core_oobe_handler.cc b/chrome/browser/ui/webui/ash/login/core_oobe_handler.cc
+index f52e68ef87830..e0702e2a31af7 100644
+--- a/chrome/browser/ui/webui/ash/login/core_oobe_handler.cc
++++ b/chrome/browser/ui/webui/ash/login/core_oobe_handler.cc
+@@ -48,8 +48,9 @@ void CoreOobeHandler::DeclareLocalizedValues(
+   // Strings for Asset Identifier shown in version string.
+   builder->Add("assetIdLabel", IDS_OOBE_ASSET_ID_LABEL);
+ 
+-  const bool has_api_keys_configured = google_apis::HasAPIKeyConfigured() &&
+-                                       google_apis::HasOAuthClientConfigured();
++  // NickelOS: accounts are local and need no Google API keys, so there is
++  // nothing to warn about.
++  const bool has_api_keys_configured = true;
+   if (!has_api_keys_configured) {
+     builder->AddF("missingAPIKeysNotice", IDS_LOGIN_API_KEYS_NOTICE,
+                   base::ASCIIToUTF16(google_apis::kAPIKeysDevelopersHowToURL));

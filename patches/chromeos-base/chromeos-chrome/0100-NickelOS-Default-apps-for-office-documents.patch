@@ -1,0 +1,90 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Default apps for office documents
+
+Settings > Apps > Default apps (0021) gets three more kinds of file:
+Documents (OpenDocument text, Word, RTF), Spreadsheets (OpenDocument,
+Excel, CSV) and Presentations (OpenDocument, PowerPoint). Each lists the
+apps that can open it, found as Files finds them (for a sample file), and
+sets Files' default for all its types and extensions; Linux apps open
+files through ChromeOS (0020), so the same defaults apply to them.
+
+---
+diff --git a/chrome/app/os_settings_strings.grdp b/chrome/app/os_settings_strings.grdp
+index e724c49..dbafa90 100644
+--- a/chrome/app/os_settings_strings.grdp
++++ b/chrome/app/os_settings_strings.grdp
+@@ -7245,6 +7245,15 @@ Press &amp; hold keyboard keys to see accent marks and special characters. This
+   <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT" desc="NickelOS: a kind of file in the Default apps card.">
+     Text files
+   </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS" desc="NickelOS: a kind of file in the Default apps card: word processor documents (OpenDocument text, Word, RTF).">
++    Documents
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS" desc="NickelOS: a kind of file in the Default apps card: spreadsheets (OpenDocument, Excel, CSV).">
++    Spreadsheets
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS" desc="NickelOS: a kind of file in the Default apps card: slide presentations (OpenDocument, PowerPoint).">
++    Presentations
++  </message>
+   <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS" desc="NickelOS: a row in the Default apps card: the app the Print Screen key opens to take screenshots. 'Print Screen' is the key's name.">
+     Screenshots (Print Screen)
+   </message>
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts b/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts
+index 33d9f46..e95a451 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts
++++ b/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts
+@@ -36,6 +36,9 @@ const KIND_NAMES: Record<string, string> = {
+   music: 'nickelDefaultAppsMusic',
+   pdf: 'nickelDefaultAppsPdf',
+   text: 'nickelDefaultAppsText',
++  documents: 'nickelDefaultAppsDocuments',
++  spreadsheets: 'nickelDefaultAppsSpreadsheets',
++  presentations: 'nickelDefaultAppsPresentations',
+   screenshot: 'nickelDefaultAppsScreenshots',
+ };
+ 
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+index 3314f4a..c1d9946 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+@@ -265,6 +265,12 @@ void AddAppManagementStrings(content::WebUIDataSource* html_source) {
+       {"nickelDefaultAppsMusic", IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC},
+       {"nickelDefaultAppsPdf", IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF},
+       {"nickelDefaultAppsText", IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT},
++      {"nickelDefaultAppsDocuments",
++       IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS},
++      {"nickelDefaultAppsSpreadsheets",
++       IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS},
++      {"nickelDefaultAppsPresentations",
++       IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS},
+       {"nickelDefaultAppsScreenshots",
+        IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS},
+       {"nickelDefaultAppsNotSet", IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET},
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc
+index aebcd21..4c8c0f9 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc
+@@ -55,6 +55,23 @@ constexpr Kind kKinds[] = {
+      "audio/mp4 audio/aac"},
+     {"pdf", ".pdf", "application/pdf", ".pdf", "application/pdf"},
+     {"text", ".txt", "text/plain", ".txt .md .log", "text/plain text/markdown"},
++    // Office documents: OpenDocument, Microsoft Office's formats, RTF, CSV.
++    {"documents", ".odt", "application/vnd.oasis.opendocument.text",
++     ".odt .docx .doc .rtf",
++     "application/vnd.oasis.opendocument.text "
++     "application/vnd.openxmlformats-officedocument.wordprocessingml.document "
++     "application/msword application/rtf text/rtf"},
++    {"spreadsheets", ".ods", "application/vnd.oasis.opendocument.spreadsheet",
++     ".ods .xlsx .xls .csv",
++     "application/vnd.oasis.opendocument.spreadsheet "
++     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet "
++     "application/vnd.ms-excel text/csv"},
++    {"presentations", ".odp",
++     "application/vnd.oasis.opendocument.presentation", ".odp .pptx .ppt",
++     "application/vnd.oasis.opendocument.presentation "
++     "application/vnd.openxmlformats-officedocument.presentationml."
++     "presentation "
++     "application/vnd.ms-powerpoint"},
+ };
+ 
+ std::set<std::string> SplitSet(const char* list) {

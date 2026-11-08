@@ -1,0 +1,47 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the digital internal mic at the first sign-in too
+
+Chrome 0091 made the digital internal mic (AMD ACP, Intel SOF DMIC) win a
+tie in LessBuiltInPriority. On the AMD test PC (23u, its saved audio choices
+cleared) Chrome still chose the HD-Audio codec's unwired "Internal Mic":
+when a device set is new and nothing was active before, CrasAudioHandler::
+HandleSystemBoots activates the first internal device CRAS lists, without
+comparing them, and the codec's comes first.
+
+There, the internal device LessBuiltInPriority ranks first is activated.
+
+diff --git a/chromeos/ash/components/audio/cras_audio_handler.cc b/chromeos/ash/components/audio/cras_audio_handler.cc
+index 3175bcee90678..6db56196a920d 100644
+--- a/chromeos/ash/components/audio/cras_audio_handler.cc
++++ b/chromeos/ash/components/audio/cras_audio_handler.cc
+@@ -2310,15 +2310,24 @@ void CrasAudioHandler::HandleSystemBoots(bool is_input,
+ 
+   // Otherwise when no most recent activated device, if there is an internal
+   // device, activate it and show notification.
++  // NickelOS: of several, the one LessBuiltInPriority ranks first, not the
++  // first CRAS lists: a laptop with a digital mic often has the HD-Audio
++  // codec's unwired internal mic listed before it (Chrome 0091; the AMD test PC
++  // still recorded silence on 23u, chosen here at the first sign-in).
++  const AudioDevice* internal_device = nullptr;
+   for (const AudioDevice& device : devices) {
+-    if (device.type == AudioDeviceType::kInternalSpeaker ||
+-        device.type == AudioDeviceType::kInternalMic) {
+-      SwitchToDevice(device, /*notify=*/true,
+-                     DeviceActivateType::kActivateByPriority);
+-      should_show_notification_ = true;
+-      return;
++    if ((device.type == AudioDeviceType::kInternalSpeaker ||
++         device.type == AudioDeviceType::kInternalMic) &&
++        (!internal_device || LessBuiltInPriority(*internal_device, device))) {
++      internal_device = &device;
+     }
+   }
++  if (internal_device) {
++    SwitchToDevice(*internal_device, /*notify=*/true,
++                   DeviceActivateType::kActivateByPriority);
++    should_show_notification_ = true;
++    return;
++  }
+ 
+   // Otherwise when no most recent activated device and no internal device (a
+   // brand new chromebox), activate the highest priority and show

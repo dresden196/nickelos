@@ -1,0 +1,27 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: App Management calls Android apps Android apps
+
+An Android app someone installed in Waydroid reaches Chrome as a NickelOS
+host app, like their Linux apps, so its App Management page said "Linux
+app". nickel-appd gives such an app the package id android:<package>
+(nickel-appd's Waydroid source), and the page now says "Android app",
+ChromeOS's own string for its Android apps.
+
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_details_item.ts b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_details_item.ts
+index 343476f6b762c..7449386f7f310 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_details_item.ts
++++ b/chrome/browser/resources/ash/settings/os_apps_page/app_management_page/app_details_item.ts
+@@ -343,8 +343,12 @@ export class AppManagementAppDetailsItem extends
+   private getTypeAndSourceString_(app: App): string {
+     if (app.type === AppType.kNickelHost) {
+       // NickelOS: what installed the app, from the package id nickel-appd
+-      // gives it (flatpak:..., portage, appimage:...).
++      // gives it (flatpak:..., portage, appimage:...). An Android app the
++      // user installed in Waydroid (android:<package>) is an Android app.
+       const id = app.publisherId || '';
++      if (id.startsWith('android:')) {
++        return this.i18n('appManagementAppDetailsTypeAndroid');
++      }
+       const installer = id.startsWith('flatpak:') ? 'Flatpak' :
+           id === 'portage'                      ? 'Portage' :
+           id.startsWith('appimage:')            ? 'AppImage' :

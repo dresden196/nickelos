@@ -1,0 +1,108 @@
+# Copyright 2021 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+#
+# NickelOS model config. Derived from ChromeOS Flex's reven model.yaml: the
+# power quirk lists (suspend-to-idle, suspend prevention, external-display-only
+# models, etc.) are kept as-is because they encode per-PC hardware behavior.
+# Dropped: brand code ANAE, hwid-override, the "ChromeOS Flex" EFI boot entry
+# name and the ARC (Android) build properties, which belong to Google's product.
+
+nickel-config: &nickel_config
+  name: nickel
+  # RLZ code reserved for development builds.
+  brand-code: ZZCR
+  efi:
+    bootvar-name-override: NickelOS
+  identity:
+    # No smbios/sku match: this config identifies every PC.
+    platform-name: Generic
+  firmware:
+    no-firmware: True
+    has-splash-screen: False
+  power: &power_common
+    suspend-mode: kernel_default
+# AOPEN DE6340 b/233099100
+    suspend-prevention-models: |
+      DE6340
+# Lenovo ThinkPad E440 b/232806802
+# INP i1000BT Thin Client b/233264518
+# ThinkBook 13s Gen 2 (20V9) b/233787889
+# ThinkBook 14s Gen 2 (20VD) b/233639508
+# ThinkBook 15s Gen 2 (20VE) b/233747642
+# Dell Latitude 5510 (Latitude 5510) b/240452302
+# Intel NUC11TNKv5 (NUC11TNKv5) b/234039433, b/234038970, b/234039574
+# Advantech UTC-120 b/238754750
+# Zotac ZBOX-CI331-AUS b/259986342
+# Dell XPS 13 9300 b/263264440
+# Dell XPS 13 9365 b/266867024
+# HP Engage Go 10 b/241135275
+# Imago IMC-OPS-VI-11G-I5 b/277213904
+# HP Engage Go 13.5 b/269167203
+# Intel NUC12WSHi3 (NUC12WSHi3) b/286249272, b/286249397
+# Seneca HDS USFS-01 b/265441863
+# HP EliteBook 840 G8 b/297452960
+# HP ZBook Firefly 14 G7 b/297376213
+# HP ZBook Firefly 14 G8 b/299115336
+# HP Elite x360 830 G10 b/293928528
+# HP Elitebook 830 G8 Notebook PC b/279932088
+# UTC-115G b/272717303
+# HP EliteBook 640 14 inch G10 Notebook PC b/294097454
+# Giada F106D b/294547064
+# product_version:ThinkPad E14 Gen 2 b/253232194
+# Faytech FAYX6413E b/331955689
+# Imago AIOS Lite b/358443935
+# Atrust t20W b/361568236
+# Advantech UBX-110K b/383845877
+# Centerm F610 5 (F650) b/399914758
+    suspend-to-idle-models: |
+      20C5S01L00
+      GLKD-I
+      20V9
+      20VD
+      20VE
+      Latitude 5510
+      NUC11TNKv5
+      UTC-120GP-WEU1E
+      ZBOX-CI331NANO
+      XPS 13 9300
+      XPS 13 9365
+      HP Engage Go 10 Mobile System
+      TGL
+      HP Engage Go 13.5 inch Mobile System
+      NUC12WSHi3
+      PRO981654
+      HP EliteBook 840 G8 Notebook PC
+      HP ZBook Firefly 14 G7 Mobile Workstation
+      HP ZBook Firefly 14 inch G8 Mobile Workstation PC
+      HP Elite x360 830 13 inch G10 2-in-1 Notebook PC
+      HP Elitebook 830 G8 Notebook PC
+      UTC-115G
+      HP EliteBook 640 14 inch G10 Notebook PC
+      product_family:GIADA, product_sku:F106D
+      product_version:ThinkPad E14 Gen 2
+      FAY-EHL
+      board_name:Nano-N6000D
+      t20
+      UBX-110K
+      F610
+# Minisforum N36 Mini PC b/354238438
+    external-display-only-models: |
+      N36
+# MicroTouch MACH All-In-Ones b/429623218
+    exclude-from-external-display-only-models: |
+      *HP ProDesk 400*
+      *HP Pro Desk 400*
+      *HP PRODESK 400*
+      sys_vendor:MicroTouch, product_name:MACH
+    has-machine-quirks: "1"
+    has-barreljack: "1"
+    suspend-without-wakeup-count-models: |
+      Latitude E5450
+      Latitude E7450
+
+# Required dunder for chromeos-config.
+chromeos:
+  devices:
+    - skus:
+        - config: *nickel_config

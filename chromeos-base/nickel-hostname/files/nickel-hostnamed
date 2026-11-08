@@ -1,0 +1,429 @@
+#!/usr/bin/python3
+# Distributed under the terms of the GNU General Public License v2
+#
+# nickel-hostnamed: the computer's name. ChromiumOS has none: every NickelOS
+# computer was "localhost" (the kernel's default) in the Terminal, to Linux
+# apps and on the network. This owns org.freedesktop.hostname1 on the system
+# bus, systemd-hostnamed's interface, so Linux apps that show or change the
+# name work as on other distributions, and Settings > About uses it too.
+#
+# The name is kept in /var/lib/nickel/hostname (the static hostname: letters,
+# digits and hyphens, dots between labels) and /var/lib/nickel/machine-info
+# (PRETTY_HOSTNAME, the name as typed, when it differs). At start this sets
+# the kernel's hostname from it.
+#
+# org.freedesktop.hostname1 (a subset of systemd's):
+#   SetHostname(s name, b interactive)        the running name only
+#   SetStaticHostname(s name, b interactive)  kept, and the running name;
+#                                             "" goes back to localhost
+#   SetPrettyHostname(s name, b interactive)  the name as people write it
+#   properties Hostname, StaticHostname, PrettyHostname, DefaultHostname,
+#     HostnameSource, IconName, Chassis, KernelName, KernelRelease,
+#     KernelVersion, OperatingSystemPrettyName, HomeURL, HardwareVendor,
+#     HardwareModel
+# org.nickelos.Hostname1, on the same object, for Settings:
+#   SetName(s name)  the name as typed: the pretty name, and the static one
+#                    made from it (spaces become hyphens, other characters
+#                    that a hostname cannot hold are left out)
+#   CanChange() -> b whether the caller may change it
+# Changes are for administrators (group wheel) and root; |interactive| is
+# accepted and ignored (there is no polkit prompt: the check is the group).
+# And for setup: before the first local account exists, Chrome at the
+# sign-in screen (chronos, no session running) names the computer when it
+# creates that account, as nickel-accountsd lets it create the account.
+# Errors: org.freedesktop.hostname1.Error.NotAllowed and .InvalidName.
+#
+# Networks see the name too, as with other systems: shill sends the static
+# hostname in DHCP (DHCPProperty.Hostname, so routers list the computer by
+# it), set whenever shill starts and when the name changes. Until a name is
+# set, none is sent, as ChromeOS does.
+
+import grp
+import os
+import pwd
+import re
+import socket
+import sys
+import unicodedata
+
+import gi
+
+from gi.repository import Gio, GLib
+
+NAME = "org.freedesktop.hostname1"
+PATH = "/org/freedesktop/hostname1"
+NICKEL = "org.nickelos.Hostname1"
+ERROR = "org.freedesktop.hostname1.Error."
+STATE = "/var/lib/nickel"
+STATIC_FILE = STATE + "/hostname"
+INFO_FILE = STATE + "/machine-info"
+DEFAULT = "localhost"
+SHILL = "org.chromium.flimflam"
+
+XML = """
+<node>
+  <interface name="org.freedesktop.hostname1">
+    <method name="SetHostname">
+      <arg type="s" direction="in"/><arg type="b" direction="in"/>
+    </method>
+    <method name="SetStaticHostname">
+      <arg type="s" direction="in"/><arg type="b" direction="in"/>
+    </method>
+    <method name="SetPrettyHostname">
+      <arg type="s" direction="in"/><arg type="b" direction="in"/>
+    </method>
+    <property name="Hostname" type="s" access="read"/>
+    <property name="StaticHostname" type="s" access="read"/>
+    <property name="PrettyHostname" type="s" access="read"/>
+    <property name="DefaultHostname" type="s" access="read"/>
+    <property name="HostnameSource" type="s" access="read"/>
+    <property name="IconName" type="s" access="read"/>
+    <property name="Chassis" type="s" access="read"/>
+    <property name="KernelName" type="s" access="read"/>
+    <property name="KernelRelease" type="s" access="read"/>
+    <property name="KernelVersion" type="s" access="read"/>
+    <property name="OperatingSystemPrettyName" type="s" access="read"/>
+    <property name="HomeURL" type="s" access="read"/>
+    <property name="HardwareVendor" type="s" access="read"/>
+    <property name="HardwareModel" type="s" access="read"/>
+  </interface>
+  <interface name="org.nickelos.Hostname1">
+    <method name="SetName">
+      <arg type="s" direction="in"/>
+    </method>
+    <method name="CanChange">
+      <arg type="b" direction="out"/>
+    </method>
+  </interface>
+</node>
+"""
+
+# A hostname: labels of letters, digits and hyphens (not at either end),
+# joined by dots, 64 characters at most (the kernel's limit).
+LABEL = r"[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?"
+VALID = re.compile(r"^%s(\.%s)*$" % (LABEL, LABEL))
+
+
+def log(msg):
+    print("nickel-hostnamed: " + msg, file=sys.stderr, flush=True)
+
+
+def valid(name):
+    # Each label 63 characters at most, as DNS takes them.
+    return (len(name) <= 64 and VALID.match(name) is not None and
+            all(len(label) <= 63 for label in name.split(".")))
+
+
+def from_pretty(pretty):
+    """The static hostname made from a name as typed."""
+    # Accented letters keep their letter (é is e).
+    name = unicodedata.normalize("NFKD", pretty.strip())
+    name = "".join(c for c in name if not unicodedata.combining(c))
+    name = re.sub(r"[\s_]+", "-", name)
+    name = re.sub(r"[^A-Za-z0-9.-]", "", name)
+    name = re.sub(r"-{2,}", "-", name)
+    name = re.sub(r"\.{2,}", ".", name)
+    name = ".".join(label.strip("-")[:63].rstrip("-")
+                    for label in name.split("."))
+    name = name.strip(".")[:64].rstrip(".-")
+    return name if valid(name) else ""
+
+
+def read(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def write(path, text):
+    os.makedirs(STATE, exist_ok=True)
+    tmp = path + ".new"
+    with open(tmp, "w") as f:
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+    os.rename(tmp, path)
+
+
+def static_hostname():
+    name = read(STATIC_FILE).strip()
+    return name if valid(name) else ""
+
+
+def pretty_hostname():
+    for line in read(INFO_FILE).splitlines():
+        if line.startswith("PRETTY_HOSTNAME="):
+            value = line.split("=", 1)[1]
+            if len(value) >= 2 and value[0] == value[-1] == '"':
+                value = value[1:-1].replace('\\"', '"').replace("\\\\", "\\")
+            return value
+    return ""
+
+
+def dmi(field):
+    return read("/sys/class/dmi/id/" + field).strip()
+
+
+def chassis():
+    try:
+        kind = int(dmi("chassis_type"))
+    except ValueError:
+        return ""
+    if kind in (8, 9, 10, 14):
+        return "laptop"
+    if kind in (30, 32):
+        return "tablet"
+    if kind == 31:
+        return "convertible"
+    if kind in (17, 23, 28, 29):
+        return "server"
+    if kind in (3, 4, 5, 6, 7, 13, 15, 16, 24, 35, 36):
+        return "desktop"
+    return ""
+
+
+def os_release(key):
+    for line in read("/etc/os-release").splitlines():
+        if line.startswith(key + "="):
+            return line.split("=", 1)[1].strip().strip('"')
+    return ""
+
+
+def is_admin(uid):
+    if uid == 0:
+        return True
+    try:
+        return pwd.getpwuid(uid).pw_name in grp.getgrnam("wheel").gr_mem
+    except KeyError:
+        return False
+
+
+CHRONOS_UID = 1000
+USERS_FILE = "/var/lib/nickel/accounts/users"
+
+
+def in_setup(connection, uid):
+    """Chrome at the sign-in screen before the first local account exists."""
+    if uid != CHRONOS_UID:
+        return False
+    try:
+        if os.path.getsize(USERS_FILE) > 0:
+            return False
+    except OSError:
+        pass  # no accounts yet
+    try:
+        reply = connection.call_sync(
+            "org.chromium.SessionManager", "/org/chromium/SessionManager",
+            "org.chromium.SessionManagerInterface", "RetrieveSessionState",
+            None, GLib.VariantType("(s)"), Gio.DBusCallFlags.NONE, 5000, None)
+        return reply.unpack()[0] == "stopped"
+    except GLib.Error:
+        return False
+
+
+def may_change(connection, uid):
+    return is_admin(uid) or in_setup(connection, uid)
+
+
+class Failed(Exception):
+    def __init__(self, name, message):
+        super().__init__(message)
+        self.name = name
+        self.message = message
+
+
+class Hostname:
+    def __init__(self):
+        self.connection = None
+        self.shill_up = False
+        kind = chassis()
+        self.fixed = {
+            "DefaultHostname": DEFAULT,
+            "Chassis": kind,
+            "IconName": "computer-" + kind if kind else "computer",
+            "KernelName": os.uname().sysname,
+            "KernelRelease": os.uname().release,
+            "KernelVersion": os.uname().version,
+            # NickelOS's os-release (ChromiumOS's) has no PRETTY_NAME.
+            "OperatingSystemPrettyName": os_release("PRETTY_NAME") or
+            " ".join(filter(None, (os_release("NAME"),
+                                   os_release("VERSION")))),
+            "HomeURL": os_release("HOME_URL"),
+            "HardwareVendor": dmi("sys_vendor"),
+            "HardwareModel": dmi("product_name"),
+        }
+
+    def get(self, prop):
+        if prop == "Hostname":
+            return socket.gethostname()
+        if prop == "StaticHostname":
+            return static_hostname()
+        if prop == "PrettyHostname":
+            return pretty_hostname()
+        if prop == "HostnameSource":
+            return "static" if static_hostname() else "default"
+        return self.fixed.get(prop, "")
+
+    def changed(self, *props):
+        if not self.connection:
+            return
+        values = {p: GLib.Variant("s", self.get(p)) for p in props}
+        self.connection.emit_signal(
+            None, PATH, "org.freedesktop.DBus.Properties", "PropertiesChanged",
+            GLib.Variant("(sa{sv}as)", (NAME, values, [])))
+
+    def set_running(self, name):
+        if socket.gethostname() != name:
+            socket.sethostname(name)
+            log("hostname is now %s" % name)
+
+    def set_static(self, name):
+        if name and not valid(name):
+            raise Failed("InvalidName", "not a valid hostname: %r" % name)
+        if name:
+            write(STATIC_FILE, name + "\n")
+        else:
+            try:
+                os.unlink(STATIC_FILE)
+            except FileNotFoundError:
+                pass
+        self.set_running(name or DEFAULT)
+        self.changed("StaticHostname", "Hostname", "HostnameSource")
+        self.set_dhcp()
+
+    def set_pretty(self, name):
+        name = name.strip()
+        if len(name) > 255 or "\n" in name or "\0" in name:
+            raise Failed("InvalidName", "not a valid pretty hostname")
+        if name:
+            quoted = name.replace("\\", "\\\\").replace('"', '\\"')
+            write(INFO_FILE, 'PRETTY_HOSTNAME="%s"\n' % quoted)
+        else:
+            try:
+                os.unlink(INFO_FILE)
+            except FileNotFoundError:
+                pass
+        self.changed("PrettyHostname")
+
+    def set_name(self, typed):
+        typed = typed.strip()
+        static = from_pretty(typed)
+        if not static:
+            raise Failed("InvalidName",
+                         "the name needs a letter or digit (A-Z, 0-9)")
+        self.set_static(static)
+        self.set_pretty(typed if typed != static else "")
+
+    def set_dhcp(self):
+        """Hands the static hostname ("" for none) to shill for DHCP."""
+        if not self.connection or not self.shill_up:
+            return
+        self.connection.call(
+            SHILL, "/", SHILL + ".Manager", "SetProperty",
+            GLib.Variant("(sv)", ("DHCPProperty.Hostname",
+                                  GLib.Variant("s", static_hostname()))),
+            None, Gio.DBusCallFlags.NONE, -1, None, self.dhcp_done)
+
+    def dhcp_done(self, connection, result):
+        try:
+            connection.call_finish(result)
+        except GLib.Error as e:
+            log("telling shill the hostname failed: %s" % e.message)
+
+    def apply_at_start(self):
+        try:
+            self.set_running(static_hostname() or DEFAULT)
+        except OSError as e:
+            log("setting the hostname failed: %s" % e)
+
+
+def main():
+    host = Hostname()
+    host.apply_at_start()
+    node = Gio.DBusNodeInfo.new_for_xml(XML)
+
+    def caller_uid(connection, sender):
+        reply = connection.call_sync(
+            "org.freedesktop.DBus", "/org/freedesktop/DBus",
+            "org.freedesktop.DBus", "GetConnectionUnixUser",
+            GLib.Variant("(s)", (sender,)), GLib.VariantType("(u)"),
+            Gio.DBusCallFlags.NONE, -1, None)
+        return reply.unpack()[0]
+
+    def on_call(connection, sender, path, interface, method, params,
+                invocation):
+        try:
+            uid = caller_uid(connection, sender)
+        except GLib.Error:
+            invocation.return_dbus_error(ERROR + "Failed", "who is calling?")
+            return
+        if method == "CanChange":
+            invocation.return_value(
+                GLib.Variant("(b)", (may_change(connection, uid),)))
+            return
+        if not may_change(connection, uid):
+            invocation.return_dbus_error(
+                ERROR + "NotAllowed",
+                "only an administrator can change the computer's name")
+            return
+        name = params.unpack()[0]
+        try:
+            if method == "SetName":
+                host.set_name(name)
+            elif method == "SetStaticHostname":
+                host.set_static(name.strip())
+            elif method == "SetPrettyHostname":
+                host.set_pretty(name)
+            elif method == "SetHostname":
+                name = name.strip()
+                if name and not valid(name):
+                    raise Failed("InvalidName",
+                                 "not a valid hostname: %r" % name)
+                host.set_running(name or static_hostname() or DEFAULT)
+                host.changed("Hostname")
+            else:
+                raise Failed("Failed", "unknown method")
+        except Failed as e:
+            invocation.return_dbus_error(ERROR + e.name, e.message)
+            return
+        except OSError as e:
+            log("%s failed: %s" % (method, e))
+            invocation.return_dbus_error(ERROR + "Failed", str(e))
+            return
+        invocation.return_value(None)
+
+    def on_get(connection, sender, path, interface, prop):
+        return GLib.Variant("s", host.get(prop))
+
+    def on_bus(connection, name):
+        host.connection = connection
+        for interface in node.interfaces:
+            connection.register_object(
+                PATH, interface, on_call,
+                on_get if interface.name == NAME else None, None)
+        host.set_dhcp()
+
+    def on_lost(connection, name):
+        log("lost the name " + NAME)
+        loop.quit()
+
+    def on_shill(connection, name, owner):
+        host.shill_up = True
+        host.set_dhcp()
+
+    def on_shill_gone(connection, name):
+        host.shill_up = False
+
+    loop = GLib.MainLoop()
+    Gio.bus_own_name(Gio.BusType.SYSTEM, NAME, Gio.BusNameOwnerFlags.NONE,
+                     on_bus, None, on_lost)
+    Gio.bus_watch_name(Gio.BusType.SYSTEM, SHILL,
+                       Gio.BusNameWatcherFlags.NONE, on_shill, on_shill_gone)
+    loop.run()
+    sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

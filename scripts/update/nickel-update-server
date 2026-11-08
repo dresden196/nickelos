@@ -1,0 +1,266 @@
+#!/usr/bin/env python3
+"""NickelOS's update server: answers update_engine's update checks (Omaha
+protocol v3) for each channel, and can serve the payloads too.
+
+  nickel-update-server --root DIR [--port 8090] [--bind 127.0.0.1]
+                       [--payloads-url URL]
+
+DIR holds what nickel-update-publish puts there:
+
+  DIR/payloads/<name>.bin           signed update payloads
+  DIR/channels/<channel>/<name>.json  the payloads offered on a channel
+                                    (stable, beta, dev), one properties file
+                                    each: appid, target_version, size,
+                                    sha256_hex, metadata_size,
+                                    metadata_signature, is_delta, public_key
+
+An update check from a NickelOS PC names its app ID, version and channel
+(track="beta-channel"). The answer is the newest full payload on that
+channel for that app ID if it is newer than the PC's version, otherwise "no
+update". Every answer carries the payload's public key: on NickelOS that
+makes update_engine insist on a signature (it would waive the check for a
+server that sends none), and verify it with the key in the image
+(/usr/share/update_engine/update-payload-key.pub.pem, nickel-update). A PC
+moving to a more stable channel that allows a powerwash asks with version
+0.0.0.0 and gets that channel's build.
+
+Events (download started, update applied, errors) and pings get "ok" and are
+logged, one line per request, so a release's progress shows in the log.
+
+GET /payloads/<name> serves a payload with Range support (update_engine
+resumes downloads); in production a web server does that instead and
+--payloads-url points at it. GET /healthz answers "ok".
+"""
+import argparse
+import base64
+import datetime
+import json
+import logging
+import os
+import re
+import sys
+import threading
+import xml.etree.ElementTree as ET
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+CHANNELS = {"stable-channel": "stable", "beta-channel": "beta", "dev-channel": "dev"}
+MAX_REQUEST = 1 << 20
+
+
+def vtuple(v):
+    try:
+        return tuple(int(x) for x in v.split("."))
+    except (AttributeError, ValueError):
+        return (0,)
+
+
+class Catalog:
+    """The payloads offered on each channel, re-read when files change."""
+
+    def __init__(self, root):
+        self.root = root
+        self.lock = threading.Lock()
+        self.stamp = None
+        self.channels = {}
+
+    def _scan(self):
+        stamp = []
+        channels = {}
+        base = os.path.join(self.root, "channels")
+        for ch in sorted(os.listdir(base)) if os.path.isdir(base) else []:
+            d = os.path.join(base, ch)
+            entries = []
+            for f in sorted(os.listdir(d)):
+                if not f.endswith(".json"):
+                    continue
+                p = os.path.join(d, f)
+                stamp.append((p, os.stat(p).st_mtime_ns))
+                try:
+                    with open(p) as fh:
+                        e = json.load(fh)
+                    e.setdefault("name", f[:-len(".json")] + ".bin")
+                    entries.append(e)
+                except (OSError, ValueError) as err:
+                    logging.error("skipping %s: %s", p, err)
+            channels[ch] = entries
+        return tuple(stamp), channels
+
+    def get(self, channel):
+        with self.lock:
+            stamp, channels = self._scan()
+            if stamp != self.stamp:
+                self.stamp, self.channels = stamp, channels
+                logging.info("catalog: %s", {c: len(e) for c, e in channels.items()})
+            return list(self.channels.get(channel, []))
+
+
+def pick(catalog, appid, version, channel):
+    """The newest full payload on the channel for the app, if newer."""
+    best = None
+    for e in catalog.get(channel):
+        if e.get("is_delta"):
+            continue
+        if str(e.get("appid", "")).lower() != appid.lower():
+            continue
+        if vtuple(e.get("target_version")) <= vtuple(version):
+            continue
+        if best is None or vtuple(e["target_version"]) > vtuple(best["target_version"]):
+            best = e
+    return best
+
+
+def respond(body, catalog, payloads_url, client):
+    req = ET.fromstring(body)
+    now = datetime.datetime.now()
+    resp = ET.Element("response", {"protocol": "3.0", "server": "nickelos"})
+    ET.SubElement(resp, "daystart", {
+        "elapsed_days": str((now - datetime.datetime(2007, 1, 1)).days),
+        "elapsed_seconds": str(now.hour * 3600 + now.minute * 60 + now.second),
+    })
+    for app in req.findall("app"):
+        appid = app.get("appid", "")
+        version = app.get("version", "")
+        track = app.get("track", "stable-channel")
+        channel = CHANNELS.get(track, "stable")
+        a = ET.SubElement(resp, "app", {"appid": appid, "status": "ok"})
+        what = []
+        if app.find("ping") is not None:
+            ET.SubElement(a, "ping", {"status": "ok"})
+        for ev in app.findall("event"):
+            ET.SubElement(a, "event", {"status": "ok"})
+            what.append("event %s/%s%s" % (ev.get("eventtype"), ev.get("eventresult"),
+                                           " error " + ev.get("errorcode") if ev.get("errorcode") else ""))
+        if app.find("updatecheck") is not None:
+            p = pick(catalog, appid, version, channel)
+            if p is None:
+                ET.SubElement(a, "updatecheck", {"status": "noupdate"})
+                what.append("noupdate")
+            else:
+                uc = ET.SubElement(a, "updatecheck", {"status": "ok"})
+                urls = ET.SubElement(uc, "urls")
+                ET.SubElement(urls, "url", {"codebase": payloads_url.rstrip("/") + "/"})
+                m = ET.SubElement(uc, "manifest", {"version": p["target_version"]})
+                acts = ET.SubElement(m, "actions")
+                ET.SubElement(acts, "action", {"event": "update", "run": p["name"]})
+                post = {
+                    "event": "postinstall",
+                    "ChromeOSVersion": p["target_version"],
+                    "ChromeVersion": p.get("chrome_version", "1.0.0.0"),
+                    "DisablePayloadBackoff": "false",
+                    "IsDeltaPayload": "false",
+                    "MaxDaysToScatter": "14",
+                    "MetadataSignatureRsa": p.get("metadata_signature") or "",
+                    "MetadataSize": str(p["metadata_size"]),
+                    "sha256": p["sha256_hex"],
+                }
+                if p.get("public_key"):
+                    post["PublicKeyRsa"] = p["public_key"]
+                ET.SubElement(acts, "action", post)
+                pkgs = ET.SubElement(m, "packages")
+                hexhash = base64.b16encode(base64.b64decode(p["sha256_hex"])).decode()
+                ET.SubElement(pkgs, "package", {
+                    "fp": "1." + hexhash, "hash_sha256": hexhash, "name": p["name"],
+                    "required": "true", "size": str(p["size"]),
+                })
+                what.append("update to " + p["target_version"])
+        logging.info("%s app %s version %s %s: %s", client, appid, version, track,
+                     ", ".join(what) or "nothing asked")
+    return ET.tostring(resp, encoding="UTF-8", method="xml")
+
+
+def make_handler(catalog, root, payloads_url):
+    class Handler(BaseHTTPRequestHandler):
+        server_version = "nickelos-update"
+
+        def log_message(self, fmt, *args):
+            logging.debug("%s %s", self.client_address[0], fmt % args)
+
+        def client(self):
+            return self.headers.get("X-Forwarded-For", self.client_address[0])
+
+        def send(self, code, ctype, data):
+            self.send_response(code)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_POST(self):
+            n = int(self.headers.get("Content-Length") or 0)
+            if not 0 < n <= MAX_REQUEST:
+                return self.send(400, "text/plain", b"bad request\n")
+            try:
+                out = respond(self.rfile.read(n), catalog, payloads_url, self.client())
+            except ET.ParseError as err:
+                logging.warning("%s: unparsable request: %s", self.client(), err)
+                return self.send(400, "text/plain", b"bad request\n")
+            self.send(200, "application/xml", out)
+
+        def do_GET(self):
+            if self.path == "/healthz":
+                return self.send(200, "text/plain", b"ok\n")
+            m = re.fullmatch(r"/payloads/([A-Za-z0-9._-]+\.bin)", self.path)
+            if not m:
+                return self.send(404, "text/plain", b"not found\n")
+            path = os.path.join(root, "payloads", m.group(1))
+            try:
+                size = os.path.getsize(path)
+                f = open(path, "rb")
+            except OSError:
+                return self.send(404, "text/plain", b"not found\n")
+            with f:
+                start, end = 0, size - 1
+                rng = re.fullmatch(r"bytes=(\d*)-(\d*)", self.headers.get("Range", ""))
+                if rng and (rng.group(1) or rng.group(2)):
+                    if rng.group(1):
+                        start = int(rng.group(1))
+                        end = int(rng.group(2)) if rng.group(2) else size - 1
+                    else:
+                        start = size - int(rng.group(2))
+                    if start >= size or start > end:
+                        self.send_response(416)
+                        self.send_header("Content-Range", f"bytes */{size}")
+                        self.end_headers()
+                        return
+                    end = min(end, size - 1)
+                    self.send_response(206)
+                    self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+                else:
+                    self.send_response(200)
+                self.send_header("Content-Type", "application/octet-stream")
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("Content-Length", str(end - start + 1))
+                self.end_headers()
+                f.seek(start)
+                left = end - start + 1
+                while left > 0:
+                    chunk = f.read(min(1 << 20, left))
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    left -= len(chunk)
+            logging.info("%s payload %s bytes %d-%d", self.client(), m.group(1), start, end)
+
+    return Handler
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--root", required=True)
+    ap.add_argument("--port", type=int, default=8090)
+    ap.add_argument("--bind", default="127.0.0.1")
+    ap.add_argument("--payloads-url")
+    ap.add_argument("--log", default="-")
+    a = ap.parse_args()
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(message)s",
+        **({} if a.log == "-" else {"filename": a.log}))
+    payloads_url = a.payloads_url or f"http://{a.bind}:{a.port}/payloads"
+    catalog = Catalog(a.root)
+    srv = ThreadingHTTPServer((a.bind, a.port), make_handler(catalog, a.root, payloads_url))
+    logging.info("serving %s on %s:%d, payloads at %s", a.root, a.bind, a.port, payloads_url)
+    srv.serve_forever()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

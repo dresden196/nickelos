@@ -1,0 +1,209 @@
+#!/bin/sh
+# NickelOS's Secure Boot key: the key that signs NickelOS's GRUB and kernels,
+# whose certificate people enroll once through MokManager (shim's "Enroll key
+# from disk") so shim lets NickelOS boot with Secure Boot on (README.md).
+# Separate from the update key (nickel-update-sign): each signs one thing.
+# Kept like the update key: the private half encrypted with Dresden's
+# passphrase, on his laptop and his flash drive only, never on a build host
+# or the server.
+#
+#   nickel-secureboot-key --new-key [DIR]   make it (asks for the passphrase)
+#   nickel-secureboot-key --check [DIR]     key and certificate belong together
+#   nickel-secureboot-key --copy-to DEST [DIR]  copy it (e.g. to the stick's
+#                                           nickelos/ folder) and verify
+#   nickel-secureboot-key --reissue-cert [DIR]  a new certificate for the same
+#                                           key (asks for the passphrase); the
+#                                           old one goes to DIR/old/
+#   nickel-secureboot-key --update-copy DEST [DIR]  after --reissue-cert: the
+#                                           new certificate onto a copy whose
+#                                           key is the same (the stick)
+#
+# DIR defaults to ~/.local/share/nickelos-keys, beside the update key. Files:
+#   nickelos-secureboot.key.pem   private key, RSA 2048, AES-256 encrypted
+#   nickelos-secureboot.crt.pem   certificate (PEM), what sbsign signs with
+#   nickelos-secureboot.cer       the same certificate (DER), what people
+#                                 enroll in MokManager; ships on the ISO
+set -eu
+
+name=nickelos-secureboot
+die() { echo "nickel-secureboot-key: $*" >&2; exit 1; }
+command -v openssl >/dev/null || die "needs openssl"
+
+# For the helper's own tests only: the passphrase from this variable
+# instead of the terminal.
+pass_in= pass_out=
+if [ -n "${NICKEL_SECUREBOOT_TEST_PASS:-}" ]; then
+	pass_in="-passin env:NICKEL_SECUREBOOT_TEST_PASS"
+	pass_out="-pass env:NICKEL_SECUREBOOT_TEST_PASS"
+fi
+
+fingerprint() {
+	openssl x509 -in "$1/$name.crt.pem" -noout -fingerprint -sha256 | cut -d= -f2
+}
+
+show() {
+	echo "  $(openssl x509 -in "$1/$name.crt.pem" -noout -subject)"
+	echo "  valid until $(openssl x509 -in "$1/$name.crt.pem" -noout -enddate | cut -d= -f2)"
+	echo "  SHA-256 $(fingerprint "$1")"
+}
+
+# The certificate's settings. Code signing only: shim refuses to boot a
+# binary whose signer's certificate also names the module-signing usage
+# (1.3.6.1.4.1.2312.16.1.2, "only for kernel modules"), so that one stays
+# out (found 2026-11-07: the first production certificate had it, and shim
+# refused NickelOS's GRUB with the key enrolled).
+cert_config() {
+	cnf=$(mktemp)
+	cat > "$cnf" <<-EOF
+	[req]
+	distinguished_name = dn
+	prompt = no
+	x509_extensions = ext
+	[dn]
+	CN = NickelOS Secure Boot
+	O = NickelOS
+	[ext]
+	basicConstraints = critical,CA:FALSE
+	keyUsage = digitalSignature
+	extendedKeyUsage = codeSigning
+	subjectKeyIdentifier = hash
+	authorityKeyIdentifier = keyid
+	EOF
+	echo "$cnf"
+}
+
+module_only() {
+	openssl x509 -in "$1" -noout -ext extendedKeyUsage 2>/dev/null | grep -q '1\.3\.6\.1\.4\.1\.2312\.16\.1\.2'
+}
+
+check() {
+	dir=$1
+	for f in key.pem crt.pem cer; do
+		[ -f "$dir/$name.$f" ] || die "$dir/$name.$f is missing"
+	done
+	# shellcheck disable=SC2086
+	key_pub=$(openssl pkey -in "$dir/$name.key.pem" $pass_in -pubout) ||
+		die "can't open the private key (wrong passphrase?)"
+	crt_pub=$(openssl x509 -in "$dir/$name.crt.pem" -noout -pubkey)
+	[ "$key_pub" = "$crt_pub" ] || die "the key and the certificate don't match"
+	der_pub=$(openssl x509 -inform DER -in "$dir/$name.cer" -noout -pubkey)
+	[ "$der_pub" = "$crt_pub" ] || die "the .cer isn't the same certificate"
+	module_only "$dir/$name.crt.pem" &&
+		die "the certificate names the module-signing usage, so shim won't boot what it signs: --reissue-cert"
+	echo "OK: $dir"
+	show "$dir"
+}
+
+case "${1:-}" in
+--new-key)
+	dir=${2:-$HOME/.local/share/nickelos-keys}
+	mkdir -p "$dir"
+	chmod 700 "$dir"
+	for f in key.pem crt.pem cer; do
+		[ -e "$dir/$name.$f" ] && die "$dir/$name.$f exists already; a new key would leave every PC that enrolled the old one unable to boot NickelOS's next GRUB"
+	done
+	umask 077
+	echo "Making NickelOS's Secure Boot key in $dir."
+	echo "Choose a passphrase (asked twice, then once more for the certificate)."
+	echo "Without it the key can't sign anything."
+	# shellcheck disable=SC2086
+	openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -aes-256-cbc \
+		$pass_out -out "$dir/$name.key.pem"
+	cnf=$(cert_config)
+	trap 'rm -f "$cnf"' EXIT
+	# shim doesn't check certificates' dates; 30 years keeps other tools quiet.
+	echo "The passphrase again, to make the certificate:"
+	# shellcheck disable=SC2086
+	openssl req -new -x509 -key "$dir/$name.key.pem" $pass_in -sha256 \
+		-days 10957 -config "$cnf" -out "$dir/$name.crt.pem"
+	openssl x509 -in "$dir/$name.crt.pem" -outform DER -out "$dir/$name.cer"
+	chmod 600 "$dir/$name.key.pem"
+	chmod 644 "$dir/$name.crt.pem" "$dir/$name.cer"
+	echo
+	# Made from the key just now: shown, not checked (which would ask for
+	# the passphrase a fourth time).
+	echo "Made: $dir"
+	show "$dir"
+	echo
+	echo "Copy it to your flash drive's nickelos/ folder when you have it:"
+	echo "  $0 --copy-to /path/to/KEYSTICK/nickelos $dir"
+	;;
+--check)
+	check "${2:-$HOME/.local/share/nickelos-keys}"
+	;;
+--copy-to)
+	dest=${2:-}
+	[ -n "$dest" ] || die "--copy-to needs the destination folder"
+	dir=${3:-$HOME/.local/share/nickelos-keys}
+	[ -d "$dest" ] || die "$dest isn't a folder (is the drive mounted?)"
+	for f in key.pem crt.pem cer; do
+		[ -f "$dir/$name.$f" ] || die "$dir/$name.$f is missing"
+		if [ -e "$dest/$name.$f" ] && ! cmp -s "$dir/$name.$f" "$dest/$name.$f"; then
+			die "$dest/$name.$f exists and is different; not overwriting it"
+		fi
+	done
+	for f in key.pem crt.pem cer; do
+		cp "$dir/$name.$f" "$dest/$name.$f"
+	done
+	sync
+	for f in key.pem crt.pem cer; do
+		cmp "$dir/$name.$f" "$dest/$name.$f" || die "the copy of $name.$f differs"
+	done
+	echo "Copied and verified: $dest"
+	check "$dest"
+	;;
+--reissue-cert)
+	dir=${2:-$HOME/.local/share/nickelos-keys}
+	for f in key.pem crt.pem cer; do
+		[ -f "$dir/$name.$f" ] || die "$dir/$name.$f is missing"
+	done
+	echo "A new certificate for NickelOS's Secure Boot key in $dir (the key stays)."
+	echo "Only before any PC has enrolled the old certificate: those would refuse"
+	echo "the next GRUB. The passphrase:"
+	umask 077
+	cnf=$(cert_config)
+	trap 'rm -f "$cnf"' EXIT
+	# shellcheck disable=SC2086
+	openssl req -new -x509 -key "$dir/$name.key.pem" $pass_in -sha256 \
+		-days 10957 -config "$cnf" -out "$dir/$name.crt.pem.new"
+	openssl x509 -in "$dir/$name.crt.pem.new" -outform DER -out "$dir/$name.cer.new"
+	stamp=$(date +%Y%m%d-%H%M%S)
+	mkdir -p "$dir/old"
+	mv "$dir/$name.crt.pem" "$dir/old/$name.crt.pem.$stamp"
+	mv "$dir/$name.cer" "$dir/old/$name.cer.$stamp"
+	mv "$dir/$name.crt.pem.new" "$dir/$name.crt.pem"
+	mv "$dir/$name.cer.new" "$dir/$name.cer"
+	chmod 644 "$dir/$name.crt.pem" "$dir/$name.cer"
+	echo "Made (the old certificate is in $dir/old/):"
+	show "$dir"
+	echo
+	echo "Then the flash drive's copy: $0 --update-copy /path/to/KEYSTICK/nickelos $dir"
+	;;
+--update-copy)
+	dest=${2:-}
+	[ -n "$dest" ] || die "--update-copy needs the destination folder"
+	dir=${3:-$HOME/.local/share/nickelos-keys}
+	[ -d "$dest" ] || die "$dest isn't a folder (is the drive mounted?)"
+	cmp -s "$dir/$name.key.pem" "$dest/$name.key.pem" ||
+		die "$dest/$name.key.pem isn't the same key: not touching it"
+	module_only "$dir/$name.crt.pem" && die "$dir's certificate needs --reissue-cert first"
+	stamp=$(date +%Y%m%d-%H%M%S)
+	mkdir -p "$dest/old"
+	for f in crt.pem cer; do
+		if [ -e "$dest/$name.$f" ] && ! cmp -s "$dir/$name.$f" "$dest/$name.$f"; then
+			cp "$dest/$name.$f" "$dest/old/$name.$f.$stamp"
+		fi
+		cp "$dir/$name.$f" "$dest/$name.$f"
+	done
+	sync
+	for f in key.pem crt.pem cer; do
+		cmp "$dir/$name.$f" "$dest/$name.$f" || die "the copy of $name.$f differs"
+	done
+	echo "Updated and verified: $dest"
+	check "$dest"
+	;;
+*)
+	sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
+	exit 2
+	;;
+esac

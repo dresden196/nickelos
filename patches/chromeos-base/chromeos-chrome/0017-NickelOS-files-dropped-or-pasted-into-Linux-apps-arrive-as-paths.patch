@@ -1,0 +1,32 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: files dropped or pasted into Linux apps arrive as
+ their paths
+
+Files dragged or copied from Files (or Chrome) into a window of a NickelOS
+Linux app arrived as nothing. Those apps are clients of Chrome's default
+Wayland server, whose security delegate (ChromeSecurityDelegate) knows no
+VM for them, and ShareAndTranslateHostToVM ignored clients without a VM:
+on ChromeOS only VMs (through their own delegates) and ARC receive files.
+On NickelOS the default server's clients are Linux apps running on the
+device itself, as the session user, on the same files: they get the
+file's own path as a file: URL, nothing to share or translate.
+
+diff --git a/chrome/browser/ash/exo/chrome_security_delegate.cc b/chrome/browser/ash/exo/chrome_security_delegate.cc
+index ff2020575c8d2..729f3c4dc68ff 100644
+--- a/chrome/browser/ash/exo/chrome_security_delegate.cc
++++ b/chrome/browser/ash/exo/chrome_security_delegate.cc
+@@ -217,8 +217,12 @@ void ShareAndTranslateHostToVM(
+         continue;
+       }
+     } else {
+-      // Ignore unknown VMs
+-      continue;
++      // NickelOS: no VM. Only the default Wayland server's clients get here
++      // (ChromeSecurityDelegate knows no VM for them), and on NickelOS those
++      // are Linux apps running on the device itself, as the session user,
++      // on the same files: they get the file's own path. (ChromeOS ignored
++      // these: only VMs and ARC received files.)
++      file_url = ui::FilePathToFileURL(info.path);
+     }
+     file_urls.push_back(std::move(file_url));
+     if (share_required && !share_path->IsPathShared(vm_name, info.path)) {

@@ -1,0 +1,1298 @@
+{
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "Linux-alkalmazás (telepítő: INSTALLER)"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "Linux-alkalmazás"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "Győződjön meg arról, hogy a telefon és a NickelOS-eszköz ugyanahhoz a hálózathoz csatlakozik, majd próbálja újra. LEARN_MORE."
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "Telefonja mobilhálózathoz csatlakozik. Győződjön meg arról, hogy a telefon és a NickelOS-eszköz ugyanahhoz a Wi-Fi-hálózathoz csatlakozik, majd próbálja újra. LEARN_MORE."
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "A Jelszókezelő szeretné ellenőrizni az Ön személyazonosságát"
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "Ez idő alatt eszközének bekapcsolva kell maradnia, és csatlakoztatva kell lennie áramforráshoz. Gondoskodjon arról, hogy a töltő-, illetve adapterkábelek teljes mértékben csatlakoztatva legyenek mind az eszközhöz, mind a konnektorhoz. Ne kapcsolja ki az eszközt."
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "Időt takaríthat meg, ha gyorsan válaszol telefonja SMS-eire a NickelOS-eszközéről"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "Asztal"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "Áthelyezés a kukába"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "A név nem kezdődhet ponttal, és nem tartalmazhat perjelet."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "Már létezik ilyen nevű elem."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "Új mappa"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "Új mappa"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "Megnyitás"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "Az Asztal mappa megnyitása a Fájlok alkalmazásban"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "Átnevezés"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "Az átnevezés nem sikerült."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "Átnevezés"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "Megjelenítés a Fájlok alkalmazásban"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "Csak a jóváhagyott Thunderbolt-eszközök kompatibilisek a NickelOS-eszközzel"
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "NickelOS telepítése"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "NickelOS-eszköze vagy Bluetooth-eszköze régebbi Bluetooth-verziót használ. A jobb hangminőség érdekében a belső mikrofont használja."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "Győződjön meg arról, hogy a NickelOS-eszköz ugyanahhoz a Wi-Fi-hálózathoz csatlakozik, mint a Chromecast-eszköz."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "A NickelOS-útmutató megnyitása"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "Tekintse át gyorsan PRODUCT_NAME eszközét: hol vannak az alkalmazásai, hogyan szerezhet be újakat, és milyen Linux működik a háttérben. 7 lépés."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "Helló! Üdvözöljük PRODUCT_NAME eszközén."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "A bemutató STEP. lépése az összesen TOTAL_STEPS lépésből. A Fájlok alkalmazást az Indítóban találja. A Saját mappa megegyezik a linuxos saját mappájával: a Linux-alkalmazások és a Fájlok alkalmazás ugyanazokat a fájlokat látják, és a Beállításokban hozzáadott felhőtárhelyek is itt jelennek meg."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "A Saját mappa megegyezik a linuxos saját mappájával: a Linux-alkalmazások és a Fájlok alkalmazás ugyanazokat a fájlokat látják, és a Beállításokban hozzáadott felhőtárhelyek is itt jelennek meg."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "A bemutató STEP. lépése az összesen TOTAL_STEPS lépésből. A Waydroid Android-alkalmazásokat futtat, mindegyiket saját ablakban. A Beállításokban az Alkalmazások, majd az Android-alkalmazások pontban állíthatja be. Ezután egy APK-fájl megnyitásával telepítheti az alkalmazást, és az Android saját alkalmazásai is megjelennek az Indítóban."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "A Waydroid Android-alkalmazásokat futtat, mindegyiket saját ablakban. A Beállítások > Alkalmazások > Android-alkalmazások menüpontban állíthatja be. Ezután egy APK-fájl megnyitásával telepítheti az alkalmazást, és az Android saját alkalmazásai is megjelennek az Indítóban."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "A bemutató STEP. lépése az összesen TOTAL_STEPS lépésből. További alkalmazásokat a Bazaar áruházban talál: Linux-alkalmazásokat a Flathub tárolóból, Flatpak-csomagként telepítve. Ezek ugyanúgy megjelennek az Indítóban, mint bármely más alkalmazás."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "További alkalmazásokat a Bazaar áruházban talál: Linux-alkalmazásokat a Flathub tárolóból, Flatpak-csomagként telepítve. Ezek ugyanúgy megjelennek az Indítóban, mint bármely más alkalmazás."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "A bemutató STEP. lépése az összesen TOTAL_STEPS lépésből. A Terminál egy valódi linuxos shell, sudo paranccsal. A NickelOS alapja a Gentoo: az eix megkeresi a csomagokat, a sudo emerge pedig telepíti őket, ahogy bármely Gentoo rendszeren."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "A Terminál egy valódi linuxos shell, sudo paranccsal. A NickelOS alapja a Gentoo: az eix megkeresi a csomagokat, a sudo emerge pedig telepíti őket, ahogy bármely Gentoo rendszeren."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "A bemutató STEP. lépése az összesen TOTAL_STEPS lépésből. Az Indító aktiválása után keresősáv jelenik meg. Kezdjen el gépelni, ha alkalmazásokat, fájlokat és beállításokat szeretne keresni PRODUCT_NAME eszközén."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "Az Indítóban alkalmazásokat, fájlokat és beállításokat kereshet PRODUCT_NAME eszközén."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "A bemutató STEP. lépése az összesen TOTAL_STEPS lépésből. Az eszköz beállításait az Indítóban találja. Szabja személyre PRODUCT_NAME eszközét a Beállításokban: háttérkép, sötét vagy világos mód, kijelzők és egyebek. Ennyi volt a bemutató! További információ a NickelOS-útmutatóban."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "A Beállításokban személyre szabhatja PRODUCT_NAME eszközét: háttérkép, sötét vagy világos mód, kijelzők és egyebek. Ennyi volt a bemutató! További információ a NickelOS-útmutatóban."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "A NickelOS-eszköz zárolásának feloldásához használja ujjlenyomatát, vagy oldja fel telefonja zárolását."
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "Győződjön meg arról, hogy a Bluetooth-eszköz párosítási módban és a közelben van. Csak olyan eszközökkel párosítson, amelyeket megbízhatónak tart. A párosított eszközök a NickelOS-eszközön lévő összes fiók számára láthatók."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "Győződjön meg arról, hogy a Bluetooth-eszköz párosítási módban és a közelben van. Csak olyan eszközökkel párosítson, amelyeket megbízhatónak tart. A párosított eszközök a NickelOS-eszközön lévő összes fiók számára láthatók. BEGIN_LINK_LEARN_MORETovábbi információEND_LINK_LEARN_MORE."
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Adatait szinkronizálja a rendszer az összes olyan Chrome böngészőben, amelyeken bekapcsolta a szinkronizálást erre a fiókra vonatkozóan. A NickelOS szinkronizálási lehetőségeiért lépjen a LINK_BEGINNickelOS beállításaihozLINK_END."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "Billentyűparancsok"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "Az érintőképernyő kisegítő lehetőségeinek használata"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "A legtöbb billentyűzeten a keresőbillentyű a Windows billentyű, a bal oldali Alt billentyű mellett."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "Ön megkapja a legújabb szoftverfrissítést a legújabb biztonsági javításokkal és funkciókkal."
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "BEGIN_H3Hibakeresési funkciókEND_H3\n          BR\n          NickelOS-eszközén engedélyezheti a hibakeresési funkciókat, melyekkel egyéni kódot telepíthet és tesztelhet az eszközén. Ezzel az alábbiakra nyílik lehetősége:BR\n          BEGIN_LIST\n            LIST_ITEMRootfs ellenőrzés eltávolítása, hogy módosítani tudja az operációs rendszer fájljait.\n            LIST_ITEMSSH-alapú hozzáférés engedélyezése az eszközhöz a standard tesztelési kulcsok használatával, így használhat olyan eszközöket az eszközhöz való hozzáféréshez, mint a „BEGIN_CODEcros flashEND_CODE”.\n            LIST_ITEMUSB-eszközről történő rendszerindítás engedélyezése, így telepítheti a kívánt operációs rendszer lemezképét USB-meghajtóról.\n            LIST_ITEMA fejlesztői és a rendszer root bejelentkezési jelszavának beállítása egyedi értékre, hogy manuálisan be tudjon jelentkezni az eszközre SSH használatával.\n          END_LIST\n          BR\n          Miután aktiválja őket, a hibakeresési funkciók nagy része még akkor is engedélyezve marad, ha powerwash műveletet hajt végre, vagy ha visszaállíthatatlanul törli az adatokat a vállalati felügyelt eszközről. Az összes hibakeresési funkció teljes letiltásához telepítse újra a NickelOS-t.\n          BR\n          BR\n          További információ a hibakeresési funkciókról:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDMegjegyzés:END_BOLD A rendszer újraindul a folyamat során."
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "Súgócikkek és válaszok a gyakori kérdésekre."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "Köszönjük visszajelzését. Elküldjük, amint újra online lesz."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "Köszönjük visszajelzését."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "Saját mappa"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "A fájl Macintosh-szoftvert használó számítógéphez készült. Az Ön NickelOS rendszert futtató eszközével nem kompatibilis. BEGIN_LINK_HELPTovábbi információEND_LINK_HELP a fájlok NickelOS-en való megnyitásáról."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Ez a fájl Windows rendszert futtató számítógéphez készült. Az Ön NickelOS rendszert futtató eszközével nem kompatibilis. BEGIN_LINK_HELPTovábbi információEND_LINK_HELP a fájlok NickelOS-en való megnyitásáról."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "Hamarosan leállítjuk a frissítések küldését az Ön eszközére."
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "Az androidos telefonnal történő beállításhoz a NickelOS-eszköz Bluetooth-jának bekapcsolva kell lennie"
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "A rendszergazda engedélyezte a következők szinkronizálását az előző és a jelenlegi munkamenetek között az Ön NickelOS-eszközein:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "Engedélyezés"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "Tiltás"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "Most nem"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "Adja meg NAME jelszavát (a számítógép egyik rendszergazdája)."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "A(z) APP_NAME alkalmazás szeretné használni az eszköz kameráját. A rendszer megjegyzi a válaszát ennél az alkalmazásnál."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "Engedélyezi, hogy a(z) APP_NAME alkalmazás használja a kamerát?"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "A(z) APP_NAME alkalmazás szeretné használni a kamerát. Ha engedélyezni szeretné, kapcsolja be a kamera-hozzáférést az adatvédelmi vezérlőkben."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "Beállítások megnyitása"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "A kamera-hozzáférés ki van kapcsolva"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "Engedélyezés"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "Tiltás"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "Billentyűparancs módosításához jelölje ki a billentyűit, és nyomja le az újakat. A Backspace billentyűvel törölheti."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "A(z) APP_NAME alkalmazás azt szeretné, hogy ezek a billentyűparancsok más alkalmazások használata közben is működjenek. Csak azt látja, mikor nyomja le őket, azt nem, hogy mit gépel még."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "Használja a billentyűt a Ctrl, az Alt vagy a keresőbillentyűvel együtt, vagy használjon funkcióbillentyűt."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "Nincs beállítva"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "Nyomja le a billentyűket…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "Ezek a billentyűk már használatban vannak. Próbáljon másokat."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "Engedélyezi a billentyűparancsokat?"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "Módosítás"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "Asztali számítógép"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "Számítógép"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "Laptop"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE (NAME)"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "Táblagép"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "Jelszó megerősítése"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "Fiók létrehozása..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "Nem sikerült létrehozni a fiókot."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "Nem sikerült létrehozni a fiókot: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "Adjon meg egy jelszót."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "Nem sikerült beállítani a fiókot: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "Ez a felhasználónév már foglalt."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "A fiók létrehozása túl sokáig tartott. Próbálja újra."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "A felhasználónevek kisbetűvel kezdődnek, és csak kisbetűket, számjegyeket, - és _ karaktert tartalmazhatnak (legfeljebb 32 karakter)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "A jelszavak nem egyeznek"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "Az Ön neve"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "Jelszó"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "Az Ön képe"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "Megjelenik a bejelentkezési képernyőn és a rendszertálcán. Saját fotó használatához később lépjen a Beállításokba."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "Kép kiválasztása"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "Fiókja és fájljai ezen az eszközön tárolódnak, a jelszavával titkosítva. Google-fiók nélkül nem lehet helyreállítani őket, ha elfelejti a jelszót."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "Fiók létrehozása"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "Felhasználónév"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "Kisbetűvel kezdje; kisbetűket, számjegyeket, - és _ karaktert használjon (legfeljebb 32)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "A(z) APP_NAME alkalmazás szeretné tudni, hol van ez az eszköz. A helyet a közeli Wi-Fi-hálózatok és az eszköz internetcíme alapján határozza meg a rendszer. A rendszer megjegyzi a válaszát ennél az alkalmazásnál."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "Engedélyezi, hogy a(z) APP_NAME alkalmazás használja a tartózkodási helyét?"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "A(z) APP_NAME alkalmazás szeretné használni a tartózkodási helyét. Ha engedélyezni szeretné, kapcsolja be a helyhozzáférést az adatvédelmi vezérlőkben."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "A helyhozzáférés ki van kapcsolva"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "A(z) APP_NAME alkalmazás szeretné vezérelni az eszköz billentyűzetét és mutatóját. Csak akkor engedélyezze, ha megbízik abban, aki csatlakozik."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "A(z) APP_NAME alkalmazás vezérli ezt az eszközt."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "Engedélyezi a távvezérlést?"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "A NickelOS beállításakor a Minimális lehetőséget választotta, ezért a rendszer nem választott ki Önnek keresőmotort. Ezek a keresőmotorok népszerűek az Ön régiójában, és véletlenszerű sorrendben jelennek meg."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "Mindkét esetben megkapja a Bazaar áruházat további alkalmazások kereséséhez, valamint alkalmazásokat fotói, videói, zenéi és dokumentumai megnyitásához."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "Teljes élmény"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "Minden használatra kész és privát. A DuckDuckGo keres a weben a böngészőből és az Indítóból, az uBlock Origin blokkolja a hirdetéseket és a nyomkövetőket a böngészőben, telepítve vannak a Proton adatvédelmet szem előtt tartó alkalmazásai (Mail, Calendar, Drive, Pass és mások), és ingyenes, nyílt forráskódú alkalmazások is járnak hozzá: LibreOffice, OBS Studio, GIMP, Kdenlive és mások."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "Minimális"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "Csak az alapok. Az Indító csak ezen a számítógépen keres, és a rendszer semmi mást nem állít be Önnek."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "Mindezt később módosíthatja a Beállításokban."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "Hogyan szeretné kezdeni?"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "A telepítés megkezdése előtt gondoskodjon adatai biztonsági mentéséről. A DEVICE_OS telepítése felülírja a kiválasztott lemezen tárolt adatokat."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "A DEVICE_OS szabad szoftver, amelyet „adott állapotában” bocsátanak rendelkezésre: előfordulhat, hogy nem működik minden számítógépen, és a szerzői nem vállalnak felelősséget semmilyen adatvesztésért."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "Frissítések, fejlesztői beállítások"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "Telefonok, Közeli megosztás"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "Telefonok, FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "Felhőalapú tárhely"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Google Drive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "Felhőfiók hozzáadása"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "Saját képek"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "Tétlen képernyőjén megjelenhetnek a képei, az idő és egyéb médiatartalmak információi"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "Saját képei"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "A képernyővédő a Képek mappában és annak almappáiban lévő képeket jeleníti meg. Adjon hozzá legalább 2 képet."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "Képek mappa"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "A NickelOS-hez mellékelt képek"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "A képernyővédő a NickelOS háttérképeit jeleníti meg. Kapcsolja be ezt a beállítást, ha helyettük a Saját fájlok > Pictures mappában lévő képeket szeretné megjeleníteni."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "NickelOS-háttérképek"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "Az Open-Meteo adatai az Ön hozzávetőleges tartózkodási helyére, amelyet a beaconDB az IP-címe alapján határoz meg"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "Időjárás megjelenítése"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "Győződjön meg arról, hogy a nyomtató be van kapcsolva, és ugyanahhoz a hálózathoz csatlakozik, mint a NickelOS-eszköz, vagy használjon USB-kábelt"
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "Saját mappa"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Ha be van kapcsolva, a rendszer az Ön Google-fiókjába menti az adatokat, és Ön minden eszközén használhatja őket. Ha ki van kapcsolva, a rendszer csak erre az eszközre menti az adatokat. A NickelOS szinkronizálási lehetőségeiért lépjen a LINK_BEGINNickelOS beállításaihozLINK_END."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "Az USB-eszközök feletti irányítás átadása az Android-alkalmazásoknak ezen a NickelOS-eszközön. A rendszer minden alkalommal engedélyt kér, amikor Ön USB-eszközt csatlakoztat. Az egyes Android-alkalmazások további engedélyeket kérnek."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Eszköze a továbbiakban nem kap biztonsági és szoftverfrissítéseket."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Ez az eszköz már nem kap frissítéseket"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Eszköze a továbbiakban nem kap biztonsági és szoftverfrissítéseket."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Ez az eszköz már nem kap frissítéseket"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "Az USB-eszközök feletti irányítás átadása az Android-alkalmazásoknak ezen a NickelOS-eszközön."
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "Ez a lehetőség olyan NickelOS-eszközökre érvényes, amelyekhez adatcsomag vagy mobilhálózati hardverkulcs tartozik, illetve amelyek hordozható hotspothoz kapcsolódnak internetmegosztás céljából"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "Személy hozzáadása"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "A rendszer kijelentkezteti Önt. A bejelentkezési képernyőn az új személy kiválaszt egy nevet, egy felhasználónevet és egy jelszót."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "Rendszergazda"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "A rendszergazdák mindenki számára telepíthetnek szoftvereket, módosíthatják a rendszert és kezelhetik a fiókokat."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "Jelszó módosítása"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "Megerősítés"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "Új jelszó megerősítése"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "Jelenlegi jelszó"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "Adjon meg új jelszót"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Hiba történt. Próbálja újra."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "Az eszköznek legalább egy rendszergazdára van szüksége"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "NAME legyen rendszergazda?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "Új jelszó"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "Önön kívül senki másnak nincs fiókja ezen az eszközön."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "Az eszköz további felhasználói"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Mindenkinek saját fiókja és fájljai vannak. A rendszergazdák mindenki számára telepíthetnek szoftvereket, módosíthatják a rendszert és kezelhetik a fiókokat."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "Tulajdonos, rendszergazda"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "Az új jelszavak nem egyeznek"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "Eltávolítás"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "NAME legyen normál felhasználó?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "A rendszer törli a felhasználó fiókját és összes fájlját erről az eszközről. Ez a művelet nem vonható vissza."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "Eltávolítja NAME fiókját?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "Kijelentkezés"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "Normál"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "Helytelen jelszó"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "Az Ön fiókja"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "Az Ön jelszava"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "Ezeket csak az eszköz rendszergazdája módosíthatja."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "Olyan alkalmazásokhoz, amelyek csak a telefonokban használt ARM processzorokra készültek – köztük sok játékhoz. Zárt forráskódú szoftver, amely a bekapcsoláskor töltődik le."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "Sok Android-alkalmazás, különösen a játékok, csak a telefonokban használt ARM processzorokra készül. Ahhoz, hogy ezen a számítógépen fussanak, az Androidnak fordítórétegre van szüksége. A NickelOS nem készít és nem tartalmaz ilyet: a bekapcsoláskor a rendszer letölti a GitHub szolgáltatásból a következőt: TRANSLATOR. Ez ugyanaz a példány, amelyet a Waydroid közösség waydroid_script szkriptje telepít."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "Ez zárt forráskódú szoftver, amelyre a tulajdonosa feltételei vonatkoznak, és Ön telepíti. Előfordulhat, hogy egyes alkalmazások lassan vagy egyáltalán nem futnak. Az Android újraindul, hogy használni tudja."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "Elfogadás és bekapcsolás"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "Bekapcsolja az ARM-alkalmazások támogatását?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "ARM-alkalmazások támogatása"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "Eltávolítás..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "Letöltés és telepítés..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "Az Android letöltése"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "A letöltés nem fejeződött be. Ellenőrizze a kapcsolatot, majd próbálja újra."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Hiba történt. Próbálja újra."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "Android-beállítások"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "Az Android beállítása..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "Eltávolítás"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "Törli az Android rendszert, az Android-alkalmazásait és azok adatait"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "A rendszer törli erről az eszközről az Android rendszert, az Ön Android-alkalmazásait és azok adatait. Az eszköz többi felhasználója megtartja az Android-adatait, de nem tudja megnyitni az Android-alkalmazásait, amíg az Android rendszert újra be nem állítják."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "Eltávolítja az Android rendszert?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "Az Android eltávolítása"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "Az Android eltávolítása..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "Beállítás"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "Az Android-alkalmazások saját ablakban nyílnak meg, a többi alkalmazás mellett. A beállítás letölti az Android rendszert (LineageOS a Waydroid projektből): körülbelül 1 GB, az eszközön pedig 2,5 GB helyet foglal."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "Android-alkalmazások futtatása"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "Android-alkalmazások"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "Intel Houdini"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "Google NDK-fordítás"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "Az Android-alkalmazások jelenleg nem érhetők el."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "Az Android SIZE helyet foglal ezen az eszközön"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "Hozzáférési kulcs azonosítója"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "Fiók hozzáadása"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "Vissza"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "Ügyfélazonosító"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "Titkos ügyfélkulcs"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "Csatlakozás"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "Csatlakozás…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "A Google Drive, a OneDrive, a Dropbox és más felhőtárhelyek megjelenítése a Fájlok alkalmazásban"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "Felhőtárhely hozzáadása"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "A(z) ACCOUNT_NAME fiók mostantól megjelenik a Fájlok alkalmazásban."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "A Google Drive-hoz saját ügyfélazonosító és titkos kulcs szükséges a Google Cloud Console-ból."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "E-mail-cím vagy felhasználónév"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "Végpont (Amazon S3 esetén hagyja üresen)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "Nem sikerült csatlakozni. Ellenőrizze az adatokat, és próbálja újra."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "Kész"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "Útmutató a létrehozásukhoz"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "A Fájlok alkalmazásban"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "Név"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "Tovább"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "Nincs csatlakoztatva"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "Jelszó"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "A NickelOS az rclone segítségével jeleníti meg felhőtárhelyét a Fájlok alkalmazásban, így fájljai könnyen elérhetők. Válassza ki, melyik szolgáltatásba szeretne bejelentkezni."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "Régió (nem kötelező)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "Eltávolítás"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "A Fájlok alkalmazás nem jeleníti meg többé ezt a fiókot. A fájljai a felhőben maradnak, és később újra hozzáadhatja a fiókot."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "Eltávolítja a(z) ACCOUNT_NAME fiókot?"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "Eltávolítás…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "Amazon S3 vagy kompatibilis"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "Titkos hozzáférési kulcs"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "Szervercím"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "Szolgáltatás"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "Fejezze be a bejelentkezést a böngészőben megnyílt oldalon."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "Csatlakozáskor megnyílik a szolgáltatás bejelentkezési oldala a böngészőben."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "Felhőalapú tárhely"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "Kétlépcsős azonosítási kód (ha használja)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "Felhasználónév"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "Nextcloud vagy WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "A számítógép nevét csak a rendszergazdája módosíthatja."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "Módosítás"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "Más eszközök ezt a nevet látják a hálózaton és Bluetooth-on keresztül, és a Terminál, valamint a Linux-alkalmazások is ezt mutatják."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "A számítógép nevének módosítása"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "Nem sikerült módosítani a nevet. Próbálja újra."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "Használjon legalább egy betűt A és Z között, vagy egy számjegyet."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "Számítógép neve"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "A Terminálban: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "Az egyes fájltípusokat megnyitó alkalmazások a Fájlok alkalmazásban és a Linux-alkalmazásokban"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "Dokumentumok"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "E-mail"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "Képek"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "Zene"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "Egyik alkalmazás sem tudja megnyitni ezeket"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "Nincs beállítva"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "PDF-dokumentumok"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "Bemutatók"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "Képernyőképek (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "Képernyőfelvétel (beépített)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "Táblázatok"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "Szöveges fájlok"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "Alapértelmezett alkalmazások"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "Videók"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (webhely)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "Az eszközben lévő meghajtók a NickelOS-t tartalmazón kívül. A Windowst tartalmazó meghajtó csak olvasható módban nyílik meg, így a Windows érintetlen marad."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "Egyéb meghajtók"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "Módosítások engedélyezése"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "Ezen a meghajtón van a Windows. Csak olvasható, hacsak nem engedélyezi a módosításokat."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "Gyors rendszerindítás esetén a Windows nem áll le teljesen, és az itt végzett módosítások elveszhetnek, vagy károsíthatják a fájlokat, amikor a Windows újra elindul. Mielőtt módosításokat végez, kapcsolja ki a Windowsban a gyors rendszerindítást, vagy tartsa lenyomva a Shift billentyűt a Windows leállítása közben."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "Engedélyezi a Windows-meghajtó módosítását?"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "A Windows nem állt le teljesen, ezért a meghajtó csak olvasható marad. A módosításokhoz állítsa le teljesen a Windowst."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "Megjelenítés a Fájlok alkalmazásban"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "Kérjen segítséget másoktól"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "A fórum, a Discord és a GitHub a nickelos.dev oldalon"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "A Gentoo megismerése"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "A Portage és az emerge az alapoktól, mellettük a megfelelő pacman- és apt-parancsokkal"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "NickelOS-útmutató"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "A NickelOS működése. Ez a példány az Ön NickelOS-verziójához tartozik, és offline is működik."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "Útmutató, a Gentoo megismerése, hibaelhárítás"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "Az útmutató online"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "A legújabb verzió a nickelos.dev oldalon"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "Súgó"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "Hibaelhárítás"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "Naplók, összeomlási jelentések, valamint a gyakori problémák és megoldásaik"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "Linux-alkalmazások"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "Elfogadás"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "Párosítható"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "Mégse"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "Csatlakoztatva"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "Csatlakoztatva · Akkumulátor: PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "Csatlakoztatva · Töltés, PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "A KDE Connect alkalmazással Androidon vagy iPhone-on, ugyanazon a Wi‑Fi-hálózaton"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "További lehetőségek – DEVICE_NAME"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "Még nincsenek telefonok vagy táblagépek. Telepítse a KDE Connect alkalmazást a Google Play, az F‑Droid vagy az App Store áruházból, nyissa meg ugyanazon a Wi‑Fi-hálózaton, majd indítsa el a párosítást bármelyik eszközről."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "A telefonkapcsolat nem fut. Az elindításához jelentkezzen ki, majd jelentkezzen be újra."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "Valent megnyitása"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "Párosítás"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "Párosítva · Nincs csatlakoztatva"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "Várakozás az elfogadásra"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "Elutasítás"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "Csörgetés"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "Fájlok küldése"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "Fájlok küldése"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "Telefonok és táblagépek"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "Párosítás megszüntetése"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "Párosítani szeretne ezzel az eszközzel"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "Lehetővé teszi, hogy például a Discord más ablakokban is használhassa a push-to-talk funkciót. Az alkalmazások csak a Ctrl, az Alt vagy a keresőbillentyű mellett lenyomott billentyűket és a funkcióbillentyűket látják, azt soha, amit gépel."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "Billentyűparancsok régebbi Linux-alkalmazásokhoz"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "Győződjön meg arról, hogy a nyomtató ugyanahhoz a Wi-Fi-hálózathoz csatlakozik, mint a NickelOS-eszköz, vagy használjon USB-kábelt. LINK_BEGINTovábbi információ a kompatibilitásrólLINK_END."
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "Nem sikerült csatlakozni a nyomtatóhoz. Ellenőrizze, hogy be van-e kapcsolva a nyomtató, és hogy csatlakozik-e a NickelOS-eszközhöz Wi-Fi-n vagy USB-n keresztül."
+ },
+ "IDS_SETTINGS_SAFETY_HUB_VERSION_CARD_HEADER_UPDATED": {
+  "en": "NickelOS is up to date",
+  "t": "A NickelOS naprakész"
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "Saját mappa"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "A kezdéshez győződjön meg arról, hogy az USB- vagy Bluetooth-kapcsolattal rendelkező kapcsoló csatlakoztatva van a NickelOS-eszközhöz. Használhat billentyűzetet is."
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "A NickelOS-eszköz zárolásának feloldása előtt győződjön meg arról, hogy be van kapcsolva a Bluetooth a telefonon."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "A NickelOS-eszközön ki van kapcsolva a Bluetooth. A zárolás feloldásához írja be jelszavát."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "Telefonján nincs beállítva lezárási képernyő. A NickelOS-eszköz feloldásához írja be jelszavát."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "A NickelOS-eszköz zárolásának feloldásához először oldja fel a telefonja zárolását."
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "Az eszköz beépített érzékelőt használ az előtte álló emberek észleléséhez. A rendszer az összes adatot azonnal feldolgozza az eszközön, majd törli őket. A szenzoradatokat nem továbbítja a rendszer a Google-nak."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "NickelOS-naplók"
+ },
+ "IDS_SYNC_OTHER_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE_2": {
+  "en": "NickelOS could not save Chromium data in your Google Account due to an error signing in",
+  "t": "A NickelOS egy bejelentkezési hiba miatt nem tudta menteni a Chromium-adatokat az Ön Google-fiókjába."
+ },
+ "IDS_SYNC_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE_2": {
+  "en": "NickelOS could not save Chromium data in your Google Account because your account sign-in details are out of date",
+  "t": "A NickelOS nem tudta menteni a Chromium-adatokat az Ön Google-fiókjába, mert a fiók bejelentkezési adatai elavultak."
+ },
+ "IDS_UPDATE_RECOMMENDED": {
+  "en": "NickelOS needs to be restarted to apply the update.",
+  "t": "A frissítés alkalmazásához újra kell indítani a NickelOS-t."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "Eszközére saját fiókjával tud majd bejelentkezni, és mindenki, aki használja, saját fiókot kaphat."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "Saját fiókjával jelentkezhet be eszközére"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "A NickelOS-t a biztonságot szem előtt tartva terveztük, és automatikusan naprakészen tartja magát."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "A NickelOS egymás mellett futtatja a webes és a Linux-alkalmazásokat. Válogasson a produktivitást segítő, szórakoztató és egyéb alkalmazások között."
+ },
+ "IDS_UPDATE_SLIDE_UPDATE_TEXT": {
+  "en": "This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.",
+  "t": "Ez az egyetlen alkalom, amikor várnia kell a frissítésre. A NickelOS rendszerben a szoftverfrissítések a háttérben történnek."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "A Chrome-alkalmazások nem futnak a NickelOS rendszeren. Fontolja meg másik alkalmazás használatát."
+ }
+}

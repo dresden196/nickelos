@@ -1,0 +1,236 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] dongle: the firmware can be handed over by userspace
+
+On ChromiumOS (NickelOS) LoadPin loads firmware only from the verified
+root filesystem, and Microsoft's firmware for the Xbox Wireless Adapter
+may not be redistributed, so it can't be there: NickelOS fetches it from
+Microsoft on the user's machine when a dongle first appears, and keeps it
+on the data partition.
+
+Two write-only (root) attributes on the dongle's interface take it over:
+"firmware", written a page at a time (at most 1 MiB), and "firmware_done"
+("1" when it is all there, "0" to throw it away). The loader takes it in
+place of request_firmware() while it waits for the file; "1" after it gave
+up starts it again. xone_mt76_load_firmware() checks the header and sizes
+as for a file. Each load gets a fresh copy (the chip restarts on its new
+firmware and the driver loads it again). Attempts no longer warn while the
+file is missing (firmware_request_nowarn), since here it always is.
+
+---
+diff -ruN a/transport/dongle.c b/transport/dongle.c
+--- a/transport/dongle.c
++++ b/transport/dongle.c
+@@ -36,6 +36,9 @@
+ #define XONE_DONGLE_FW_REQ_TIMEOUT_MS 3000
+ #define XONE_DONGLE_FW_REQ_RETRIES 11 // 30 seconds
+ #define XONE_DONGLE_FW_LOAD_RETRIES 3
++/* NickelOS: the largest firmware userspace may hand over (sysfs, below) */
++#define XONE_DONGLE_USER_FW_MAX (1024 * 1024)
++#define XONE_DONGLE_FW_FROM_USER 2
+ 
+ enum xone_dongle_queue {
+ 	XONE_DONGLE_QUEUE_DATA = 0x00,
+@@ -107,6 +110,19 @@
+ 	struct work_struct load_fw_work;
+ 
+ 	enum xone_dongle_fw_state fw_state;
++
++	/*
++	 * NickelOS: the firmware, written by userspace to the "firmware"
++	 * attribute and finished with "firmware_done", for systems whose
++	 * LoadPin refuses firmware files from outside the verified root
++	 * filesystem (ChromiumOS), where Microsoft's firmware, which may not
++	 * be redistributed, can't be.
++	 */
++	struct mutex user_fw_lock;
++	u8 *user_fw;
++	size_t user_fw_size;
++	bool user_fw_complete;
++
+ 	u16 vendor;
+ 	u16 product;
+ };
+@@ -442,6 +458,84 @@
+ 			  "-1   -> all clients");
+ }
+ 
++/* NickelOS: userspace hands the firmware over, a page at a time. */
++static ssize_t firmware_store(struct device *dev, struct device_attribute *attr,
++			      const char *buf, size_t count)
++{
++	struct usb_interface *intf = to_usb_interface(dev);
++	struct xone_dongle *dongle = usb_get_intfdata(intf);
++	ssize_t ret = count;
++	u8 *grown;
++
++	if (!dongle || dongle->fw_state == XONE_DONGLE_FW_STATE_READY)
++		return -EBUSY;
++
++	mutex_lock(&dongle->user_fw_lock);
++	if (dongle->user_fw_complete) {
++		ret = -EBUSY;
++		goto out;
++	}
++	if (dongle->user_fw_size + count > XONE_DONGLE_USER_FW_MAX) {
++		ret = -EFBIG;
++		goto out;
++	}
++	grown = kvrealloc(dongle->user_fw, dongle->user_fw_size + count,
++			  GFP_KERNEL);
++	if (!grown) {
++		ret = -ENOMEM;
++		goto out;
++	}
++	memcpy(grown + dongle->user_fw_size, buf, count);
++	dongle->user_fw = grown;
++	dongle->user_fw_size += count;
++out:
++	mutex_unlock(&dongle->user_fw_lock);
++	return ret;
++}
++
++/*
++ * NickelOS: "1" when the whole firmware was written (a load that already
++ * gave up is started again), "0" to throw away what was written.
++ */
++static ssize_t firmware_done_store(struct device *dev,
++				   struct device_attribute *attr,
++				   const char *buf, size_t count)
++{
++	struct usb_interface *intf = to_usb_interface(dev);
++	struct xone_dongle *dongle = usb_get_intfdata(intf);
++	bool done;
++	int err;
++
++	if (!dongle || dongle->fw_state == XONE_DONGLE_FW_STATE_READY)
++		return -EBUSY;
++
++	err = kstrtobool(buf, &done);
++	if (err)
++		return err;
++
++	mutex_lock(&dongle->user_fw_lock);
++	if (!done) {
++		kvfree(dongle->user_fw);
++		dongle->user_fw = NULL;
++		dongle->user_fw_size = 0;
++		dongle->user_fw_complete = false;
++		mutex_unlock(&dongle->user_fw_lock);
++		return count;
++	}
++	if (!dongle->user_fw_size) {
++		mutex_unlock(&dongle->user_fw_lock);
++		return -ENODATA;
++	}
++	WRITE_ONCE(dongle->user_fw_complete, true);
++	mutex_unlock(&dongle->user_fw_lock);
++
++	if (dongle->fw_state == XONE_DONGLE_FW_STATE_ERROR) {
++		dongle->fw_state = XONE_DONGLE_FW_STATE_PENDING;
++		schedule_work(&dongle->load_fw_work);
++	}
++	return count;
++}
++
+ static ssize_t poweroff_store(struct device *dev, struct device_attribute *attr,
+ 			      const char *buf, size_t count)
+ {
+@@ -470,11 +564,15 @@
+ DEVICE_ATTR_RW(pairing);
+ DEVICE_ATTR_RO(active_clients);
+ DEVICE_ATTR_RW(poweroff);
++DEVICE_ATTR_WO(firmware);
++DEVICE_ATTR_WO(firmware_done);
+ 
+ static struct attribute *xone_dongle_attrs[] = {
+ 	&dev_attr_pairing.attr,
+ 	&dev_attr_active_clients.attr,
+ 	&dev_attr_poweroff.attr,
++	&dev_attr_firmware.attr,
++	&dev_attr_firmware_done.attr,
+ 	NULL,
+ };
+ ATTRIBUTE_GROUPS(xone_dongle);
+@@ -1086,9 +1184,13 @@
+ 			pr_debug("%s: Stopping firmware load on demand", __func__);
+ 			return 1;
+ 		}
++		/* NickelOS: handed over by userspace */
++		if (READ_ONCE(dongle->user_fw_complete))
++			return XONE_DONGLE_FW_FROM_USER;
+ 
+ 		dev_dbg(dev, "%s: attempt: %d\n", __func__, i + 1);
+-		err = request_firmware(fw, fwname, dev);
++		/* NickelOS: no warning per attempt while userspace fetches it */
++		err = firmware_request_nowarn(fw, fwname, dev);
+ 		if (!err)
+ 			return 0;
+ 
+@@ -1104,7 +1206,9 @@
+ 		container_of(work, struct xone_dongle, load_fw_work);
+ 
+ 	struct xone_mt76 *mt = &dongle->mt;
+-	const struct firmware *fw;
++	const struct firmware *fw = NULL;
++	struct firmware user_fw = {};
++	bool from_user;
+ 	char fwname[21];
+ 	int err;
+ 	u16 fw_product = dongle->product;
+@@ -1121,12 +1225,20 @@
+ 		return;
+ 	}
+ 
+-	if (err) {
++	from_user = err == XONE_DONGLE_FW_FROM_USER;
++	if (err && !from_user) {
+ 		dongle->fw_state = XONE_DONGLE_FW_STATE_ERROR;
+ 		dev_err(mt->dev, "%s: request firmware failed: %d\n", __func__,
+ 			err);
+ 		return;
+ 	}
++	if (from_user) {
++		mutex_lock(&dongle->user_fw_lock);
++		user_fw.data = dongle->user_fw;
++		user_fw.size = dongle->user_fw_size;
++		fw = &user_fw;
++		dev_info(mt->dev, "firmware handed over by userspace\n");
++	}
+ 	dev_dbg(mt->dev, "%s: firmware requested successfully\n", __func__);
+ 
+ 
+@@ -1136,7 +1248,16 @@
+ 			break;
+ 		ssleep(1);
+ 	}
+-	release_firmware(fw);
++	if (from_user) {
++		/* a fresh copy for the next load (after the chip restarts) */
++		kvfree(dongle->user_fw);
++		dongle->user_fw = NULL;
++		dongle->user_fw_size = 0;
++		dongle->user_fw_complete = false;
++		mutex_unlock(&dongle->user_fw_lock);
++	} else {
++		release_firmware(fw);
++	}
+ 	if (err) {
+ 		dongle->fw_state = XONE_DONGLE_FW_STATE_ERROR;
+ 		dev_err(mt->dev, "%s: load firmware failed: %d\n",
+@@ -1263,6 +1384,8 @@
+ 	usb_kill_anchored_urbs(&dongle->urbs_in_busy);
+ 	/* cancel fw load before destroying workqueues to avoid use-after-free */
+ 	cancel_work_sync(&dongle->load_fw_work);
++	kvfree(dongle->user_fw);
++	dongle->user_fw = NULL;
+ 	destroy_workqueue(dongle->event_wq);
+ 	cancel_delayed_work_sync(&dongle->pairing_work);
+ 	cancel_delayed_work_sync(&dongle->pairing_scan_work);
+@@ -1312,6 +1435,7 @@
+ 		return -ENOMEM;
+ 
+ 	mutex_init(&dongle->pairing_lock);
++	mutex_init(&dongle->user_fw_lock);
+ 	INIT_DELAYED_WORK(&dongle->pairing_work, xone_dongle_pairing_timeout);
+ 	INIT_DELAYED_WORK(&dongle->pairing_scan_work, xone_dongle_pairing_scan);
+ 	INIT_WORK(&dongle->load_fw_work, xone_dongle_fw_load);

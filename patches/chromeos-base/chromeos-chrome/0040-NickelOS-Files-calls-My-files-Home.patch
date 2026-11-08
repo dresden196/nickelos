@@ -1,0 +1,45 @@
+diff --git a/chrome/app/os_settings_strings.grdp b/chrome/app/os_settings_strings.grdp
+index d7df690682c12..10721ee2c709c 100644
+--- a/chrome/app/os_settings_strings.grdp
++++ b/chrome/app/os_settings_strings.grdp
+@@ -6748,8 +6748,8 @@ Press &amp; hold keyboard keys to see accent marks and special characters. This
+   <message name="IDS_SETTINGS_STORAGE_ITEM_AVAILABLE" desc="In Device Settings > Storage, label for the available storage size of ChromeOS internal storage.">
+     Available
+   </message>
+-  <message name="IDS_SETTINGS_STORAGE_ITEM_MY_FILES" desc="In Device Settings > Storage, label for the size of My files root.">
+-    My files
++  <message name="IDS_SETTINGS_STORAGE_ITEM_MY_FILES" desc="In Device Settings > Storage, label for the size of My files root, the user's home folder on NickelOS.">
++    Home
+   </message>
+   <message name="IDS_SETTINGS_STORAGE_ITEM_BROWSING_DATA" desc="In Device Settings > Storage, label for the size of browsing data.">
+     Browsing data
+diff --git a/chromeos/chromeos_strings.grd b/chromeos/chromeos_strings.grd
+index 88685769db594..d792954d07231 100644
+--- a/chromeos/chromeos_strings.grd
++++ b/chromeos/chromeos_strings.grd
+@@ -1028,8 +1028,8 @@
+         <message name="IDS_SCANNING_APP_SCAN_TO_DROPDOWN_LABEL" desc="The label for the dropdown that displays the chosen directory to save scans.">
+           Scan to
+         </message>
+-        <message name="IDS_SCANNING_APP_MY_FILES_SELECT_OPTION" desc="The text displayed in the Scan To dropdown when the user chooses the local 'My files' folder from the select dialog.">
+-          My files
++        <message name="IDS_SCANNING_APP_MY_FILES_SELECT_OPTION" desc="The text displayed in the Scan To dropdown when the user chooses the local 'My files' folder (the home folder on NickelOS) from the select dialog.">
++          Home
+         </message>
+         <message name="IDS_SCANNING_APP_SELECT_FOLDER_OPTION" desc="The text displayed in the Scan To dropdown option which the user can click to open the select dialog for choosing the folder to save completed scans.">
+           Select folder in Files app...
+diff --git a/ui/chromeos/file_manager_strings.grdp b/ui/chromeos/file_manager_strings.grdp
+index cb66956279469..2d6b654d6982e 100644
+--- a/ui/chromeos/file_manager_strings.grdp
++++ b/ui/chromeos/file_manager_strings.grdp
+@@ -71,8 +71,8 @@
+   <message name="IDS_FILE_BROWSER_LINUX_FILES_ROOT_LABEL" desc="A label for the 'Linux files' root which shows crostini files. Use sentence case.">
+     Linux files
+   </message>
+-  <message name="IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL" desc="A label for the 'My files' root which is parent of Downloads, Linux and Android files. Use sentence case.">
+-    My files
++  <message name="IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL" desc="A label for the 'My files' root which is parent of Downloads, Linux and Android files. Use sentence case. On NickelOS it is the user's home folder.">
++    Home
+   </message>
+   <message name="IDS_FILE_BROWSER_MEDIA_VIEW_ALL_ROOT_LABEL" desc="A label for the 'All' root of media views.">
+     All

@@ -1,0 +1,21 @@
+diff --git a/ui/chromeos/strings/network/network_element_localized_strings_provider.cc b/ui/chromeos/strings/network/network_element_localized_strings_provider.cc
+index d0ccfcac8465e..1dbda07fc895e 100644
+--- a/ui/chromeos/strings/network/network_element_localized_strings_provider.cc
++++ b/ui/chromeos/strings/network/network_element_localized_strings_provider.cc
+@@ -600,9 +600,15 @@ void AddConfigLocalizedStrings(content::WebUIDataSource* html_source) {
+   // network configurations. Kiosk users default to shared network
+   // configurations. Other users default to unshared network configurations.
+   // NOTE: Guest users can only create unshared network configs.
++  // NickelOS: signed-in users default to shared too, as on other Linux
++  // desktops (NetworkManager makes a connection available to all users), so
++  // a Wi-Fi network joined in a session is there at the sign-in screen and
++  // for the machine's other accounts. The toggle still makes one private;
++  // guests stay unshared.
+   html_source->AddBoolean("shareNetworkDefault",
+                           !ash::LoginState::Get()->UserHasNetworkProfile() ||
+-                              ash::LoginState::Get()->IsKioskSession());
++                              ash::LoginState::Get()->IsKioskSession() ||
++                              ash::LoginState::Get()->IsUserAuthenticated());
+   // Authenticated and Kiosk users can toggle the share state.
+   html_source->AddBoolean("shareNetworkAllowEnable",
+                           ash::LoginState::Get()->IsUserAuthenticated() ||

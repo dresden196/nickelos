@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gentoo and Portage · NickelOS guide</title>
+<meta name="description" content="NickelOS is Gentoo underneath. How the system is built with Portage, Gentoo at / with emerge and eix, your packages and the system&#x27;s, USE flags, 32-bit (i386) programs, Steam, and NVIDIA.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1b18" media="(prefers-color-scheme: dark)">
+<link rel="preload" href="assets/fonts/GoogleSansFlex-nickelos.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to the content</a>
+
+<header class="masthead">
+  <div class="wrap masthead-row">
+    <a class="brand" href="https://nickelos.dev/" aria-label="NickelOS home">
+      <img src="assets/img/nickelos-logo-v3.png" alt="" width="32" height="32">
+      <span>NickelOS</span>
+    </a>
+    <nav aria-label="Site">
+      <a href="index.html">Guide</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="community.html">Get help</a>
+    </nav>
+    <span class="chip" title="NickelOS has not been released yet">Alpha</span>
+  </div>
+</header>
+
+<main id="main" class="guide">
+  <div class="wrap guide-layout">
+    <nav class="guide-nav" aria-label="Guide">
+      <p class="eyebrow">Guide</p>
+      <ul>
+        <li><a href="index.html">Start here</a></li>
+        <li><a href="install.html">Installing</a></li>
+        <li><a href="basics.html">Getting around</a></li>
+        <li><a href="apps.html">Apps</a></li>
+        <li><a href="android.html">Android apps</a></li>
+        <li><a href="gentoo.html" aria-current="page">Gentoo and Portage</a></li>
+        <li><a href="learning-gentoo.html">Learning Gentoo</a></li>
+        <li><a href="terminal.html">Terminal and system</a></li>
+        <li><a href="graphics.html">Graphics</a></li>
+        <li><a href="sound.html">Sound and camera</a></li>
+        <li><a href="games.html">Steam and games</a></li>
+        <li><a href="files.html">Your files</a></li>
+        <li><a href="input.html">Typing and keyboard</a></li>
+        <li><a href="updates.html">Updates</a></li>
+        <li><a href="under-the-hood.html">Under the hood</a></li>
+        <li><a href="troubleshooting.html">Troubleshooting</a></li>
+        <li><a href="community.html">Getting help</a></li>
+      </ul>
+    </nav>
+    <article class="guide-page">
+<h1>Gentoo and Portage</h1>
+<p>ChromiumOS has always been Gentoo underneath. Google builds it with Portage, Gentoo's package manager, from Gentoo ebuilds, and most of what's in it started out in Gentoo's tree. ChromeOS hides that. NickelOS doesn't: it's built the same way, and on your device it is Gentoo, with <code>emerge</code> installing into <code>/usr</code> like on any Gentoo.</p>
+      <nav class="toc" aria-label="On this page"><a href="#how-nickelos-is-built">How NickelOS is built</a><a href="#one-system">One system</a><a href="#where-gentoo-lives">Where Gentoo lives</a><a href="#setting-it-up">Setting it up</a><a href="#finding-and-installing-packages">Finding and installing packages</a><a href="#repositories-and-profile">Repositories and profile</a><a href="#changing-use-flags-keywords-and-licenses">Changing USE flags, keywords and licenses</a><a href="#32-bit-programs-i386-multilib">32-bit programs (i386, multilib)</a><a href="#nvidia">NVIDIA</a><a href="#accounts">Accounts</a><a href="#paths">Paths</a></nav>
+
+<p>New to Gentoo? <a href="learning-gentoo.html">Learning Gentoo</a> walks through <code>emerge</code> from the start. This page is how Gentoo is set up on NickelOS.</p>
+<h2 id="how-nickelos-is-built">How NickelOS is built</h2>
+<p>NickelOS is a ChromiumOS <strong>board</strong>. A board is an overlay of ebuilds and profiles on top of ChromiumOS's own tree. Ours is called <code>nickel</code>. It inherits <code>reven</code>, the public board ChromeOS Flex is built from, which is what makes it run on ordinary PCs instead of Chromebooks. Everything NickelOS adds or changes lives in that one overlay:</p>
+<ul><li>our own packages (<code>chromeos-base/nickel-*</code>) and the Linux desktop stack ChromiumOS doesn't carry (Flatpak, PipeWire, Xwayland, GTK 4, elogind, polkit, gnome-keyring, GeoClue and more), mostly ported straight from Gentoo's tree;</li><li>patches to Google's packages, kept as plain patch files and applied when each package builds (see <a href="under-the-hood.html#patches">Under the hood</a>);</li><li>the board's profile: USE flags, firmware, kernel options.</li></ul>
+<p>Portage builds all of it into one disk image. That image is what you install and what updates replace.</p>
+<h2 id="one-system">One system</h2>
+<p>The system image is one current Gentoo: Gentoo's libraries, ChromeOS's programs (Chrome, sign-in, Wi-Fi, Settings, Files, Android) and NickelOS's packages, all recorded in Portage's database. There's one glibc, one <code>/usr/lib64</code> and one Python, at the usual places. Programs built elsewhere that expect a normal Linux system (AppImages, Steam, <code>-bin</code> packages) find one.</p>
+<p>What you <code>emerge</code> goes into your own layer on the data partition, over <code>/usr</code>, <code>/etc</code> and <code>/var/db/pkg</code>. Nothing is in a container: a Gentoo app shows up in the launcher, plays sound, gets your input method and opens files like any other.</p>
+<h2 id="where-gentoo-lives">Where Gentoo lives</h2>
+<div class="table"><table><thead><tr><th>Part</th><th>What's on it</th><th>Writable?</th></tr></thead><tbody><tr><td>System partition A, and its twin B</td><td>The OS. One of them runs, the other takes the next update</td><td>Read-only</td></tr><tr><td>Data partition (<code>/mnt/stateful_partition</code>)</td><td>Everyone's encrypted homes, Flatpak apps, what you install with <code>emerge</code>, the device's own settings</td><td>Yes</td></tr></tbody></table></div>
+<p>What you install is on the data partition, and it appears in <code>/usr</code> and <code>/etc</code> on top of the system's (overlay mounts made at startup). So the system partition stays read-only and checked, and an OS update replaces only the system: what you installed with <code>emerge</code> is still there afterwards.</p>
+<h2 id="setting-it-up">Setting it up</h2>
+<p>There's nothing to do. Gentoo itself is part of the system image. Once you've finished setting up the computer and it's online, NickelOS fetches Gentoo's package tree (the repository <code>emerge</code> reads) and the compiler, in the background and at low priority so it doesn't slow you down. <code>nickel-gentoo status</code> tells you whether that's done and how big your own layer has grown. If you want to start it yourself (or watch it), run <code>sudo nickel-gentoo setup</code>. If the setup at startup is already running, it waits for that one.</p>
+<h2 id="finding-and-installing-packages">Finding and installing packages</h2>
+<p>As on any Gentoo:</p>
+<pre><code>eix gimp                          # search the tree
+equery uses media-gfx/gimp        # its USE flags (gentoolkit)
+sudo emerge --ask media-gfx/gimp  # install
+sudo emerge --sync                # update the tree (eix&#x27;s index updates with it)
+sudo emerge --ask -uDN @world     # update everything you&#x27;ve installed
+sudo emerge --ask --depclean      # remove what nothing needs anymore</code></pre>
+<p>Searching and pretending (<code>eix</code>, <code>emerge -s</code>, <code>emerge -pv</code>, <code>equery</code>) need no password. <code>man emerge</code>, <code>man make.conf</code> and tab completion of emerge's options and package names work in the Terminal.</p>
+<p>Apps you install show up in the launcher right away, and you can remove them from there (it asks for an administrator's password).</p>
+<h3 id="binary-packages">Binary packages</h3>
+<p><code>emerge</code> downloads ready-built packages when it can, so most installs don't compile anything. It looks at Gentoo's own binary packages first (signed by Gentoo, and checked), then NickelOS's, which carry what Gentoo's don't (the 32-bit builds Steam needs, for one). Anything neither has, or anything you've set different USE flags for, compiles on your machine, using all your cores.</p>
+<h3 id="your-packages-and-the-system-s">Your packages and the system's</h3>
+<p>Portage knows every file of the system's packages, so its collision checks keep another package from overwriting one.</p>
+<ul><li><strong>Rebuilding a system package.</strong> You can rebuild any package with your own USE flags, the system's included (Steam needs that for its 32-bit libraries). Your build goes in your layer, over the system's copy, which stays underneath. <code>sudo nickel-gentoo restore &lt;category/package&gt;</code> puts the system's version back.</li><li><strong>Updates.</strong> <code>sudo emerge -uDN @world</code> updates what you installed and leaves the system's packages at the system's versions. Those come with NickelOS updates.</li><li><strong>A newer system package.</strong> If a package you install needs a newer version of a system package, <code>emerge</code> takes it in the same run. To take a newer one yourself, add it to <code>/etc/portage/package.unmask</code>. Either way it's yours, in your layer, until an OS update catches up.</li></ul>
+<h2 id="repositories-and-profile">Repositories and profile</h2>
+<div class="table"><table><thead><tr><th>Repository</th><th>What it is</th></tr></thead><tbody><tr><td><code>gentoo</code></td><td>Gentoo's main tree</td></tr><tr><td><code>guru</code></td><td>GURU, Gentoo's user repository. Its packages are accepted with their testing keyword (<code>~amd64</code>)</td></tr><tr><td><code>steam-overlay</code></td><td>Steam for Gentoo (<code>games-util/steam-launcher</code>), the overlay Gentoo's wiki points to. Its testing keyword is accepted too</td></tr><tr><td><code>nickel</code></td><td>NickelOS's own, holding the profile</td></tr></tbody></table></div>
+<p>All four are on from the start. GURU and steam-overlay arrive with Gentoo's tree at the first startup, and <code>sudo emerge --sync</code> keeps them current. Other repositories are a command away with <code>eselect repository</code>, which replaced layman (layman is gone from Gentoo):</p>
+<pre><code>eselect repository list
+sudo eselect repository enable &lt;name&gt;
+sudo emerge --sync &lt;name&gt;</code></pre>
+<p><code>sudo eselect repository disable guru</code> turns one off again.</p>
+<p>The profile is <code>nickel/amd64/desktop</code>: Gentoo's 23.0 desktop profile (OpenRC, merged <code>/usr</code>), plus what NickelOS needs. Keep it. Its one job is to fit packages to NickelOS: the system runs the services itself (udev, D-Bus's system bus, polkit's rules, login), so packages don't install their own copies of those. <code>eselect profile list</code> shows all of Gentoo's profiles too, but switching to one of those drops that.</p>
+<h2 id="changing-use-flags-keywords-and-licenses">Changing USE flags, keywords and licenses</h2>
+<p>The configuration is in <code>/etc/portage/</code>, as on Gentoo. <code>make.conf</code> is a folder here: <code>0000_gentoo.conf</code> and <code>0100_nickelos.conf</code> are kept up to date by the OS (changes to those are overwritten), and your own settings go in files of your own next to them, like <code>make.conf/50-mine.conf</code>. <code>package.use/</code>, <code>package.accept_keywords/</code>, <code>package.license/</code> and <code>repos.conf/</code> are all yours.</p>
+<p>Some of it emerge does by itself. When a package needs another one built with a USE flag, or a newer version of one of the system's packages, emerge adds that to <code>/etc/portage</code> and carries on. Testing keywords and licenses are left to you: emerge stops and names the ones a package needs. Add those lines yourself (<a href="learning-gentoo.html#changing-how-a-package-is-built">Learning Gentoo</a> shows them), or let emerge write them all down and stop, so you can look them over:</p>
+<pre><code>sudo emerge --ask --autounmask-write --autounmask-keep-keywords=n --autounmask-license=y --autounmask-continue=n some/package
+sudo dispatch-conf
+sudo emerge --ask some/package</code></pre>
+<p>What emerge adds goes in the <code>zz-autounmask</code> file of each of those folders, which is yours like any file you add there.</p>
+<p>Settings for one command work too: <code>USE=&quot;-X&quot; emerge -pv media-video/vlc</code>, <code>sudo MAKEOPTS=-j4 emerge ...</code>.</p>
+<h2 id="32-bit-programs-i386-multilib">32-bit programs (i386, multilib)</h2>
+<p>Gentoo here is multilib, like any Gentoo amd64 install: 32-bit glibc and GCC are there, and everything else 32-bit comes the Gentoo way, through the <code>abi_x86_32</code> USE flag on the packages that need it. Programs built elsewhere find the usual loaders, <code>/lib/ld-linux.so.2</code> and <code>/lib64/ld-linux-x86-64.so.2</code>.</p>
+<h3 id="steam-from-gentoo">Steam from Gentoo</h3>
+<p>Steam from Flathub is the easy way (see <a href="games.html">Steam and games</a>). If you'd rather have Gentoo's:</p>
+<pre><code>sudo emerge --ask --autounmask-write --autounmask-keep-keywords=n --autounmask-license=y --autounmask-continue=n games-util/steam-launcher
+sudo dispatch-conf
+sudo emerge --ask games-util/steam-launcher</code></pre>
+<p>The first command works out what Steam needs and writes it down without installing anything: <code>abi_x86_32</code> for the libraries it uses (Mesa, X11 and what they pull in), testing keywords for two of its helpers, and Valve's license (<code>ValveSteamLicense</code>), which is yours to accept. <code>dispatch-conf</code> shows each change and asks. NickelOS's server has the 32-bit libraries built, so they mostly download.</p>
+<h3 id="wine">Wine</h3>
+<p>Gentoo's Wine (<code>app-emulation/wine-vanilla</code>) runs 32-bit Windows programs through WoW64, so it doesn't need 32-bit libraries on the Linux side. Flathub's Wine works too.</p>
+<h2 id="nvidia">NVIDIA</h2>
+<p>Mesa finds Intel and AMD GPUs by itself. NVIDIA's driver is different: its libraries have to match the kernel module exactly, and they come with the system, in <code>/usr/lib64</code>, where Gentoo's programs find them.</p>
+<p>For 32-bit programs, <code>nickel-gentoo gpu</code> downloads NVIDIA's 32-bit libraries for your exact driver version into <code>/usr/lib/nickel-nvidia</code> at startup. When an OS update brings a new driver, the new ones download.</p>
+<p>Don't emerge <code>x11-drivers/nvidia-drivers</code>. The driver is the system's job.</p>
+<h2 id="accounts">Accounts</h2>
+<p>Gentoo's packages make system users and groups (<code>portage</code> and the like) as on Gentoo. They're kept in <code>/var/lib/nickel-gentoo/accounts</code>, and NickelOS adds them to the device's accounts at every startup, beside the system's and yours.</p>
+<h2 id="paths">Paths</h2>
+<div class="table"><table><thead><tr><th>Path</th><th>What</th></tr></thead><tbody><tr><td><code>/usr</code>, <code>/etc</code></td><td>The system's files, with yours on top</td></tr><tr><td><code>/mnt/stateful_partition/nickel-gentoo</code></td><td>Your layer: what you've installed or rebuilt</td></tr><tr><td><code>/etc/portage</code></td><td>Portage's configuration</td></tr><tr><td><code>/var/db/repos</code></td><td>The repositories</td></tr><tr><td><code>/var/db/pkg</code></td><td>What's installed</td></tr><tr><td><code>/etc/nickel/binhost</code></td><td>The address of NickelOS's package server</td></tr><tr><td><code>/var/log/nickel-gentoo-setup.log</code></td><td>What the setup at startup did</td></tr></tbody></table></div>
+    </article>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-row">
+    <div class="footer-brand">
+      <img src="assets/img/nickelos-logo-v3.png" alt="" width="48" height="48">
+      <div>
+        <p><strong>NickelOS</strong> &middot; Project Crowbar</p>
+        <p class="small">nickelos.dev</p>
+      </div>
+    </div>
+    <div class="small footer-notes">
+      <p>This copy of the guide came with NickelOS and works offline. The newest is at <a href="https://nickelos.dev/help/">nickelos.dev/help</a>.</p>
+      <p>NickelOS is a community project, not affiliated with or endorsed by Google. ChromeOS, ChromiumOS, Chrome, Chromebook and Googlebook are trademarks of Google LLC. Other names belong to their owners.</p>
+      <p>No trackers or analytics. Set in Google Sans Flex and Google Sans Code (<a href="assets/fonts/OFL.txt">SIL Open Font License</a>).</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

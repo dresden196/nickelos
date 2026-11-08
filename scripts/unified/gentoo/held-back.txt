@@ -1,0 +1,98 @@
+# NickelOS: packages the image keeps Google's (or ours), never
+# installed from Gentoo, not even as a dependency (nickel-unify passes them
+# to emerge --exclude). Each with why; a line goes when its reason does.
+#
+# Libraries without a stable ABI: Google's versions stay, beside Gentoo's
+# (vision decision 3). The records step moves them to /usr/lib64/cros, out
+# of Portage's records: Gentoo's install normally into your layer.
+dev-cpp/abseil-cpp
+dev-libs/protobuf
+dev-libs/re2
+net-libs/grpc
+dev-libs/libphonenumber
+# Google's versions with functions of their own, which ChromeOS's programs
+# call (docs/unified.md, "What has to stay Google's"); held back on the
+# device too, where Portage would otherwise update them as the OS's
+# packages (@nickel-os).
+sys-apps/flashrom
+app-crypt/trousers
+sys-block/parted
+sys-process/audit
+media-libs/libmtp
+net-print/cups
+sys-apps/dbus
+# Chrome's video decoding on Intel: VA-API's Intel drivers (Gentoo's newer
+# iHD driver also comes under another license, no-source-code). Mesa and
+# libva are Gentoo's (vision decision 5).
+media-libs/libva-intel-driver
+media-libs/libva-intel-media-driver
+# Virtuals the records step sets to Gentoo's version for ChromeOS's udev
+# (held back above): Gentoo's own of the same version would bring Gentoo's
+# udev (systemd-utils) with it. A virtual here is held back as Gentoo's
+# package of it, whatever the version (nickel-unify).
+virtual/udev
+virtual/libudev
+# Gentoo's virtual for the kernel's sources would bring a kernel source
+# package; ChromeOS's kernel is the OS's.
+virtual/linux-sources
+# What the kernel loads: LoadPin takes firmware only from the OS's own
+# partition, so Gentoo's in your layer would be gigabytes never used.
+sys-kernel/linux-firmware
+sys-firmware/sof-firmware
+net-wireless/wireless-regdb
+sys-apps/fwupd-efi
+# Samba is one piece: its libraries come together or not at all.
+net-fs/samba
+sys-libs/ldb
+sys-libs/talloc
+sys-libs/tdb
+sys-libs/tevent
+# Google's iptables programs (1.8.5) abort on Gentoo's 1.8.13 libraries.
+net-firewall/iptables
+# ChromeOS's sound server is CRAS; PulseAudio's daemon has no place.
+media-sound/pulseaudio-daemon
+# ChromeOS's printing is built on cups-filters 1.x with Google's CUPS;
+# Gentoo's 2.x splits it and brings MuPDF and Ghostscript.
+net-print/cups-filters
+# Until their integration is done (docs/unified.md, "Held back"):
+# udev 256 and later drop device ownership by non-system groups, which
+# ChromeOS's rules use, and Gentoo builds systemd-utils without SELinux,
+# so device nodes and /run's directories went unlabeled;
+sys-apps/systemd-utils
+sys-fs/udev
+# OpenSSH 10's ssh-keygen asks before overwriting a key, where sshd-pre
+# expects it not to;
+net-misc/openssh
+# Gentoo's rsyslog brings rules that write logs ChromeOS's policy forbids.
+app-admin/rsyslog
+# shill starts dhcpcd with options only Google's has (--apply_dscp on Wi-Fi):
+# Gentoo's exited at once and setup sat at "connecting" (the NVIDIA test PC's first
+# boot, 2026-10-19; wired links don't pass it, so the VMs never showed it).
+net-misc/dhcpcd
+# Google's fwupd is ChromeOS's (its jail, its D-Bus policy, mini_udisks in
+# place of udisks for finding the ESP); Gentoo's UEFI plugin pulls in the
+# whole udisks and libblockdev stack instead (2026-10-19).
+sys-apps/fwupd
+# Google's forks that ChromeOS's own code depends on (the patch review of the
+# swapped packages, 2026-10-19; docs/unified.md):
+# - VPNs (shill): pppd's nosystemconfig option and plugin API, openvpn's
+#   redirect_gateway/pkcs11-slot/cipher-in-status, strongswan's /run/ipsec
+#   piddir, xl2tpd with the ppp it runs.
+net-dialup/ppp
+net-dialup/xl2tpd
+net-vpn/openvpn
+net-vpn/strongswan
+# - Formatting and renaming drives (cros-disks): mkfs.vfat and mkfs.exfat
+#   given /dev/fd/N, exfatlabel's options.
+sys-fs/dosfstools
+sys-fs/exfat-utils
+# - brltty: the BrlAPI socket Chrome looks for (/run/brltty) and Floss
+#   Bluetooth support; evtest: crosh's `evtest --safe`.
+app-accessibility/brltty
+app-misc/evtest
+# - libiio: light and proximity sensors as iioservice counts them
+#   (auto-brightness); alsa-utils: Google's mixer defaults for alsactl init;
+#   Epson's printer driver: Google's fixes.
+net-libs/libiio
+media-sound/alsa-utils
+net-print/epson-inkjet-printer-escpr

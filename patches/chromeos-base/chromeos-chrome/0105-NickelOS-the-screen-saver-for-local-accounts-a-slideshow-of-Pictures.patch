@@ -1,0 +1,952 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the screen saver for local accounts, a slideshow
+ of the Pictures folder
+
+Settings > Wallpaper & style > Screen saver said "not available on your
+device" to every local account: ChromeOS allows its screen saver for
+Gmail-type Google accounts only, and fills it from Google's servers
+(Google Photos, the Art gallery, the weather) or Google's own files (the
+Feel the Breeze and Float on By animations, whose stand-in in Chromium
+stops the session, and the Time of Day videos from a DLC that isn't
+public). NickelOS's screen saver for a local account is a slideshow of the
+user's own pictures, the ones in My files > Pictures and the folders in it,
+with the time, made from ChromeOS's own parts:
+
+- AmbientClientImpl allows it for a NickelOS local account (no Gaia, email
+  domain or primary account checks), asks no token for one, and names its
+  Pictures folder (AmbientClient::GetNickelPicturesFolder).
+- AmbientController shows that folder with the slideshow ChromeOS has for
+  an administrator's screen saver (AmbientManagedSlideshowUiLauncher and
+  its photo controller, which read pictures from disk), whatever theme the
+  prefs name, also when the screen dims (not on the lock screen only).
+  ScreensaverImagesPolicyHandler::CreateForFolder lists the pictures (as
+  Files shows them: no hidden files, no links followed; up to 500, a random
+  choice of more) each time the screen saver starts, for the next one, and
+  every minute while there are fewer than the 2 a slideshow needs.
+- NickelAmbientBackendController stands in for Google's servers in place
+  of the test stand-in Chromium builds have, which never answered the
+  Settings page and handed out made-up addresses: the settings live for the
+  session, and there are no albums, previews, weather or server addresses.
+- The Settings page offers the Slideshow theme only, shows "Pictures
+  folder" as the image source (no Google Photos or Art gallery, no weather
+  unit), needs no network, and its previews show the Slideshow theme's
+  picture with "Pictures folder: Your own pictures".
+
+Google accounts keep ChromeOS's screen saver as it was.
+
+---
+diff --git a/ash/BUILD.gn b/ash/BUILD.gn
+index 9397a3f..b32268d 100644
+--- a/ash/BUILD.gn
++++ b/ash/BUILD.gn
+@@ -241,6 +241,8 @@ component("ash") {
+     "ambient/metrics/ambient_session_metrics_recorder.h",
+     "ambient/metrics/managed_screensaver_metrics.cc",
+     "ambient/metrics/managed_screensaver_metrics.h",
++    "ambient/nickel_ambient_backend_controller.cc",
++    "ambient/nickel_ambient_backend_controller.h",
+     "ambient/model/ambient_animation_attribution_provider.cc",
+     "ambient/model/ambient_animation_attribution_provider.h",
+     "ambient/model/ambient_animation_photo_config.cc",
+diff --git a/ash/ambient/ambient_controller.cc b/ash/ambient/ambient_controller.cc
+index d8d2d6e..f3e0750 100644
+--- a/ash/ambient/ambient_controller.cc
++++ b/ash/ambient/ambient_controller.cc
+@@ -23,6 +23,7 @@
+ #include "ash/ambient/metrics/ambient_metrics.h"
+ #include "ash/ambient/metrics/ambient_session_metrics_recorder.h"
+ #include "ash/ambient/metrics/managed_screensaver_metrics.h"
++#include "ash/ambient/nickel_ambient_backend_controller.h"
+ #include "ash/ambient/model/ambient_animation_photo_config.h"
+ #include "ash/ambient/model/ambient_photo_config.h"
+ #include "ash/ambient/model/ambient_slideshow_photo_config.h"
+@@ -105,7 +106,8 @@ std::unique_ptr<AmbientBackendController> CreateAmbientBackendController() {
+ #if BUILDFLAG(ENABLE_CROS_AMBIENT_MODE_BACKEND)
+   return std::make_unique<AmbientBackendControllerImpl>();
+ #else
+-  return std::make_unique<FakeAmbientBackendControllerImpl>();
++  // NickelOS: no Google servers keep the settings (see the class).
++  return std::make_unique<NickelAmbientBackendController>();
+ #endif  // BUILDFLAG(ENABLE_CROS_AMBIENT_MODE_BACKEND)
+ }
+ 
+@@ -1060,7 +1062,9 @@ void AmbientController::RequestAccessToken(
+     bool may_refresh_token_on_lock) {
+   // Do not request access tokens when the ambient mode is in the managed mode
+   // as we do not want to rely on any user information .
+-  if (IsAmbientModeManagedScreensaverEnabled()) {
++  // NickelOS: nor for a local account, which has no Google account.
++  if (IsAmbientModeManagedScreensaverEnabled() ||
++      !AmbientClient::Get()->GetNickelPicturesFolder().empty()) {
+     // Consume the callback to be resilient against dependencies on the callback
+     // in the future.
+     std::move(callback).Run(GaiaId(), "");
+@@ -1246,9 +1250,23 @@ void AmbientController::CreateUiLauncher() {
+ 
+   DestroyUiLauncher();
+ 
++  const base::FilePath nickel_pictures =
++      AmbientClient::Get()->GetNickelPicturesFolder();
+   if (IsAmbientModeManagedScreensaverEnabled()) {
+     ambient_ui_launcher_ = std::make_unique<AmbientManagedSlideshowUiLauncher>(
+         &delegate_, screensaver_images_policy_handler_.get());
++  } else if (!nickel_pictures.empty()) {
++    // NickelOS: a local account's screen saver is a slideshow of its own
++    // pictures (My files > Pictures), whatever theme the prefs name. The
++    // others need Google's servers (Google Photos, the Art gallery) or
++    // Google's own files: the animations, whose stand-in in Chromium ends
++    // the session, and the Time of Day videos.
++    if (!nickel_pictures_ || nickel_pictures_->folder() != nickel_pictures) {
++      nickel_pictures_ =
++          ScreensaverImagesPolicyHandler::CreateForFolder(nickel_pictures);
++    }
++    ambient_ui_launcher_ = std::make_unique<AmbientManagedSlideshowUiLauncher>(
++        &delegate_, nickel_pictures_.get());
+   } else {
+     switch (GetCurrentUiSettings().theme()) {
+       case personalization_app::mojom::AmbientTheme::kSlideshow:
+diff --git a/ash/ambient/ambient_controller.h b/ash/ambient/ambient_controller.h
+index 16412bc..7389557 100644
+--- a/ash/ambient/ambient_controller.h
++++ b/ash/ambient/ambient_controller.h
+@@ -386,6 +386,10 @@ class ASH_EXPORT AmbientController
+   std::unique_ptr<ScreensaverImagesPolicyHandler>
+       screensaver_images_policy_handler_;
+ 
++  // NickelOS: a local account's pictures (CreateUiLauncher). Before the
++  // launcher, which uses it until it is gone.
++  std::unique_ptr<ScreensaverImagesPolicyHandler> nickel_pictures_;
++
+   std::unique_ptr<AmbientUiLauncher> ambient_ui_launcher_;
+   base::CancelableOnceCallback<void(bool)> ui_launcher_init_callback_;
+ 
+diff --git a/ash/ambient/ambient_managed_slideshow_ui_launcher.cc b/ash/ambient/ambient_managed_slideshow_ui_launcher.cc
+index b0fe0b2..9cf91d7 100644
+--- a/ash/ambient/ambient_managed_slideshow_ui_launcher.cc
++++ b/ash/ambient/ambient_managed_slideshow_ui_launcher.cc
+@@ -82,8 +82,12 @@ void AmbientManagedSlideshowUiLauncher::UpdateImageFilePaths(
+ }
+ 
+ std::unique_ptr<views::View> AmbientManagedSlideshowUiLauncher::CreateView() {
+-  PhotoViewConfig config{.peripheral_ui_visible = false,
+-                         .force_resize_to_fit = true};
++  // NickelOS: a local account's own pictures (a folder) show the time, as
++  // ChromeOS's slideshow does (the weather stays hidden: there is none).
++  PhotoViewConfig config{
++      .peripheral_ui_visible =
++          !screensaver_images_policy_handler_->folder().empty(),
++      .force_resize_to_fit = true};
+ 
+   return std::make_unique<PhotoView>(delegate_, config);
+ }
+@@ -103,7 +107,11 @@ AmbientManagedSlideshowUiLauncher::GetAmbientPhotoController() {
+ }
+ 
+ bool AmbientManagedSlideshowUiLauncher::ComputeReadyState() {
+-  return LockScreen::HasInstance() &&
++  // NickelOS: a local account's pictures are the user's own screen saver,
++  // which also starts when the screen dims, not only on the lock screen as
++  // an administrator's does.
++  return (LockScreen::HasInstance() ||
++          !screensaver_images_policy_handler_->folder().empty()) &&
+          !photo_controller_.HasScreenUpdateErrors();
+ }
+ 
+diff --git a/ash/ambient/managed/screensaver_images_policy_handler.cc b/ash/ambient/managed/screensaver_images_policy_handler.cc
+index dfbf92f..513c2ad 100644
+--- a/ash/ambient/managed/screensaver_images_policy_handler.cc
++++ b/ash/ambient/managed/screensaver_images_policy_handler.cc
+@@ -4,7 +4,13 @@
+ 
+ #include "ash/ambient/managed/screensaver_images_policy_handler.h"
+ 
++#include <sys/stat.h>
++
++#include <algorithm>
+ #include <memory>
++#include <string>
++#include <utility>
++#include <vector>
+ 
+ #include "ash/constants/ash_paths.h"
+ #include "ash/public/cpp/ambient/ambient_client.h"
+@@ -14,10 +20,16 @@
+ #include "base/base_paths.h"
+ #include "base/check.h"
+ #include "base/check_deref.h"
++#include "base/files/file_enumerator.h"
+ #include "base/files/file_path.h"
++#include "base/functional/bind.h"
+ #include "base/functional/callback.h"
+ #include "base/logging.h"
+ #include "base/path_service.h"
++#include "base/rand_util.h"
++#include "base/strings/string_util.h"
++#include "base/task/thread_pool.h"
++#include "base/time/time.h"
+ #include "components/prefs/pref_registry_simple.h"
+ #include "components/prefs/pref_service.h"
+ #include "services/network/public/cpp/shared_url_loader_factory.h"
+@@ -76,8 +88,116 @@ scoped_refptr<network::SharedURLLoaderFactory> GetUrlLoaderFactory(
+   }
+ }
+ 
++// NickelOS: a folder's pictures (CreateForFolder). At most this many a
++// screen saver, a random choice of them when the folder has more; bigger
++// files are left out (the decoder is handed the whole file).
++constexpr size_t kMaxFolderImages = 500;
++constexpr int64_t kMaxFolderImageBytes = 64 * 1024 * 1024;
++// Entries looked at, at most (a disk's worth of files linked in by hand).
++constexpr size_t kMaxFolderEntries = 100000;
++// With too few pictures for a screen saver, it is not started: look again
++// this often, so the first pictures put there turn it on.
++constexpr base::TimeDelta kFolderRetryInterval = base::Minutes(1);
++
++bool IsFolderImage(const base::FilePath& path) {
++  const std::string extension = base::ToLowerASCII(path.Extension());
++  for (const char* image : {".jpg", ".jpeg", ".png", ".webp", ".gif",
++                            ".bmp"}) {
++    if (extension == image) {
++      return true;
++    }
++  }
++  return false;
++}
++
++// The pictures in |folder| and its folders as Files shows them: hidden files
++// and folders left out, links not followed.
++std::vector<base::FilePath> FindImagesInFolder(const base::FilePath& folder) {
++  std::vector<base::FilePath> images;
++  std::vector<base::FilePath> folders = {folder};
++  size_t entries = 0;
++  while (!folders.empty() && entries < kMaxFolderEntries) {
++    const base::FilePath dir = folders.back();
++    folders.pop_back();
++    base::FileEnumerator enumerator(
++        dir, /*recursive=*/false,
++        base::FileEnumerator::FILES | base::FileEnumerator::DIRECTORIES |
++            base::FileEnumerator::SHOW_SYM_LINKS);
++    for (base::FilePath path = enumerator.Next(); !path.empty();
++         path = enumerator.Next()) {
++      if (++entries >= kMaxFolderEntries) {
++        break;
++      }
++      if (path.BaseName().value().starts_with('.')) {
++        continue;
++      }
++      const base::FileEnumerator::FileInfo info = enumerator.GetInfo();
++      if (S_ISLNK(info.stat().st_mode)) {
++        continue;
++      }
++      if (info.IsDirectory()) {
++        folders.push_back(path);
++      } else if (IsFolderImage(path) && info.GetSize() > 0 &&
++                 info.GetSize() <= kMaxFolderImageBytes) {
++        images.push_back(path);
++      }
++    }
++  }
++  base::RandomShuffle(images.begin(), images.end());
++  if (images.size() > kMaxFolderImages) {
++    images.resize(kMaxFolderImages);
++  }
++  return images;
++}
++
+ }  // namespace
+ 
++// static
++std::unique_ptr<ScreensaverImagesPolicyHandler>
++ScreensaverImagesPolicyHandler::CreateForFolder(const base::FilePath& folder) {
++  return std::make_unique<ScreensaverImagesPolicyHandler>(folder);
++}
++
++ScreensaverImagesPolicyHandler::ScreensaverImagesPolicyHandler(
++    const base::FilePath& folder)
++    : folder_(folder) {
++  CHECK(!folder_.empty());
++  FindFolderImages();
++}
++
++void ScreensaverImagesPolicyHandler::FindFolderImages() {
++  if (finding_folder_images_) {
++    return;
++  }
++  finding_folder_images_ = true;
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE,
++      {base::MayBlock(), base::TaskPriority::USER_VISIBLE,
++       base::TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN},
++      base::BindOnce(&FindImagesInFolder, folder_),
++      base::BindOnce(&ScreensaverImagesPolicyHandler::OnFolderImagesFound,
++                     weak_ptr_factory_.GetWeakPtr()));
++}
++
++void ScreensaverImagesPolicyHandler::OnFolderImagesFound(
++    std::vector<base::FilePath> images) {
++  finding_folder_images_ = false;
++  // The new list is for the next screen saver (GetScreensaverImages), not
++  // the one showing: it would start over. Unless the last list had too few
++  // pictures to show at all, when it is what makes one possible.
++  const bool too_few = folder_images_.size() < 2;
++  folder_images_ = std::move(images);
++  if (too_few && on_images_updated_callback_) {
++    on_images_updated_callback_.Run(folder_images_);
++  }
++  if (folder_images_.size() < 2) {
++    folder_retry_timer_.Start(
++        FROM_HERE, kFolderRetryInterval,
++        base::BindOnce(&ScreensaverImagesPolicyHandler::FindFolderImages,
++                       base::Unretained(this)));
++  }
++}
++
+ // static
+ std::unique_ptr<ScreensaverImagesPolicyHandler>
+ ScreensaverImagesPolicyHandler::Create(PrefService* pref_service) {
+@@ -170,6 +290,10 @@ void ScreensaverImagesPolicyHandler::SetImagesForTesting(
+ 
+ std::vector<base::FilePath>
+ ScreensaverImagesPolicyHandler::GetScreensaverImages() {
++  if (!folder_.empty()) {
++    FindFolderImages();
++    return folder_images_;
++  }
+   if (image_downloader_) {
+     return image_downloader_->GetScreensaverImages();
+   }
+diff --git a/ash/ambient/managed/screensaver_images_policy_handler.h b/ash/ambient/managed/screensaver_images_policy_handler.h
+index a687870..ab85414 100644
+--- a/ash/ambient/managed/screensaver_images_policy_handler.h
++++ b/ash/ambient/managed/screensaver_images_policy_handler.h
+@@ -13,6 +13,7 @@
+ #include "base/functional/callback_forward.h"
+ #include "base/memory/raw_ptr.h"
+ #include "base/memory/weak_ptr.h"
++#include "base/timer/timer.h"
+ #include "components/prefs/pref_change_registrar.h"
+ 
+ class PrefRegistrySimple;
+@@ -35,6 +36,17 @@ class ASH_EXPORT ScreensaverImagesPolicyHandler {
+   static void RegisterPrefs(PrefRegistrySimple* registry);
+ 
+   ScreensaverImagesPolicyHandler(PrefService* pref_service, HandlerType state);
++
++  // NickelOS: the pictures in |folder| and the folders in it (a local
++  // account's My files > Pictures, AmbientController) instead of the ones a
++  // policy names. They are looked for again each time they are asked for,
++  // so the next screen saver has the pictures added since.
++  static std::unique_ptr<ScreensaverImagesPolicyHandler> CreateForFolder(
++      const base::FilePath& folder);
++  explicit ScreensaverImagesPolicyHandler(const base::FilePath& folder);
++
++  // The folder of CreateForFolder, else empty.
++  const base::FilePath& folder() const { return folder_; }
+   ScreensaverImagesPolicyHandler(const ScreensaverImagesPolicyHandler&) =
+       delete;
+   ScreensaverImagesPolicyHandler& operator=(
+@@ -58,6 +70,9 @@ class ASH_EXPORT ScreensaverImagesPolicyHandler {
+ 
+   bool IsManagedScreensaverDisabledByPolicy();
+ 
++  void FindFolderImages();
++  void OnFolderImagesFound(std::vector<base::FilePath> images);
++
+   raw_ptr<PrefService> pref_service_ = nullptr;
+ 
+   std::unique_ptr<PrefChangeRegistrar> pref_change_registrar_;
+@@ -65,6 +80,11 @@ class ASH_EXPORT ScreensaverImagesPolicyHandler {
+   std::unique_ptr<ScreensaverImageDownloader> image_downloader_;
+ 
+   ScreensaverImagesRepeatingCallback on_images_updated_callback_;
++
++  base::FilePath folder_;
++  std::vector<base::FilePath> folder_images_;
++  bool finding_folder_images_ = false;
++  base::OneShotTimer folder_retry_timer_;
+   base::WeakPtrFactory<ScreensaverImagesPolicyHandler> weak_ptr_factory_{this};
+ };
+ 
+diff --git a/ash/ambient/nickel_ambient_backend_controller.cc b/ash/ambient/nickel_ambient_backend_controller.cc
+new file mode 100644
+index 0000000..58ba5a0
+--- /dev/null
++++ b/ash/ambient/nickel_ambient_backend_controller.cc
+@@ -0,0 +1,93 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "ash/ambient/nickel_ambient_backend_controller.h"
++
++#include <utility>
++#include <vector>
++
++#include "base/functional/bind.h"
++#include "base/functional/callback.h"
++#include "base/task/sequenced_task_runner.h"
++#include "url/gurl.h"
++
++namespace ash {
++
++namespace {
++
++// No server: nothing to download, ever.
++constexpr std::array<const char*, 2> kNoUrls = {"", ""};
++
++}  // namespace
++
++NickelAmbientBackendController::NickelAmbientBackendController() = default;
++NickelAmbientBackendController::~NickelAmbientBackendController() = default;
++
++// The callers expect an answer later, as from a server: post each one.
++
++void NickelAmbientBackendController::FetchScreenUpdateInfo(
++    int num_topics,
++    bool show_pair_personal_portraits,
++    const gfx::Size& screen_size,
++    OnScreenUpdateInfoFetchedCallback callback) {
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++      FROM_HERE, base::BindOnce(std::move(callback), ScreenUpdate()));
++}
++
++void NickelAmbientBackendController::FetchPreviewImages(
++    const gfx::Size& preview_size,
++    OnPreviewImagesFetchedCallback callback) {
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++      FROM_HERE, base::BindOnce(std::move(callback), std::vector<GURL>()));
++}
++
++void NickelAmbientBackendController::UpdateSettings(
++    const AmbientSettings settings,
++    UpdateSettingsCallback callback) {
++  settings_ = settings;
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++      FROM_HERE, base::BindOnce(std::move(callback), /*success=*/true,
++                                settings_));
++}
++
++void NickelAmbientBackendController::FetchSettingsAndAlbums(
++    int banner_width,
++    int banner_height,
++    int num_albums,
++    OnSettingsAndAlbumsFetchedCallback callback) {
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++      FROM_HERE,
++      base::BindOnce(std::move(callback),
++                     std::optional<AmbientSettings>(settings_),
++                     PersonalAlbums()));
++}
++
++void NickelAmbientBackendController::FetchWeather(
++    std::optional<std::string> weather_client_id,
++    FetchWeatherCallback callback) {
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++      FROM_HERE,
++      base::BindOnce(std::move(callback), std::optional<WeatherInfo>()));
++}
++
++const std::array<const char*, 2>&
++NickelAmbientBackendController::GetBackupPhotoUrls() const {
++  return kNoUrls;
++}
++
++std::array<const char*, 2>
++NickelAmbientBackendController::GetTimeOfDayVideoPreviewImageUrls(
++    AmbientVideo video) const {
++  return kNoUrls;
++}
++
++const char* NickelAmbientBackendController::GetPromoBannerUrl() const {
++  return "";
++}
++
++const char* NickelAmbientBackendController::GetTimeOfDayProductName() const {
++  return "";
++}
++
++}  // namespace ash
+diff --git a/ash/ambient/nickel_ambient_backend_controller.h b/ash/ambient/nickel_ambient_backend_controller.h
+new file mode 100644
+index 0000000..f17caba
+--- /dev/null
++++ b/ash/ambient/nickel_ambient_backend_controller.h
+@@ -0,0 +1,64 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef ASH_AMBIENT_NICKEL_AMBIENT_BACKEND_CONTROLLER_H_
++#define ASH_AMBIENT_NICKEL_AMBIENT_BACKEND_CONTROLLER_H_
++
++#include <array>
++#include <optional>
++#include <string>
++
++#include "ash/ash_export.h"
++#include "ash/public/cpp/ambient/ambient_backend_controller.h"
++
++namespace ash {
++
++// NickelOS: the screen saver's settings without Google's servers. ChromeOS
++// keeps them with the user's Google account (Backdrop, compiled into
++// Google's own builds only); NickelOS's screen saver is a slideshow of the
++// pictures in the user's My files > Pictures (AmbientController), so there
++// is nothing to fetch. The settings live here for the session, and there are
++// no albums, previews, weather or backup photos, and no address of any
++// server. In place of FakeAmbientBackendControllerImpl, a test stand-in that
++// never answers the Settings page and hands out made-up addresses.
++class ASH_EXPORT NickelAmbientBackendController
++    : public AmbientBackendController {
++ public:
++  NickelAmbientBackendController();
++  NickelAmbientBackendController(const NickelAmbientBackendController&) =
++      delete;
++  NickelAmbientBackendController& operator=(
++      const NickelAmbientBackendController&) = delete;
++  ~NickelAmbientBackendController() override;
++
++  // AmbientBackendController:
++  void FetchScreenUpdateInfo(
++      int num_topics,
++      bool show_pair_personal_portraits,
++      const gfx::Size& screen_size,
++      OnScreenUpdateInfoFetchedCallback callback) override;
++  void FetchPreviewImages(const gfx::Size& preview_size,
++                          OnPreviewImagesFetchedCallback callback) override;
++  void UpdateSettings(const AmbientSettings settings,
++                      UpdateSettingsCallback callback) override;
++  void FetchSettingsAndAlbums(
++      int banner_width,
++      int banner_height,
++      int num_albums,
++      OnSettingsAndAlbumsFetchedCallback callback) override;
++  void FetchWeather(std::optional<std::string> weather_client_id,
++                    FetchWeatherCallback callback) override;
++  const std::array<const char*, 2>& GetBackupPhotoUrls() const override;
++  std::array<const char*, 2> GetTimeOfDayVideoPreviewImageUrls(
++      AmbientVideo video) const override;
++  const char* GetPromoBannerUrl() const override;
++  const char* GetTimeOfDayProductName() const override;
++
++ private:
++  AmbientSettings settings_;
++};
++
++}  // namespace ash
++
++#endif  // ASH_AMBIENT_NICKEL_AMBIENT_BACKEND_CONTROLLER_H_
+diff --git a/ash/public/cpp/ambient/ambient_client.cc b/ash/public/cpp/ambient/ambient_client.cc
+index 527b0b4..74f5e46 100644
+--- a/ash/public/cpp/ambient/ambient_client.cc
++++ b/ash/public/cpp/ambient/ambient_client.cc
+@@ -29,4 +29,8 @@ AmbientClient::~AmbientClient() {
+   g_ambient_client = nullptr;
+ }
+ 
++base::FilePath AmbientClient::GetNickelPicturesFolder() {
++  return base::FilePath();
++}
++
+ }  // namespace ash
+diff --git a/ash/public/cpp/ambient/ambient_client.h b/ash/public/cpp/ambient/ambient_client.h
+index 461b22d..de03b61 100644
+--- a/ash/public/cpp/ambient/ambient_client.h
++++ b/ash/public/cpp/ambient/ambient_client.h
+@@ -10,6 +10,7 @@
+ 
+ #include "ash/public/cpp/ash_public_export.h"
+ #include "ash/public/cpp/image_downloader.h"
++#include "base/files/file_path.h"
+ #include "base/functional/callback_forward.h"
+ #include "base/memory/scoped_refptr.h"
+ #include "services/device/public/mojom/wake_lock_provider.mojom.h"
+@@ -69,6 +70,11 @@ class ASH_PUBLIC_EXPORT AmbientClient {
+   // Whether to use backend production server.
+   virtual bool ShouldUseProdServer() = 0;
+ 
++  // NickelOS: the folder whose pictures a local account's screen saver shows
++  // (My files > Pictures). Empty when the active user is not a NickelOS
++  // local account: the screen saver is ChromeOS's own.
++  virtual base::FilePath GetNickelPicturesFolder();
++
+  protected:
+   AmbientClient();
+   virtual ~AmbientClient();
+diff --git a/ash/webui/personalization_app/personalization_app_ui.cc b/ash/webui/personalization_app/personalization_app_ui.cc
+index 0e203ac..671f3c6 100644
+--- a/ash/webui/personalization_app/personalization_app_ui.cc
++++ b/ash/webui/personalization_app/personalization_app_ui.cc
+@@ -233,6 +233,12 @@ void AddStrings(content::WebUIDataSource* source) {
+        IDS_PERSONALIZATION_APP_AMBIENT_MODE_DURATION_FOREVER},
+       {"ambientModeTopicSourceTitle",
+        IDS_PERSONALIZATION_APP_AMBIENT_MODE_TOPIC_SOURCE_TITLE},
++      {"ambientModeNickelPicturesTitle",
++       IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE},
++      {"ambientModeNickelPicturesDesc",
++       IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC},
++      {"ambientModeNickelPicturesHint",
++       IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT},
+       {"ambientModeTopicSourceGooglePhotos",
+        IDS_PERSONALIZATION_APP_AMBIENT_MODE_TOPIC_SOURCE_GOOGLE_PHOTOS},
+       {"ambientModeTopicSourceGooglePhotosDescription",
+@@ -373,6 +379,14 @@ void AddStrings(content::WebUIDataSource* source) {
+        IDS_PERSONALIZATION_APP_TIME_OF_DAY_WALLPAPER_DIALOG_CONFIRM_BUTTON}};
+ 
+   source->AddLocalizedStrings(kLocalizedStrings);
++  // NickelOS: a local account's screen saver shows its own pictures and the
++  // time, no weather (that is Google's).
++  if (ash::AmbientClient::Get() &&
++      !ash::AmbientClient::Get()->GetNickelPicturesFolder().empty()) {
++    source->AddLocalizedString(
++        "ambientModePageDescription",
++        IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION);
++  }
+ 
+   ::ash::common::AddSeaPenStrings(source);
+   ::ash::common::AddSeaPenWallpaperTemplateStrings(source);
+@@ -512,6 +526,14 @@ void PersonalizationAppUI::AddBooleans(content::WebUIDataSource* source) {
+ 
+   source->AddBoolean("isAmbientModeAllowed", IsAmbientModeAllowed());
+ 
++  // NickelOS: a local account's screen saver, a slideshow of its own
++  // pictures (AmbientController): the page offers that and nothing else.
++  source->AddBoolean("isNickelPicturesScreenSaver",
++                     ash::AmbientClient::Get() &&
++                         !ash::AmbientClient::Get()
++                              ->GetNickelPicturesFolder()
++                              .empty());
++
+   source->AddBoolean(
+       "isRgbKeyboardSupported",
+       Shell::Get()->rgb_keyboard_manager()->IsRgbKeyboardSupported());
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts
+index 72106e0..b25b194 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts
+@@ -14,7 +14,7 @@ import type {PolymerElementProperties} from 'chrome://resources/polymer/v3_0/pol
+ 
+ import type {AmbientModeAlbum} from '../../personalization_app.mojom-webui.js';
+ import {TopicSource} from '../../personalization_app.mojom-webui.js';
+-import {isAmbientModeAllowed} from '../load_time_booleans.js';
++import {isAmbientModeAllowed, isNickelPicturesScreenSaver} from '../load_time_booleans.js';
+ import {dismissErrorAction, setErrorAction} from '../personalization_actions.js';
+ import {WithPersonalizationStore} from '../personalization_store.js';
+ 
+@@ -42,6 +42,12 @@ export class AmbientPreviewBase extends WithPersonalizationStore {
+   static get properties(): PolymerElementProperties {
+     return {
+       ambientModeEnabled_: Boolean,
++      isNickelPictures_: {
++        type: Boolean,
++        value() {
++          return isNickelPicturesScreenSaver();
++        },
++      },
+       albums_: {
+         type: Array,
+         value: null,
+@@ -84,6 +90,7 @@ export class AmbientPreviewBase extends WithPersonalizationStore {
+   declare protected ambientModeEnabled_: boolean|null;
+   declare protected previewImages_: Url[]|null;
+   declare protected previewAlbums_: AmbientModeAlbum[]|null;
++  declare protected isNickelPictures_: boolean;
+   declare protected topicSource_: TopicSource|null;
+ 
+   declare private albums_: AmbientModeAlbum[]|null;
+@@ -192,6 +199,11 @@ export class AmbientPreviewBase extends WithPersonalizationStore {
+   }
+ 
+   private getPreviewImage_(album: AmbientModeAlbum|null): string {
++    // NickelOS: a local account's own pictures have no album picture: the
++    // slideshow theme's.
++    if (this.isNickelPictures_) {
++      return 'chrome://personalization/images/slideshow.png';
++    }
+     // Replace the resolution suffix appended at the end of the images
+     // with a new resolution suffix of 512px so that we do not download very
+     // large images. This won't impact images with no resolution suffix.
+@@ -205,10 +217,16 @@ export class AmbientPreviewBase extends WithPersonalizationStore {
+   }
+ 
+   private getAlbumTitle_(): string {
++    if (this.isNickelPictures_) {
++      return this.i18n('ambientModeNickelPicturesTitle');
++    }
+     return this.firstPreviewAlbum_ ? this.firstPreviewAlbum_.title : '';
+   }
+ 
+   private getAlbumDescription_(): string {
++    if (this.isNickelPictures_) {
++      return this.i18n('ambientModeNickelPicturesDesc');
++    }
+     if (!isNonEmptyArray(this.previewAlbums_) || this.topicSource_ === null) {
+       return '';
+     }
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html b/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html
+index f8d033f..7b668f3 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html
+@@ -24,6 +24,16 @@
+     margin: 0 10px;
+   }
+ 
++  #nickelPicturesText {
++    margin: 0 10px;
++    padding: 12px 0;
++  }
++
++  #nickelPicturesText .primary-text {
++    color: var(--cros-text-color-primary);
++    font: var(--cros-body-2-font);
++  }
++
+   ambient-duration,
+   #durationPlaceholder {
+     border-top: var(--cr-separator-line);
+@@ -186,13 +196,32 @@
+           <ambient-theme-list
+               selected-ambient-theme="[[ambientTheme_]]">
+           </ambient-theme-list>
+-          <topic-source-list selected-topic-source="[[topicSource_]]"
+-              selected-ambient-theme="[[ambientTheme_]]"
+-              has-google-photos-albums="[[hasGooglePhotosAlbums_(albums_)]]">
+-          </topic-source-list>
+-          <ambient-weather-unit
+-              selected-temperature-unit="[[temperatureUnitToString_(temperatureUnit_)]]">
+-          </ambient-weather-unit>
++          <!-- NickelOS: a local account's pictures, the one image source,
++               and no weather. -->
++          <template is="dom-if" if="[[isNickelPictures_]]">
++            <div id="nickelPictures">
++              <h3 id="nickelPicturesTitle" class="ambient-subpage-element-title">
++                $i18n{ambientModeTopicSourceTitle}
++              </h3>
++              <div id="nickelPicturesText">
++                <div class="primary-text">
++                  $i18n{ambientModeNickelPicturesTitle}
++                </div>
++                <div class="cr-secondary-text">
++                  $i18n{ambientModeNickelPicturesHint}
++                </div>
++              </div>
++            </div>
++          </template>
++          <template is="dom-if" if="[[!isNickelPictures_]]">
++            <topic-source-list selected-topic-source="[[topicSource_]]"
++                selected-ambient-theme="[[ambientTheme_]]"
++                has-google-photos-albums="[[hasGooglePhotosAlbums_(albums_)]]">
++            </topic-source-list>
++            <ambient-weather-unit
++                selected-temperature-unit="[[temperatureUnitToString_(temperatureUnit_)]]">
++            </ambient-weather-unit>
++          </template>
+         </template>
+       </template>
+     </div>
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.ts
+index 0827331..4652426 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.ts
+@@ -20,7 +20,7 @@ import {afterNextRender} from 'chrome://resources/polymer/v3_0/polymer/polymer_b
+ 
+ import type {AmbientModeAlbum, AmbientTheme, TemperatureUnit} from '../../personalization_app.mojom-webui.js';
+ import {TopicSource} from '../../personalization_app.mojom-webui.js';
+-import {isAmbientModeAllowed} from '../load_time_booleans.js';
++import {isAmbientModeAllowed, isNickelPicturesScreenSaver} from '../load_time_booleans.js';
+ import {Paths, ScrollableTarget} from '../personalization_router_element.js';
+ import {WithPersonalizationStore} from '../personalization_store.js';
+ 
+@@ -84,6 +84,12 @@ export class AmbientSubpageElement extends WithPersonalizationStore {
+           return window.navigator.onLine;
+         },
+       },
++      isNickelPictures_: {
++        type: Boolean,
++        value() {
++          return isNickelPicturesScreenSaver();
++        },
++      },
+     };
+   }
+ 
+@@ -98,6 +104,7 @@ export class AmbientSubpageElement extends WithPersonalizationStore {
+   declare private topicSource_: TopicSource|null;
+   declare private loading_: boolean;
+   declare private isOnline_: boolean;
++  declare private isNickelPictures_: boolean;
+ 
+   // Refetch albums if the user is currently viewing ambient subpage, focuses
+   // another window, and then re-focuses personalization app.
+@@ -229,7 +236,9 @@ export class AmbientSubpageElement extends WithPersonalizationStore {
+   private computeLoading_(): boolean {
+     return this.ambientModeEnabled_ === null || this.albums_ === null ||
+         this.topicSource_ === null || this.temperatureUnit_ === null ||
+-        this.duration_ === null || !this.isOnline_ ||
++        this.duration_ === null ||
++        // NickelOS: a local account's pictures need no network.
++        (!this.isOnline_ && !this.isNickelPictures_) ||
+         this.ambientThemePreviews_ === null;
+   }
+ 
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_theme_list_element.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_theme_list_element.ts
+index 9d8a96c..7fd295f 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_theme_list_element.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_theme_list_element.ts
+@@ -12,7 +12,7 @@ import './ambient_theme_item_element.js';
+ import type {IronListElement} from 'chrome://resources/polymer/v3_0/iron-list/iron-list.js';
+ 
+ import {AmbientTheme} from '../../personalization_app.mojom-webui.js';
+-import {isTimeOfDayScreenSaverEnabled} from '../load_time_booleans.js';
++import {isNickelPicturesScreenSaver, isTimeOfDayScreenSaverEnabled} from '../load_time_booleans.js';
+ import {WithPersonalizationStore} from '../personalization_store.js';
+ 
+ import {getTemplate} from './ambient_theme_list_element.html.js';
+@@ -35,6 +35,9 @@ export class AmbientThemeListElement extends WithPersonalizationStore {
+       ambientThemes: {
+         type: Array,
+         value() {
++          if (isNickelPicturesScreenSaver()) {
++            return [AmbientTheme.kSlideshow];
++          }
+           const themes = [
+             AmbientTheme.kSlideshow,
+             AmbientTheme.kFeelTheBreeze,
+diff --git a/ash/webui/personalization_app/resources/js/load_time_booleans.ts b/ash/webui/personalization_app/resources/js/load_time_booleans.ts
+index 4d0bba3..b9db157 100644
+--- a/ash/webui/personalization_app/resources/js/load_time_booleans.ts
++++ b/ash/webui/personalization_app/resources/js/load_time_booleans.ts
+@@ -19,6 +19,12 @@ export function isAmbientModeAllowed() {
+   return loadTimeData.getBoolean('isAmbientModeAllowed');
+ }
+ 
++// NickelOS: a local account's screen saver is a slideshow of its Pictures
++// folder (no Google Photos, Art gallery, animations or videos).
++export function isNickelPicturesScreenSaver() {
++  return loadTimeData.getBoolean('isNickelPicturesScreenSaver');
++}
++
+ export function isRgbKeyboardSupported() {
+   return loadTimeData.getBoolean('isRgbKeyboardSupported');
+ }
+diff --git a/chrome/browser/ash/ambient/ambient_client_impl.cc b/chrome/browser/ash/ambient/ambient_client_impl.cc
+index cb01dd1..1c417f6 100644
+--- a/chrome/browser/ash/ambient/ambient_client_impl.cc
++++ b/chrome/browser/ash/ambient/ambient_client_impl.cc
+@@ -27,12 +27,14 @@
+ #include "components/signin/public/identity_manager/access_token_info.h"
+ #include "components/signin/public/identity_manager/account_info.h"
+ #include "components/signin/public/identity_manager/identity_manager.h"
++#include "components/user_manager/nickel_local_account.h"
+ #include "components/user_manager/user.h"
+ #include "components/user_manager/user_manager.h"
+ #include "components/version_info/channel.h"
+ #include "content/public/browser/device_service.h"
+ #include "content/public/browser/storage_partition.h"
+ #include "google_apis/gaia/gaia_auth_util.h"
++#include "google_apis/gaia/gaia_id.h"
+ #include "google_apis/gaia/google_service_auth_error.h"
+ #include "net/http/http_request_headers.h"
+ #include "services/network/public/cpp/shared_url_loader_factory.h"
+@@ -122,7 +124,15 @@ bool AmbientClientImpl::IsAmbientModeAllowed() {
+   }
+ 
+   const user_manager::User* const active_user = GetActiveUser();
+-  if (!active_user || !active_user->HasGaiaAccount()) {
++  if (!active_user) {
++    return false;
++  }
++  // NickelOS: a local account has no Google account, and its screen saver is
++  // the pictures in its own My files > Pictures (GetNickelPicturesFolder),
++  // nothing from Google's servers: the Google account checks are not for it.
++  const bool nickel_local =
++      user_manager::IsNickelLocalAccount(active_user->GetAccountId());
++  if (!nickel_local && !active_user->HasGaiaAccount()) {
+     return false;
+   }
+ 
+@@ -133,12 +143,12 @@ bool AmbientClientImpl::IsAmbientModeAllowed() {
+   // When this check is removed to start supporting enterprise users,
+   // please update kAmbientClientNetworkTag and network annotation tags
+   // in ash/ambient package to reflect that this is an enterprise feature.
+-  if (!IsEmailDomainSupported(active_user)) {
++  if (!nickel_local && !IsEmailDomainSupported(active_user)) {
+     return false;
+   }
+ 
+   // Primary account might be missing during unittests.
+-  if (!HasPrimaryAccount(active_user->GetAccountId())) {
++  if (!nickel_local && !HasPrimaryAccount(active_user->GetAccountId())) {
+     return false;
+   }
+ 
+@@ -161,6 +171,12 @@ void AmbientClientImpl::RequestAccessToken(GetAccessTokenCallback callback) {
+   const user_manager::User* const active_user = GetActiveUser();
+   CHECK(active_user, base::NotFatalUntil::M160);
+ 
++  // NickelOS: a local account has no Google account to ask a token of.
++  if (user_manager::IsNickelLocalAccount(active_user->GetAccountId())) {
++    std::move(callback).Run(GaiaId(), std::string(), base::Time());
++    return;
++  }
++
+   signin::IdentityManager* identity_manager =
+       ash::IdentityManagerProvider::Get().Find(active_user->GetAccountId());
+   CHECK(identity_manager, base::NotFatalUntil::M160);
+@@ -233,6 +249,21 @@ bool AmbientClientImpl::ShouldUseProdServer() {
+          channel == version_info::Channel::BETA;
+ }
+ 
++base::FilePath AmbientClientImpl::GetNickelPicturesFolder() {
++  const user_manager::User* const active_user = GetActiveUser();
++  if (!active_user ||
++      !user_manager::IsNickelLocalAccount(active_user->GetAccountId())) {
++    return base::FilePath();
++  }
++  Profile* profile = GetProfileForActiveUser();
++  if (!profile || profile->IsOffTheRecord()) {
++    return base::FilePath();
++  }
++  // My files (one home: the user's Linux home too), as file_manager::util's
++  // GetMyFilesFolderForProfile has it; nickel-user-dirs makes Pictures.
++  return profile->GetPath().Append("MyFiles").Append("Pictures");
++}
++
+ void AmbientClientImpl::OnGetAccessToken(
+     GetAccessTokenCallback callback,
+     base::UnguessableToken fetcher_id,
+diff --git a/chrome/browser/ash/ambient/ambient_client_impl.h b/chrome/browser/ash/ambient/ambient_client_impl.h
+index 79fe1cc..781be13 100644
+--- a/chrome/browser/ash/ambient/ambient_client_impl.h
++++ b/chrome/browser/ash/ambient/ambient_client_impl.h
+@@ -40,6 +40,7 @@ class AmbientClientImpl : public ash::AmbientClient {
+   void RequestWakeLockProvider(
+       mojo::PendingReceiver<device::mojom::WakeLockProvider> receiver) override;
+   bool ShouldUseProdServer() override;
++  base::FilePath GetNickelPicturesFolder() override;
+ 
+   const std::map<base::UnguessableToken,
+                  std::unique_ptr<signin::AccessTokenFetcher>>&
+diff --git a/chromeos/chromeos_strings.grd b/chromeos/chromeos_strings.grd
+index c94f262..a2e8768 100644
+--- a/chromeos/chromeos_strings.grd
++++ b/chromeos/chromeos_strings.grd
+@@ -2776,6 +2776,18 @@
+         <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_TOPIC_SOURCE_TITLE" desc="Label for the radio button group of ambient mode topic source, where the screen contents come from.">
+           Image source
+         </message>
++        <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION" desc="NickelOS: the screen saver settings page's description for a local account, whose screen saver is a slideshow of the user's own pictures with the time (no weather).">
++          When your screen is idle, show your pictures, time, and media info
++        </message>
++        <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE" desc="NickelOS: where the screen saver's pictures come from for a local account, the Pictures folder in the user's home. Shown as the image source in the screen saver settings and its preview.">
++          Pictures folder
++        </message>
++        <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC" desc="NickelOS: the screen saver preview's short description of a local account's screen saver, a slideshow of the user's own pictures.">
++          Your own pictures
++        </message>
++        <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT" desc="NickelOS: explains, under the image source in the screen saver settings, what a local account's screen saver shows.">
++          The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.
++        </message>
+         <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_TOPIC_SOURCE_GOOGLE_PHOTOS" desc="Label for the radio button to choose the topic source from Google Photos. The radio button allows the user to set Google Photos for ambient mode, which shows photos to the user when their device is idle.">
+           Google Photos
+         </message>

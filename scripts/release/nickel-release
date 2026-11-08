@@ -1,0 +1,166 @@
+#!/bin/bash
+# On the build host, as root: a NickelOS release from a base image, with the
+# production keys kept on Dresden's laptop (docs/updates.md, "Making a
+# release"). The build host sends the laptop what to sign (Secure Boot: GRUB
+# and the kernel; the update payload: two hashes) and takes back signatures;
+# the keys never leave the laptop.
+#
+#   nickel-release prepare IMAGE_DIR
+#       a copy of the base image with shim, MokManager and the Secure Boot
+#       GRUB (unsigned), and the ISO's GRUB; what Secure Boot signs goes to
+#       RELEASE/tosign/, for nickel-release-sign on the laptop
+#   nickel-release attach VERSION
+#       the signatures nickel-release-sign brought, onto the image's copy
+#       and the ISO's GRUB, each verified against the production
+#       certificate; then the stable channel's update payload, unsigned
+#       (nickel-update-publish --unsigned), for nickel-update-sign
+#   nickel-release iso VERSION
+#       the ISO from the signed image, and SHA256SUMS
+#   nickel-release push VERSION
+#       to update.nickelos.dev: the payload and the channel file, the
+#       build's DLCs, Gentoo's binhost, the ISO with SHA256SUMS and the
+#       certificate. Still behind the pre-release lock: server-access open
+#       is the release itself
+#   nickel-release status VERSION
+#
+# RELEASE is /srv/nickel/src/.nickel/release/VERSION (in the checkout, where
+# the SDK sees it). NICKEL_SB_CERT replaces the production certificate
+# (scripts/secureboot/nickelos-secureboot.crt.pem) for a dry run with a
+# stand-in key: such a release gets no payload and can't be pushed.
+set -euo pipefail
+here=$(dirname "$(readlink -f "$0")")
+ovl=$(readlink -f "$here/../..")
+SRC=/srv/nickel/src
+BOARD=${NICKEL_BOARD:-nickel}
+PROD_CERT=$ovl/scripts/secureboot/nickelos-secureboot.crt.pem
+CERT=$(readlink -f "${NICKEL_SB_CERT:-$PROD_CERT}")
+PROD_PUB=$ovl/chromeos-base/nickel-update/files/update-payload-key.pub.pem
+UPDATE_ROOT=${NICKEL_UPDATE_ROOT:-/srv/nickel/update}
+HOST=${NICKEL_UPDATE_HOST:-root@<internal address>}
+die() { echo "nickel-release: $*" >&2; exit 1; }
+stage() { echo "== $1 $(date +%T)"; }
+sdk() { sudo -u nickel env -C "$SRC" /home/nickel/depot_tools/cros_sdk -- "$@"; }
+in_sdk() { echo "/mnt/host/source/${1#"$SRC"/}"; }
+fpr() { openssl x509 -in "$1" -noout -fingerprint -sha256 | cut -d= -f2; }
+release_dir() {
+	R=$SRC/.nickel/release/${1:?version}
+	[ -f "$R/release.env" ] || die "no release $1 (nickel-release prepare first)"
+	# shellcheck disable=SC1091
+	. "$R/release.env"
+	IMG=$R/chromiumos_base_image.bin
+	ISO=$R/nickelos-$VERSION.iso
+}
+production() { [ "$(fpr "$CERT")" = "$(fpr "$PROD_CERT")" ]; }
+
+prepare() {
+	local dir img l m version track debug=no keyok=yes
+	dir=$(readlink -f "${1:?the image directory}")
+	img=$dir/chromiumos_base_image.bin
+	[ -f "$img" ] || die "$dir has no base image (NICKEL_IMAGE=base)"
+	l=$(losetup -fP -r --show "$img"); m=$(mktemp -d)
+	mount -o ro "${l}p3" "$m"
+	version=$(sed -n 's/^CHROMEOS_RELEASE_VERSION=//p' "$m/etc/lsb-release")
+	track=$(sed -n 's/^CHROMEOS_RELEASE_TRACK=//p' "$m/etc/lsb-release")
+	cmp -s "$m/usr/share/update_engine/update-payload-key.pub.pem" "$PROD_PUB" || keyok=no
+	umount "$m"
+	mount -o ro "${l}p12" "$m"
+	grep -q cros_debug "$m/efi/boot/grub.cfg" && debug=yes
+	umount "$m"; rmdir "$m"; losetup -d "$l"
+	[ -n "$version" ] || die "no version in the image"
+	[ "$keyok" = yes ] || die "the image's update key isn't the production key (built with NICKEL_TEST_KEY=1?)"
+	[ "$debug" = no ] || die "the image boots with cros_debug (a test image?)"
+	[ "$track" = stable-channel ] || die "the image is on $track, not stable-channel"
+	R=$SRC/.nickel/release/$version
+	[ -e "$R" ] && die "$R exists already (remove it to start again)"
+	install -d -o nickel -g nickel "$SRC/.nickel/release" "$R" "$R/tosign"
+	printf 'VERSION=%q\nIMAGE_DIR=%q\n' "$version" "$dir" > "$R/release.env"
+	stage "a copy of the base image ($version)"
+	cp --sparse=always "$img" "$R/chromiumos_base_image.bin"
+	stage "shim, MokManager and the Secure Boot GRUB into it"
+	sdk emerge-"$BOARD" --quiet --noreplace sys-boot/nickel-shim
+	sdk env NICKEL_BOARD="$BOARD" NICKEL_SECUREBOOT=1 \
+		"$(in_sdk "$ovl")/scripts/buildhost/bin/nickel-image-grub" "$(in_sdk "$R")/chromiumos_base_image.bin"
+	stage "the ISO's GRUB"
+	sdk env NICKEL_BOARD="$BOARD" "$(in_sdk "$ovl")/scripts/iso/build-grub.sh" "$(in_sdk "$R")/tosign/iso-grubx64.efi"
+	stage "what Secure Boot signs"
+	"$ovl/scripts/buildhost/bin/nickel-image-sbsign" --export "$R/chromiumos_base_image.bin" "$R/tosign"
+	(cd "$R/tosign" && sha256sum grubx64.efi vmlinuz iso-grubx64.efi > SHA256SUMS)
+	echo
+	echo "NickelOS $version is ready to sign. On the laptop, in the overlay:"
+	echo "  scripts/release/nickel-release-sign $version"
+}
+
+attach() {
+	release_dir "$1"
+	local f
+	for f in grubx64.efi vmlinuz iso-grubx64.efi; do
+		[ -s "$R/tosign/$f.p7" ] || die "no signature for $f (nickel-release-sign first)"
+	done
+	(cd "$R/tosign" && sha256sum -c --quiet SHA256SUMS) || die "the files to sign changed since they were sent"
+	# shim won't boot what such a certificate signed (nickel-secureboot-key).
+	openssl x509 -in "$CERT" -noout -ext extendedKeyUsage 2>/dev/null | grep -q '1\.3\.6\.1\.4\.1\.2312\.16\.1\.2' &&
+		die "$CERT names the module-signing usage: shim would refuse the release (nickel-secureboot-key --reissue-cert)"
+	stage "the Secure Boot signatures onto the image ($(fpr "$CERT"))"
+	"$ovl/scripts/buildhost/bin/nickel-image-sbsign" --attach "$IMG" "$R/tosign" "$CERT"
+	cp "$R/tosign/iso-grubx64.efi" "$R/iso-grubx64.efi"
+	sbattach --attach "$R/tosign/iso-grubx64.efi.p7" "$R/iso-grubx64.efi" 2>&1 | grep -v "^Signing Unsigned" || true
+	sbverify --cert "$CERT" "$R/iso-grubx64.efi" >/dev/null || die "the ISO's GRUB doesn't verify"
+	cp "$CERT" "$R/nickelos-secureboot.crt.pem"
+	if ! production; then
+		echo "a stand-in certificate (NICKEL_SB_CERT): no update payload for this one"
+		return
+	fi
+	stage "the update payload for stable, unsigned"
+	"$ovl/scripts/update/nickel-update-publish" --unsigned "$IMG" stable "$UPDATE_ROOT"
+}
+
+iso() {
+	release_dir "$1"
+	[ -f "$R/iso-grubx64.efi" ] || die "not signed yet (nickel-release attach first)"
+	stage "the ISO"
+	NICKEL_ISO_GRUB=$R/iso-grubx64.efi "$ovl/scripts/iso/build-iso.sh" "$IMG" "$ISO" "" "$R/nickelos-secureboot.crt.pem"
+	(cd "$R" && sha256sum "$(basename "$ISO")" > SHA256SUMS)
+	cat "$R/SHA256SUMS"
+}
+
+push() {
+	release_dir "$1"
+	production || die "signed with a stand-in certificate: not pushing"
+	[ -f "$ISO" ] && [ -f "$R/SHA256SUMS" ] || die "no ISO yet (nickel-release iso)"
+	[ -f "$UPDATE_ROOT/payloads/nickelos-$VERSION-stable-full.bin" ] ||
+		die "the payload isn't published yet (nickel-update-sign ... --finish)"
+	(cd "$R" && sha256sum -c --quiet SHA256SUMS) || die "the ISO doesn't match its SHA256SUMS"
+	stage "Gentoo's binhost"
+	"$ovl/scripts/update/deploy/push-binhost" --host "$HOST"
+	stage "the build's DLCs"
+	"$ovl/scripts/update/deploy/push-dlc" "$IMAGE_DIR" "$HOST"
+	stage "the ISO"
+	ssh "$HOST" "mkdir -p /srv/nickel-update/download"
+	rsync -a --partial "$ISO" "$HOST:/srv/nickel-update/download/"
+	openssl x509 -in "$R/nickelos-secureboot.crt.pem" -outform DER -out "$R/nickelos-secureboot.cer"
+	rsync -a "$R/nickelos-secureboot.cer" "$HOST:/srv/nickel-update/download/"
+	rsync -a "$R/SHA256SUMS" "$HOST:/srv/nickel-update/download/SHA256SUMS"
+	ssh "$HOST" "cd /srv/nickel-update/download && sha256sum -c --quiet SHA256SUMS && chmod -R a+rX /srv/nickel-update/download"
+	stage "the payload and the stable channel"
+	"$ovl/scripts/update/deploy/push-update-root" "$UPDATE_ROOT" "$HOST"
+	echo "pushed NickelOS $VERSION; still locked: scripts/update/deploy/server-access show"
+}
+
+status() {
+	release_dir "$1"
+	echo "NickelOS $VERSION from $IMAGE_DIR ($R)"
+	local f
+	for f in grubx64.efi vmlinuz iso-grubx64.efi; do
+		if [ -s "$R/tosign/$f.p7" ]; then echo "  signed:   $f"; else echo "  unsigned: $f"; fi
+	done
+	[ -f "$R/iso-grubx64.efi" ] && echo "  signatures attached ($(fpr "$R/nickelos-secureboot.crt.pem"))"
+	[ -d "$UPDATE_ROOT/pending/nickelos-$VERSION-stable-full" ] && echo "  payload: waiting for signatures"
+	[ -f "$UPDATE_ROOT/payloads/nickelos-$VERSION-stable-full.bin" ] && echo "  payload: published on stable"
+	[ -f "$ISO" ] && echo "  ISO: $ISO ($(du -h "$ISO" | cut -f1))"
+	return 0
+}
+
+case ${1:-} in
+prepare|attach|iso|push|status) cmd=$1; shift; "$cmd" "$@";;
+*) sed -n '2,/^set /{/^set /d;s/^# \{0,1\}//;p}' "$0" >&2; exit 1;;
+esac

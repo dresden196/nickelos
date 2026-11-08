@@ -1,0 +1,252 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] cros-disks: mounts belong to the NickelOS session's user
+
+A NickelOS local account's session runs Chrome and the user's apps as the
+account's Linux user (uid 5000-5999), but cros-disks made every mount for
+the user owned by chronos: removable media (FAT, exFAT, NTFS, ISO/UDF,
+HFS+), archives, FuseBox (the Files app) and SFTP mounts. The user could
+read a USB stick but not write to it.
+
+When a session starts, cros-disks now asks session_manager for the
+session's account and, for a local account (<name>@nickel.localhost),
+makes mounts owned by that Linux user; group chronos-access is unchanged.
+cros-disks' D-Bus policy lets it make that one call.
+Any other session, and the time without one, keeps chronos. The
+removable-media mounters are rebuilt when the owner changes.
+
+---
+diff -ruN a/cros-disks/archive_mounter.cc b/cros-disks/archive_mounter.cc
+--- a/cros-disks/archive_mounter.cc
++++ b/cros-disks/archive_mounter.cc
+@@ -133,7 +133,7 @@
+   // Prepare command line arguments.
+   sandbox->AddArgument("-o");
+   sandbox->AddArgument(base::StringPrintf("ro,umask=0222,uid=%d,gid=%d",
+-                                          kChronosUID, kChronosAccessGID));
++                                          MountOwnerUid(), kChronosAccessGID));
+ 
+   if (std::string encoding; GetParamValue(params, "encoding", &encoding)) {
+     // Validate the encoding string before passing it to the FUSE mounter
+diff -ruN a/cros-disks/disk_manager.cc b/cros-disks/disk_manager.cc
+--- a/cros-disks/disk_manager.cc
++++ b/cros-disks/disk_manager.cc
+@@ -242,7 +242,16 @@
+ }
+ 
+ bool DiskManager::Initialize() {
+-  const std::string uid = base::StringPrintf("uid=%d", kChronosUID);
++  CreateMounters();
++  return MountManager::Initialize();
++}
++
++void DiskManager::CreateMounters() {
++  // NickelOS: removable media belong to the session's user (MountOwnerUid());
++  // the mounters are rebuilt when that changes.
++  mounters_owner_ = MountOwnerUid();
++  mounters_.clear();
++  const std::string uid = base::StringPrintf("uid=%d", mounters_owner_);
+   const std::string gid = base::StringPrintf("gid=%d", kChronosAccessGID);
+ 
+   using Options = std::vector<std::string>;
+@@ -313,8 +322,6 @@
+     mounters_[s] = std::make_unique<SystemMounter>(
+         platform(), s, read_write, Options{"errors=remount-ro"});
+   }
+-
+-  return MountManager::Initialize();
+ }
+ 
+ bool DiskManager::CanMount(const std::string& source_path) const {
+@@ -374,6 +381,9 @@
+     return nullptr;
+   }
+ 
++  if (mounters_owner_ != MountOwnerUid()) {
++    CreateMounters();
++  }
+   const auto it = mounters_.find(fstype);
+   if (it == mounters_.end()) {
+     LOG(ERROR) << "Cannot handle filesystem type " << quote(fstype)
+diff -ruN a/cros-disks/disk_manager.h b/cros-disks/disk_manager.h
+--- a/cros-disks/disk_manager.h
++++ b/cros-disks/disk_manager.h
+@@ -17,6 +17,7 @@
+ 
+ #include "cros-disks/disk.h"
+ #include "cros-disks/mount_manager.h"
++#include "cros-disks/user.h"
+ 
+ namespace cros_disks {
+ 
+@@ -58,6 +59,9 @@
+   // Returns true on success.
+   bool Initialize() override;
+ 
++  // NickelOS: (re)creates |mounters_| for the current MountOwnerUid().
++  void CreateMounters();
++
+   // Returns true if mounting |source_path| is supported.
+   bool CanMount(const std::string& source_path) const override;
+ 
+@@ -115,6 +119,8 @@
+ 
+   // Mapping of filesystem types to corresponding mounters.
+   std::unordered_map<std::string, std::unique_ptr<Mounter>> mounters_;
++  // The owner |mounters_| were created for.
++  uid_t mounters_owner_ = kChronosUID;
+ 
+   FRIEND_TEST(DiskManagerTest, DoMountDiskWithNonexistentSourcePath);
+   FRIEND_TEST(DiskManagerTest, EjectDevice);
+diff -ruN a/cros-disks/fusebox_helper.cc b/cros-disks/fusebox_helper.cc
+--- a/cros-disks/fusebox_helper.cc
++++ b/cros-disks/fusebox_helper.cc
+@@ -105,7 +105,7 @@
+   }
+ 
+   std::vector<std::string> options;
+-  SetParamValue(&options, "uid", base::NumberToString(kChronosUID));
++  SetParamValue(&options, "uid", base::NumberToString(MountOwnerUid()));
+   SetParamValue(&options, "gid", base::NumberToString(kChronosAccessGID));
+ 
+   std::string lib_fuse_options;
+diff -ruN a/cros-disks/fuse_mounter.cc b/cros-disks/fuse_mounter.cc
+--- a/cros-disks/fuse_mounter.cc
++++ b/cros-disks/fuse_mounter.cc
+@@ -245,7 +245,8 @@
+   std::string fuse_mount_options = base::StringPrintf(
+       "fd=%d,user_id=%u,group_id=%u,allow_other,default_permissions,"
+       "rootmode=%o",
+-      fuse_file.GetPlatformFile(), kChronosUID, kChronosAccessGID, S_IFDIR);
++      fuse_file.GetPlatformFile(), MountOwnerUid(), kChronosAccessGID,
++      S_IFDIR);
+ 
+   std::string fuse_type = "fuse";
+   base::stat_wrapper_t statbuf = {0};
+diff -ruN a/cros-disks/org.chromium.CrosDisks.conf b/cros-disks/org.chromium.CrosDisks.conf
+--- a/cros-disks/org.chromium.CrosDisks.conf
++++ b/cros-disks/org.chromium.CrosDisks.conf
+@@ -10,6 +10,11 @@
+   <policy user="cros-disks">
+     <allow own="org.chromium.CrosDisks" />
+     <allow send_destination="org.chromium.CrosDisks" />
++    <!-- NickelOS: learns the session's account, whose Linux user owns the
++         session's mounts. -->
++    <allow send_destination="org.chromium.SessionManager"
++           send_interface="org.chromium.SessionManagerInterface"
++           send_member="RetrieveActiveSessions" />
+   </policy>
+   <!--
+     For testing. This doesn't really add attack surface: if you're root,
+diff -ruN a/cros-disks/session_manager_proxy.cc b/cros-disks/session_manager_proxy.cc
+--- a/cros-disks/session_manager_proxy.cc
++++ b/cros-disks/session_manager_proxy.cc
+@@ -4,14 +4,46 @@
+ 
+ #include "cros-disks/session_manager_proxy.h"
+ 
++#include <pwd.h>
++#include <string.h>
++
++#include <map>
++#include <string_view>
++#include <vector>
++
+ #include <base/check.h>
+ #include <base/functional/bind.h>
+ #include <base/logging.h>
++#include <base/strings/string_util.h>
++
++#include "cros-disks/user.h"
+ 
+ namespace cros_disks {
+ 
+ namespace {
+ 
++// NickelOS: a local account (<name>@nickel.localhost, created by
++// nickel-accountsd) is the Linux user <name> (uid 5000-5999), and its
++// session runs Chrome and the user's apps as that user. Returns that uid, or
++// chronos's for any other account.
++uid_t SessionUserUid(const std::string& account_id) {
++  constexpr std::string_view kSuffix = "@nickel.localhost";
++  if (!base::EndsWith(account_id, kSuffix)) {
++    return kChronosUID;
++  }
++  const std::string name =
++      account_id.substr(0, account_id.size() - kSuffix.size());
++  std::vector<char> buf(16384);
++  struct passwd pwd = {};
++  struct passwd* result = nullptr;
++  if (getpwnam_r(name.c_str(), &pwd, buf.data(), buf.size(), &result) != 0 ||
++      !result || result->pw_uid < 5000 || result->pw_uid > 5999) {
++    LOG(ERROR) << "No local account user for " << account_id;
++    return kChronosUID;
++  }
++  return result->pw_uid;
++}
++
+ void OnSignalConnected(const std::string& interface,
+                        const std::string& signal,
+                        bool success) {
+@@ -58,6 +90,22 @@
+ }
+ 
+ void SessionManagerProxy::OnSessionStateChanged(const std::string& state) {
++  // NickelOS: mounts made for the session belong to its user.
++  if (state == "started") {
++    std::map<std::string, std::string> sessions;
++    brillo::ErrorPtr error;
++    uid_t owner = kChronosUID;
++    if (proxy_.RetrieveActiveSessions(&sessions, &error) && !sessions.empty()) {
++      owner = SessionUserUid(sessions.begin()->first);
++    } else {
++      LOG(ERROR) << "Cannot get the session's account; mounts stay chronos's";
++    }
++    g_mount_owner_uid = owner;
++    LOG(INFO) << "Mounts for this session belong to uid " << owner;
++  } else if (state == "stopped") {
++    g_mount_owner_uid = kChronosUID;
++  }
++
+   if (state == "started") {
+     for (SessionManagerObserverInterface& observer : observer_list_) {
+       observer.OnSessionStarted();
+diff -ruN a/cros-disks/sshfs_helper.cc b/cros-disks/sshfs_helper.cc
+--- a/cros-disks/sshfs_helper.cc
++++ b/cros-disks/sshfs_helper.cc
+@@ -204,7 +204,7 @@
+       "cache=no",
+   };
+ 
+-  SetParamValue(&options, "uid", base::NumberToString(kChronosUID));
++  SetParamValue(&options, "uid", base::NumberToString(MountOwnerUid()));
+   SetParamValue(&options, "gid", base::NumberToString(kChronosAccessGID));
+   SetParamValue(&options, kOptionIdentityFile, identity_file.value());
+   SetParamValue(&options, kOptionUserKnownHostsFile, known_hosts_file.value());
+@@ -236,7 +236,7 @@
+   sandbox->AddArgument("localhost:");
+   std::vector<std::string> options = {"BatchMode=yes", "follow_symlinks",
+                                       "cache=no", "vsock=" + uri.path()};
+-  SetParamValue(&options, "uid", base::NumberToString(kChronosUID));
++  SetParamValue(&options, "uid", base::NumberToString(MountOwnerUid()));
+   SetParamValue(&options, "gid", base::NumberToString(kChronosAccessGID));
+   // Use the maximum packet size to improve file transfer performance
+   SetParamValue(&options, "max_read", kSshfsVsockPacketSize);
+diff -ruN a/cros-disks/user.h b/cros-disks/user.h
+--- a/cros-disks/user.h
++++ b/cros-disks/user.h
+@@ -17,6 +17,15 @@
+ // GID of the chronos-access group used to broker access to user's files.
+ constexpr gid_t kChronosAccessGID = 1001;
+ 
++// NickelOS: UID owning the files of mounts made for the user: the Linux user
++// of a NickelOS local account's session, which runs Chrome and the user's
++// apps as that user; chronos otherwise. Set by SessionManagerProxy when a
++// session starts and stops.
++inline uid_t g_mount_owner_uid = kChronosUID;
++inline uid_t MountOwnerUid() {
++  return g_mount_owner_uid;
++}
++
+ // UID/GID of an user owning a file/process.
+ struct OwnerUser {
+   uid_t uid;

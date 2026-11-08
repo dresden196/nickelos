@@ -1,0 +1,27 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] boot-splash: NickelOS's boot animation when the image has
+ one
+
+frecon shows ChromiumOS's frames from chromiumos-assets while the system
+starts. NickelOS's own (chromeos-bsp-nickel, /usr/share/nickel/boot-splash)
+are taken instead when they're there, with the same frame interval and the
+same 100% and 200% sets.
+
+---
+diff -ruN a/init/upstart/boot-splash.conf b/init/upstart/boot-splash.conf
+--- a/init/upstart/boot-splash.conf
++++ b/init/upstart/boot-splash.conf
+@@ -56,6 +56,13 @@
+       ASSETS_100=${ASSETS}/animated_splash_screen/splash_100_percent
+     fi
+ 
++    # NickelOS: its own boot animation, when the image has one
++    # (chromeos-bsp-nickel installs it beside ChromiumOS's).
++    if [ -e /usr/share/nickel/boot-splash/images_100_percent/boot_splash_frame01.png ]; then
++      ASSETS_200=/usr/share/nickel/boot-splash/images_200_percent
++      ASSETS_100=/usr/share/nickel/boot-splash/images_100_percent
++    fi
++
+     if [ -f "${ASSETS}/splash_background" ]; then
+       BACKGROUND=$(cat "${ASSETS}/splash_background")
+     fi

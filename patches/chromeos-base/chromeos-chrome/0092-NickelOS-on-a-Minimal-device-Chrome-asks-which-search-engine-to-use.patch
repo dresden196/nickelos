@@ -1,0 +1,99 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: on a Minimal device, Chrome asks which search
+ engine to use
+
+Dresden, 2026-10-23: setup's Minimal sets no search engine. Chrome can't
+have none for a user (only an administrator's policy can turn search off,
+and Settings would then say the browser is managed), so a Minimal device
+gets Chrome's own search engine choice screen, the one the EU requires: the
+first time the browser opens, each profile picks its engine from the list
+for its country.
+
+- SearchEngineChoiceDialogServiceFactory builds the service on such a
+  device although this isn't a Google Chrome build, and sets the switch
+  nickel-search-engine-choice (read from the device's setup choice in local
+  state).
+- With that switch, RegionalCapabilitiesService's choice screen settings
+  apply in every region: not restricted to the program's countries, and
+  keeping a non-Google engine a user already picked.
+
+A Full experience device sets DuckDuckGo during setup and never sees it.
+
+diff --git a/chrome/browser/search_engine_choice/search_engine_choice_dialog_service_factory.cc b/chrome/browser/search_engine_choice/search_engine_choice_dialog_service_factory.cc
+index 818c42cebf281..1da383bce87b5 100644
+--- a/chrome/browser/search_engine_choice/search_engine_choice_dialog_service_factory.cc
++++ b/chrome/browser/search_engine_choice/search_engine_choice_dialog_service_factory.cc
+@@ -24,7 +24,9 @@
+ #include "components/search_engines/template_url_service.h"
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
++#include "ash/constants/nickel_pref_names.h"
+ #include "chrome/browser/profiles/profiles_state.h"
++#include "components/prefs/pref_service.h"
+ #include "chromeos/components/kiosk/kiosk_utils.h"
+ #endif
+ 
+@@ -139,7 +141,24 @@ SearchEngineChoiceDialogServiceFactory::BuildServiceInstanceForBrowserContext(
+ 
+   base::CommandLine* const command_line =
+       base::CommandLine::ForCurrentProcess();
+-  if (!g_is_chrome_build &&
++#if BUILDFLAG(IS_CHROMEOS)
++  // NickelOS: a device whose setup chose Minimal sets no search engine, so
++  // Chrome asks each profile to choose one (Dresden, 2026-10-23); the switch
++  // carries it to the regional settings (regional_capabilities_service.cc).
++  bool nickel_minimal = false;
++  if (g_browser_process && g_browser_process->local_state()) {
++    nickel_minimal = g_browser_process->local_state()->GetString(
++                         ash::prefs::kNickelSetupPendingExperience) ==
++                     "minimal";
++  }
++  if (nickel_minimal &&
++      !command_line->HasSwitch("nickel-search-engine-choice")) {
++    command_line->AppendSwitch("nickel-search-engine-choice");
++  }
++#else
++  const bool nickel_minimal = false;
++#endif
++  if (!g_is_chrome_build && !nickel_minimal &&
+       !command_line->HasSwitch(switches::kForceSearchEngineChoiceScreen)) {
+     return nullptr;
+   }
+diff --git a/components/regional_capabilities/regional_capabilities_service.cc b/components/regional_capabilities/regional_capabilities_service.cc
+index b1d74e7c06144..ff5c4f21bf776 100644
+--- a/components/regional_capabilities/regional_capabilities_service.cc
++++ b/components/regional_capabilities/regional_capabilities_service.cc
+@@ -13,6 +13,7 @@
+ #include "base/callback_list.h"
+ #include "base/check_deref.h"
+ #include "base/check_is_test.h"
++#include "base/command_line.h"
+ #include "base/containers/flat_set.h"
+ #include "base/feature_list.h"
+ #include "base/functional/bind.h"
+@@ -599,6 +600,25 @@ bool RegionalCapabilitiesService::ShouldShowChoiceConfirmationSnackbar() {
+ 
+ const std::optional<ChoiceScreenEligibilityConfig>&
+ RegionalCapabilitiesService::GetChoiceScreenEligibilityConfig() {
++  // NickelOS: on a device whose setup chose Minimal (no search engine set up),
++  // Chrome asks each profile to choose one, in every region: the choice
++  // screen's settings, without the region restriction, and keeping a
++  // non-Google engine a user already picked (search_engine_choice_dialog_
++  // service_factory.cc sets the switch from the device's choice).
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
++          "nickel-search-engine-choice")) {
++    static const std::optional<ChoiceScreenEligibilityConfig> nickel_config =
++        ChoiceScreenEligibilityConfig{
++            .managed_users_can_be_eligible = false,
++            .should_preserve_non_prepopulated_dse = true,
++            .should_preserve_imported_choice = true,
++            .should_preserve_non_google_dse = true,
++            .restrict_to_associated_countries = false,
++            .restrict_surfaces_to_fre_only = false,
++            .highlight_current_default = false,
++        };
++    return nickel_config;
++  }
+   return GetActiveProgramSettings().choice_screen_eligibility_config;
+ }
+ 

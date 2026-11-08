@@ -1,0 +1,298 @@
+#!/usr/bin/python3
+# Distributed under the terms of the GNU General Public License v2
+#
+# nickel-hwreport: what this computer is and how NickelOS drives it, as a
+# text report to share when something doesn't work (or to say that it does).
+# Run it in the Terminal; with sudo it can also read the kernel's messages
+# (firmware the kernel could not load, devices that failed).
+#   nickel-hwreport [-o FILE]
+#
+# It reads sysfs and /proc, plus lspci, lsusb and lsblk, all in the image.
+# Nothing identifying goes in: no serial numbers, no network or Bluetooth
+# addresses, no names of the computer or its users.
+
+import argparse
+import glob
+import os
+import re
+import subprocess
+import sys
+
+
+def read(path, default=""):
+    try:
+        with open(path, errors="replace") as f:
+            return f.read().strip()
+    except OSError:
+        return default
+
+
+def run(*cmd):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True,
+                              errors="replace", timeout=20).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def kv_file(path):
+    out = {}
+    for line in read(path).splitlines():
+        if "=" in line:
+            k, v = line.split("=", 1)
+            out[k.strip()] = v.strip().strip('"')
+    return out
+
+
+def link_name(path):
+    try:
+        return os.path.basename(os.readlink(path))
+    except OSError:
+        return ""
+
+
+def pci_name(slot):
+    """lspci's description of the PCI device at |slot| (0000:00:02.0)."""
+    line = run("lspci", "-s", slot, "-nn").strip()
+    return line.split(" ", 1)[1] if " " in line else slot
+
+
+def usb_name(path):
+    """The vendor and product of the USB device a sysfs device sits on."""
+    p = os.path.realpath(path)
+    while p != "/":
+        if os.path.exists(os.path.join(p, "idVendor")):
+            ids = "%s:%s" % (read(p + "/idVendor"), read(p + "/idProduct"))
+            name = " ".join(filter(None, (read(p + "/manufacturer"),
+                                          read(p + "/product"))))
+            return "%s [%s]" % (name or "USB device", ids)
+        p = os.path.dirname(p)
+    return ""
+
+
+def bus_device(dev):
+    """A device's PCI description or USB name, from its sysfs path."""
+    real = os.path.realpath(dev)
+    m = re.search(r"/([0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-9a-f])$", real)
+    if m and "/usb" not in real:
+        return pci_name(m.group(1))
+    return usb_name(dev) or os.path.basename(real)
+
+
+class Report:
+    def __init__(self):
+        self.lines = []
+
+    def section(self, title):
+        self.lines.append("")
+        self.lines.append("== " + title)
+
+    def item(self, label, value):
+        if value:
+            self.lines.append("%-18s %s" % (label + ":", value))
+
+    def text(self, value):
+        for line in value.splitlines():
+            self.lines.append("  " + line)
+
+    def __str__(self):
+        return "\n".join(self.lines).strip() + "\n"
+
+
+def system(r):
+    lsb = kv_file("/etc/lsb-release")
+    r.section("System")
+    track = lsb.get("CHROMEOS_RELEASE_TRACK", "")
+    if track == "testimage-channel":
+        track = "test image"
+    elif track.endswith("-channel"):
+        track = track[:-len("-channel")].capitalize() + " channel"
+    r.item("NickelOS", ", ".join(filter(None, (
+        lsb.get("CHROMEOS_RELEASE_VERSION"), track))))
+    chrome = run("/opt/google/chrome/chrome", "--version").split()
+    r.item("Chrome", chrome[-1] if chrome else
+           lsb.get("CHROMEOS_RELEASE_CHROME_MILESTONE", ""))
+    r.item("Kernel", os.uname().release)
+    dmi = "/sys/class/dmi/id/"
+    r.item("Computer", " ".join(filter(None, (
+        read(dmi + "sys_vendor"), read(dmi + "product_name"),
+        read(dmi + "product_version")))).replace("Not Applicable", "").strip())
+    r.item("Board", " ".join(filter(None, (read(dmi + "board_vendor"),
+                                           read(dmi + "board_name")))))
+    r.item("Firmware", " ".join(filter(None, (
+        read(dmi + "bios_vendor"), read(dmi + "bios_version"),
+        read(dmi + "bios_date")))))
+    if os.path.isdir("/sys/firmware/efi"):
+        sb = glob.glob("/sys/firmware/efi/efivars/SecureBoot-*")
+        state = ""
+        if sb:
+            try:
+                with open(sb[0], "rb") as f:
+                    state = "on" if f.read()[-1:] == b"\x01" else "off"
+            except OSError:
+                pass
+        r.item("Boot", "UEFI" + (", Secure Boot " + state if state else ""))
+    else:
+        r.item("Boot", "BIOS (legacy)")
+
+
+def cpu_memory(r):
+    r.section("Processor and memory")
+    info = read("/proc/cpuinfo")
+    model = re.search(r"^model name\s*:\s*(.+)$", info, re.M)
+    threads = len(re.findall(r"^processor\s*:", info, re.M))
+    cores = len(set(re.findall(r"^core id\s*:\s*(\d+)", info, re.M))) or threads
+    r.item("Processor", "%s (%d cores, %d threads)" % (
+        model.group(1) if model else "?", cores, threads))
+    mem = re.search(r"^MemTotal:\s*(\d+)", read("/proc/meminfo"), re.M)
+    if mem:
+        r.item("Memory", "%.1f GiB" % (int(mem.group(1)) / 1048576))
+
+
+def graphics(r):
+    r.section("Graphics")
+    for card in sorted(glob.glob("/sys/class/drm/card[0-9]")):
+        dev = card + "/device"
+        driver = link_name(dev + "/driver")
+        extra = []
+        if read(dev + "/boot_vga") == "1":
+            extra.append("drives the boot display")
+        if driver == "nvidia":
+            extra.append("NVIDIA %s" % read("/sys/module/nvidia/version"))
+        r.item(os.path.basename(card), "%s, driver %s%s" % (
+            bus_device(dev), driver or "none",
+            " (" + ", ".join(extra) + ")" if extra else ""))
+        for conn in sorted(glob.glob(card + "-*")):
+            if read(conn + "/status") != "connected":
+                continue
+            modes = read(conn + "/modes").splitlines()
+            r.item("  display", "%s %s" % (
+                os.path.basename(conn).split("-", 1)[1],
+                modes[0] if modes else ""))
+    if os.path.exists("/run/nickel/gpu/sandbox-off"):
+        r.item("GPU sandbox", "off since this boot (Chrome's fallback: the "
+               "GPU process could not start in it)")
+    else:
+        r.item("GPU sandbox", "on")
+
+
+def network(r):
+    r.section("Network")
+    for net in sorted(glob.glob("/sys/class/net/*")):
+        if not os.path.exists(net + "/device"):
+            continue
+        kind = "Wi-Fi" if os.path.exists(net + "/wireless") or \
+            os.path.exists(net + "/phy80211") else "Ethernet"
+        r.item(os.path.basename(net), "%s: %s, driver %s, %s" % (
+            kind, bus_device(net + "/device"),
+            link_name(net + "/device/driver") or "none",
+            read(net + "/operstate")))
+    for hci in sorted(glob.glob("/sys/class/bluetooth/hci[0-9]")):
+        r.item(os.path.basename(hci), "Bluetooth: %s, driver %s" % (
+            bus_device(hci + "/device"),
+            link_name(hci + "/device/driver") or "none"))
+
+
+def audio_input_camera(r):
+    r.section("Sound")
+    cards = read("/proc/asound/cards")
+    r.text(cards if cards and "no soundcards" not in cards
+           else "no sound cards")
+    r.section("Input")
+    names = re.findall(r'^N: Name="(.+)"$', read("/proc/bus/input/devices"),
+                       re.M)
+    keep = re.compile(r"touchpad|trackpad|touchscreen|touch screen|keyboard|"
+                      r"stylus|pen|mouse|elan|synaptics|alps|wacom|i2c-hid",
+                      re.I)
+    shown = [n for n in names if keep.search(n) and "NickelOS test" not in n]
+    r.text("\n".join(sorted(set(shown))) or "none found")
+    r.section("Cameras")
+    cams = sorted({read(v + "/name") for v in glob.glob(
+        "/sys/class/video4linux/video*")} - {""})
+    r.text("\n".join(cams) or "none")
+
+
+def storage_power(r):
+    r.section("Storage")
+    r.text(run("lsblk", "-d", "-e", "1,7,251,252,253", "-o",
+               "NAME,MODEL,SIZE,TRAN,ROTA").rstrip() or "?")
+    bats = sorted(glob.glob("/sys/class/power_supply/BAT*"))
+    if bats or read("/sys/power/mem_sleep"):
+        r.section("Power")
+    for bat in bats:
+        full = read(bat + "/energy_full") or read(bat + "/charge_full")
+        design = read(bat + "/energy_full_design") or \
+            read(bat + "/charge_full_design")
+        health = ""
+        if full.isdigit() and design.isdigit() and int(design):
+            health = ", holds %d%% of its design capacity" % (
+                100 * int(full) // int(design))
+        r.item(os.path.basename(bat), "%s%%, %s%s" % (
+            read(bat + "/capacity"), read(bat + "/status").lower(), health))
+    r.item("Sleep", read("/sys/power/mem_sleep"))
+
+
+def problems(r):
+    r.section("Possible problems")
+    found = []
+    # PCI devices with no driver, but for those that need none: bridges,
+    # memory and system peripherals, IOMMUs, SMBus and SPI controllers,
+    # signal processing, encryption (AMD's security processor) and
+    # instrumentation functions.
+    skip = ("0x0500", "0x0580", "0x0600", "0x0601", "0x0604", "0x0806",
+            "0x0880", "0x0b40", "0x0c05", "0x0c80", "0x1080", "0x1180",
+            "0x1300")
+    for dev in sorted(glob.glob("/sys/bus/pci/devices/*")):
+        if os.path.exists(dev + "/driver"):
+            continue
+        if read(dev + "/class")[:6] in skip:
+            continue
+        found.append("no driver: " + pci_name(os.path.basename(dev)))
+    if os.geteuid() == 0:
+        log = run("dmesg")
+        pat = re.compile(r"(firmware: failed to load|Direct firmware load for"
+                         r".* failed|failed to load firmware|probe .* failed"
+                         r"|probe of .* failed with error)", re.I)
+        seen = set()
+        for line in log.splitlines():
+            if pat.search(line):
+                msg = re.sub(r"^\[[^\]]*\]\s*", "", line)
+                if msg not in seen:
+                    seen.add(msg)
+                    found.append(msg)
+    else:
+        found.append("(run with sudo to include the kernel's messages)")
+    r.text("\n".join(found) or "none found")
+
+
+def usb(r):
+    r.section("USB devices")
+    lines = [re.sub(r"^Bus \d+ Device \d+: ", "", l)
+             for l in run("lsusb").splitlines()]
+    lines = [l for l in lines if "root hub" not in l]
+    r.text("\n".join(sorted(lines)) or "none")
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="What this computer is and how NickelOS drives it.")
+    ap.add_argument("-o", "--output", help="write the report to this file")
+    args = ap.parse_args()
+    r = Report()
+    r.lines.append("NickelOS hardware report")
+    for part in (system, cpu_memory, graphics, network, audio_input_camera,
+                 storage_power, usb, problems):
+        try:
+            part(r)
+        except Exception as e:  # one broken part must not lose the rest
+            r.text("(%s failed: %s)" % (part.__name__, e))
+    if args.output:
+        with open(args.output, "w") as f:
+            f.write(str(r))
+        print("written to " + args.output)
+    else:
+        sys.stdout.write(str(r))
+
+
+if __name__ == "__main__":
+    main()

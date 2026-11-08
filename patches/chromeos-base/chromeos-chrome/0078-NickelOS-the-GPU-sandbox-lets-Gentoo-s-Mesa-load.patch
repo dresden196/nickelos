@@ -1,0 +1,83 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the GPU sandbox lets Gentoo's Mesa load
+
+NickelOS Unified has one Mesa, Gentoo's, for Chrome and Linux apps. The
+GPU sandbox's file lists name Google's Mesa build: libgallium_dri.so,
+libglapi.so.0, the drivers in dri/. Gentoo's core library carries its
+version (libgallium-26.1.8.so), its drivers load through
+dri/libdril_dri.so, it links LLVM from /usr/lib/llvm/<slot>/ and the X11,
+xcb and Wayland client libraries, and libdrm follows /sys/dev/char into
+/sys/devices for the GPU's PCI ids. With gpu_sandbox_start_early (Intel
+and AMD boards, for Mesa's threads) the driver loads inside the sandbox:
+EGL got no display, the GPU process exited, and Chrome, with no software
+compositing, quit before the login screen (the Intel test PC, 2026-10-20).
+On AMD, Intel, NVIDIA and VirtIO GPUs the sandbox now also reads, and only
+reads, the library directories, the loader's cache, /sys/devices and
+Mesa's driver settings.
+
+diff --git a/content/common/gpu_pre_sandbox_hook_linux.cc b/content/common/gpu_pre_sandbox_hook_linux.cc
+index c41e683d837f1..2c96f4b4c8d05 100644
+--- a/content/common/gpu_pre_sandbox_hook_linux.cc
++++ b/content/common/gpu_pre_sandbox_hook_linux.cc
+@@ -254,6 +254,29 @@ void AddDrmGpuPermissions(std::vector<BrokerFilePermission>* permissions) {
+   }
+ }
+ 
++// NickelOS: Gentoo's Mesa, for Chrome and Linux apps alike (one Mesa), is
++// not Google's build these lists name: its core library carries its version
++// (libgallium-26.1.8.so), its drivers load through dri/libdril_dri.so, it
++// links LLVM from /usr/lib/llvm/<slot>/ and the X11, xcb and Wayland client
++// libraries, and libdrm follows the GPU's /sys/dev/char link into
++// /sys/devices for its PCI ids. With the sandbox started early
++// (gpu_sandbox_start_early, for Mesa's threads) all of it is opened from
++// inside the sandbox, so Chrome had no GPU and no login screen on Intel and
++// AMD (2026-10-20): the libraries' directories, the loader's cache, those
++// sysfs trees and Mesa's driver settings, read-only.
++void AddNickelMesaPermissions(std::vector<BrokerFilePermission>* permissions) {
++  static const char* const kReadOnlyRecursive[] = {
++      "/usr/lib64/", "/usr/lib/llvm/", "/sys/devices/", "/usr/share/drirc.d/",
++      "/usr/share/libdrm/"};
++  for (const char* dir : kReadOnlyRecursive) {
++    permissions->push_back(BrokerFilePermission::ReadOnlyRecursive(dir));
++  }
++  static const char* const kReadOnly[] = {"/etc/ld.so.cache", "/etc/drirc"};
++  for (const char* item : kReadOnly) {
++    permissions->push_back(BrokerFilePermission::ReadOnly(item));
++  }
++}
++
+ void AddAmdGpuPermissions(std::vector<BrokerFilePermission>* permissions) {
+   static const char* const kReadOnlyList[] = {
+       "/etc/ld.so.cache",
+@@ -274,6 +297,7 @@ void AddAmdGpuPermissions(std::vector<BrokerFilePermission>* permissions) {
+   for (const char* item : kReadOnlyList)
+     permissions->push_back(BrokerFilePermission::ReadOnly(item));
+ 
++  AddNickelMesaPermissions(permissions);
+   AddDrmGpuPermissions(permissions);
+ 
+   // NOTE: control nodes are probably not required:
+@@ -333,6 +357,7 @@ void AddNvidiaGpuPermissions(std::vector<BrokerFilePermission>* permissions) {
+   permissions->push_back(
+       BrokerFilePermission::ReadOnlyRecursive("/proc/driver/nvidia/"));
+ 
++  AddNickelMesaPermissions(permissions);
+   AddDrmGpuPermissions(permissions);
+ }
+ 
+@@ -357,6 +382,7 @@ void AddIntelGpuPermissions(std::vector<BrokerFilePermission>* permissions) {
+   for (const char* item : kReadOnlyList)
+     permissions->push_back(BrokerFilePermission::ReadOnly(item));
+ 
++  AddNickelMesaPermissions(permissions);
+   AddDrmGpuPermissions(permissions);
+ }
+ 
+@@ -401,6 +427,7 @@ void AddVirtIOGpuPermissions(std::vector<BrokerFilePermission>* permissions) {
+     permissions->push_back(BrokerFilePermission::ReadOnlyRecursive(path + "/"));
+   }
+ 
++  AddNickelMesaPermissions(permissions);
+   AddDrmGpuPermissions(permissions);
+ }
+ 

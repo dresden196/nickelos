@@ -1,0 +1,24 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] sepolicy: overlayfs files keep their own labels
+
+NickelOS puts Gentoo's files over /usr and /etc with overlay mounts at
+boot (docs/gentoo-at-root.md). The policy said nothing about overlayfs,
+so every file seen through them was unlabeled: ChromeOS's own programs
+under /usr lost their labels, and with them the domains they run in
+(fusermount3 could no longer mount, so AppImages failed). Labeled from
+each file's own xattr, as on the filesystems below (Android's policy
+does the same for overlayfs): the image's files keep the image's labels,
+Gentoo's have their data partition's.
+
+---
+diff -ruN a/sepolicy/policy/base/fs_use b/sepolicy/policy/base/fs_use
+--- a/sepolicy/policy/base/fs_use
++++ b/sepolicy/policy/base/fs_use
+@@ -8,6 +8,7 @@
+ fs_use_xattr btrfs u:object_r:labeledfs:s0;
+ fs_use_xattr f2fs u:object_r:labeledfs:s0;
+ fs_use_xattr squashfs u:object_r:labeledfs:s0;
++fs_use_xattr overlay u:object_r:labeledfs:s0;
+ 
+ # Label inodes from task label.
+ fs_use_task pipefs u:object_r:pipefs:s0;

@@ -1,0 +1,99 @@
+#!/bin/bash
+# Runs in the SDK (cros_sdk -- .../nickel-image-grub IMAGE...): puts the
+# board's GRUB, with NickelOS's patches (patches/sys-boot/grub: boot
+# fallback), into images. On x86, build_image makes efi/boot/bootx64.efi
+# with the SDK's own GRUB modules (create_legacy_bootloader_templates.sh:
+# grub-mkimage without -d), so the board's patched GRUB never reached an
+# image. This makes it again from the board's modules, with the same module
+# list, and puts it in both places:
+#  - the EFI system partition (12), which the PC boots;
+#  - /boot/efi/boot in the system partition (3), which an update's
+#    postinstall copies to the EFI system partition of PCs already
+#    installed.
+# nickel-build-stock runs it after every image. Images are built without
+# rootfs verification, so the system partition mounts read-write.
+#
+# NICKEL_SECUREBOOT=1 (nickel-build-stock with a Secure Boot key): instead,
+# shim (sys-boot/nickel-shim) as bootx64.efi, MokManager, and GRUB as
+# grubx64.efi built for Secure Boot (scripts/secureboot): every module built
+# in, its menu inside it with the image's kernel arguments, the editor and
+# shell closed, SBAT data. Unsigned here: nickel-image-sbsign signs GRUB and
+# the kernels outside the SDK, where the key is.
+set -euo pipefail
+BOARD=${NICKEL_BOARD:-nickel}
+mods=/build/${BOARD}/lib64/grub/x86_64-efi
+sbdir=$(dirname "$(readlink -f "$0")")/../../secureboot
+shim=/build/${BOARD}/usr/share/nickel-shim
+[ -f "${mods}/gptpriority.mod" ] || { echo "nickel-image-grub: no board GRUB in ${mods}" >&2; exit 1; }
+t=$(mktemp -d)
+mnt=$(mktemp -d)
+trap 'sudo umount "${mnt}" 2>/dev/null || true; rm -rf "${t}"; rmdir "${mnt}"' EXIT
+# The list in create_legacy_bootloader_templates.sh's grub_args.
+sudo grub-mkimage -O x86_64-efi -d "${mods}" -o "${t}/bootx64.efi" -p /efi/boot \
+	part_gpt gptpriority test fat ext2 normal boot chain \
+	efi_gop configfile linux search keystatus
+grep -q "tries used up" "${t}/bootx64.efi" ||
+	{ echo "nickel-image-grub: the board's GRUB lacks NickelOS's gptpriority" >&2; exit 1; }
+
+# The Secure Boot GRUB for one image: the menu's kernel arguments are the
+# image's own (test images have cros_debug), from its grub.cfg.
+sb_grub() {
+	local img=$1 args
+	local start size
+	start=$(cgpt show -i 12 -b "${img}")
+	size=$(cgpt show -i 12 -s "${img}")
+	sudo mount -o ro,loop,offset=$((start * 512)),sizelimit=$((size * 512)) "${img}" "${mnt}"
+	args=$(sed -n 's|^ *linux /syslinux/vmlinuz\.A \(.*\) root=PARTUUID=.*|\1|p' "${mnt}/efi/boot/grub.cfg" | head -1 | tr -s ' ')
+	sudo umount "${mnt}"
+	[ -n "${args}" ] || { echo "nickel-image-grub: no kernel arguments in $(basename "${img}")'s grub.cfg" >&2; return 1; }
+	mkdir -p "${t}/m/boot/grub"
+	sed "s|@ARGS@|${args% }|" "${sbdir}/grub.cfg" > "${t}/m/boot/grub/grub.cfg"
+	tar -C "${t}/m" -cf "${t}/memdisk.tar" boot
+	sudo grub-mkimage -O x86_64-efi -d "${mods}" -o "${t}/grubx64.efi" -p '(memdisk)/boot/grub' \
+		-c "${sbdir}/early.cfg" -m "${t}/memdisk.tar" --sbat "${sbdir}/sbat.csv" \
+		part_gpt gptpriority test fat ext2 normal boot linux search probe \
+		regexp echo sleep reboot halt efi_gop memdisk tar password_pbkdf2 \
+		keystatus
+	grep -q "tries used up" "${t}/grubx64.efi" ||
+		{ echo "nickel-image-grub: the Secure Boot GRUB lacks NickelOS's gptpriority" >&2; return 1; }
+}
+
+for img in "$@"; do
+	if [ "${NICKEL_SECUREBOOT:-0}" = 1 ]; then
+		[ -f "${shim}/shimx64.efi" ] || { echo "nickel-image-grub: no shim in ${shim} (sys-boot/nickel-shim)" >&2; exit 1; }
+		sb_grub "${img}"
+	fi
+	for part in 12 3; do
+		start=$(cgpt show -i "${part}" -b "${img}")
+		size=$(cgpt show -i "${part}" -s "${img}")
+		sudo mount -o loop,offset=$((start * 512)),sizelimit=$((size * 512)) "${img}" "${mnt}"
+		dir=${mnt}/efi/boot
+		[ "${part}" = 3 ] && dir=${mnt}/boot/efi/boot
+		if [ -f "${dir}/bootx64.efi" ] && [ "${NICKEL_SECUREBOOT:-0}" = 1 ]; then
+			# An update's postinstall copies every .efi of the new system's
+			# /boot/efi/boot to the EFI system partition.
+			sudo cp "${shim}/shimx64.efi" "${dir}/bootx64.efi"
+			sudo cp "${shim}/mmx64.efi" "${dir}/mmx64.efi"
+			sudo cp "${t}/grubx64.efi" "${dir}/grubx64.efi"
+			echo "nickel-image-grub: $(basename "${img}") partition ${part}: shim, MokManager, Secure Boot GRUB in (unsigned)"
+		elif [ -f "${dir}/bootx64.efi" ]; then
+			sudo cp "${t}/bootx64.efi" "${dir}/bootx64.efi"
+			echo "nickel-image-grub: $(basename "${img}") partition ${part}: board GRUB in"
+		fi
+		# No menu at boot (Dresden, 2026-10-27; as Ubuntu): build_image
+		# writes "set timeout=2", which shows both systems' entries every
+		# time. An update's postinstall keeps the ESP's grub.cfg apart from
+		# its kernel lines, so installs from this image keep this.
+		if [ -f "${dir}/grub.cfg" ] && grep -qx 'set timeout=2' "${dir}/grub.cfg"; then
+			sudo python3 - "${dir}/grub.cfg" "${sbdir}/hidden-menu.cfg" <<'PY'
+import sys
+cfg, block = sys.argv[1], open(sys.argv[2]).read()
+s = open(cfg).read()
+s = s.replace("set timeout=2\n", block, 1)
+open(cfg, "w").write(s)
+PY
+			echo "nickel-image-grub: $(basename "${img}") partition ${part}: GRUB menu hidden"
+		fi
+		sudo umount "${mnt}"
+	done
+done

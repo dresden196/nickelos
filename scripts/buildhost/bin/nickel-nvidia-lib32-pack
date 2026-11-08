@@ -1,0 +1,57 @@
+#!/bin/bash
+# Publishes NVIDIA's 32-bit driver libraries on the binhost, for 32-bit
+# programs of NickelOS's Gentoo world on NVIDIA GPUs (Steam's client and
+# 32-bit games, Wine's 32-bit side): GLX, EGL, OpenGL ES and Vulkan,
+# taken from the same NVIDIA-Linux-x86_64-VERSION.run the image's
+# x11-drivers/nvidia-open installs the 64-bit ones from. NVIDIA's libraries
+# must be the kernel module's version exactly, so there is one archive per
+# version; `nickel-gentoo gpu` on a device fetches its driver's, only when
+# Gentoo has 32-bit glibc and nvidia is loaded (about 200 MB unpacked: not in
+# the image, which every machine gets).
+#   /srv/nickel/binhost/gentoo/nvidia/nvidia-lib32-VERSION.tar.zst (+.sha256)
+# The archive holds the libraries and the links their SONAMEs name, flat.
+# Run as root: nickel-nvidia-lib32-pack [VERSION]
+#   (default: the version of the overlay's nvidia-open ebuild)
+set -euo pipefail
+SRC=/srv/nickel/src
+OUT=/srv/nickel/binhost/gentoo/nvidia
+ver=${1:-}
+if [ -z "${ver}" ]; then
+	ebuild=$(ls "${SRC}"/src/overlays/overlay-nickel/x11-drivers/nvidia-open/nvidia-open-*.ebuild | sort -V | tail -1)
+	ver=$(basename "${ebuild}" .ebuild | sed -E 's/^nvidia-open-//; s/-r[0-9]+$//')
+fi
+run=${SRC}/.cache/distfiles/NVIDIA-Linux-x86_64-${ver}.run
+[ -f "${run}" ] || { echo "no ${run} (emerge-nickel x11-drivers/nvidia-open fetches it)" >&2; exit 1; }
+
+tmp=$(mktemp -d /var/tmp/nvidia-lib32.XXXXXX)
+trap 'rm -rf "${tmp}"' EXIT
+(cd "${tmp}" && sh "${run}" --extract-only >/dev/null)
+src=${tmp}/NVIDIA-Linux-x86_64-${ver}/32
+lib=${tmp}/lib32
+mkdir "${lib}"
+# What GL, EGL, GLES and Vulkan need, with EGL's platform libraries for X11,
+# Wayland and GBM; not CUDA, OpenCL, NVENC or VDPAU.
+for f in libEGL_nvidia libGLESv2_nvidia libGLESv1_CM_nvidia libGLX_nvidia \
+	libnvidia-eglcore libnvidia-glcore libnvidia-glsi libnvidia-tls \
+	libnvidia-gpucomp libnvidia-glvkspirv libnvidia-allocator; do
+	cp "${src}/${f}.so.${ver}" "${lib}/"
+done
+for f in libnvidia-egl-gbm libnvidia-egl-wayland libnvidia-egl-wayland2 \
+	libnvidia-egl-xcb libnvidia-egl-xlib; do
+	cp "${src}/${f}".so.* "${lib}/"
+done
+for f in "${lib}"/*.so.*; do
+	file "${f}" | grep -q 'ELF 32-bit' || { echo "${f} is not 32-bit" >&2; exit 1; }
+	soname=$(readelf -d "${f}" | sed -n 's/.*(SONAME).*\[\(.*\)\]/\1/p')
+	if [ -n "${soname}" ] && [ "${soname}" != "$(basename "${f}")" ]; then
+		ln -sf "$(basename "${f}")" "${lib}/${soname}"
+	fi
+done
+echo "${ver}" > "${lib}/.version"
+
+mkdir -p "${OUT}"
+name=nvidia-lib32-${ver}.tar.zst
+tar --zstd -C "${lib}" --owner=0 --group=0 -cf "${OUT}/${name}.part" .
+mv "${OUT}/${name}.part" "${OUT}/${name}"
+(cd "${OUT}" && sha256sum "${name}" > "${name}.sha256")
+echo "${OUT}/${name}: $(du -h "${OUT}/${name}" | cut -f1)"

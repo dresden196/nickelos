@@ -1,0 +1,6 @@
+// NickelOS: administrators are the members of group wheel (the first local
+// account, and those made administrators), as for sudo. When an action needs
+// an administrator, polkit asks for one of their passwords, not root's.
+polkit.addAdminRule(function(action, subject) {
+    return ["unix-group:wheel"];
+});

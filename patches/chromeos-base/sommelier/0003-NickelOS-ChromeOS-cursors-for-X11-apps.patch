@@ -1,0 +1,551 @@
+NickelOS: ChromeOS's own cursors for X11 apps. Wayland apps ask Exo for
+cursor shapes by name (cursor-shape-v1, Chrome 0034) and get ChromeOS's
+cursors; Xwayland sends images drawn from the X cursor theme at its own
+size, so the cursor changed size and look over an X11 window (Steam).
+Sommelier is also the X11 window manager: it now selects XFixes cursor
+notifications on the root, which carry the current X cursor's name
+(libXcursor names the theme cursors it loads: left_ptr, pointer, xterm,
+...). A name with a cursor-shape-v1 shape (CSS names and X11's classic
+ones, as other compositors map them) is shown as ChromeOS's own shape
+(wp_cursor_shape_device_v1.set_shape); a cursor without one (an app's own
+image, a hidden cursor) passes through as Xwayland's image, as before.
+The image and the name arrive on different connections in either order,
+so the last image is kept and shown again when the name has no shape.
+
+diff --git a/vm_tools/sommelier/BUILD.gn b/vm_tools/sommelier/BUILD.gn
+index 26aca0d..d30b25c 100644
+--- a/vm_tools/sommelier/BUILD.gn
++++ b/vm_tools/sommelier/BUILD.gn
+@@ -39,6 +39,7 @@ if (!defined(dark_frame_color)) {
+ 
+ wayland_protocols = [
+   "protocol/aura-shell.xml",
++  "protocol/cursor-shape-v1.xml",
+   "protocol/drm.xml",
+   "protocol/fractional-scale-v1.xml",
+   "protocol/gaming-input-unstable-v2.xml",
+diff --git a/vm_tools/sommelier/protocol/cursor-shape-v1.xml b/vm_tools/sommelier/protocol/cursor-shape-v1.xml
+new file mode 100644
+index 0000000..c2cdc6b
+--- /dev/null
++++ b/vm_tools/sommelier/protocol/cursor-shape-v1.xml
+@@ -0,0 +1,146 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<protocol name="cursor_shape_v1">
++  <copyright>
++    Copyright 2018 The Chromium Authors
++    Copyright 2023 Simon Ser
++
++    Permission is hereby granted, free of charge, to any person obtaining a
++    copy of this software and associated documentation files (the "Software"),
++    to deal in the Software without restriction, including without limitation
++    the rights to use, copy, modify, merge, publish, distribute, sublicense,
++    and/or sell copies of the Software, and to permit persons to whom the
++    Software is furnished to do so, subject to the following conditions:
++    The above copyright notice and this permission notice (including the next
++    paragraph) shall be included in all copies or substantial portions of the
++    Software.
++    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
++    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++    DEALINGS IN THE SOFTWARE.
++  </copyright>
++
++  <interface name="wp_cursor_shape_manager_v1" version="1">
++    <description summary="cursor shape manager">
++      This global offers an alternative, optional way to set cursor images. This
++      new way uses enumerated cursors instead of a wl_surface like
++      wl_pointer.set_cursor does.
++
++      Warning! The protocol described in this file is currently in the testing
++      phase. Backward compatible changes may be added together with the
++      corresponding interface version bump. Backward incompatible changes can
++      only be done by creating a new major version of the extension.
++    </description>
++
++    <request name="destroy" type="destructor">
++      <description summary="destroy the manager">
++        Destroy the cursor shape manager.
++      </description>
++    </request>
++
++    <request name="get_pointer">
++      <description summary="manage the cursor shape of a pointer device">
++        Obtain a wp_cursor_shape_device_v1 for a wl_pointer object.
++      </description>
++      <arg name="cursor_shape_device" type="new_id" interface="wp_cursor_shape_device_v1"/>
++      <arg name="pointer" type="object" interface="wl_pointer"/>
++    </request>
++
++    <request name="get_tablet_tool_v2">
++      <description summary="manage the cursor shape of a tablet tool device">
++        Obtain a wp_cursor_shape_device_v1 for a zwp_tablet_tool_v2 object.
++      </description>
++      <arg name="cursor_shape_device" type="new_id" interface="wp_cursor_shape_device_v1"/>
++      <arg name="tablet_tool" type="object" interface="zwp_tablet_tool_v2"/>
++    </request>
++  </interface>
++
++  <interface name="wp_cursor_shape_device_v1" version="1">
++    <description summary="cursor shape for a device">
++      This interface allows clients to set the cursor shape.
++    </description>
++
++    <enum name="shape">
++      <description summary="cursor shapes">
++        This enum describes cursor shapes.
++
++        The names are taken from the CSS W3C specification:
++        https://w3c.github.io/csswg-drafts/css-ui/#cursor
++      </description>
++      <entry name="default" value="1" summary="default cursor"/>
++      <entry name="context_menu" value="2" summary="a context menu is available for the object under the cursor"/>
++      <entry name="help" value="3" summary="help is available for the object under the cursor"/>
++      <entry name="pointer" value="4" summary="pointer that indicates a link or another interactive element"/>
++      <entry name="progress" value="5" summary="progress indicator"/>
++      <entry name="wait" value="6" summary="program is busy, user should wait"/>
++      <entry name="cell" value="7" summary="a cell or set of cells may be selected"/>
++      <entry name="crosshair" value="8" summary="simple crosshair"/>
++      <entry name="text" value="9" summary="text may be selected"/>
++      <entry name="vertical_text" value="10" summary="vertical text may be selected"/>
++      <entry name="alias" value="11" summary="drag-and-drop: alias of/shortcut to something is to be created"/>
++      <entry name="copy" value="12" summary="drag-and-drop: something is to be copied"/>
++      <entry name="move" value="13" summary="drag-and-drop: something is to be moved"/>
++      <entry name="no_drop" value="14" summary="drag-and-drop: the dragged item cannot be dropped at the current cursor location"/>
++      <entry name="not_allowed" value="15" summary="drag-and-drop: the requested action will not be carried out"/>
++      <entry name="grab" value="16" summary="drag-and-drop: something can be grabbed"/>
++      <entry name="grabbing" value="17" summary="drag-and-drop: something is being grabbed"/>
++      <entry name="e_resize" value="18" summary="resizing: the east border is to be moved"/>
++      <entry name="n_resize" value="19" summary="resizing: the north border is to be moved"/>
++      <entry name="ne_resize" value="20" summary="resizing: the north-east corner is to be moved"/>
++      <entry name="nw_resize" value="21" summary="resizing: the north-west corner is to be moved"/>
++      <entry name="s_resize" value="22" summary="resizing: the south border is to be moved"/>
++      <entry name="se_resize" value="23" summary="resizing: the south-east corner is to be moved"/>
++      <entry name="sw_resize" value="24" summary="resizing: the south-west corner is to be moved"/>
++      <entry name="w_resize" value="25" summary="resizing: the west border is to be moved"/>
++      <entry name="ew_resize" value="26" summary="resizing: the east and west borders are to be moved"/>
++      <entry name="ns_resize" value="27" summary="resizing: the north and south borders are to be moved"/>
++      <entry name="nesw_resize" value="28" summary="resizing: the north-east and south-west corners are to be moved"/>
++      <entry name="nwse_resize" value="29" summary="resizing: the north-west and south-east corners are to be moved"/>
++      <entry name="col_resize" value="30" summary="resizing: that the item/column can be resized horizontally"/>
++      <entry name="row_resize" value="31" summary="resizing: that the item/row can be resized vertically"/>
++      <entry name="all_scroll" value="32" summary="something can be scrolled in any direction"/>
++      <entry name="zoom_in" value="33" summary="something can be zoomed in"/>
++      <entry name="zoom_out" value="34" summary="something can be zoomed out"/>
++    </enum>
++
++    <enum name="error">
++      <entry name="invalid_shape" value="1"
++        summary="the specified shape value is invalid"/>
++    </enum>
++
++    <request name="destroy" type="destructor">
++      <description summary="destroy the cursor shape device">
++        Destroy the cursor shape device.
++
++        The device cursor shape remains unchanged.
++      </description>
++    </request>
++
++    <request name="set_shape">
++      <description summary="set device cursor to the shape">
++        Sets the device cursor to the specified shape. The compositor will
++        change the cursor image based on the specified shape.
++
++        The cursor actually changes only if the input device focus is one of
++        the requesting client's surfaces. If any, the previous cursor image
++        (surface or shape) is replaced.
++
++        The "shape" argument must be a valid enum entry, otherwise the
++        invalid_shape protocol error is raised.
++
++        This is similar to the wl_pointer.set_cursor and
++        zwp_tablet_tool_v2.set_cursor requests, but this request accepts a
++        shape instead of contents in the form of a surface. Clients can mix
++        set_cursor and set_shape requests.
++
++        The serial parameter must match the latest wl_pointer.enter or
++        zwp_tablet_tool_v2.proximity_in serial number sent to the client.
++        Otherwise the request will be ignored.
++      </description>
++      <arg name="serial" type="uint" summary="serial number of the enter event"/>
++      <arg name="shape" type="uint" enum="shape"/>
++    </request>
++  </interface>
++</protocol>
+diff --git a/vm_tools/sommelier/sommelier-ctx.cc b/vm_tools/sommelier/sommelier-ctx.cc
+index 15eeeea..2c64676 100644
+--- a/vm_tools/sommelier/sommelier-ctx.cc
++++ b/vm_tools/sommelier/sommelier-ctx.cc
+@@ -150,6 +150,9 @@ void sl_context_init_default(struct sl_context* ctx) {
+   ctx->drm_device = nullptr;
+   ctx->gbm = nullptr;
+   ctx->drm_is_virtgpu = false;
++  ctx->cursor_shape_manager = nullptr;
++  ctx->x11_cursor_shape = 0;
++  wl_list_init(&ctx->host_pointers);
+   ctx->xwayland = 0;
+   ctx->xwayland_pid = -1;
+   ctx->child_pid = -1;
+diff --git a/vm_tools/sommelier/sommelier-ctx.h b/vm_tools/sommelier/sommelier-ctx.h
+index 259f2b5..e4ed1ba 100644
+--- a/vm_tools/sommelier/sommelier-ctx.h
++++ b/vm_tools/sommelier/sommelier-ctx.h
+@@ -129,6 +129,12 @@ struct sl_context {
+   // NickelOS: whether the DRM device is virtio-gpu. Its private ioctls go to
+   // virtio-gpu only: other drivers have their own under the same numbers.
+   bool drm_is_virtgpu;
++  // NickelOS: ChromeOS's own cursors for X11 apps. The host's cursor-shape
++  // manager (Exo, Chrome 0034), the shape the current X cursor's name maps
++  // to (0: none, its image is shown) and the host pointers to apply it to.
++  struct wp_cursor_shape_manager_v1* cursor_shape_manager;
++  uint32_t x11_cursor_shape;
++  struct wl_list host_pointers;
+   struct gbm_device* gbm;
+   int xwayland;
+   pid_t xwayland_pid;
+diff --git a/vm_tools/sommelier/sommelier-seat.cc b/vm_tools/sommelier/sommelier-seat.cc
+index da1831f..93925a8 100644
+--- a/vm_tools/sommelier/sommelier-seat.cc
++++ b/vm_tools/sommelier/sommelier-seat.cc
+@@ -17,6 +17,7 @@
+ #include <wayland-util.h>
+ 
+ #include "keyboard-extension-unstable-v1-client-protocol.h"  // NOLINT(build/include_directory)
++#include "cursor-shape-v1-client-protocol.h"  // NOLINT(build/include_directory)
+ 
+ struct sl_host_keyboard {
+   struct sl_seat* seat;
+@@ -46,6 +47,154 @@ struct sl_host_touch {
+   struct sl_touchrecorder* recorder;
+ };
+ 
++// NickelOS: the cursor-shape-v1 shape for an X cursor's name: the names
++// X cursor themes and toolkits load (CSS names and X11's classic ones),
++// as other compositors map them. 0: none (the image is shown).
++static uint32_t sl_cursor_shape_for_name(const char* name) {
++  static const struct {
++    const char* name;
++    uint32_t shape;
++  } kShapes[] = {
++      {"default", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT},
++      {"left_ptr", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT},
++      {"arrow", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT},
++      {"top_left_arrow", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_DEFAULT},
++      {"context-menu", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_CONTEXT_MENU},
++      {"help", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_HELP},
++      {"question_arrow", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_HELP},
++      {"whats_this", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_HELP},
++      {"pointer", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER},
++      {"hand", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER},
++      {"hand1", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER},
++      {"hand2", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER},
++      {"pointing_hand", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER},
++      {"progress", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_PROGRESS},
++      {"left_ptr_watch", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_PROGRESS},
++      {"half-busy", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_PROGRESS},
++      {"wait", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_WAIT},
++      {"watch", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_WAIT},
++      {"cell", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_CELL},
++      {"plus", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_CELL},
++      {"crosshair", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_CROSSHAIR},
++      {"cross", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_CROSSHAIR},
++      {"tcross", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_CROSSHAIR},
++      {"text", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_TEXT},
++      {"xterm", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_TEXT},
++      {"ibeam", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_TEXT},
++      {"vertical-text", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_VERTICAL_TEXT},
++      {"alias", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_ALIAS},
++      {"link", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_ALIAS},
++      {"dnd-link", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_ALIAS},
++      {"copy", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_COPY},
++      {"dnd-copy", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_COPY},
++      {"move", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_MOVE},
++      {"fleur", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_MOVE},
++      {"size_all", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_MOVE},
++      {"dnd-move", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_MOVE},
++      {"no-drop", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NO_DROP},
++      {"dnd-none", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NO_DROP},
++      {"dnd-no-drop", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NO_DROP},
++      {"not-allowed", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NOT_ALLOWED},
++      {"crossed_circle", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NOT_ALLOWED},
++      {"forbidden", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NOT_ALLOWED},
++      {"circle", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NOT_ALLOWED},
++      {"grab", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_GRAB},
++      {"openhand", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_GRAB},
++      {"grabbing", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_GRABBING},
++      {"closedhand", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_GRABBING},
++      {"e-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_E_RESIZE},
++      {"right_side", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_E_RESIZE},
++      {"n-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_N_RESIZE},
++      {"top_side", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_N_RESIZE},
++      {"ne-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NE_RESIZE},
++      {"top_right_corner", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NE_RESIZE},
++      {"nw-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NW_RESIZE},
++      {"top_left_corner", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NW_RESIZE},
++      {"s-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_S_RESIZE},
++      {"bottom_side", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_S_RESIZE},
++      {"se-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SE_RESIZE},
++      {"bottom_right_corner", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SE_RESIZE},
++      {"sw-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SW_RESIZE},
++      {"bottom_left_corner", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_SW_RESIZE},
++      {"w-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_W_RESIZE},
++      {"left_side", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_W_RESIZE},
++      {"ew-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_EW_RESIZE},
++      {"sb_h_double_arrow", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_EW_RESIZE},
++      {"h_double_arrow", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_EW_RESIZE},
++      {"size_hor", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_EW_RESIZE},
++      {"ns-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NS_RESIZE},
++      {"sb_v_double_arrow", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NS_RESIZE},
++      {"v_double_arrow", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NS_RESIZE},
++      {"size_ver", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NS_RESIZE},
++      {"nesw-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NESW_RESIZE},
++      {"fd_double_arrow", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NESW_RESIZE},
++      {"size_bdiag", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NESW_RESIZE},
++      {"nwse-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NWSE_RESIZE},
++      {"bd_double_arrow", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NWSE_RESIZE},
++      {"size_fdiag", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_NWSE_RESIZE},
++      {"col-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_COL_RESIZE},
++      {"split_h", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_COL_RESIZE},
++      {"row-resize", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_ROW_RESIZE},
++      {"split_v", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_ROW_RESIZE},
++      {"all-scroll", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_ALL_SCROLL},
++      {"zoom-in", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_ZOOM_IN},
++      {"zoom-out", WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_ZOOM_OUT},
++  };
++  if (!name) {
++    return 0;
++  }
++  for (const auto& entry : kShapes) {
++    if (strcmp(entry.name, name) == 0) {
++      return entry.shape;
++    }
++  }
++  return 0;
++}
++
++// NickelOS: shows |host|'s cursor, ChromeOS's own shape for the X cursor's
++// name where it has one, else the image Xwayland gave.
++static void sl_pointer_show_cursor(struct sl_host_pointer* host) {
++  struct sl_context* ctx = host->seat->ctx;
++  if (host->cursor_resource && host->shape_device && ctx->x11_cursor_shape) {
++    wp_cursor_shape_device_v1_set_shape(host->shape_device,
++                                        host->cursor_serial,
++                                        ctx->x11_cursor_shape);
++    return;
++  }
++  struct sl_host_surface* host_surface =
++      host->cursor_resource ? static_cast<sl_host_surface*>(
++                                  wl_resource_get_user_data(
++                                      host->cursor_resource))
++                            : nullptr;
++  wl_pointer_set_cursor(host->proxy, host->cursor_serial,
++                        host_surface ? host_surface->proxy : nullptr,
++                        host->cursor_hotspot_x, host->cursor_hotspot_y);
++}
++
++static void sl_pointer_cursor_resource_destroyed(struct wl_listener* listener,
++                                                 void* data) {
++  struct sl_host_pointer* host;
++
++  host = wl_container_of(listener, host, cursor_resource_listener);
++  wl_list_remove(&host->cursor_resource_listener.link);
++  wl_list_init(&host->cursor_resource_listener.link);
++  host->cursor_resource = nullptr;
++}
++
++void sl_pointers_x11_cursor_named(struct sl_context* ctx, const char* name) {
++  uint32_t shape = sl_cursor_shape_for_name(name);
++  if (shape == ctx->x11_cursor_shape) {
++    return;
++  }
++  ctx->x11_cursor_shape = shape;
++  struct sl_host_pointer* host;
++  wl_list_for_each(host, &ctx->host_pointers, link) {
++    if (host->focus_resource && host->cursor_resource) {
++      sl_pointer_show_cursor(host);
++    }
++  }
++}
++
+ static void sl_host_pointer_set_cursor(struct wl_client* client,
+                                        struct wl_resource* resource,
+                                        uint32_t serial,
+@@ -70,8 +219,19 @@ static void sl_host_pointer_set_cursor(struct wl_client* client,
+ 
+   sl_transform_guest_to_host(host->seat->ctx, nullptr, &hsx, &hsy);
+ 
+-  wl_pointer_set_cursor(host->proxy, serial,
+-                        host_surface ? host_surface->proxy : nullptr, hsx, hsy);
++  // NickelOS: remembered, so that it can be shown again when the X cursor's
++  // name (XFixes, which may come after this) has no shape.
++  wl_list_remove(&host->cursor_resource_listener.link);
++  wl_list_init(&host->cursor_resource_listener.link);
++  host->cursor_resource = surface_resource;
++  if (surface_resource) {
++    wl_resource_add_destroy_listener(surface_resource,
++                                     &host->cursor_resource_listener);
++  }
++  host->cursor_serial = serial;
++  host->cursor_hotspot_x = hsx;
++  host->cursor_hotspot_y = hsy;
++  sl_pointer_show_cursor(host);
+ }
+ 
+ static void sl_host_pointer_release(struct wl_client* client,
+@@ -674,6 +834,11 @@ static void sl_destroy_host_pointer(struct wl_resource* resource) {
+   struct sl_host_pointer* host =
+       static_cast<sl_host_pointer*>(wl_resource_get_user_data(resource));
+ 
++  if (host->shape_device) {
++    wp_cursor_shape_device_v1_destroy(host->shape_device);
++  }
++  wl_list_remove(&host->link);
++  wl_list_remove(&host->cursor_resource_listener.link);
+   if (wl_pointer_get_version(host->proxy) >= WL_POINTER_RELEASE_SINCE_VERSION) {
+     wl_pointer_release(host->proxy);
+   } else {
+@@ -719,6 +884,22 @@ static void sl_host_seat_get_host_pointer(struct wl_client* client,
+   host_pointer->axis_delta[1] = wl_fixed_from_int(0);
+   host_pointer->axis_discrete[0] = 0;
+   host_pointer->axis_discrete[1] = 0;
++  // NickelOS: ChromeOS's own cursors for X11 apps (sl_context's
++  // x11_cursor_shape); Wayland clients pick their shapes themselves.
++  struct sl_context* ctx = host->seat->ctx;
++  host_pointer->shape_device =
++      ctx->xwayland && ctx->cursor_shape_manager
++          ? wp_cursor_shape_manager_v1_get_pointer(ctx->cursor_shape_manager,
++                                                   host_pointer->proxy)
++          : nullptr;
++  wl_list_init(&host_pointer->cursor_resource_listener.link);
++  host_pointer->cursor_resource_listener.notify =
++      sl_pointer_cursor_resource_destroyed;
++  host_pointer->cursor_resource = nullptr;
++  host_pointer->cursor_serial = 0;
++  host_pointer->cursor_hotspot_x = 0;
++  host_pointer->cursor_hotspot_y = 0;
++  wl_list_insert(&ctx->host_pointers, &host_pointer->link);
+ }
+ 
+ static void sl_destroy_host_keyboard(struct wl_resource* resource) {
+diff --git a/vm_tools/sommelier/sommelier.cc b/vm_tools/sommelier/sommelier.cc
+index 22c3ef4..8756bc6 100644
+--- a/vm_tools/sommelier/sommelier.cc
++++ b/vm_tools/sommelier/sommelier.cc
+@@ -31,6 +31,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <memory>
++#include <map>
+ #include <string>
+ #include <string.h>
+ #include <sys/file.h>
+@@ -51,6 +52,7 @@
+ #include <xcb/xproto.h>
+ 
+ #include "aura-shell-client-protocol.h"  // NOLINT(build/include_directory)
++#include "cursor-shape-v1-client-protocol.h"  // NOLINT(build/include_directory)
+ #include "drm-server-protocol.h"         // NOLINT(build/include_directory)
+ #include "fractional-scale-v1-client-protocol.h"  // NOLINT(build/include_directory)
+ #ifdef GAMEPAD_SUPPORT
+@@ -569,6 +571,14 @@ void sl_registry_handler(void* data,
+     seat->stylus_tablet = nullptr;
+     seat->host_global = sl_seat_global_create(seat);
+     wl_list_insert(&ctx->seats, &seat->link);
++  } else if (strcmp(interface, "wp_cursor_shape_manager_v1") == 0) {
++    // NickelOS: ChromeOS's own cursors for X11 apps (sl_context's
++    // x11_cursor_shape); not offered to clients.
++    if (!ctx->cursor_shape_manager) {
++      ctx->cursor_shape_manager = static_cast<wp_cursor_shape_manager_v1*>(
++          wl_registry_bind(registry, id, &wp_cursor_shape_manager_v1_interface,
++                           1));
++    }
+   } else if (strcmp(interface, "zwp_relative_pointer_manager_v1") == 0) {
+     struct sl_relative_pointer_manager* relative_pointer =
+         static_cast<sl_relative_pointer_manager*>(
+@@ -3024,6 +3034,33 @@ static void sl_handle_selection_request(struct sl_context* ctx,
+   }
+ }
+ 
++// NickelOS: the X cursor changed. Its name (libXcursor names the cursors it
++// loads from themes: left_ptr, pointer, xterm, ...) picks ChromeOS's own
++// cursor for X11 apps (sl_pointers_x11_cursor_named).
++static void sl_handle_xfixes_cursor_notify(
++    struct sl_context* ctx, xcb_xfixes_cursor_notify_event_t* event) {
++  static std::map<xcb_atom_t, std::string> names;
++  if (event->name == XCB_ATOM_NONE) {
++    sl_pointers_x11_cursor_named(ctx, nullptr);
++    return;
++  }
++  auto it = names.find(event->name);
++  if (it == names.end()) {
++    xcb_get_atom_name_reply_t* reply = xcb_get_atom_name_reply(
++        ctx->connection, xcb_get_atom_name(ctx->connection, event->name),
++        nullptr);
++    std::string name;
++    if (reply) {
++      name.assign(xcb_get_atom_name_name(reply),
++                  xcb_get_atom_name_name_length(reply));
++      free(reply);
++    }
++    it = names.emplace(event->name, name).first;
++  }
++  sl_pointers_x11_cursor_named(ctx,
++                               it->second.empty() ? nullptr : it->second.c_str());
++}
++
+ static void sl_handle_xfixes_selection_notify(
+     struct sl_context* ctx, xcb_xfixes_selection_notify_event_t* event) {
+   if (event->selection != ctx->atoms[ATOM_CLIPBOARD].value) {
+@@ -3133,6 +3170,10 @@ static int sl_handle_x_connection_event(int fd, uint32_t mask, void* data) {
+         sl_handle_xfixes_selection_notify(
+             ctx, reinterpret_cast<xcb_xfixes_selection_notify_event_t*>(event));
+         break;
++      case XCB_XFIXES_CURSOR_NOTIFY:
++        sl_handle_xfixes_cursor_notify(
++            ctx, reinterpret_cast<xcb_xfixes_cursor_notify_event_t*>(event));
++        break;
+     }
+ 
+     // Xshape specific events extend the normal event numbers
+@@ -3291,6 +3332,10 @@ static void sl_connect(struct sl_context* ctx) {
+   assert(xfixes_query_version_reply->major_version >= 5);
+   free(xfixes_query_version_reply);
+ 
++  // NickelOS: the X cursor's name, for ChromeOS's own cursors.
++  xcb_xfixes_select_cursor_input(ctx->connection, ctx->screen->root,
++                                 XCB_XFIXES_CURSOR_NOTIFY_MASK_DISPLAY_CURSOR);
++
+   composite_extension =
+       xcb_get_extension_data(ctx->connection, &xcb_composite_id);
+   assert(composite_extension->present);
+diff --git a/vm_tools/sommelier/sommelier.h b/vm_tools/sommelier/sommelier.h
+index 57f8e72..6bf3d1d 100644
+--- a/vm_tools/sommelier/sommelier.h
++++ b/vm_tools/sommelier/sommelier.h
+@@ -119,8 +119,22 @@ struct sl_host_pointer {
+   uint32_t time;
+   wl_fixed_t axis_delta[2];
+   int32_t axis_discrete[2];
++  // NickelOS: ChromeOS's own cursors for X11 apps (sl_context's
++  // x11_cursor_shape). The pointer's cursor-shape device, and the last
++  // cursor image Xwayland set, shown again when the X cursor has no shape.
++  struct wl_list link;
++  struct wp_cursor_shape_device_v1* shape_device;
++  struct wl_resource* cursor_resource;
++  struct wl_listener cursor_resource_listener;
++  uint32_t cursor_serial;
++  int32_t cursor_hotspot_x;
++  int32_t cursor_hotspot_y;
+ };
+ 
++// NickelOS: the current X cursor's name changed (XFixes); |name| is null for
++// a cursor without one.
++void sl_pointers_x11_cursor_named(struct sl_context* ctx, const char* name);
++
+ struct sl_relative_pointer_manager {
+   struct sl_context* ctx;
+   uint32_t id;

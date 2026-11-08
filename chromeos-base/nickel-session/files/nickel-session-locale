@@ -1,0 +1,190 @@
+#!/usr/bin/python3
+# Distributed under the terms of the GNU General Public License v2
+#
+# The account's language for its Linux apps, as Chrome has it (vision:
+# "Language in setup"): Chrome's UI language for the account (its profile's
+# intl.app_locale, set in Settings > Languages; a new account has none yet
+# and takes the welcome screen's, in Local State) and the languages it reads
+# in order (intl.selected_languages). Prints LANG= and LANGUAGE= lines in
+# glibc's names for the session's environment. A locale glibc doesn't have
+# yet is made here, once, as a directory in /usr/lib/locale (your layer):
+# the image's locale-archive stays the image's, so an OS update's glibc
+# keeps working with it. The ones made here are made again when glibc's
+# version changes, and listed in /etc/locale.gen so a glibc you build
+# yourself (Gentoo's locale-gen) keeps them. The languages also go into
+# Gentoo's L10N, for the packages you build: each account's are added to
+# the device's list (/etc/portage/make.conf/0210_nickelos_languages.conf).
+# Run as root by nickel-session-setup, with the account's Preferences on
+# stdin (empty when there are none yet).
+#   nickel-session-locale < Preferences
+import json, os, platform, subprocess, sys
+
+LOCAL_STATE = '/home/chronos/Local State'
+SUPPORTED = '/usr/share/i18n/SUPPORTED'
+LOCALES = '/usr/lib/locale'
+STAMP = os.path.join(LOCALES, '.nickel-session-locale')
+LOCALE_GEN = '/etc/locale.gen'
+L10N_CONF = '/etc/portage/make.conf/0210_nickelos_languages.conf'
+FALLBACK = 'en_US'
+
+# Chrome's names that aren't language_REGION in glibc, or whose region
+# isn't the language's code in capitals.
+SPECIAL = {
+    'en': 'en_US', 'es-419': 'es_MX', 'zh': 'zh_CN', 'nb': 'nb_NO',
+    'no': 'nb_NO', 'iw': 'he_IL', 'he': 'he_IL', 'ja': 'ja_JP', 'ko': 'ko_KR',
+    'sv': 'sv_SE', 'da': 'da_DK', 'el': 'el_GR', 'uk': 'uk_UA', 'cs': 'cs_CZ',
+    'ar': 'ar_EG', 'hi': 'hi_IN', 'vi': 'vi_VN', 'fa': 'fa_IR', 'sl': 'sl_SI',
+    'et': 'et_EE', 'ca': 'ca_ES', 'ms': 'ms_MY', 'sr': 'sr_RS',
+    'sr-Latn': 'sr_RS@latin', 'bn': 'bn_IN', 'fil': 'fil_PH', 'ta': 'ta_IN',
+    'te': 'te_IN', 'mr': 'mr_IN', 'gu': 'gu_IN', 'kn': 'kn_IN', 'ml': 'ml_IN',
+    'ur': 'ur_PK', 'sw': 'sw_KE', 'af': 'af_ZA', 'zu': 'zu_ZA', 'am': 'am_ET',
+    'ga': 'ga_IE', 'cy': 'cy_GB', 'eu': 'eu_ES', 'gl': 'gl_ES', 'hy': 'hy_AM',
+    'ka': 'ka_GE', 'kk': 'kk_KZ', 'km': 'km_KH', 'lo': 'lo_LA', 'my': 'my_MM',
+    'ne': 'ne_NP', 'si': 'si_LK', 'sq': 'sq_AL', 'be': 'be_BY', 'pa': 'pa_IN',
+    'uz': 'uz_UZ', 'az': 'az_AZ', 'mn': 'mn_MN', 'ky': 'ky_KG', 'tg': 'tg_TJ',
+    'en-GB': 'en_GB', 'en-AU': 'en_AU', 'en-CA': 'en_CA', 'en-IN': 'en_IN',
+    'en-NZ': 'en_NZ', 'en-ZA': 'en_ZA',
+}
+
+
+def utf8_locales():
+    """glibc's locales that come in UTF-8, without the codeset: de_DE,
+    sr_RS@latin."""
+    names = set()
+    try:
+        for line in open(SUPPORTED):
+            parts = line.split()
+            if len(parts) == 2 and parts[1] == 'UTF-8':
+                names.add(parts[0].replace('.UTF-8', ''))
+    except OSError:
+        pass
+    return names
+
+
+def glibc_name(chrome, have):
+    """Chrome's language name (pt-BR) as glibc's (pt_BR), or None."""
+    lang, _, region = chrome.partition('-')
+    tries = [chrome.replace('-', '_')] if region else []
+    tries += [SPECIAL.get(chrome), SPECIAL.get(lang), '%s_%s' % (lang, lang.upper())]
+    for t in tries:
+        if t and t in have:
+            return t
+    return next((n for n in sorted(have) if n.startswith(lang + '_')), None)
+
+
+def full(name):
+    """de_DE -> de_DE.UTF-8; sr_RS@latin -> sr_RS.UTF-8@latin."""
+    base, at, mod = name.partition('@')
+    return base + '.UTF-8' + at + mod
+
+
+def present():
+    out = subprocess.run(['locale', '-a'], capture_output=True, text=True).stdout
+    return {l.strip().replace('.utf8', '.UTF-8') for l in out.splitlines()}
+
+
+def make(name, version, made):
+    base, at, mod = name.partition('@')
+    out = os.path.join(LOCALES, base + '.utf8' + at + mod)
+    os.makedirs(out, exist_ok=True)
+    r = subprocess.run(['localedef', '-i', name, '-f', 'UTF-8', '--no-archive', out],
+                       capture_output=True, text=True, timeout=60)
+    # localedef warns (exit 1) about things glibc's own data does; the
+    # locale is there when its LC_CTYPE is.
+    if not os.path.exists(os.path.join(out, 'LC_CTYPE')):
+        print('nickel-session-locale: %s: %s' % (name, r.stderr.strip()[-200:]), file=sys.stderr)
+        return False
+    made.add(name)
+    with open(STAMP, 'w') as f:
+        f.write(version + '\n' + '\n'.join(sorted(made)) + '\n')
+    line = '%s UTF-8' % full(name)
+    try:
+        listed = open(LOCALE_GEN).read().splitlines()
+    except OSError:
+        listed = []
+    if line not in listed:
+        with open(LOCALE_GEN, 'a') as f:
+            f.write(line + '\n')
+    return True
+
+
+def l10n(chrome_names):
+    """Adds the account's languages (Chrome's names, which are Gentoo's L10N
+    names: de, pt-BR, en-GB) to the device's L10N, with each one's bare
+    language too."""
+    have = []
+    try:
+        for line in open(L10N_CONF):
+            if line.startswith('L10N='):
+                have = line.split('=', 1)[1].strip().strip('"').split()
+    except OSError:
+        pass
+    want = list(have)
+    for n in chrome_names:
+        for x in (n, n.split('-')[0]):
+            if x not in want:
+                want.append(x)
+    if want == have or not os.path.isdir(os.path.dirname(L10N_CONF)):
+        return
+    with open(L10N_CONF + '.new', 'w') as f:
+        f.write('# NickelOS: the languages of this device\'s accounts, which packages\n'
+                '# you build keep (nickel-session-locale adds each account\'s).\n'
+                'L10N="%s"\n' % ' '.join(want))
+    os.chmod(L10N_CONF + '.new', 0o644)
+    os.replace(L10N_CONF + '.new', L10N_CONF)
+
+
+def main():
+    try:
+        prefs = json.loads(sys.stdin.read() or '{}')
+    except ValueError:
+        prefs = {}
+    try:
+        state = json.load(open(LOCAL_STATE))
+    except (OSError, ValueError):
+        state = {}
+    intl = prefs.get('intl', {}) if isinstance(prefs, dict) else {}
+    ui = intl.get('app_locale') or state.get('intl', {}).get('app_locale') or 'en-US'
+    reading = [l for l in (intl.get('selected_languages') or '').split(',') if l]
+
+    have = utf8_locales()
+    lang = glibc_name(ui, have) or FALLBACK
+    order = [lang]
+    for l in reading:
+        n = glibc_name(l, have)
+        if n and n not in order:
+            order.append(n)
+
+    # The stamp: glibc's version, then the locales made here for it. Made
+    # for another glibc, they are made again for this one.
+    version = platform.libc_ver()[1] or '?'
+    try:
+        stamp = open(STAMP).read().split()
+    except OSError:
+        stamp = []
+    made = set()
+    if stamp[:1] == [version]:
+        made = set(stamp[1:])
+    else:
+        for n in stamp[1:]:
+            make(n, version, made)
+    if lang not in made and full(lang) not in present():
+        if not make(lang, version, made):
+            lang = FALLBACK
+
+    # LANGUAGE, gettext's order: each language, then its bare code
+    # (sr_RS@latin, sr@latin, sr_RS, sr).
+    langs = []
+    for n in order:
+        base, at, mod = n.partition('@')
+        code = base.split('_')[0]
+        for x in (n, code + at + mod, base, code):
+            if x not in langs:
+                langs.append(x)
+    l10n([ui] + reading)
+    print('LANG=%s' % full(lang))
+    print('LANGUAGE=%s' % ':'.join(langs))
+
+
+if __name__ == '__main__':
+    main()

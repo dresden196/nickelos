@@ -1,0 +1,25 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] sepolicy: cryptohome's namespace mounter may read /etc/passwd
+
+A NickelOS local account's vault is owned by the account's Linux user
+(cryptohome patch), which cryptohome-namespace-mounter looks up with
+getpwnam() when it creates the vault's directories. Its domain could not
+read cros_passwd_file, so the lookup failed and the vault stayed
+chronos's. cryptohomed, shill, crash_reporter and others already have
+the same read access.
+
+---
+diff -ruN a/sepolicy/policy/chromeos/cros_cryptohome_namespace_mounter.te b/sepolicy/policy/chromeos/cros_cryptohome_namespace_mounter.te
+--- a/sepolicy/policy/chromeos/cros_cryptohome_namespace_mounter.te
++++ b/sepolicy/policy/chromeos/cros_cryptohome_namespace_mounter.te
+@@ -11,6 +11,10 @@
+ allow cros_cryptohome_namespace_mounter cros_cryptohomed:fd use;
+ allow cros_cryptohome_namespace_mounter kernel:process setsched;
+ 
++# NickelOS: a local account's vault is owned by the account's Linux user, whom
++# the mounter looks up in /etc/passwd when it creates the vault.
++allow cros_cryptohome_namespace_mounter cros_passwd_file:file r_file_perms;
++
+ allow cros_cryptohome_namespace_mounter cros_cryptohomed:{
+   unix_stream_socket
+   tcp_socket } { read write };

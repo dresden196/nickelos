@@ -1,0 +1,1282 @@
+{
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "Linux колдонмосу, INSTALLER аркылуу орнотулган"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "Linux колдонмосу"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "Телефонуңуз менен NickelOS түзмөгүңүз бир тармакка туташып турганын текшерип, кайталап көрүңүз. LEARN_MORE"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "Телефонуңуз мобилдик тармакты колдонуп жатат. Телефонуңуз менен NickelOS түзмөгүңүз бир Wi-Fi тармагына туташып турганын текшерип, кайталап көрүңүз. LEARN_MORE"
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "Сырсөздөрдү башкаргыч өзүңүздү текшергени жатат"
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "Бул убакта түзмөгүңүз күйүп, электр кубатына туташып турушу керек. Кубаттагычтын же адаптердин кабелдери түзмөгүңүзгө жана розеткага жакшы сайылып турганын текшериңиз. Түзмөгүңүздү өчүрбөңүз."
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "Телефондогу билдирүүлөргө NickelOS түзмөгүңүздөн жооп берип, убакытты үнөмдөңүз"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "Иш тактасы"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "Таштандыга жылдыруу"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "Чекит менен башталбаган жана кыйшык сызыгы жок аталышты колдонуңуз."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "Бул аталыштагы нерсе мурунтан эле бар."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "Жаңы куржун"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "Жаңы куржун"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "Ачуу"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "Иш тактасын Файлдар колдонмосунда ачуу"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "Аталышын өзгөртүү"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "Аталышын өзгөртүү мүмкүн болбоду."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "Аталышын өзгөртүү"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "Файлдар колдонмосунда көрсөтүү"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "Ырасталган Thunderbolt түзмөктөрү гана NickelOS түзмөгүңүзгө шайкеш келет"
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "NickelOS'ту орнотуу"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "NickelOS түзмөгүңүз же Bluetooth түзмөгүңүз Bluetooth'дун эски версиясын колдонуп жатат. Аудионун сапатын жакшыртуу үчүн ички микрофонду колдонуңуз."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "NickelOS түзмөгүңүз менен Chromecast түзмөгү бир Wi-Fi тармагына туташып турушу керек."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "NickelOS нускамасын ачуу"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "PRODUCT_NAME түзмөгүңүз менен кыскача таанышып чыгыңыз: колдонмолоруңуз кайда экенин, жаңыларын кантип алууну жана анын негизиндеги Linux'ту билип аласыз. 7 кадам."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "Салам. PRODUCT_NAME түзмөгүңүзгө кош келиңиз."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "TOTAL_STEPS кадамдын ичинен STEP-кадам. Файлдар колдонмосун Жүргүзгүчтөн таба аласыз. Үй куржуну – Linux'тагы жеке куржунуңуз: Linux колдонмолору менен Файлдар колдонмосу бир эле файлдарды көрөт, ал эми Параметрлерден кошкон булуттагы сактагычыңыз да ушул жерде көрүнөт."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Үй куржуну – Linux'тагы жеке куржунуңуз: Linux колдонмолору менен Файлдар колдонмосу бир эле файлдарды көрөт, ал эми Параметрлерден кошкон булуттагы сактагычыңыз да ушул жерде көрүнөт."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "TOTAL_STEPS кадамдын ичинен STEP-кадам. Waydroid Android колдонмолорун иштетет, алардын ар бири өз терезесинде ачылат. Аны Параметрлердин «Колдонмолор» бөлүмүнөн, андан соң «Android колдонмолору» бөлүмүнөн тууралаңыз. Андан кийин APK файлын ачсаңыз, колдонмо орнотулат, ал эми Android колдонмолору Жүргүзгүчтө көрүнөт."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Waydroid Android колдонмолорун иштетет, алардын ар бири өз терезесинде ачылат. Аны Параметрлер > Колдонмолор > Android колдонмолору бөлүмүнөн тууралаңыз. Андан кийин APK файлын ачсаңыз, колдонмо орнотулат, ал эми Android колдонмолору Жүргүзгүчтө көрүнөт."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "TOTAL_STEPS кадамдын ичинен STEP-кадам. Көбүрөөк колдонмолорду Bazaar'дан алыңыз: булар Flathub'дагы Linux колдонмолору, алар Flatpak катары орнотулат. Алар Жүргүзгүчтө башка колдонмолор сыяктуу эле көрүнөт."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Көбүрөөк колдонмолорду Bazaar'дан алыңыз: булар Flathub'дагы Linux колдонмолору, алар Flatpak катары орнотулат. Алар Жүргүзгүчтө башка колдонмолор сыяктуу эле көрүнөт."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "TOTAL_STEPS кадамдын ичинен STEP-кадам. Терминал – sudo иштеген чыныгы Linux буйрук кабыгы. NickelOS'тун негизинде Gentoo турат: башка Gentoo системаларындагыдай эле, eix пакеттерди табат, ал эми sudo emerge аларды орнотот."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Терминал – sudo иштеген чыныгы Linux буйрук кабыгы. NickelOS'тун негизинде Gentoo турат: башка Gentoo системаларындагыдай эле, eix пакеттерди табат, ал эми sudo emerge аларды орнотот."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "TOTAL_STEPS кадамдын ичинен STEP-кадам. Жүргүзгүч иштетилгенден кийин, издөө тилкеси көрүнөт. PRODUCT_NAME түзмөгүңүздөн колдонмолорду, файлдарды жана параметрлерди издөө үчүн тере баштаңыз."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "Жүргүзгүч аркылуу PRODUCT_NAME түзмөгүңүздөн колдонмолорду, файлдарды жана параметрлерди издеңиз."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "TOTAL_STEPS кадамдын ичинен STEP-кадам. Түзмөгүңүздүн параметрлерин Жүргүзгүчтөн таба аласыз. PRODUCT_NAME түзмөгүңүздү Параметрлерден ыңгайлаштырыңыз: тушкагаз, караңгы же жарык режим, экрандар жана башкалар. Таанышуу ушуну менен бүттү! Кеңири маалымат NickelOS нускамасында."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "PRODUCT_NAME түзмөгүңүздү Параметрлерден ыңгайлаштырып жана жекелештирип алыңыз: тушкагаз, караңгы же жарык режим, экрандар жана башкалар. Таанышуу ушуну менен бүттү! Кеңири маалымат NickelOS нускамасында."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "NickelOS түзмөгүңүздүн кулпусун манжаңыздын изи менен ачыңыз же телефонуңуздун кулпусун ачыңыз"
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "Bluetooth түзмөгүңүз жупташтыруу режиминде жана жакын жерде турганын текшериңиз. Ишенимдүү түзмөктөр менен гана жупташтырыңыз. Жупташкан түзмөктөр бул NickelOS түзмөгүндөгү бардык аккаунттарга көрүнөт."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "Bluetooth түзмөгүңүз жупташтыруу режиминде жана жакын жерде турганын текшериңиз. Ишенимдүү түзмөктөр менен гана жупташтырыңыз. Жупташкан түзмөктөр бул NickelOS түзмөгүндөгү бардык аккаунттарга көрүнөт. BEGIN_LINK_LEARN_MOREКеңири маалыматEND_LINK_LEARN_MORE"
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Дайын-даректериңиз ушул аккаунт үчүн шайкештирүү күйгүзүлгөн бардык колдонулган Chrome серепчилеринде шайкештирилет. NickelOS'тун шайкештирүү параметрлерин көрүү үчүн LINK_BEGINNickelOS параметрлеринеLINK_END өтүңүз."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "Ыкчам баскычтар"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "Сенсордук экрандын атайын мүмкүнчүлүктөр функциясын пайдалануу"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "Көпчүлүк баскычтоптордо Search баскычы – сол жактагы Alt баскычынын жанындагы Windows баскычы."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "Акыркы программалык жаңыртууну алып жатасыз: анда эң жаңы коопсуздук оңдоолору жана функциялар бар."
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "BEGIN_H3Мүчүлүштүктөрдү оңдоо функцияларыEND_H3\n    BR\nӨзүңүз түзгөн кодду орнотуп, сыноо үчүн NickelOS түзмөгүңүздөн мүчүлүштүктөрдү оңдоо функцияларын иштетсеңиз болот. Ушуну менен:BR\n    BEGIN_LIST\n      LIST_ITEMOS файлдарын өзгөртүү үчүн rootfs файлдар системасын текшерүүнү өчүрө аласыз;\n      LIST_ITEMтүзмөккө BEGIN_CODE\"'cros flash\"END_CODE сыяктуу куралдар менен кирип, стандарттык сыноо ачкычтары менен түзмөктө SSH пайдалануу мүмкүнчүлүгүн иштетесиз;\n      LIST_ITEMUSB дисктен OS сүрөтүн орнотуу үчүн USB аркылуу жүктөө мүмкүнчүлүгүн иштетесиз;\n      LIST_ITEMroot колдонуучусу жана иштеп чыгуучу (dev) үчүн өзүңүздүн сырсөзүңүздү коюп, андан соң кол менен түзмөгүңүзгө SSH аркылуу туташа аласыз.\n    END_LIST\n    BR\nИштетилгенден кийин, мүчүлүштүктөрдү оңдоо функциялары параметрлер баштапкы абалга кайтарылгандан же корпоративдик түзмөктөгү бардык нерселер өчүрүлгөндөн кийин деле иштеген бойдон кала берет. Мүчүлүштүктөрдү оңдоо функцияларын толук өчүрүү үчүн NickelOS'ту кайра орнотуңуз.\n    BR\n    BR\nМүчүлүштүктөрдү оңдоо функциялары тууралуу көбүрөөк маалымат алгыңыз келсе, бул жерге өтүңүз:BR\n    https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n    BR\n    BR\n    BEGIN_BOLDЭскертүү:END_BOLD Мүчүлүштүктөр оңдолуп жатканда система өчүп-күйөт."
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "Көп берилүүчү суроолорго жоопторду жана макалаларды табасыз"
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "Пикириңиз үчүн рахмат. Ал Интернетке кайра туташканыңызда жөнөтүлөт."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "Пикириңиз үчүн рахмат."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "Үй куржуну"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Бул файл Macintosh программасын колдонгон компьютер үчүн түзүлгөн. Ал NickelOS негизинде иштеген түзмөгүңүзгө дал келбейт. Файлдарды NickelOS'то ачуу жөнүндө BEGIN_LINK_HELPкеңири маалыматEND_LINK_HELP алыңыз."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Бул файл Windows программасын колдонгон компьютер үчүн түзүлгөн. Ал NickelOS негизинде иштеген түзмөгүңүзгө дал келбейт. Файлдарды NickelOS'то ачуу жөнүндө BEGIN_LINK_HELPкеңири маалыматEND_LINK_HELP алыңыз."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "Түзмөгүңүз жакында жаңыртууларды албай калат."
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "Android телефонуңуз менен байланышты тууралоо үчүн NickelOS түзмөгүңүздүн Bluetooth'у күйгүзүлүшү керек"
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "Администраторуңуз NickelOS түзмөктөрүңүздөгү мурунку жана учурдагы сеанстардын ортосунда төмөнкүлөрдү шайкештирүүнү иштетти:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "Уруксат берүү"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "Уруксат бербөө"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "Азыр эмес"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "Бул компьютердин администратору NAME колдонуучусунун сырсөзүн киргизиңиз."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "APP_NAME бул түзмөктүн камерасын колдонгусу келет. Жообуңуз бул колдонмо үчүн эстеп калынат."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "APP_NAME колдонмосуна камераны колдонууга уруксат бересизби?"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "APP_NAME камераны колдонгусу келет. Буга уруксат берүү үчүн купуялыкты көзөмөлдөө параметрлеринен камерага кирүү мүмкүнчүлүгүн күйгүзүңүз."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "Параметрлерди ачуу"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "Камерага кирүү мүмкүнчүлүгү өчүк"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "Уруксат берүү"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "Уруксат бербөө"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "Ыкчам баскычты өзгөртүү үчүн анын баскычтарын тандап, жаңыларын басыңыз. Backspace баскычы аны өчүрөт."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "APP_NAME бул ыкчам баскычтар башка колдонмолорду колдонуп жатканда да иштешин каалайт. Ал аларды качан басканыңызды гана билет, башка эмне терип жатканыңызды билбейт."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "Баскыч менен кошо Ctrl, Alt же Search баскычын басыңыз же функциялык баскычты колдонуңуз."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "Дайындалган эмес"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "Баскычтарды басыңыз…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "Бул баскычтар колдонулуп жатат. Башкаларын колдонуп көрүңүз."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "Ыкчам баскычтарга уруксат бересизби?"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "Өзгөртүү"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "Стационардык компьютер"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "Компьютер"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "Ноутбук"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE (NAME)"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "Планшет"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "Сырсөздү ырастоо"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "Аккаунтуңуз түзүлүүдө..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "Аккаунт түзүлгөн жок."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "Аккаунт түзүлгөн жок: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "Сырсөз тандаңыз."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "Аккаунт туураланган жок: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "Бул колдонуучунун аты мурунтан эле колдонулууда."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "Аккаунтту түзүү өтө көпкө созулду. Кайталап көрүңүз."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "Колдонуучунун аты кичине тамга менен башталып, кичине тамгалардан, сандардан, - жана _ белгилеринен гана турушу керек (32 белгиге чейин)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "Сырсөздөр дал келбейт"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "Атыңыз"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "Сырсөз"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "Сүрөтүңүз"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "Ал кирүү экранында жана тутум тактасында көрүнөт. Өз сүрөтүңүздү колдонуу үчүн кийинчерээк Параметрлерге өтүңүз."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "Сүрөт тандаңыз"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "Аккаунтуңуз жана анын файлдары бул түзмөктө сырсөзүңүз менен шифрленип сакталат. Google аккаунту болбогондуктан, сырсөздү унутуп калсаңыз, аларды калыбына келтирүү мүмкүн эмес."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "Аккаунтуңузду түзүңүз"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "Колдонуучунун аты"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "Кичине тамга менен баштаңыз; кичине тамгаларды, сандарды, - жана _ белгилерин колдонуңуз (32 белгиге чейин)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "APP_NAME бул түзмөктүн кайда экенин билгиси келет. Ал жакын жердеги Wi-Fi тармактары жана түзмөктүн интернет дареги боюнча аныкталат. Жообуңуз бул колдонмо үчүн эстеп калынат."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "APP_NAME колдонмосуна жайгашкан жериңизди колдонууга уруксат бересизби?"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "APP_NAME жайгашкан жериңизди колдонгусу келет. Буга уруксат берүү үчүн купуялыкты көзөмөлдөө параметрлеринен жайгашкан жерге кирүү мүмкүнчүлүгүн күйгүзүңүз."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "Жайгашкан жерге кирүү мүмкүнчүлүгү өчүк"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "APP_NAME бул түзмөктүн баскычтобун жана көрсөткүчүн башкаргысы келет. Туташып жаткан адамга ишенсеңиз гана уруксат бериңиз."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "APP_NAME бул түзмөктү башкарып жатат."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "Алыстан башкарууга уруксат бересизби?"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "NickelOS'ту тууралап жатканда «Минималдуу» дегенди тандагандыктан, сиз үчүн эч кандай издөө системасы тандалган жок. Бул издөө системалары аймагыңызда популярдуу жана кокустук тартипте көрсөтүлдү."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "Кайсынысын тандасаңыз да, көбүрөөк колдонмолорду табуу үчүн Bazaar жана сүрөттөрүңүздү, видеолоруңузду, музыкаңызды жана документтериңизди ача турган колдонмолор болот."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "Толук мүмкүнчүлүктөр"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "Баары даяр жана купуялыгыңыз корголгон. DuckDuckGo серепчиден жана Жүргүзгүчтөн интернеттен издейт, uBlock Origin серепчидеги жарнамаларды жана трекерлерди бөгөттөйт, Proton компаниясынын купуя колдонмолору (Mail, Calendar, Drive, Pass жана башкалар) орнотулат, ошондой эле акысыз, ачык булактуу колдонмолор кошо келет: LibreOffice, OBS Studio, GIMP, Kdenlive жана башкалар."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "Минималдуу"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "Негизгилер гана. Жүргүзгүч бул компьютерден гана издейт жана сиз үчүн башка эч нерсе туураланбайт."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "Мунун баарын кийинчерээк Параметрлерден өзгөртө аласыз."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "Кантип баштагыңыз келет?"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "Баштоодон мурун дайын-даректериңиздин камдык көчүрмөсүн сактап койгонуңузду текшериңиз. DEVICE_OS системасын орнотсоңуз, сиз тандаган диск кайрадан жазылат."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "DEVICE_OS – «болгон абалында» берилүүчү эркин программа: ал ар бир компьютерде иштебеши мүмкүн жана анын авторлору дайын-даректердин жоголушуна жоопкерчиликтүү эмес."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "Жаңыртуулар, иштеп чыгуучунун параметрлери"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "Телефондор, Nearby Share"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "Телефондор, FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "Булуттагы сактагыч"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Google Drive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "Булут аккаунтун кошуу"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "Өз сүрөттөрүңүз"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "Сенек мезгилде экранда сүрөттөрүңүздү, убакытты жана медиа маалыматты көрсөтүү"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "Өзүңүздүн сүрөттөрүңүз"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "Көшөгө Pictures куржунундагы жана анын ичиндеги куржундардагы сүрөттөрдү көрсөтөт. Кеминде 2 сүрөт кошуңуз."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "Pictures куржуну"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "NickelOS менен кошо келген сүрөттөр"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "Көшөгөдө NickelOS тушкагаздары көрсөтүлөт. Анын ордуна Менин файлдарым > Pictures папкасындагы сүрөттөрдү көрсөтүү үчүн бул параметрди күйгүзүңүз."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "NickelOS тушкагаздары"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "Open-Meteo кызматынан, beaconDB IP дарегиңиз боюнча аныктаган болжолдуу жайгашкан жериңиз үчүн"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "Аба ырайын көрсөтүү"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "Принтерди күйгүзүп, NickelOS түзмөгүңүз менен бир Wi-Fi тармагына туташтырып же USB кабелин колдонуңуз."
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "Үй куржуну"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Параметр күйүп турганда, маалымат Google аккаунтуңузга сакталып, аны бардык түзмөктөрдө колдонууга болот. Ал эми өчүп турганда ушул түзмөккө гана сакталат. NickelOS'тун шайкештирүү параметрлерин көрүү үчүн LINK_BEGINNickelOS жөндөөлөрүнөLINK_END өтүңүз."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "Android колдонмолоруна бул NickelOS түзмөгүндө USB түзмөктөрүн көзөмөлдөө мүмкүнчүлүгүн бериңиз. USB түзмөгүн туташтырган сайын уруксат суралат. Жеке Android колдонмолору кошумча уруксаттарды сурайт."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Түзмөгүңүз коопсуздук системасын жана программаларды жаңыртууларды албай калган."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Бул түзмөк мындан ары жаңыртууларды албайт"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Түзмөгүңүз коопсуздук системасын жана программаларды жаңыртууларды албай калган."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Бул түзмөк мындан ары жаңыртууларды албайт"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "Android колдонмолоруна бул NickelOS түзмөгүндө USB түзмөктөрүн көзөмөлдөө мүмкүнчүлүгүн бериңиз"
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "Бул параметр тарифтик план же мобилдик тармак ачкычы менен иштеген, же болбосо көчмө байланыш түйүнүнө туташкан NickelOS түзмөктөрүнө колдонулат"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "Адам кошуу"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "Сиз аккаунттан чыгасыз. Кирүү экранында жаңы адам атын, колдонуучунун атын жана сырсөзүн тандайт."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "Администратор"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Администраторлор программаларды баары үчүн орното алат, системаны өзгөртүп, аккаунттарды башкара алат."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "Сырсөздү өзгөртүү"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "Ырастоо"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "Жаңы сырсөздү ырастоо"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "Учурдагы сырсөз"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "Жаңы сырсөз тандаңыз"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Бир жерден ката кетти. Кайталап көрүңүз."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "Бул түзмөктө жок дегенде бир администратор болушу керек"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "NAME администратор болсунбу?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "Жаңы сырсөз"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "Бул түзмөктө башка эч кимдин аккаунту жок."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "Бул түзмөктөгү башка адамдар"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Ар бир адамдын өз аккаунту жана файлдары бар. Администраторлор программаларды баары үчүн орното алат, системаны өзгөртүп, аккаунттарды башкара алат."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "Ээси, администратор"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "Жаңы сырсөздөр дал келбейт"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "Алып салуу"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "NAME стандарттык колдонуучу болсунбу?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "Анын аккаунту жана бардык файлдары бул түзмөктөн өчүрүлөт. Муну кайра кайтаруу мүмкүн эмес."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "NAME алынып салынсынбы?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "Чыгуу"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "Стандарттык"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "Сырсөз туура эмес"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "Аккаунтуңуз"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "Сырсөзүңүз"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "Буларды бул түзмөктүн администратору гана өзгөртө алат."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "Телефондордогу ARM процессорлору үчүн гана түзүлгөн колдонмолор үчүн, алардын арасында көптөгөн оюндар бар. Менчик программа, күйгүзгөнүңүздө жүктөлүп алынат."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "Көптөгөн Android колдонмолору, өзгөчө оюндар, телефондор колдонгон ARM процессорлору үчүн гана түзүлгөн. Аларды бул компьютерде иштетүү үчүн Android'ге которгуч керек. NickelOS аны жасабайт жана өз курамына кошпойт: муну күйгүзгөндө TRANSLATOR GitHub'дан жүктөлүп алынат. Бул Waydroid коомчулугунун waydroid_script куралы орноткон так ошол көчүрмө."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "Бул – ээсинин шарттары менен таратылуучу менчик программа жана аны өзүңүз орнотуп жатасыз. Айрым колдонмолор жай иштеши же такыр иштебеши мүмкүн. Аны колдонуу үчүн Android өчүп күйөт."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "Макулмун, күйгүзүү"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "ARM колдонмолорун колдоо күйгүзүлсүнбү?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "ARM колдонмолорун колдоо"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "Алынып салынууда..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "Жүктөлүп алынып, орнотулууда..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "Android жүктөлүп алынууда"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "Жүктөп алуу аягына чыккан жок. Байланышты текшерип, кайталап көрүңүз."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Бир жерден ката кетти. Кайталап көрүңүз."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "Android параметрлери"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "Android туураланууда..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "Алып салуу"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "Android'ди, Android колдонмолоруңузду жана алардын дайындарын өчүрөт"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "Android, Android колдонмолоруңуз жана алардын дайындары бул түзмөктөн өчүрүлөт. Түзмөктү колдонгон башка адамдардын Android дайындары сакталат, бирок Android кайра туураланмайынча, алар Android колдонмолорун ача алышпайт."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "Android алынып салынсынбы?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "Android'ди алып салуу"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "Android алынып салынууда..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "Тууралоо"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "Android колдонмолору башка колдонмолоруңуздун жанында өз терезелеринде ачылат. Тууралоодо Android (Waydroid долбоорунун LineageOS системасы) жүктөлүп алынат: болжол менен 1 ГБ, ал эми бул түзмөктө 2,5 ГБ орун ээлейт."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "Android колдонмолорун иштетүү"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "Android колдонмолору"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "Intel Houdini"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "Google NDK которгучу"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "Android колдонмолору азыр жеткиликсиз."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "Android бул түзмөктө SIZE орун ээлейт"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "Кирүү ачкычынын идентификатору"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "Аккаунт кошуу"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "Артка"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "Кардардын идентификатору"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "Кардардын жашыруун ачкычы"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "Туташуу"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "Туташууда…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "Google Drive, OneDrive, Dropbox жана башка булуттагы сактагычтарды Файлдар колдонмосунан көрүү"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "Булуттагы сактагыч кошуу"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "ACCOUNT_NAME эми Файлдар колдонмосунда."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "Google Drive үчүн Google Cloud консолунан алынган өзүңүздүн кардар идентификаторуңуз жана жашыруун ачкычыңыз керек."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "Электрондук почта же колдонуучунун аты"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "Акыркы чекит (Amazon S3 үчүн бош калтырыңыз)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "Туташуу мүмкүн болгон жок. Маалыматты текшерип, кайталап көрүңүз."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "Бүттү"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "Аларды кантип түзүү керек"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "Файлдар колдонмосунда"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "Аталышы"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "Кийинки"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "Туташкан эмес"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "Сырсөз"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "Файлдарыңызга оңой жетүү үчүн NickelOS булуттагы сактагычыңызды Файлдар колдонмосунда rclone аркылуу көрсөтөт. Кирүү үчүн кызматты тандаңыз."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "Аймак (милдеттүү эмес)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "Алып салуу"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "Файлдар колдонмосу бул аккаунтту мындан ары көрсөтпөйт. Файлдарыңыз булутта кала берет, аккаунтту кийинчерээк кайра кошо аласыз."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "ACCOUNT_NAME алынып салынсынбы?"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "Алынып салынууда…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "Amazon S3 же шайкеш кызмат"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "Жашыруун кирүү ачкычы"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "Сервердин дареги"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "Кызмат"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "Серепчиде ачылган баракта кирүүнү аягына чыгарыңыз."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "Туташканда, кызматтын кирүү барагы серепчиңизде ачылат."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "Булуттагы сактагыч"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "2 кадамдуу текшерүү коду (колдонсоңуз)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "Колдонуучунун аты"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "Nextcloud же WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "Компьютердин аталышын анын администратору гана өзгөртө алат."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "Өзгөртүү"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "Бул аталышты башка түзмөктөр тармакта жана Bluetooth аркылуу көрөт, ошондой эле Терминал жана Linux колдонмолору аны көрсөтөт."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "Компьютердин аталышын өзгөртүү"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "Аталыш өзгөртүлгөн жок. Кайталап көрүңүз."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "Жок дегенде бир латын тамгасын (A–Z) же санды колдонуңуз."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "Компьютердин аталышы"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "Терминалда: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "Файлдар колдонмосунан жана Linux колдонмолорунан файлдын ар бир түрүн ача турган колдонмолор"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "Документтер"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "Электрондук почта"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "Сүрөттөр"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "Музыка"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "Буларды ача турган колдонмо жок"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "Коюлган эмес"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "PDF документтери"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "Презентациялар"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "Скриншоттор (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "Экранды тартып алуу (камтылган)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "Электрондук жадыбалдар"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "Текст файлдары"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "Демейки колдонмолор"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "Видеолор"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (вебсайт)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "Бул түзмөктүн ичиндеги NickelOS орнотулган дисктен башка дисктер. Windows бузулбашы үчүн Windows орнотулган диск окуу режиминде гана ачылат."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "Башка дисктер"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "Өзгөртүүгө уруксат берүү"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "Windows ушул дискте. Өзгөртүүгө уруксат бербесеңиз, ал окуу режиминде гана болот."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "Тез иштетүү (Fast Startup) күйүп турса, Windows толук өчпөйт, ошондуктан бул жерде киргизилген өзгөртүүлөр Windows кайра иштетилгенде жоголушу же файлдарды бузушу мүмкүн. Өзгөртүү киргизүүдөн мурун Windows'то Тез иштетүүнү өчүрүңүз же Windows'ту өчүрүп жатканда Shift баскычын басып туруңуз."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "Windows дискин өзгөртүүгө уруксат бересизби?"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "Windows толук өчкөн жок, ошондуктан диск окуу режиминде гана калды. Өзгөртүү киргизүү үчүн Windows'ту толук өчүрүңүз."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "Файлдар колдонмосунда көрсөтүү"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "Башкалардан жардам алуу"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "Форум, Discord жана GitHub, nickelos.dev сайтында"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "Gentoo'ну үйрөнүү"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "Portage жана emerge нөлдөн баштап, pacman жана apt буйруктары менен катар"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "NickelOS нускамасы"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "NickelOS кантип иштейт. Бул көчүрмө NickelOS версияңыз менен кошо келген жана интернетсиз иштейт."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "Нускама, Gentoo'ну үйрөнүү, мүчүлүштүктөрдү оңдоо"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "Онлайн нускама"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "Эң акыркы версиясы, nickelos.dev сайтында"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "Жардам"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "Мүчүлүштүктөрдү оңдоо"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "Журналдар, кыйроо тууралуу кабарлар, ошондой эле көп кездешкен көйгөйлөр жана аларды чечүү жолдору"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "Linux колдонмолору"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "Кабыл алуу"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "Жупташтырууга болот"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "Жокко чыгаруу"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "Туташкан"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "Туташкан · Батарея PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "Туташкан · Кубатталууда, PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "Android же iPhone'догу KDE Connect колдонмосу аркылуу, бир эле Wi‑Fi тармагында"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "DEVICE_NAME үчүн дагы"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "Азырынча телефондор же планшеттер жок. KDE Connect колдонмосун Google Play, F‑Droid же App Store'дон орнотуп, аны ушул эле Wi‑Fi тармагында ачыңыз, андан кийин каалаган түзмөктөн жупташтырыңыз."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "Телефон менен байланыш иштеп жаткан жок. Аны иштетүү үчүн аккаунттан чыгып, кайра кириңиз."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "Valent'ти ачуу"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "Жупташтыруу"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "Жупташкан · Туташкан эмес"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "Анын макулдугу күтүлүүдө"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "Четке кагуу"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "Шыңгыратуу"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "Файлдарды жөнөтүү"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "Файлдарды жөнөтүү"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "Телефондор жана планшеттер"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "Жупташтырууну токтотуу"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "Бул түзмөк менен жупташкысы келет"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "Discord сыяктуу колдонмолор башка терезелерде иштеп жатканыңызда да «басып сүйлөө» функциясын колдоно алат. Алар Ctrl, Alt же Search менен басылган баскычтарды жана функциялык баскычтарды гана көрөт, эмне терип жатканыңызды эч качан көрбөйт."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "Эски Linux колдонмолору үчүн ыкчам баскычтар"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "Принтерди NickelOS түзмөгүңүз менен бир Wi-Fi тармагына туташтырып же USB кабелин колдонуңуз. LINK_BEGINШайкештик жөнүндө кеңири маалыматLINK_END"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "Принтерге туташпай жатат. Принтер күйгүзүлүп, NickelOS түзмөгүңүзгө Wi-Fi же USB кабель аркылуу туташканын текшериңиз."
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "Үй куржуну"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "Баштоо үчүн USB же Bluetooth которгучу NickelOS түзмөгүңүзгө туташып турганын текшериңиз. Баскычтопту да колдонсоңуз болот."
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "NickelOS түзмөгүңүздүн кулпусун ачуу үчүн телефонуңуздагы Bluetooth күйүп турганын текшериңиз"
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "NickelOS түзмөгүңүздүн Bluetooth'у өчүк. NickelOS түзмөгүңүздүн кулпусун ачуу үчүн сырсөздү териңиз."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "Телефонуңуздун кулпу экраны иштетилген эмес. NickelOS түзмөгүңүздүн кулпусун ачуу үчүн сырсөздү териңиз."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "NickelOS түзмөгүңүздүн кулпусун ачуу үчүн адегенде телефонуңуздун кулпусун ачыңыз"
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "Түзмөгүңүз алдын ала орнотулган сенсор аркылуу маңдай жагындагы адамдарды аныктап турат. Бардык нерселер түзмөгүңүздө дароо иштетилип, андан соң өчүрүлөт. Сенсордун дайындары эч качан Google'га жөнөтүлбөйт."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "NickelOS таржымалдары"
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "Түзмөгүңүзгө өз аккаунтуңуз менен киресиз, аны колдонгон ар бир адамдын да өз аккаунту болушу мүмкүн."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "Түзмөгүңүздөгү өз аккаунтуңуз"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "NickelOS коопсуздукту эске алуу менен жасалган жана өзүн автоматтык түрдө жаңыртып турат."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "NickelOS веб-колдонмолорду жана Linux колдонмолорун катар иштетет. Майнаптуулук, көңүл ачуу жана башкалар үчүн колдонмолорду жүктөп алыңыз."
+ },
+ "IDS_UPDATE_SLIDE_UPDATE_TEXT": {
+  "en": "This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.",
+  "t": "Жаңыртууну ушул жолу гана аягына чыгаруу керек болот. NickelOS'то программалар фондо жаңырат."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "Chrome колдонмолору NickelOS'то иштебейт. Башка колдонмону ачып көрүңүз."
+ }
+}

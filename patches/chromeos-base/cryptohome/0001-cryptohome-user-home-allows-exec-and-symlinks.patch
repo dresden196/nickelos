@@ -1,0 +1,102 @@
+From c3f59bb7a5c70d1defc5a16d3f4969e9001510ff Mon Sep 17 00:00:00 2001
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Date: Sat, 3 Oct 2026 05:21:53 +0000
+Subject: [PATCH] cryptohome: user home allows exec and follows symlinks
+ (NickelOS)
+
+Binds of the signed-in user's home are remounted without noexec and nosymfollow (keeping nosuid,nodev), so scripts, AppImages, user Flatpaks, virtualenvs and symlinks work in ~ as on a normal Linux system. Root and daemon-store mounts keep the stock flags.
+
+Change-Id: I88cda5e512e4074b9788cbfc25c4cd8a1f736147
+---
+ cryptohome/namespace_mounter/mounter.cc | 25 ++++++++++++++++++++-----
+ cryptohome/namespace_mounter/mounter.h  |  4 ++++
+ 2 files changed, 24 insertions(+), 5 deletions(-)
+
+diff --git a/cryptohome/namespace_mounter/mounter.cc b/cryptohome/namespace_mounter/mounter.cc
+index 6497ea5c55..aa4c5cb9f4 100644
+--- a/cryptohome/namespace_mounter/mounter.cc
++++ b/cryptohome/namespace_mounter/mounter.cc
+@@ -647,7 +647,8 @@ bool Mounter::MountLegacyHome(const FilePath& from) {
+   }
+ 
+   if (!BindAndPush(from, FilePath(kDefaultHomeDir),
+-                   libstorage::RemountOption::kMountsFlowIn)) {
++                   libstorage::RemountOption::kMountsFlowIn) ||
++      !AllowUserExec(FilePath(kDefaultHomeDir))) {
+     return false;
+   }
+ 
+@@ -682,7 +683,8 @@ bool Mounter::HandleMyFilesDownloads(const FilePath& user_home) {
+               << downloads_in_my_files << "'";
+   }
+ 
+-  if (!BindAndPush(downloads, downloads_in_my_files)) {
++  if (!BindAndPush(downloads, downloads_in_my_files) ||
++      !AllowUserExec(downloads_in_my_files)) {
+     return false;
+   }
+ 
+@@ -848,6 +850,16 @@ bool Mounter::BindAndPush(const FilePath& src,
+   return true;
+ }
+ 
++bool Mounter::AllowUserExec(const FilePath& dest) {
++  // Same per-mount flags as BindAndPush minus MS_NOEXEC and MS_NOSYMFOLLOW.
++  if (!platform_->Mount(FilePath(), dest, "",
++                        MS_REMOUNT | MS_BIND | MS_NOSUID | MS_NODEV, "")) {
++    PLOG(ERROR) << "Remount exec failed: " << dest.value();
++    return false;
++  }
++  return true;
++}
++
+ bool Mounter::MountDaemonStoreCacheDirectories(
+     const FilePath& root_home, const ObfuscatedUsername& obfuscated_username) {
+   return InternalMountDaemonStoreDirectories(
+@@ -1053,7 +1065,8 @@ bool Mounter::MountHomesAndDaemonStores(
+   // Bind mount user directory as a shared bind mount.
+   // This allows us to set up user mounts as subsidiary mounts without needing
+   // to replicate that across multiple mount points.
+-  if (!BindAndPush(user_home, user_home, libstorage::RemountOption::kShared)) {
++  if (!BindAndPush(user_home, user_home, libstorage::RemountOption::kShared) ||
++      !AllowUserExec(user_home)) {
+     return false;
+   }
+ 
+@@ -1071,14 +1084,16 @@ bool Mounter::MountHomesAndDaemonStores(
+   // Mount /home/chronos/u-<user_hash>
+   const FilePath new_user_path = GetNewUserPath(username);
+   if (!BindAndPush(user_home, new_user_path,
+-                   libstorage::RemountOption::kMountsFlowIn)) {
++                   libstorage::RemountOption::kMountsFlowIn) ||
++      !AllowUserExec(new_user_path)) {
+     return false;
+   }
+ 
+   // Mount /home/user/<user_hash>.
+   const FilePath user_multi_home = GetUserPath(username);
+   if (!BindAndPush(user_home, user_multi_home,
+-                   libstorage::RemountOption::kMountsFlowIn)) {
++                   libstorage::RemountOption::kMountsFlowIn) ||
++      !AllowUserExec(user_multi_home)) {
+     return false;
+   }
+ 
+diff --git a/cryptohome/namespace_mounter/mounter.h b/cryptohome/namespace_mounter/mounter.h
+index f0178dcbf5..698b8d9b36 100644
+--- a/cryptohome/namespace_mounter/mounter.h
++++ b/cryptohome/namespace_mounter/mounter.h
+@@ -135,6 +135,10 @@ class Mounter {
+   //   src - Path to bind from
+   //   dest - Path to bind to
+   //   is_shared - bind mount as MS_SHARED
++  // NickelOS: remount a bind of the user's home so programs may run from it
++  // and symlinks are followed (keeps nosuid,nodev).
++  bool AllowUserExec(const base::FilePath& dest);
++
+   bool BindAndPush(const base::FilePath& src,
+                    const base::FilePath& dest,
+                    libstorage::RemountOption remount =
+-- 
+2.43.0
+

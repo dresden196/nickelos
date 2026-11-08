@@ -1,0 +1,84 @@
+diff --git a/content/common/gpu_pre_sandbox_hook_linux.cc b/content/common/gpu_pre_sandbox_hook_linux.cc
+index 2e53794fa3374..c41e683d837f1 100644
+--- a/content/common/gpu_pre_sandbox_hook_linux.cc
++++ b/content/common/gpu_pre_sandbox_hook_linux.cc
+@@ -18,10 +18,14 @@
+ #include "base/base_paths.h"
+ #include "base/files/file_enumerator.h"
+ #include "base/files/file_path.h"
++#include "base/files/file_util.h"
+ #include "base/files/scoped_file.h"
+ #include "base/functional/bind.h"
+ #include "base/logging.h"
+ #include "base/path_service.h"
++#include "base/strings/strcat.h"
++#include "base/strings/string_split.h"
++#include "base/strings/string_util.h"
+ #include "base/strings/stringprintf.h"
+ #include "build/build_config.h"
+ #include "build/buildflag.h"
+@@ -316,6 +320,19 @@ void AddNvidiaGpuPermissions(std::vector<BrokerFilePermission>* permissions) {
+     permissions->push_back(BrokerFilePermission::ReadOnly(item));
+   }
+ 
++  // NickelOS: NVIDIA's own driver (its open kernel modules and userspace),
++  // not nouveau: its EGL vendor and external platform files and the driver's
++  // /proc entries. Its libraries are loaded before the sandbox
++  // (LoadNvidiaLibraries()).
++  permissions->push_back(BrokerFilePermission::ReadOnly(
++      "/usr/share/glvnd/egl_vendor.d/10_nvidia.json"));
++  permissions->push_back(BrokerFilePermission::ReadOnly(
++      "/usr/share/egl/egl_external_platform.d"));
++  permissions->push_back(BrokerFilePermission::ReadOnlyRecursive(
++      "/usr/share/egl/egl_external_platform.d/"));
++  permissions->push_back(
++      BrokerFilePermission::ReadOnlyRecursive("/proc/driver/nvidia/"));
++
+   AddDrmGpuPermissions(permissions);
+ }
+ 
+@@ -579,6 +596,44 @@ bool LoadNvidiaLibraries() {
+       LOG(WARNING) << "dlopen(" << library
+                    << ") failed with error: " << dlerror();
+   }
++
++  // NickelOS: NVIDIA's own driver. Its EGL library loads its core libraries
++  // (named after the driver version) and its external platforms only when a
++  // display initializes, and minigbm loads NVIDIA's allocator for its
++  // nvidia-drm backend: all after the sandbox is up. Load them now. The
++  // version is the kernel module's, which its userspace always matches.
++  std::string nvrm;
++  if (!base::ReadFileToString(base::FilePath("/proc/driver/nvidia/version"),
++                              &nvrm)) {
++    return true;  // nouveau, or no NVIDIA driver at all
++  }
++  // "NVRM version: NVIDIA UNIX Open Kernel Module for x86_64  595.104.02 ..."
++  std::string version;
++  for (std::string_view word : base::SplitStringPiece(
++           nvrm, " \t\n", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY)) {
++    if (base::IsAsciiDigit(word.front()) &&
++        word.find('.') != std::string_view::npos) {
++      version = std::string(word);
++      break;
++    }
++  }
++  std::vector<std::string> nvidia_libraries = {
++      "libEGL_nvidia.so.0",          "libnvidia-allocator.so.1",
++      "libnvidia-egl-gbm.so.1",      "libnvidia-egl-wayland.so.1",
++      "libnvidia-egl-wayland2.so.1", "libnvidia-egl-xcb.so.1",
++      "libnvidia-egl-xlib.so.1"};
++  if (!version.empty()) {
++    for (const char* core : {"eglcore", "glsi", "gpucomp"}) {
++      nvidia_libraries.push_back(
++          base::StrCat({"libnvidia-", core, ".so.", version}));
++    }
++  }
++  for (const std::string& library : nvidia_libraries) {
++    if (!dlopen(library.c_str(), dlopen_flag)) {
++      LOG(WARNING) << "dlopen(" << library
++                   << ") failed with error: " << dlerror();
++    }
++  }
+   return true;
+ }
+ 

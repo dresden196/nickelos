@@ -1,0 +1,24 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] usermode-helper: crash_reporter by its merged-/usr path too
+
+NickelOS Unified's root is merged /usr: /sbin leads to /usr/bin.
+crash_reporter writes its own path, as it resolves, into the kernel's
+core_pattern (/usr/bin/crash_reporter), and usermode-helper refused it,
+so no crash was ever collected. Accept that path as Google already does
+for modprobe.
+
+---
+--- a/init/usermode-helper_lib.cc
++++ b/init/usermode-helper_lib.cc
+@@ -164,7 +164,10 @@
+ bool ValidateProgramArgs(int argc, const char* argv[]) {
+   const std::string_view prog(argv[0]);
+ 
+-  if (prog == "/sbin/crash_reporter") {
++  // NickelOS Unified: /sbin leads to /usr/bin (merged /usr), and crash_reporter
++  // writes its own path, as it resolves, into the kernel's core_pattern.
++  if ((prog == "/sbin/crash_reporter") ||
++      (prog == "/usr/bin/crash_reporter")) {
+     return ValidateCrashReporter(argc, argv);
+   } else if ((prog == "/usr/bin/modprobe") || (prog == "/sbin/modprobe")) {
+     return ValidateModprobe(argc, argv);

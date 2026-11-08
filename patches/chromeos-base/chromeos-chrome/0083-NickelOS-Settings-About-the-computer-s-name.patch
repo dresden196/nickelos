@@ -1,0 +1,611 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Settings > About, the computer's name
+
+ChromiumOS has no computer name: every NickelOS computer was "localhost"
+in the Terminal and to Linux apps, and Settings had no way to change it
+(ChromeOS's own "Device name" setting is gone; only an enterprise policy
+names devices now).
+
+This adds a Computer name row to the About page, under the update rows,
+with a Change button and dialog. The name is kept as typed ("Dresden's
+Laptop"); nickel-hostnamed (org.freedesktop.hostname1, as on other
+distributions) makes the hostname from it ("Dresdens-Laptop"), which the
+row shows too when it reads differently. Changes are for administrators of
+the computer; nickel-hostnamed checks, and the row says so to everyone
+else. A name with no letter or digit a hostname can hold (one written only
+in another script) gets an error in the dialog.
+
+NickelComputerNameHandler reads the hostname1 properties and calls
+org.nickelos.Hostname1's CanChange and SetName.
+
+The strings are in ui_chromeos_strings.grd, which few files include.
+
+diff --git a/chrome/browser/resources/ash/settings/BUILD.gn b/chrome/browser/resources/ash/settings/BUILD.gn
+index 49b110de59504..be1367e07b57c 100644
+--- a/chrome/browser/resources/ash/settings/BUILD.gn
++++ b/chrome/browser/resources/ash/settings/BUILD.gn
+@@ -201,6 +201,7 @@ build_webui("build") {
+     "os_about_page/channel_switcher_dialog.ts",
+     "os_about_page/consumer_auto_update_toggle_dialog.ts",
+     "os_about_page/detailed_build_info_subpage.ts",
++    "os_about_page/nickel_computer_name.ts",
+     "os_about_page/os_about_page.ts",
+     "os_about_page/update_warning_dialog.ts",
+     "os_apps_page/android_apps_subpage.ts",
+diff --git a/chrome/browser/resources/ash/settings/os_about_page/nickel_computer_name.html b/chrome/browser/resources/ash/settings/os_about_page/nickel_computer_name.html
+new file mode 100644
+index 0000000000000..a26d96f0465e6
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_about_page/nickel_computer_name.html
+@@ -0,0 +1,53 @@
++<style include="settings-shared">
++  .nickel-computer-name-error {
++    color: var(--cros-sys-error);
++  }
++
++  cr-dialog p {
++    margin: 0 0 12px;
++  }
++</style>
++<div class="settings-box two-line">
++  <div class="start settings-box-text">
++    <div id="nickelComputerNameLabel">$i18n{nickelComputerNameLabel}</div>
++    <div class="secondary" id="nickelComputerNameValue">
++      [[displayName_(state_)]]
++    </div>
++    <div class="secondary"
++        hidden$="[[!terminalName_(state_)]]">
++      [[terminalName_(state_)]]
++    </div>
++    <div class="secondary" hidden$="[[!adminOnly_(state_)]]">
++      $i18n{nickelComputerNameAdminOnly}
++    </div>
++  </div>
++  <div class="separator"></div>
++  <cr-button id="nickelComputerNameChange" on-click="onChangeClick_"
++      disabled="[[!state_.canChange]]"
++      aria-describedby="nickelComputerNameLabel nickelComputerNameValue">
++    $i18n{nickelComputerNameChange}
++  </cr-button>
++</div>
++
++<template is="dom-if" if="[[dialogOpen_]]" restamp>
++  <cr-dialog id="dialog" show-on-attach on-close="onDialogClose_">
++    <div slot="title">$i18n{nickelComputerNameDialogTitle}</div>
++    <div slot="body">
++      <p>$i18n{nickelComputerNameDialogBody}</p>
++      <cr-input id="nameInput" value="{{draft_}}" maxlength="64"
++          aria-label="$i18n{nickelComputerNameLabel}"
++          invalid="[[hasError_(error_)]]" error-message="[[error_]]"
++          on-keydown="onInputKeydown_" spellcheck="false" autofocus>
++      </cr-input>
++    </div>
++    <div slot="button-container">
++      <cr-button class="cancel-button" on-click="onCancelClick_">
++        $i18n{cancel}
++      </cr-button>
++      <cr-button class="action-button" on-click="onSaveClick_"
++          disabled="[[!canSave_(draft_, saving_)]]">
++        $i18n{save}
++      </cr-button>
++    </div>
++  </cr-dialog>
++</template>
+diff --git a/chrome/browser/resources/ash/settings/os_about_page/nickel_computer_name.ts b/chrome/browser/resources/ash/settings/os_about_page/nickel_computer_name.ts
+new file mode 100644
+index 0000000000000..c7223d9a24192
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_about_page/nickel_computer_name.ts
+@@ -0,0 +1,161 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++/**
++ * @fileoverview NickelOS: the computer's name, a row on the About page.
++ * ChromiumOS has none (every computer was "localhost"); nickel-hostnamed
++ * keeps it (NickelComputerNameHandler). The name as typed is kept as is, and
++ * the hostname the Terminal and Linux apps see is made from it. Changes are
++ * for administrators of the device.
++ */
++
++import 'chrome://resources/ash/common/cr_elements/cr_button/cr_button.js';
++import 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
++import 'chrome://resources/ash/common/cr_elements/cr_input/cr_input.js';
++import '../settings_shared.css.js';
++
++import type {CrDialogElement} from 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
++import {I18nMixin} from 'chrome://resources/ash/common/cr_elements/i18n_mixin.js';
++import {sendWithPromise} from 'chrome://resources/js/cr.js';
++import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++
++import {getTemplate} from './nickel_computer_name.html.js';
++
++interface ComputerName {
++  // Whether nickel-hostnamed answered.
++  available: boolean;
++  // The running hostname, the kept one, and the name as typed (or "").
++  Hostname: string;
++  StaticHostname: string;
++  PrettyHostname: string;
++  canChange: boolean;
++}
++
++const NickelComputerNameElementBase = I18nMixin(PolymerElement);
++
++export class NickelComputerNameElement extends NickelComputerNameElementBase {
++  static get is() {
++    return 'nickel-computer-name' as const;
++  }
++
++  static get template() {
++    return getTemplate();
++  }
++
++  static get properties() {
++    return {
++      state_: {
++        type: Object,
++        value: () => ({
++          available: false,
++          Hostname: '',
++          StaticHostname: '',
++          PrettyHostname: '',
++          canChange: false,
++        }),
++      },
++      dialogOpen_: {type: Boolean, value: false},
++      draft_: {type: String, value: ''},
++      error_: {type: String, value: ''},
++      saving_: {type: Boolean, value: false},
++    };
++  }
++
++  declare private state_: ComputerName;
++  declare private dialogOpen_: boolean;
++  declare private draft_: string;
++  declare private error_: string;
++  declare private saving_: boolean;
++
++  override connectedCallback(): void {
++    super.connectedCallback();
++    this.refresh_();
++  }
++
++  private async refresh_(): Promise<void> {
++    this.state_ = await sendWithPromise('getNickelComputerName');
++  }
++
++  private displayName_(state: ComputerName): string {
++    return state.PrettyHostname || state.StaticHostname || state.Hostname;
++  }
++
++  // The hostname, when it reads differently from the name as typed.
++  private terminalName_(state: ComputerName): string {
++    if (!state.PrettyHostname || !state.Hostname ||
++        state.PrettyHostname === state.Hostname) {
++      return '';
++    }
++    return this.i18n('nickelComputerNameTerminal', state.Hostname);
++  }
++
++  private adminOnly_(state: ComputerName): boolean {
++    return state.available && !state.canChange;
++  }
++
++  private hasError_(error: string): boolean {
++    return !!error;
++  }
++
++  private canSave_(draft: string, saving: boolean): boolean {
++    return !saving && draft.trim().length > 0;
++  }
++
++  private onChangeClick_(): void {
++    this.draft_ = this.displayName_(this.state_);
++    this.error_ = '';
++    this.saving_ = false;
++    this.dialogOpen_ = true;
++  }
++
++  private onInputKeydown_(e: KeyboardEvent): void {
++    this.error_ = '';
++    if (e.key === 'Enter' && this.canSave_(this.draft_, this.saving_)) {
++      this.onSaveClick_();
++    }
++  }
++
++  private async onSaveClick_(): Promise<void> {
++    this.saving_ = true;
++    const result: string =
++        await sendWithPromise('setNickelComputerName', this.draft_.trim());
++    this.saving_ = false;
++    if (result === 'invalid') {
++      this.error_ = this.i18n('nickelComputerNameInvalid');
++      return;
++    }
++    if (result) {
++      this.error_ = this.i18n(
++          result === 'not-allowed' ? 'nickelComputerNameAdminOnly' :
++                                     'nickelComputerNameFailed');
++      return;
++    }
++    this.closeDialog_();
++    this.refresh_();
++  }
++
++  private onCancelClick_(): void {
++    this.closeDialog_();
++  }
++
++  private closeDialog_(): void {
++    const dialog =
++        this.shadowRoot!.querySelector<CrDialogElement>('#dialog');
++    if (dialog?.open) {
++      dialog.close();
++    }
++  }
++
++  private onDialogClose_(): void {
++    this.dialogOpen_ = false;
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    [NickelComputerNameElement.is]: NickelComputerNameElement;
++  }
++}
++
++customElements.define(NickelComputerNameElement.is, NickelComputerNameElement);
+diff --git a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
+index cf339c5315663..5cd99c1d10015 100644
+--- a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
++++ b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
+@@ -191,6 +191,8 @@
+             $i18n{aboutRelaunchAndAutoUpdate}
+           </cr-button>
+         </div>
++        <!-- NickelOS: the computer's name (nickel-hostnamed). -->
++        <nickel-computer-name></nickel-computer-name>
+         <cr-link-row
+             id="aboutTPMFirmwareUpdate"
+             class="hr"
+diff --git a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts
+index 73fe634d5a315..f377aa6ccc7f5 100644
+--- a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts
++++ b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts
+@@ -21,6 +21,7 @@ import '../settings_shared.css.js';
+ import '../os_settings_icons.html.js';
+ import '../os_reset_page/os_powerwash_dialog.js';
+ import './update_warning_dialog.js';
++import './nickel_computer_name.js';
+ import '../crostini_page/crostini_settings_card.js';
+ import 'chrome://resources/ash/common/cr_elements/policy/cr_policy_indicator.js';
+ 
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn
+index d37539cdcc0e6..8887ba51906de 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn
+@@ -8,6 +8,8 @@ static_library("about") {
+   sources = [
+     "about_section.cc",
+     "about_section.h",
++    "nickel_computer_name_handler.cc",
++    "nickel_computer_name_handler.h",
+   ]
+ 
+   public_deps = [
+@@ -34,6 +36,7 @@ static_library("about") {
+     "//chrome/common",
+     "//chrome/common:constants",
+     "//chromeos/ash/components/browser_context_helper",
++    "//chromeos/ash/components/dbus",
+     "//chromeos/ash/components/signin:identity_manager_provider",
+     "//chromeos/dbus/constants",
+     "//components/policy/core/common",
+@@ -43,6 +46,7 @@ static_library("about") {
+     "//components/user_manager",
+     "//components/webui/version",
+     "//content/public/browser",
++    "//dbus",
+     "//ui/base",
+     "//ui/chromeos",
+     "//ui/webui",
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc b/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc
+index a49e77b9b3a27..4d4e38eb0d9e1 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc
+@@ -27,6 +27,7 @@
+ #include "chrome/browser/ash/policy/core/browser_policy_connector_ash.h"
+ #include "chrome/browser/enterprise/browser_management/management_service_factory.h"
+ #include "chrome/browser/obsolete_system/obsolete_system.h"
++#include "chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/search/search_tag_registry.h"
+ #include "chrome/browser/ui/webui/management/management_ui.h"
+ #include "chrome/browser/ui/webui/settings/about_handler.h"
+@@ -48,6 +49,7 @@
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/webui/web_ui_util.h"
+ #include "ui/chromeos/devicetype_utils.h"
++#include "ui/chromeos/strings/grit/ui_chromeos_strings.h"
+ #include "ui/webui/webui_util.h"
+ 
+ namespace ash::settings {
+@@ -366,6 +368,18 @@ void AboutSection::AddLoadTimeData(content::WebUIDataSource* html_source) {
+        IDS_SETTINGS_ABOUT_PAGE_CONSUMER_AUTO_UPDATE_TOGGLE_TURN_OFF_BUTTON},
+       {"aboutConsumerAutoUpdateToggleKeepUpdatesButton",
+        IDS_SETTINGS_ABOUT_PAGE_CONSUMER_AUTO_UPDATE_TOGGLE_KEEP_UPDATES_BUTTON},
++      {"nickelComputerNameLabel", IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL},
++      {"nickelComputerNameChange", IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE},
++      {"nickelComputerNameTerminal",
++       IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL},
++      {"nickelComputerNameAdminOnly",
++       IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY},
++      {"nickelComputerNameDialogTitle",
++       IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE},
++      {"nickelComputerNameDialogBody",
++       IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY},
++      {"nickelComputerNameInvalid", IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID},
++      {"nickelComputerNameFailed", IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED},
+   };
+   html_source->AddLocalizedStrings(kLocalizedStrings);
+ 
+@@ -487,6 +501,7 @@ void AboutSection::AddLoadTimeData(content::WebUIDataSource* html_source) {
+ void AboutSection::AddHandlers(content::WebUI* web_ui) {
+   web_ui->AddMessageHandler(
+       std::make_unique<::settings::AboutHandler>(profile()));
++  web_ui->AddMessageHandler(std::make_unique<NickelComputerNameHandler>());
+ 
+   crostini_subsection_.AddHandlers(web_ui);
+ }
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.cc
+new file mode 100644
+index 0000000000000..765aad825f18a
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.cc
+@@ -0,0 +1,146 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.h"
++
++#include <utility>
++
++#include "base/functional/bind.h"
++#include "base/strings/strcat.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
++#include "content/public/browser/web_ui.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_proxy.h"
++
++namespace ash::settings {
++
++namespace {
++
++constexpr char kService[] = "org.freedesktop.hostname1";
++constexpr char kPath[] = "/org/freedesktop/hostname1";
++constexpr char kInterface[] = "org.freedesktop.hostname1";
++constexpr char kNickelInterface[] = "org.nickelos.Hostname1";
++constexpr char kErrorPrefix[] = "org.freedesktop.hostname1.Error.";
++
++dbus::ObjectProxy* Proxy() {
++  return DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++      kService, dbus::ObjectPath(kPath));
++}
++
++}  // namespace
++
++NickelComputerNameHandler::NickelComputerNameHandler() = default;
++
++NickelComputerNameHandler::~NickelComputerNameHandler() = default;
++
++void NickelComputerNameHandler::RegisterMessages() {
++  web_ui()->RegisterMessageCallback(
++      "getNickelComputerName",
++      base::BindRepeating(&NickelComputerNameHandler::HandleGet,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "setNickelComputerName",
++      base::BindRepeating(&NickelComputerNameHandler::HandleSet,
++                          base::Unretained(this)));
++}
++
++void NickelComputerNameHandler::OnJavascriptDisallowed() {
++  weak_ptr_factory_.InvalidateWeakPtrs();
++}
++
++void NickelComputerNameHandler::HandleGet(const base::ListValue& args) {
++  AllowJavascript();
++  dbus::MethodCall method_call("org.freedesktop.DBus.Properties", "GetAll");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(kInterface);
++  Proxy()->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&NickelComputerNameHandler::OnProperties,
++                     weak_ptr_factory_.GetWeakPtr(), args[0].GetString()));
++}
++
++void NickelComputerNameHandler::OnProperties(const std::string& callback_id,
++                                             dbus::Response* response,
++                                             dbus::ErrorResponse* error) {
++  base::DictValue state;
++  state.Set("available", response != nullptr);
++  for (const char* key : {"Hostname", "StaticHostname", "PrettyHostname"}) {
++    state.Set(key, "");
++  }
++  dbus::MessageReader reader(response);
++  dbus::MessageReader array(nullptr);
++  if (response && reader.PopArray(&array)) {
++    while (array.HasMoreData()) {
++      dbus::MessageReader entry(nullptr);
++      std::string key;
++      std::string value;
++      if (!array.PopDictEntry(&entry) || !entry.PopString(&key)) {
++        break;
++      }
++      if ((key == "Hostname" || key == "StaticHostname" ||
++           key == "PrettyHostname") &&
++          entry.PopVariantOfString(&value)) {
++        state.Set(key, value);
++      }
++    }
++  }
++  if (!response) {
++    state.Set("canChange", false);
++    ResolveJavascriptCallback(base::Value(callback_id), state);
++    return;
++  }
++  dbus::MethodCall method_call(kNickelInterface, "CanChange");
++  Proxy()->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&NickelComputerNameHandler::OnCanChange,
++                     weak_ptr_factory_.GetWeakPtr(), callback_id,
++                     std::move(state)));
++}
++
++void NickelComputerNameHandler::OnCanChange(const std::string& callback_id,
++                                            base::DictValue state,
++                                            dbus::Response* response,
++                                            dbus::ErrorResponse* error) {
++  bool can_change = false;
++  if (response) {
++    dbus::MessageReader reader(response);
++    reader.PopBool(&can_change);
++  }
++  state.Set("canChange", can_change);
++  ResolveJavascriptCallback(base::Value(callback_id), state);
++}
++
++void NickelComputerNameHandler::HandleSet(const base::ListValue& args) {
++  AllowJavascript();
++  dbus::MethodCall method_call(kNickelInterface, "SetName");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(args.size() > 1 && args[1].is_string()
++                          ? args[1].GetString()
++                          : std::string());
++  Proxy()->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&NickelComputerNameHandler::OnSet,
++                     weak_ptr_factory_.GetWeakPtr(), args[0].GetString()));
++}
++
++void NickelComputerNameHandler::OnSet(const std::string& callback_id,
++                                      dbus::Response* response,
++                                      dbus::ErrorResponse* error) {
++  // "", or why the name was not changed, as the page names it.
++  std::string result;
++  if (!response) {
++    const std::string name = error ? error->GetErrorName() : std::string();
++    if (name == base::StrCat({kErrorPrefix, "InvalidName"})) {
++      result = "invalid";
++    } else if (name == base::StrCat({kErrorPrefix, "NotAllowed"})) {
++      result = "not-allowed";
++    } else {
++      result = "failed";
++    }
++  }
++  ResolveJavascriptCallback(base::Value(callback_id), base::Value(result));
++}
++
++}  // namespace ash::settings
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.h b/chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.h
+new file mode 100644
+index 0000000000000..22258678c07ed
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.h
+@@ -0,0 +1,56 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_ABOUT_NICKEL_COMPUTER_NAME_HANDLER_H_
++#define CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_ABOUT_NICKEL_COMPUTER_NAME_HANDLER_H_
++
++#include <string>
++
++#include "base/memory/weak_ptr.h"
++#include "base/values.h"
++#include "content/public/browser/web_ui_message_handler.h"
++
++namespace dbus {
++class ErrorResponse;
++class Response;
++}  // namespace dbus
++
++namespace ash::settings {
++
++// NickelOS: the computer's name, for Settings > About. nickel-hostnamed keeps
++// it (org.freedesktop.hostname1 on the system bus); changes are for the
++// device's administrators, which nickel-hostnamed checks.
++class NickelComputerNameHandler : public content::WebUIMessageHandler {
++ public:
++  NickelComputerNameHandler();
++  NickelComputerNameHandler(const NickelComputerNameHandler&) = delete;
++  NickelComputerNameHandler& operator=(const NickelComputerNameHandler&) =
++      delete;
++  ~NickelComputerNameHandler() override;
++
++  // content::WebUIMessageHandler:
++  void RegisterMessages() override;
++  void OnJavascriptAllowed() override {}
++  void OnJavascriptDisallowed() override;
++
++ private:
++  void HandleGet(const base::ListValue& args);
++  void OnProperties(const std::string& callback_id,
++                    dbus::Response* response,
++                    dbus::ErrorResponse* error);
++  void OnCanChange(const std::string& callback_id,
++                   base::DictValue state,
++                   dbus::Response* response,
++                   dbus::ErrorResponse* error);
++  void HandleSet(const base::ListValue& args);
++  void OnSet(const std::string& callback_id,
++             dbus::Response* response,
++             dbus::ErrorResponse* error);
++
++  base::WeakPtrFactory<NickelComputerNameHandler> weak_ptr_factory_{this};
++};
++
++}  // namespace ash::settings
++
++#endif  // CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_ABOUT_NICKEL_COMPUTER_NAME_HANDLER_H_
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index 61f080f965bc5..30644d09f26ec 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -2092,6 +2092,31 @@
+       <message name="IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE" desc="NickelOS: shown when the service behind Android apps is not running.">
+         Android apps aren't available right now.
+       </message>
++      <!-- NickelOS: Settings > About, the computer's name (nickel-hostnamed). -->
++      <message name="IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL" desc="NickelOS: in Settings > About, the label of the row that shows the computer's name, which the user can change.">
++        Computer name
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE" desc="NickelOS: in Settings > About, the button that opens a dialog to change the computer's name.">
++        Change
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL" desc="NickelOS: in Settings > About, under the computer's name when its network form differs from what the user typed (spaces and characters a hostname cannot hold are changed or left out). The placeholder is that form, for example Dresdens-Laptop.">
++        In the Terminal: <ph name="HOSTNAME">$1<ex>Dresdens-Laptop</ex></ph>
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY" desc="NickelOS: in Settings > About, shown to users who are not administrators of the computer, who cannot change its name.">
++        Only an administrator of this computer can change its name.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE" desc="NickelOS: the title of the dialog that changes the computer's name.">
++        Change the computer's name
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY" desc="NickelOS: in the dialog that changes the computer's name, what the name is for.">
++        Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID" desc="NickelOS: in the dialog that changes the computer's name, when the name has no letter or digit that a hostname can hold (for example a name written only in another script).">
++        Use at least one letter from A to Z or a number.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED" desc="NickelOS: in the dialog that changes the computer's name, when the name could not be changed and no reason is known.">
++        The name couldn't be changed. Try again.
++      </message>
+       <!-- NickelOS: Settings > Device > Storage management, the device's other drives. -->
+       <message name="IDS_SETTINGS_NICKEL_DRIVES_TITLE" desc="NickelOS: in Settings > Device > Storage management, the heading over the device's other internal drives (such as a disk that holds Windows).">
+         Other drives

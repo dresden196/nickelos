@@ -1,0 +1,138 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: GNOME's apps open pictures, videos, music and PDFs
+
+ChromeOS's Gallery (the Media App) is Google's; ChromiumOS builds only a
+stand-in that opens nothing, yet it showed in the launcher and in Files'
+"Open with". It is no longer installed.
+
+NickelOS installs GNOME's apps at first boot (nickel-flatpak-defaults):
+Loupe, Showtime, Amberol and Papers. Until the user chooses an app for a
+kind of file (Files' "Change default", or Settings > Apps > Default apps),
+Files opens pictures with Loupe, videos with Showtime, music with Amberol
+and PDFs with Papers when they are installed, found by their desktop file
+ids among the Linux apps that can open the file.
+
+diff --git a/chrome/browser/ash/file_manager/file_tasks.cc b/chrome/browser/ash/file_manager/file_tasks.cc
+index e72c0ed944440..78a847b7636c0 100644
+--- a/chrome/browser/ash/file_manager/file_tasks.cc
++++ b/chrome/browser/ash/file_manager/file_tasks.cc
+@@ -82,6 +82,7 @@
+ #include "components/prefs/pref_service.h"
+ #include "components/prefs/scoped_user_pref_update.h"
+ #include "components/services/app_service/public/cpp/app_launch_params.h"
++#include "components/services/app_service/public/cpp/app_update.h"
+ #include "components/services/app_service/public/cpp/app_launch_util.h"
+ #include "components/services/app_service/public/cpp/app_types.h"
+ #include "components/services/app_service/public/cpp/app_update.h"
+@@ -488,6 +489,69 @@ bool IsEncryptedEntry(const extensions::EntryInfo& entry) {
+   return drive::util::IsEncryptedMimeType(entry.mime_type);
+ }
+ 
++// NickelOS: the app (its desktop file id) that opens a kind of file until the
++// user chooses one: GNOME's, which NickelOS installs at first boot. Empty if
++// NickelOS has none for the type.
++std::string_view NickelDefaultDesktopFileId(const std::string& mime_type) {
++  if (mime_type.starts_with("image/")) {
++    return "org.gnome.Loupe";
++  }
++  if (mime_type.starts_with("video/")) {
++    return "org.gnome.Showtime";
++  }
++  if (mime_type.starts_with("audio/")) {
++    return "io.bassi.Amberol";
++  }
++  if (mime_type == "application/pdf") {
++    return "org.gnome.Papers";
++  }
++  return {};
++}
++
++// NickelOS: makes the GNOME app for the entries' kind of file the default
++// task, if it is installed and one of `tasks`. False if not.
++bool SetNickelDefaultTask(Profile* profile,
++                          const std::vector<extensions::EntryInfo>& entries,
++                          std::vector<FullTaskDescriptor>& tasks) {
++  // One app for all the entries.
++  std::string_view wanted;
++  for (const extensions::EntryInfo& entry : entries) {
++    std::string_view id = NickelDefaultDesktopFileId(entry.mime_type);
++    if (id.empty() || (!wanted.empty() && id != wanted)) {
++      return false;
++    }
++    wanted = id;
++  }
++  Profile* app_profile = GetProfileWithAppService(profile);
++  if (wanted.empty() || !app_profile) {
++    return false;
++  }
++  apps::AppRegistryCache& cache =
++      apps::AppServiceProxyFactory::GetForProfile(app_profile)
++          ->AppRegistryCache();
++  for (FullTaskDescriptor& task : tasks) {
++    if (task.task_descriptor.task_type != TASK_TYPE_CROSTINI_APP) {
++      continue;
++    }
++    bool match = false;
++    cache.ForOneApp(task.task_descriptor.app_id,
++                    [&match, wanted](const apps::AppUpdate& update) {
++                      if (update.AppType() != apps::AppType::kNickelHost) {
++                        return;
++                      }
++                      std::optional<base::DictValue> extra = update.Extra();
++                      const std::string* id =
++                          extra ? extra->FindString("desktop_file_id") : nullptr;
++                      match = id && *id == wanted;
++                    });
++    if (match) {
++      task.is_default = true;
++      return true;
++    }
++  }
++  return false;
++}
++
+ }  // namespace
+ 
+ ResultingTasks::ResultingTasks() = default;
+@@ -1046,6 +1110,11 @@ void ChooseAndSetDefaultTask(Profile* profile,
+     }
+   }
+ 
++  // NickelOS: none chosen; GNOME's app for the kind of file, if installed.
++  if (SetNickelDefaultTask(profile, entries, tasks)) {
++    return;
++  }
++
+   // No default task. If the "Open in Docs/Sheets/Slides through Drive" workflow
+   // is available for Office files, set as default.
+   for (FullTaskDescriptor& task : tasks) {
+diff --git a/chrome/browser/ash/system_web_apps/apps/media_app/media_web_app_info.cc b/chrome/browser/ash/system_web_apps/apps/media_app/media_web_app_info.cc
+index 35713d91305b1..adcc7c59709cc 100644
+--- a/chrome/browser/ash/system_web_apps/apps/media_app/media_web_app_info.cc
++++ b/chrome/browser/ash/system_web_apps/apps/media_app/media_web_app_info.cc
+@@ -236,6 +236,13 @@ bool MediaSystemAppDelegate::ShouldHandleFileOpenIntents() const {
+   return true;
+ }
+ 
++// NickelOS: Gallery is Google's app; ChromiumOS builds only a stand-in that
++// opens nothing. GNOME's apps open pictures, videos, music and PDFs instead
++// (installed at first boot; file_tasks.cc makes them the defaults).
++bool MediaSystemAppDelegate::IsAppEnabled() const {
++  return false;
++}
++
+ ash::BrowserDelegate* MediaSystemAppDelegate::LaunchAndNavigateSystemWebApp(
+     Profile* profile,
+     web_app::WebAppProvider* provider,
+diff --git a/chrome/browser/ash/system_web_apps/apps/media_app/media_web_app_info.h b/chrome/browser/ash/system_web_apps/apps/media_app/media_web_app_info.h
+index 2d9e790360cb0..cca62f3c583f3 100644
+--- a/chrome/browser/ash/system_web_apps/apps/media_app/media_web_app_info.h
++++ b/chrome/browser/ash/system_web_apps/apps/media_app/media_web_app_info.h
+@@ -26,6 +26,7 @@ class MediaSystemAppDelegate : public ash::SystemWebAppDelegate {
+   ash::BrowserDelegate* GetWindowForLaunch(Profile* profile,
+                                            const GURL& url) const override;
+   bool ShouldHandleFileOpenIntents() const override;
++  bool IsAppEnabled() const override;
+   base::FilePath GetLaunchDirectory(
+       const apps::AppLaunchParams& params) const override;
+   ash::BrowserDelegate* LaunchAndNavigateSystemWebApp(

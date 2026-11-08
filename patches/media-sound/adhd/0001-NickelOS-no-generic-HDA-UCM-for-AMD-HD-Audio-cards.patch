@@ -1,0 +1,25 @@
+diff -ruN a/adhd/ucm-config/for_all_boards_ucm2/HDA-Intel/HDA-Intel.conf b/adhd/ucm-config/for_all_boards_ucm2/HDA-Intel/HDA-Intel.conf
+--- a/adhd/ucm-config/for_all_boards_ucm2/HDA-Intel/HDA-Intel.conf
++++ b/adhd/ucm-config/for_all_boards_ucm2/HDA-Intel/HDA-Intel.conf
+@@ -1,5 +1,21 @@
+ Syntax 4
+ 
++# NickelOS: not for the HD-Audio codecs of AMD laptops (card "HD-Audio
++# Generic"). The HiFi verb below defines only an internal mic, so CRAS gave
++# their speaker software volume and left the codec's Master muted: no sound
++# (the AMD test PC, 2026-10-07). Without UCM, CRAS finds Master, Headphone and
++# Speaker itself and drives them, as on boards without a UCM config.
++If.nickel_amd_hda {
++	Condition {
++		Type String
++		String1 "${CardName}"
++		String2 "HD-Audio Generic"
++	}
++	True {
++		Error "no generic HDA use case for HD-Audio Generic cards"
++	}
++}
++
+ Comment "HDA Intel PCH Audio"
+ 
+ If.board_ucm1 {

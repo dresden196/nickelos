@@ -1,0 +1,7 @@
+# NickelOS: SELinux for the OS's packages Google builds with it
+# (profile/package.use/zz-unified-os).
+app-arch/tar -selinux
+sys-apps/coreutils -selinux
+sys-apps/findutils -selinux
+sys-process/lsof -selinux
+sys-process/procps -selinux

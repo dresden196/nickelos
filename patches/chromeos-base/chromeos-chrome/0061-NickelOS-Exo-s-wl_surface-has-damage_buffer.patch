@@ -1,0 +1,103 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Exo's wl_surface has damage_buffer
+
+Exo offered wl_compositor version 3, without wl_surface.damage_buffer
+(version 4). GTK 4 uses damage_buffer on the subsurfaces it hands video
+and web content to (graphics offload); on Exo that was a protocol error
+and the app died. GNOME Web (WebKitGTK) crashed whenever its window was
+maximized.
+
+wl_compositor is version 4 now. damage_buffer takes buffer coordinates:
+with a plain buffer (no transform, viewport or crop) it is the surface
+damage scaled by the buffer scale; otherwise the whole surface is damaged,
+which is always correct.
+
+diff --git a/components/exo/surface.cc b/components/exo/surface.cc
+index 108e71e9133c8..cb3635440b102 100644
+--- a/components/exo/surface.cc
++++ b/components/exo/surface.cc
+@@ -444,6 +444,22 @@ void Surface::Damage(const gfx::Rect& damage) {
+   pending_state_.damage.Union(intersected_damage);
+ }
+ 
++void Surface::DamageBuffer(const gfx::Rect& damage) {
++  // NickelOS: buffer pixels in surface coordinates, for a buffer that is
++  // only scaled (what clients nearly always send); a transform or viewport
++  // moves them elsewhere, so the whole surface is damaged then (more
++  // redrawing, never less). Taken from the pending state: clients set the
++  // scale before they damage.
++  const State& state = pending_state_.basic_state;
++  if (state.buffer_transform != Transform::NORMAL ||
++      !state.viewport.IsEmpty() || !state.crop.IsEmpty() ||
++      state.buffer_scale <= 0) {
++    Damage(gfx::Rect(0x7FFFFFFE, 0x7FFFFFFE));
++    return;
++  }
++  Damage(gfx::ScaleToEnclosingRect(damage, 1.0f / state.buffer_scale));
++}
++
+ void Surface::RequestFrameCallback(const FrameCallback& callback) {
+   TRACE_EVENT0("exo", "Surface::RequestFrameCallback");
+ 
+diff --git a/components/exo/surface.h b/components/exo/surface.h
+index 6914f23ccde01..0e2925102e94c 100644
+--- a/components/exo/surface.h
++++ b/components/exo/surface.h
+@@ -147,6 +147,8 @@ class Surface final : public ui::PropertyHandler {
+   // current surface contents, and where the surface therefore needs to be
+   // repainted.
+   void Damage(const gfx::Rect& rect);
++  // NickelOS: the same in buffer pixels (wl_surface.damage_buffer).
++  void DamageBuffer(const gfx::Rect& rect);
+ 
+   // Request notification when it's a good time to produce a new frame. Useful
+   // for throttling redrawing operations, and driving animations.
+diff --git a/components/exo/wayland/wl_compositor.cc b/components/exo/wayland/wl_compositor.cc
+index f36146f6c3d34..a23ae5eb2e038 100644
+--- a/components/exo/wayland/wl_compositor.cc
++++ b/components/exo/wayland/wl_compositor.cc
+@@ -206,6 +206,17 @@ void surface_set_buffer_scale(wl_client* client,
+   GetUserDataAs<Surface>(resource)->SetBufferScale(scale);
+ }
+ 
++// NickelOS: wl_surface version 4 (Surface::DamageBuffer).
++void surface_damage_buffer(wl_client* client,
++                           wl_resource* resource,
++                           int32_t x,
++                           int32_t y,
++                           int32_t width,
++                           int32_t height) {
++  GetUserDataAs<Surface>(resource)->DamageBuffer(
++      gfx::Rect(x, y, width, height));
++}
++
+ const struct wl_surface_interface surface_implementation = {
+     surface_destroy,
+     surface_attach,
+@@ -215,7 +226,8 @@ const struct wl_surface_interface surface_implementation = {
+     surface_set_input_region,
+     surface_commit,
+     surface_set_buffer_transform,
+-    surface_set_buffer_scale};
++    surface_set_buffer_scale,
++    surface_damage_buffer};
+ 
+ ////////////////////////////////////////////////////////////////////////////////
+ // wl_compositor_interface:
+diff --git a/components/exo/wayland/wl_compositor.h b/components/exo/wayland/wl_compositor.h
+index cc553e800cba2..4a618ca1c244a 100644
+--- a/components/exo/wayland/wl_compositor.h
++++ b/components/exo/wayland/wl_compositor.h
+@@ -11,8 +11,11 @@
+ 
+ namespace exo::wayland {
+ 
++// NickelOS: 4, for wl_surface.damage_buffer, which GTK 4 sends on its
++// subsurfaces whatever the version (graphics offload: a maximized WebKit
++// view, a video): at 3, Exo ended such apps with a protocol error.
+ constexpr uint32_t kWlCompositorVersion =
+-    WL_SURFACE_SET_BUFFER_SCALE_SINCE_VERSION;
++    WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION;
+ 
+ void bind_compositor(wl_client* client,
+                      void* data,

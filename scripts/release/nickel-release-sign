@@ -1,0 +1,116 @@
+#!/bin/bash
+# On Dresden's laptop: signs a NickelOS release that nickel-release prepare
+# made on the build host (docs/updates.md, "Making a release"), with the two
+# production keys, which never leave the laptop:
+#  1. Secure Boot: fetches GRUB, the kernel and the ISO's GRUB, shows them,
+#     signs each with the Secure Boot key (a detached signature, checked
+#     here), and sends the signatures back; the build host puts them on
+#     every copy (nickel-release attach), then makes the update payload;
+#  2. the update payload: nickel-update-sign (two hashes; it shows the
+#     version and channel and asks again), then publishes it there;
+#  3. starts the ISO's build there (nickel-release iso, about 15 minutes).
+# Asks each key's passphrase once.
+#
+#   nickel-release-sign VERSION [HOST]
+#
+# HOST defaults to nickel-build. The keys come from
+# ~/.local/share/nickelos-keys, or NICKEL_KEYS=<folder> (the flash drive's
+# nickelos/ folder). Needs sbsigntools (sbsign, sbattach, sbverify).
+# NICKEL_SB_KEY and NICKEL_SB_CERT replace the Secure Boot key for a dry run
+# with a stand-in (then step 1 only).
+set -euo pipefail
+VERSION=${1:?the version (nickel-release prepare printed it)}
+HOST=${2:-nickel-build}
+here=$(dirname "$(readlink -f "$0")")
+KEYS=${NICKEL_KEYS:-$HOME/.local/share/nickelos-keys}
+SB_KEY=${NICKEL_SB_KEY:-$KEYS/nickelos-secureboot.key.pem}
+SB_CERT=${NICKEL_SB_CERT:-$KEYS/nickelos-secureboot.crt.pem}
+UPDATE_KEY=$KEYS/nickelos-update-key.pem
+PROD_CERT=$here/../secureboot/nickelos-secureboot.crt.pem
+REMOTE=/srv/nickel/src/.nickel/release/$VERSION
+TOOLS=/srv/nickel/src/src/overlays/overlay-nickel/scripts
+die() { echo "nickel-release-sign: $*" >&2; exit 1; }
+for c in sbsign sbattach sbverify openssl; do
+	command -v "$c" >/dev/null || die "needs $c (sudo pacman -S sbsigntools)"
+done
+[ -r "$SB_KEY" ] && [ -r "$SB_CERT" ] || die "no Secure Boot key in $KEYS"
+fpr() { openssl x509 -in "$1" -noout -fingerprint -sha256 | cut -d= -f2; }
+pub() { openssl x509 -in "$1" -noout -pubkey; }
+# shim won't boot what a certificate naming the module-signing usage signed
+# (scripts/secureboot/nickel-secureboot-key, cert_config).
+openssl x509 -in "$SB_CERT" -noout -ext extendedKeyUsage 2>/dev/null | grep -q '1\.3\.6\.1\.4\.1\.2312\.16\.1\.2' &&
+	die "$SB_CERT names the module-signing usage, and shim won't boot what it signs: run scripts/secureboot/nickel-secureboot-key --reissue-cert first"
+dry=
+if [ -n "${NICKEL_SB_CERT:-}" ] && [ "$(fpr "$SB_CERT")" != "$(fpr "$PROD_CERT")" ]; then
+	dry=1
+	echo "A dry run with a stand-in Secure Boot key: $(openssl x509 -in "$SB_CERT" -noout -subject)"
+elif [ "$(fpr "$SB_CERT")" != "$(fpr "$PROD_CERT")" ]; then
+	# A certificate reissued for the same key (--reissue-cert): it becomes
+	# the overlay's copy, here and on the build host, which checks every
+	# signature against it.
+	[ "$(pub "$SB_CERT")" = "$(pub "$PROD_CERT")" ] ||
+		die "$SB_CERT isn't for NickelOS's production key"
+	echo "The Secure Boot certificate was reissued for the same key: updating the overlay's copy."
+	cp "$SB_CERT" "$PROD_CERT"
+	openssl x509 -in "$SB_CERT" -outform DER -out "${PROD_CERT%.crt.pem}.cer"
+	scp -q "$PROD_CERT" "${PROD_CERT%.crt.pem}.cer" "$HOST:$TOOLS/secureboot/"
+	echo "  (commit scripts/secureboot/nickelos-secureboot.crt.pem and .cer)"
+fi
+[ -n "$dry" ] || [ -r "$UPDATE_KEY" ] || die "no update key in $KEYS"
+
+t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
+files="grubx64.efi vmlinuz iso-grubx64.efi"
+for f in $files SHA256SUMS; do scp -q "$HOST:$REMOTE/tosign/$f" "$t/"; done
+(cd "$t" && sha256sum -c --quiet SHA256SUMS) || die "what came isn't what the build host listed"
+echo "NickelOS $VERSION, for Secure Boot (from $HOST):"
+for f in $files; do
+	printf '  %-16s %9s  %s\n' "$f" "$(stat -c %s "$t/$f")" "$(sha256sum "$t/$f" | cut -c1-16)"
+done
+echo "  key: $(openssl x509 -in "$SB_CERT" -noout -subject), SHA-256 $(fpr "$SB_CERT")"
+read -r -p "Sign them? [y/N] " ok
+[ "$ok" = y ] || [ "$ok" = Y ] || { echo "not signed"; exit 1; }
+
+pass=()
+if grep -q ENCRYPTED "$SB_KEY"; then
+	for try in 1 2 3; do
+		read -r -s -p "Passphrase for the Secure Boot key: " NICKEL_SB_PASS; echo
+		export NICKEL_SB_PASS
+		pass=(-passin env:NICKEL_SB_PASS)
+		openssl pkey -in "$SB_KEY" "${pass[@]}" -noout 2>/dev/null && break
+		echo "wrong passphrase for $SB_KEY"
+		[ "$try" = 3 ] && exit 1
+	done
+fi
+[ "$(openssl pkey -in "$SB_KEY" "${pass[@]}" -pubout)" = "$(pub "$SB_CERT")" ] ||
+	die "$SB_KEY and $SB_CERT don't belong together"
+for f in $files; do
+	# The key, decrypted, only ever in a pipe.
+	sbsign --key <(openssl pkey -in "$SB_KEY" "${pass[@]}") --cert "$SB_CERT" \
+		--detached --output "$t/$f.p7" "$t/$f" 2>&1 | grep -v '^Signing Unsigned\|^warning' || true
+	[ -s "$t/$f.p7" ] || die "sbsign made no signature for $f"
+	cp "$t/$f" "$t/check"
+	sbattach --attach "$t/$f.p7" "$t/check" 2>&1 | grep -v "^Signing Unsigned" || true
+	sbverify --cert "$SB_CERT" "$t/check" >/dev/null || die "the signature on $f doesn't verify"
+done
+unset NICKEL_SB_PASS
+for f in $files; do scp -q "$t/$f.p7" "$HOST:$REMOTE/tosign/"; done
+echo "Secure Boot: signed and sent back. On $HOST: the signatures onto the image, then the update payload (a few minutes)."
+attach_env=
+[ -n "$dry" ] && attach_env="NICKEL_SB_CERT=$REMOTE/tosign/stand-in.crt.pem"
+[ -n "$dry" ] && scp -q "$SB_CERT" "$HOST:$REMOTE/tosign/stand-in.crt.pem"
+# shellcheck disable=SC2029
+ssh "$HOST" "$attach_env $TOOLS/release/nickel-release attach $VERSION"
+if [ -n "$dry" ]; then
+	echo "dry run: done (no update payload, no ISO started)"
+	exit 0
+fi
+
+pending=/srv/nickel/update/pending/nickelos-$VERSION-stable-full
+"$here/../update/nickel-update-sign" "$UPDATE_KEY" "$HOST:$pending" --finish
+
+# shellcheck disable=SC2029
+ssh "$HOST" "systemd-run --unit nickel-release-iso-${VERSION//./-} -p StandardOutput=truncate:/srv/nickel/logs/release-iso-$VERSION.log -p StandardError=inherit $TOOLS/release/nickel-release iso $VERSION" >/dev/null
+echo
+echo "NickelOS $VERSION is signed: Secure Boot, and the update payload on stable."
+echo "The ISO is building on $HOST (/srv/nickel/logs/release-iso-$VERSION.log, about 15 minutes)."
+echo "Nothing is public yet: nickel-release push, then server-access open."

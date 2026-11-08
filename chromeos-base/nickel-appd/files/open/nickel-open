@@ -1,0 +1,63 @@
+#!/bin/bash
+# Distributed under the terms of the GNU General Public License v2
+#
+# NickelOS: Linux apps open links and files through ChromeOS. Web and mail
+# links open in the browser (Ash's UrlHandlerService); files open with the
+# app ChromeOS opens that kind of file with, the user's default (Files, or
+# Settings > Apps > Default apps), as in the Files app; folders open in
+# Files. The handler of org.nickelos.ChromeOS.desktop, which xdg-open, GIO
+# and the OpenURI portal use (nickelos-mimeapps.list, the portal backend's
+# AppChooser).
+#   nickel-open URI-or-PATH...
+#   nickel-open --show-in-folder PATH...    Files shows each in its folder
+show=
+if [ "$1" = --show-in-folder ]; then
+  show=1
+  shift
+fi
+status=0
+for arg in "$@"; do
+  case $arg in
+    http://*|https://*|ftp://*)
+      dbus-send --system --print-reply=literal --reply-timeout=5000 \
+        --dest=org.chromium.UrlHandlerService /org/chromium/UrlHandlerService \
+        org.chromium.UrlHandlerServiceInterface.OpenUrl string:"$arg" \
+        >/dev/null || status=1
+      continue ;;
+    mailto:*)
+      # Mail links come here only when no Linux mail app is the user's
+      # default (nickelos-mimeapps.list): Chrome opens the mail website
+      # chosen in Settings > Apps > Default apps, or says none is set.
+      dbus-send --system --print-reply=literal --reply-timeout=5000 \
+        --dest=org.chromium.VmApplicationsService \
+        /org/chromium/VmApplicationsService \
+        org.chromium.VmApplicationsService.NickelOpenLink string:"$arg" \
+        >/dev/null || status=1
+      continue ;;
+    file://*)
+      # file://[localhost]/path, percent-decoded.
+      path=${arg#file://}
+      path=${path#localhost}
+      path=$(printf '%b' "$(printf '%s' "$path" |
+        sed 's/%\([0-9A-Fa-f][0-9A-Fa-f]\)/\\x\1/g')") ;;
+    /*) path=$arg ;;
+    *:*)
+      echo "nickel-open: cannot open $arg" >&2
+      status=1
+      continue ;;
+    *) path=$PWD/$arg ;;
+  esac
+  if [ -n "$show" ]; then
+    how=show
+  elif [ -d "$path" ]; then
+    how=folder
+  else
+    how=file
+  fi
+  dbus-send --system --print-reply=literal --reply-timeout=5000 \
+    --dest=org.chromium.VmApplicationsService \
+    /org/chromium/VmApplicationsService \
+    org.chromium.VmApplicationsService.NickelOpenPath \
+    string:"$path" string:"$how" >/dev/null || status=1
+done
+exit "$status"

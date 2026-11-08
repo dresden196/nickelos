@@ -1,0 +1,1470 @@
+{
+ "IDS_ABOUT_CROS_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS.",
+  "t": "Το NickelOS υλοποιήθηκε με τη βοήθεια πρόσθετου BEGIN_LINK_CROS_OSSλογισμικού ανοικτού κώδικαEND_LINK_CROS_OSS."
+ },
+ "IDS_ABOUT_CROS_WITH_LINUX_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS, as is BEGIN_LINK_LINUX_OSSLinux development environmentEND_LINK_LINUX_OSS.",
+  "t": "Το NickelOS υλοποιήθηκε με τη βοήθεια πρόσθετου BEGIN_LINK_CROS_OSSλογισμικού ανοικτού κώδικαEND_LINK_CROS_OSS, όπως είναι το BEGIN_LINK_LINUX_OSSπεριβάλλον ανάπτυξης LinuxEND_LINK_LINUX_OSS."
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY": {
+  "en": "Manage accessibility settings button, Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "Κουμπί Διαχείριση ρυθμίσεων προσβασιμότητας, πατήστε το πλήκτρο Enter για να εξατομικεύσετε τα εργαλεία προσβασιμότητάς σας στις ρυθμίσεις του NickelOS"
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUFFIX": {
+  "en": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT, Press tab then Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT, πατήστε το πλήκτρο Tab και έπειτα το πλήκτρο Enter για να εξατομικεύσετε τα εργαλεία προσβασιμότητάς σας στις ρυθμίσεις του NickelOS"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "Εφαρμογή Linux, εγκατεστημένη μέσω INSTALLER"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "Εφαρμογή Linux"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "Βεβαιωθείτε ότι το τηλέφωνό σας και η συσκευή NickelOS βρίσκονται στο ίδιο δίκτυο και έπειτα δοκιμάστε ξανά. LEARN_MORE"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "Το τηλέφωνό σας χρησιμοποιεί δίκτυο κινητής τηλεφωνίας. Βεβαιωθείτε ότι το τηλέφωνό σας και η συσκευή NickelOS βρίσκονται στο ίδιο δίκτυο Wi-Fi και έπειτα δοκιμάστε ξανά. LEARN_MORE"
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "Ο Διαχειριστής κωδικών πρόσβασης θέλει να επαληθεύσει την ταυτότητά σας"
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "Η συσκευή πρέπει να παραμείνει ενεργοποιημένη και συνδεδεμένη σε παροχή ρεύματος. Βεβαιωθείτε ότι τα καλώδια του φορτιστή ή του μετασχηματιστή είναι συνδεδεμένα σωστά, τόσο στη συσκευή όσο και στην πρίζα. Μην απενεργοποιήσετε τη συσκευή."
+ },
+ "IDS_ASH_MESSAGE_CENTER_SYSTEM_APP_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "Εξοικονομήστε χρόνο απαντώντας γρήγορα στα μηνύματα κειμένου του τηλεφώνου σας από τη συσκευή NickelOS"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "Επιφάνεια εργασίας"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "Μετακίνηση στον κάδο απορριμμάτων"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "Χρησιμοποιήστε ένα όνομα που δεν ξεκινά με τελεία και δεν περιέχει κάθετο."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "Υπάρχει ήδη ένα στοιχείο με αυτό το όνομα."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "Νέος φάκελος"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "Νέος φάκελος"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "Άνοιγμα"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "Άνοιγμα της Επιφάνειας εργασίας στα Αρχεία"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "Μετονομασία"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "Δεν ήταν δυνατή η μετονομασία."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "Μετονομασία"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "Εμφάνιση στα Αρχεία"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "Μόνο εγκεκριμένες συσκευές Thunderbolt είναι συμβατές με τη συσκευή σας NickelOS."
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "Εγκατάσταση NickelOS"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "Η συσκευή NickelOS ή η συσκευή Bluetooth χρησιμοποιεί μια παλαιότερη έκδοση του Bluetooth. Χρησιμοποιήστε το εσωτερικό μικρόφωνο για καλύτερη ποιότητα ήχου."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "Βεβαιωθείτε ότι η συσκευή NickelOS είναι συνδεδεμένη στο ίδιο δίκτυο Wi-Fi με τη συσκευή σας Chromecast."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "Άνοιγμα του οδηγού NickelOS"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "Κάντε μια γρήγορη περιήγηση στο PRODUCT_NAME: πού βρίσκονται οι εφαρμογές σας, πώς να αποκτήσετε περισσότερες και το Linux στο οποίο βασίζεται. 7 βήματα."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "Γεια σας. Καλώς ορίσατε στο PRODUCT_NAME."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Βήμα περιήγησης STEP από TOTAL_STEPS. Μπορείτε να βρείτε την εφαρμογή Αρχεία στη Λειτουργία εκκίνησης εφαρμογών. Ο Προσωπικός φάκελος είναι ο φάκελός σας στο Linux: οι εφαρμογές Linux και η εφαρμογή Αρχεία βλέπουν τα ίδια αρχεία, ενώ εδώ εμφανίζεται επίσης ο αποθηκευτικός χώρος cloud που προσθέτετε στις Ρυθμίσεις."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Ο Προσωπικός φάκελος είναι ο φάκελός σας στο Linux: οι εφαρμογές Linux και η εφαρμογή Αρχεία βλέπουν τα ίδια αρχεία, ενώ εδώ εμφανίζεται επίσης ο αποθηκευτικός χώρος cloud που προσθέτετε στις Ρυθμίσεις."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Βήμα περιήγησης STEP από TOTAL_STEPS. Το Waydroid εκτελεί εφαρμογές Android, την καθεμία στο δικό της παράθυρο. Ρυθμίστε το στις Ρυθμίσεις, στην ενότητα Εφαρμογές και έπειτα Εφαρμογές Android. Στη συνέχεια, αν ανοίξετε ένα αρχείο APK, η εφαρμογή εγκαθίσταται, ενώ οι εφαρμογές του Android εμφανίζονται στη Λειτουργία εκκίνησης εφαρμογών."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Το Waydroid εκτελεί εφαρμογές Android, την καθεμία στο δικό της παράθυρο. Ρυθμίστε το στις Ρυθμίσεις > Εφαρμογές > Εφαρμογές Android. Στη συνέχεια, αν ανοίξετε ένα αρχείο APK, η εφαρμογή εγκαθίσταται, ενώ οι εφαρμογές του Android εμφανίζονται στη Λειτουργία εκκίνησης εφαρμογών."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Βήμα περιήγησης STEP από TOTAL_STEPS. Αποκτήστε περισσότερες εφαρμογές στο Bazaar: εφαρμογές Linux από το Flathub, που εγκαθίστανται ως Flatpak. Εμφανίζονται στη Λειτουργία εκκίνησης εφαρμογών όπως κάθε άλλη εφαρμογή."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Αποκτήστε περισσότερες εφαρμογές στο Bazaar: εφαρμογές Linux από το Flathub, που εγκαθίστανται ως Flatpak. Εμφανίζονται στη Λειτουργία εκκίνησης εφαρμογών όπως κάθε άλλη εφαρμογή."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Βήμα περιήγησης STEP από TOTAL_STEPS. Το Τερματικό είναι ένα πραγματικό κέλυφος Linux, με sudo. Το NickelOS βασίζεται στο Gentoo: η εντολή eix βρίσκει πακέτα και η εντολή sudo emerge τα εγκαθιστά, όπως σε κάθε σύστημα Gentoo."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Το Τερματικό είναι ένα πραγματικό κέλυφος Linux, με sudo. Το NickelOS βασίζεται στο Gentoo: η εντολή eix βρίσκει πακέτα και η εντολή sudo emerge τα εγκαθιστά, όπως σε κάθε σύστημα Gentoo."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "Βήμα περιήγησης STEP από TOTAL_STEPS. Μόλις ενεργοποιηθεί η Λειτουργία εκκίνησης εφαρμογών, θα έχετε μια γραμμή αναζήτησης. Ξεκινήστε να πληκτρολογείτε για να αναζητήσετε εφαρμογές, αρχεία και ρυθμίσεις στο PRODUCT_NAME."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "Αναζητήστε εφαρμογές, αρχεία και ρυθμίσεις στο PRODUCT_NAME από τη Λειτουργία εκκίνησης εφαρμογών."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Βήμα περιήγησης STEP από TOTAL_STEPS. Μπορείτε να βρείτε τις Ρυθμίσεις της συσκευής σας στη Λειτουργία εκκίνησης εφαρμογών. Προσαρμόστε το PRODUCT_NAME από τις Ρυθμίσεις: την ταπετσαρία, τη σκούρα ή τη φωτεινή λειτουργία, τις οθόνες και άλλα. Η περιήγηση ολοκληρώθηκε! Θα βρείτε περισσότερα στον οδηγό NickelOS."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Προσαρμόστε και εξατομικεύστε το PRODUCT_NAME σας στις Ρυθμίσεις: την ταπετσαρία, τη σκούρα ή τη φωτεινή λειτουργία, τις οθόνες και άλλα. Η περιήγηση ολοκληρώθηκε! Θα βρείτε περισσότερα στον οδηγό NickelOS."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "Για να ξεκλειδώσετε τη συσκευή NickelOS, χρησιμοποιήστε το δακτυλικό αποτύπωμά σας ή ξεκλειδώστε το τηλέφωνό σας"
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "Βεβαιωθείτε ότι η συσκευή Bluetooth βρίσκεται σε λειτουργία σύζευξης και σε κοντινή απόσταση. Να κάνετε σύζευξη μόνο συσκευές που θεωρείτε αξιόπιστες. Οι συσκευές σε σύζευξη είναι ορατές σε όλους τους λογαριασμούς σε αυτή τη συσκευή NickelOS."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "Βεβαιωθείτε ότι η συσκευή Bluetooth βρίσκεται σε λειτουργία σύζευξης και σε κοντινή απόσταση. Να κάνετε σύζευξη μόνο συσκευές που θεωρείτε αξιόπιστες. Οι συσκευές σε σύζευξη είναι ορατές σε όλους τους λογαριασμούς σε αυτή τη συσκευή NickelOS. BEGIN_LINK_LEARN_MOREΜάθετε περισσότεραEND_LINK_LEARN_MORE"
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Τα δεδομένα σας θα συγχρονίζονται σε όλα τα προγράμματα περιήγησης Chrome στα οποία έχετε ενεργοποιήσει τον συγχρονισμό για αυτόν τον λογαριασμό. Για τις επιλογές συγχρονισμού του NickelOS, μεταβείτε στις LINK_BEGINΡυθμίσεις του NickelOSLINK_END."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "Συντομεύσεις πληκτρολογίου"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "Χρήση λειτουργιών προσβασιμότητας οθόνης αφής"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "Στα περισσότερα πληκτρολόγια, το πλήκτρο αναζήτησης είναι το πλήκτρο Windows, δίπλα στο αριστερό πλήκτρο Alt."
+ },
+ "IDS_CHROMEVOX_TUTORIAL_LEARN_MORE": {
+  "en": "Congratulations! You’ve learned the essentials to use ChromeVox successfully. Remember that you can open the ChromeVox command menu at any time by pressing Search+Period. To learn even more about ChromeVox and NickelOS, visit the following articles.\n    If you're done with the tutorial, use ChromeVox to navigate to the Close button and click it.",
+  "t": "Συγχαρητήρια! Μάθατε τα βασικά για να χρησιμοποιήσετε με επιτυχία το ChromeVox. Μην ξεχνάτε ότι μπορείτε να ανοίξετε το μενού εντολών του ChromeVox ανά πάσα στιγμή πατώντας Search+τελεία. Για να μάθετε περισσότερα σχετικά με το ChromeVox και το NickelOS, επισκεφτείτε τα παρακάτω άρθρα.\n    Εάν ολοκληρώσατε τον οδηγό, χρησιμοποιήστε το ChromeVox για να μεταβείτε στο κουμπί Κλείσιμο και κάντε κλικ στο κουμπί."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "Κατεβάζετε την πιο πρόσφατη ενημέρωση λογισμικού, με τις νεότερες διορθώσεις ασφαλείας και λειτουργίες."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_ERROR": {
+  "en": "To finish setting up Linux, update NickelOS and try again.",
+  "t": "Για να ολοκληρώσετε τη ρύθμιση του Linux, ενημερώστε το NickelOS και δοκιμάστε ξανά."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_TITLE": {
+  "en": "NickelOS update required",
+  "t": "Απαιτείται ενημέρωση του NickelOS"
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "BEGIN_H3Λειτουργίες αποσφαλμάτωσηςEND_H3\n          BR\n          Μπορείτε να ενεργοποιήσετε τις λειτουργίες αποσφαλμάτωσης στη συσκευή NickelOS, ώστε να εγκαταστήσετε και να δοκιμάσετε προσαρμοσμένο κώδικα στη συσκευή σας. Αυτό θα σας επιτρέψει:BR\n          BEGIN_LIST\n            LIST_ITEMΝα καταργήσετε την επαλήθευση rootfs, ώστε να μπορείτε να τροποποιείτε αρχεία του λειτουργικού συστήματος\n            LIST_ITEMΝα ενεργοποιήσετε την πρόσβαση SSH στη συσκευή χρησιμοποιώντας τα βασικά κλειδιά δοκιμής, ώστε να μπορείτε να χρησιμοποιείτε εργαλεία όπως το BEGIN_CODE\"cros flash\"END_CODE για πρόσβαση στη συσκευή\n            LIST_ITEMΝα ενεργοποιήσετε την εκκίνηση από USB, ώστε να μπορείτε να εγκαθιστάτε μια εικόνα λειτουργικού συστήματος από μια μονάδα USB\n            LIST_ITEMΝα ορίζετε τους ριζικούς κωδικούς πρόσβασης σύνδεσης προγραμματιστή και συστήματος σε μια προσαρμοσμένη τιμή, ώστε να μπορείτε να δημιουργείτε κλειδιά SSH με μη αυτόματο τρόπο στη συσκευή\n          END_LIST\n          BR\n          Μετά την ενεργοποίησή τους, οι περισσότερες λειτουργίες αποσφαλμάτωσης θα παραμείνουν ενεργοποιημένες ακόμη και μετά από την εκτέλεση powerwash ή εκκαθάρισης των δεδομένων σε μια συσκευή διαχειριζόμενη από επιχείρηση. Για πλήρη απενεργοποίηση όλων των λειτουργιών αποσφαλμάτωσης, εγκαταστήστε ξανά το NickelOS.\n          BR\n          BR\n          Για περισσότερες πληροφορίες σχετικά με τις λειτουργίες αποσφαλμάτωσης, ανατρέξτε στη διεύθυνση:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDΣημείωση:END_BOLD Θα γίνει επανεκκίνηση του συστήματος κατά τη διάρκεια της διαδικασίας."
+ },
+ "IDS_ENABLE_DEBUGGING_SETUP_MESSAGE": {
+  "en": "You are enabling NickelOS debugging features which will set up sshd daemon and enable booting from USB drives.",
+  "t": "Ενεργοποιείτε τις λειτουργίες αποσφαλμάτωσης του NickelOS οι οποίες θα ρυθμίσουν το sshd daemon και θα επιτρέψουν την εκκίνηση από μονάδες USB."
+ },
+ "IDS_EULA_SCREEN_ACCESSIBLE_TITLE": {
+  "en": "NickelOS terms",
+  "t": "Όροι του NickelOS"
+ },
+ "IDS_EXTENSION_INSTALL_KIOSK_MODE_ONLY": {
+  "en": "App with 'kiosk_only' manifest attribute must be installed in NickelOS kiosk mode",
+  "t": "Θα πρέπει να εγκατασταθεί μια εφαρμογή με χαρακτηριστικό μανιφέστου kiosk_only στη λειτουργία kiosk του NickelOS"
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_DIAGNOSTICS": {
+  "en": "Run NickelOS diagnostic tests",
+  "t": "Εκτέλεση διαγνωστικών ελέγχων NickelOS"
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_EVENTS": {
+  "en": "Subscribe to NickelOS system events",
+  "t": "Εγγραφή στα συμβάντα συστήματος NickelOS"
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_TELEMETRY": {
+  "en": "Read NickelOS device information and data",
+  "t": "Ανάγνωση πληροφοριών και δεδομένων συσκευής NickelOS"
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_TELEMETRY_NETWORK_INFORMATION": {
+  "en": "Read NickelOS network information",
+  "t": "Ανάγνωση πληροφοριών δικτύου NickelOS"
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_TELEMETRY_SERIAL_NUMBER": {
+  "en": "Read NickelOS device and component serial numbers",
+  "t": "Ανάγνωση σειριακών αριθμών συσκευής και στοιχείων NickelOS"
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "Βρείτε άρθρα βοήθειας και απαντήσεις σε συνήθεις ερωτήσεις"
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "Ευχαριστούμε για τα σχόλιά σας. Θα σταλούν όταν συνδεθείτε ξανά στο διαδίκτυο."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "Ευχαριστούμε για τα σχόλιά σας."
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Αυτό το αρχείο έχει σχεδιαστεί για υπολογιστή που χρησιμοποιεί λογισμικό Macintosh. Δεν είναι συμβατό με τη συσκευή σας, η οποία εκτελεί NickelOS. Αναζητήστε μια κατάλληλη εφαρμογή αντικατάστασης στο Chrome Web Store."
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Αυτό το αρχείο έχει σχεδιαστεί για υπολογιστή που χρησιμοποιεί λογισμικό Windows. Δεν είναι συμβατό με τη συσκευή σας, η οποία εκτελεί NickelOS. Αναζητήστε μια κατάλληλη εφαρμογή αντικατάστασης στο Chrome Web Store."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "Προσωπικός φάκελος"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Αυτό το αρχείο έχει σχεδιαστεί για υπολογιστή που χρησιμοποιεί λογισμικό Macintosh. Δεν είναι συμβατό με τη συσκευή σας, η οποία εκτελεί NickelOS. BEGIN_LINK_HELPΜάθετε περισσότεραEND_LINK_HELP σχετικά με το άνοιγμα αρχείων στο NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Αυτό το αρχείο έχει σχεδιαστεί για υπολογιστή που χρησιμοποιεί λογισμικό Windows. Δεν είναι συμβατό με τη συσκευή σας, η οποία εκτελεί NickelOS. BEGIN_LINK_HELPΜάθετε περισσότεραEND_LINK_HELP σχετικά με το άνοιγμα αρχείων στο NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_FILE": {
+  "en": "This file type is not supported. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Δεν υποστηρίζεται αυτός ο τύπος αρχείου. BEGIN_LINK_HELPΜάθετε περισσότεραEND_LINK_HELP σχετικά με το άνοιγμα αρχείων στο NickelOS."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "Η συσκευή σας θα σταματήσει να λαμβάνει ενημερώσεις σύντομα."
+ },
+ "IDS_HELP_APP_WHATS_NEW_SUGGESTION_CHIP": {
+  "en": "What's new with NickelOS",
+  "t": "Νέα στοιχεία NickelOS"
+ },
+ "IDS_IME_SERVICE_DISPLAY_NAME": {
+  "en": "NickelOS Input Method Service",
+  "t": "Υπηρεσία μεθόδου εισαγωγής NickelOS"
+ },
+ "IDS_INSTALLED_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "Για να κάνετε τη ρύθμιση με το τηλέφωνο Android που διαθέτετε, το Bluetooth της συσκευής NickelOS πρέπει να είναι ενεργοποιημένο"
+ },
+ "IDS_LOGIN_SYNC_CONSENT_SCREEN_SUBTITLE_2": {
+  "en": "Your saved preferences and activity will be ready on any NickelOS device when you sign in with your Google Account. You can choose what to sync in Settings.",
+  "t": "Όταν συνδέεστε στον Λογαριασμό σας Google, οι αποθηκευμένες προτιμήσεις και η δραστηριότητά σας θα είναι έτοιμα σε οποιαδήποτε συσκευή NickelOS. Μπορείτε να επιλέξετε τα στοιχεία που θέλετε να συγχρονίζονται στις Ρυθμίσεις."
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "Ο διαχειριστής σας ενεργοποίησε τον συγχρονισμό των παρακάτω μεταξύ της προηγούμενης και της τρέχουσας περιόδου σύνδεσης στις συσκευές σας NickelOS:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "Να επιτρέπεται"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "Να μην επιτρέπεται"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "Όχι τώρα"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "Εισαγάγετε τον κωδικό πρόσβασης του χρήστη NAME, διαχειριστή αυτού του υπολογιστή."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "Η εφαρμογή APP_NAME θέλει να χρησιμοποιήσει την κάμερα αυτής της συσκευής. Η απάντησή σας θα απομνημονευτεί για αυτή την εφαρμογή."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "Να επιτρέπεται στην εφαρμογή APP_NAME να χρησιμοποιεί την κάμερα;"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "Η εφαρμογή APP_NAME θέλει να χρησιμοποιήσει την κάμερα. Για να το επιτρέψετε, ενεργοποιήστε την πρόσβαση στην κάμερα στα Στοιχεία ελέγχου απορρήτου."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "Άνοιγμα ρυθμίσεων"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "Η πρόσβαση στην κάμερα είναι απενεργοποιημένη"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "Να επιτρέπεται"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "Να μην επιτρέπεται"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "Για να αλλάξετε μια συντόμευση, επιλέξτε τα πλήκτρα της και πατήστε νέα. Με το πλήκτρο Backspace καταργείται."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "Η εφαρμογή APP_NAME θέλει αυτές οι συντομεύσεις να λειτουργούν και όταν χρησιμοποιείτε άλλες εφαρμογές. Μαθαίνει μόνο πότε τις πατάτε, όχι τι άλλο πληκτρολογείτε."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "Χρησιμοποιήστε Ctrl, Alt ή Search μαζί με το πλήκτρο ή ένα πλήκτρο λειτουργίας."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "Δεν έχει οριστεί"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "Πατήστε πλήκτρα…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "Αυτά τα πλήκτρα χρησιμοποιούνται ήδη. Δοκιμάστε άλλα."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "Να επιτρέπονται οι συντομεύσεις πληκτρολογίου;"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "Αλλαγή"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "Επιτραπέζιος υπολογιστής"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "Υπολογιστής"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "Φορητός υπολογιστής"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE (NAME)"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "Tablet"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "Επιβεβαίωση κωδικού πρόσβασης"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "Δημιουργία του λογαριασμού σας..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "Δεν ήταν δυνατή η δημιουργία του λογαριασμού."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "Δεν ήταν δυνατή η δημιουργία του λογαριασμού: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "Επιλέξτε έναν κωδικό πρόσβασης."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "Δεν ήταν δυνατή η ρύθμιση του λογαριασμού: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "Αυτό το όνομα χρήστη χρησιμοποιείται ήδη."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "Η δημιουργία του λογαριασμού διήρκεσε πολύ. Δοκιμάστε ξανά."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "Τα ονόματα χρηστών ξεκινούν με πεζό λατινικό γράμμα και περιέχουν μόνο πεζά λατινικά γράμματα, ψηφία, - και _ (έως 32)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "Οι κωδικοί πρόσβασης δεν ταιριάζουν"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "Το όνομά σας"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "Κωδικός πρόσβασης"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "Η εικόνα σας"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "Εμφανίζεται στην οθόνη σύνδεσης και στην περιοχή κατάστασης. Για να χρησιμοποιήσετε μια δική σας φωτογραφία, μεταβείτε αργότερα στις Ρυθμίσεις."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "Επιλέξτε μια εικόνα"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "Ο λογαριασμός σας και τα αρχεία του βρίσκονται σε αυτή τη συσκευή, κρυπτογραφημένα με τον κωδικό πρόσβασής σας. Χωρίς λογαριασμό Google, δεν υπάρχει τρόπος να τα ανακτήσετε αν τον ξεχάσετε."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "Δημιουργήστε τον λογαριασμό σας"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "Όνομα χρήστη"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "Ξεκινήστε με πεζό λατινικό γράμμα· χρησιμοποιήστε πεζά λατινικά γράμματα, ψηφία, - και _ (έως 32)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "Η εφαρμογή APP_NAME θέλει να γνωρίζει πού βρίσκεται αυτή η συσκευή, με βάση τα κοντινά δίκτυα Wi-Fi και τη διεύθυνση IP της. Η απάντησή σας θα απομνημονευτεί για αυτή την εφαρμογή."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "Να επιτρέπεται στην εφαρμογή APP_NAME να χρησιμοποιεί την τοποθεσία σας;"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "Η εφαρμογή APP_NAME θέλει να χρησιμοποιήσει την τοποθεσία σας. Για να το επιτρέψετε, ενεργοποιήστε την πρόσβαση στην τοποθεσία στα Στοιχεία ελέγχου απορρήτου."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "Η πρόσβαση στην τοποθεσία είναι απενεργοποιημένη"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "Η εφαρμογή APP_NAME θέλει να ελέγχει το πληκτρολόγιο και τον δείκτη αυτής της συσκευής. Επιτρέψτε το μόνο αν εμπιστεύεστε το άτομο που συνδέεται."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "Η εφαρμογή APP_NAME ελέγχει αυτή τη συσκευή."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "Να επιτρέπεται ο απομακρυσμένος έλεγχος;"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "Επιλέξατε «Ελάχιστη» κατά τη ρύθμιση του NickelOS, οπότε δεν επιλέχθηκε μηχανή αναζήτησης για εσάς. Αυτές οι μηχανές αναζήτησης είναι δημοφιλείς στην περιοχή σας και εμφανίζονται με τυχαία σειρά."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "Και στις δύο περιπτώσεις, έχετε το Bazaar για να βρίσκετε περισσότερες εφαρμογές, καθώς και εφαρμογές για να ανοίγετε τις φωτογραφίες, τα βίντεο, τη μουσική και τα έγγραφά σας."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "Πλήρης εμπειρία"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "Όλα έτοιμα και ιδιωτικά. Το DuckDuckGo κάνει αναζήτηση στον ιστό από το πρόγραμμα περιήγησης και τη Λειτουργία εκκίνησης, το uBlock Origin αποκλείει διαφημίσεις και ιχνηλάτες στο πρόγραμμα περιήγησης, οι ιδιωτικές εφαρμογές της Proton (Mail, Calendar, Drive, Pass και άλλες) εγκαθίστανται και περιλαμβάνονται δωρεάν εφαρμογές ανοικτού κώδικα: LibreOffice, OBS Studio, GIMP, Kdenlive και άλλες."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "Ελάχιστη"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "Μόνο τα βασικά. Η Λειτουργία εκκίνησης κάνει αναζήτηση μόνο σε αυτόν τον υπολογιστή και δεν ρυθμίζεται τίποτα άλλο για εσάς."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "Μπορείτε να τα αλλάξετε όλα αυτά αργότερα στις Ρυθμίσεις."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "Πώς θέλετε να ξεκινήσετε;"
+ },
+ "IDS_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUGGESTION_CONTENTS": {
+  "en": "Personalize your accessibility tools in NickelOS settings",
+  "t": "Εξατομίκευση εργαλείων προσβασιμότητας στις ρυθμίσεις του NickelOS"
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_LAPTOP": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press the space bar.",
+  "t": "Θέλετε να ενεργοποιήσετε το ChromeVox, τον ενσωματωμένο αναγνώστη οθόνης για NickelOS; Εφόσον το επιθυμείτε, πατήστε το πλήκτρο διαστήματος."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_TABLET": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press and hold both volume keys for five seconds.",
+  "t": "Θέλετε να ενεργοποιήσετε το ChromeVox, τον ενσωματωμένο αναγνώστη οθόνης για NickelOS; Εάν ναι, πατήστε παρατεταμένα και τα δύο κουμπιά έντασης ήχου για πέντε δευτερόλεπτα."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_TEXT": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS?",
+  "t": "Θέλετε να ενεργοποιήσετε το ChromeVox, τον ενσωματωμένο αναγνώστη οθόνης για NickelOS;"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "Πριν ξεκινήσετε, βεβαιωθείτε ότι έχετε δημιουργήσει αντίγραφα ασφαλείας για τα δεδομένα σας. Η εγκατάσταση του DEVICE_OS θα αντικαταστήσει όλα τα δεδομένα στον δίσκο που θα επιλέξετε."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "Το DEVICE_OS είναι ελεύθερο λογισμικό που παρέχεται ως έχει: ενδέχεται να μην λειτουργεί σε κάθε υπολογιστή και οι δημιουργοί του δεν φέρουν καμία ευθύνη για τυχόν απώλεια δεδομένων."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "Ενημερώσεις, επιλογές για προγραμματιστές"
+ },
+ "IDS_OS_SETTINGS_APP_DETAILS_TYPE_CROS_SYSTEM": {
+  "en": "NickelOS System App",
+  "t": "Εφαρμογή συστήματος NickelOS"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "Τηλέφωνα, Κοινοποίηση κοντά"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "Τηλέφωνα, FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your apps and settings will sync across all NickelOS devices where you are signed in with your Google account. For browser sync options, go to LINK_BEGINChrome settingsLINK_END.",
+  "t": "Οι εφαρμογές και οι ρυθμίσεις σας θα συγχρονιστούν σε όλες τις συσκευές NickelOS, στις οποίες έχετε συνδεθεί με τον Λογαριασμό σας Google. Για επιλογές συγχρονισμού προγράμματος περιήγησης, μεταβείτε στις LINK_BEGINΡυθμίσεις ChromeLINK_END."
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "Αποθηκευτικός χώρος cloud"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Google Drive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "Προσθήκη λογαριασμού cloud"
+ },
+ "IDS_OS_SETTINGS_TAG_OS_VERSION": {
+  "en": "NickelOS version",
+  "t": "Έκδοση NickelOS"
+ },
+ "IDS_PASSWORD_CHANGE_NOTIFICATION_TITLE": {
+  "en": "NickelOS password updated",
+  "t": "Ο κωδικός πρόσβασης του NickelOS ενημερώθηκε"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "Οι δικές σας εικόνες"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "Όταν η οθόνη είναι αδρανής, θα προβάλλονται οι εικόνες σας, η ώρα καθώς και πληροφορίες μέσων."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "Οι δικές σας εικόνες"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "Η προφύλαξη οθόνης εμφανίζει τις εικόνες του φακέλου Εικόνες και των φακέλων που περιέχει. Προσθέστε τουλάχιστον 2."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "Φάκελος Εικόνες"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "Εικόνες που περιλαμβάνονται στο NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "Η προφύλαξη οθόνης εμφανίζει τις ταπετσαρίες του NickelOS. Ενεργοποιήστε αυτήν την επιλογή για να εμφανίζονται αντί για αυτές οι εικόνες από τον φάκελο Τα αρχεία μου > Pictures."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "Ταπετσαρίες NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "Από το Open-Meteo, για την κατά προσέγγιση τοποθεσία σας, την οποία το beaconDB υπολογίζει από τη διεύθυνση IP σας"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "Εμφάνιση καιρού"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "Βεβαιωθείτε ότι ο εκτυπωτής σας είναι ενεργοποιημένος και συνδεδεμένος στο ίδιο δίκτυο με τη συσκευή NickelOS ή χρησιμοποιήστε ένα καλώδιο USB."
+ },
+ "IDS_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_RELAUNCH_TO_UPDATE": {
+  "en": "Relaunch to update &NickelOS",
+  "t": "Επανεκκίνηση για ενημέρωση του &NickelOS"
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "Προσωπικός φάκελος"
+ },
+ "IDS_SETTINGS_ABOUT_OS": {
+  "en": "About NickelOS",
+  "t": "Σχετικά με το NickelOS"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Όταν είναι ενεργοποιημένη αυτή η ρύθμιση, τα δεδομένα αποθηκεύονται στον Λογαριασμό σας Google και μπορούν να χρησιμοποιηθούν σε όλες τις συσκευές σας. Όταν είναι απενεργοποιημένη, τα δεδομένα αποθηκεύονται μόνο σε αυτή τη συσκευή. Για τις επιλογές συγχρονισμού του NickelOS, μεταβείτε στις LINK_BEGINΡυθμίσεις του NickelOSLINK_END."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "Να δοθεί στις εφαρμογές Android ο έλεγχος των συσκευών USB σε αυτή τη συσκευή NickelOS. Θα ζητείται άδεια κάθε φορά που συνδέετε μια συσκευή USB. Οι μεμονωμένες εφαρμογές Android θα ζητούν πρόσθετες άδειες."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Η συσκευή σας δεν λαμβάνει πλέον ενημερώσεις ασφάλειας και λογισμικού."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Αυτή η συσκευή δεν λαμβάνει πλέον ενημερώσεις"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Η συσκευή σας δεν λαμβάνει πλέον ενημερώσεις ασφάλειας και λογισμικού."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Αυτή η συσκευή δεν λαμβάνει πλέον ενημερώσεις"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "Να δοθεί στις εφαρμογές Android ο έλεγχος των συσκευών USB σε αυτή τη συσκευή NickelOS"
+ },
+ "IDS_SETTINGS_LANGUAGES_OPEN_CHROME_OS_SETTINGS_LABEL": {
+  "en": "Manage languages in NickelOS settings",
+  "t": "Διαχείριση γλωσσών στις ρυθμίσεις του NickelOS"
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "Αυτή η επιλογή ισχύει για συσκευές NickelOS με πρόγραμμα δεδομένων ή κλειδί πρόσβασης δικτύου κινητής τηλεφωνίας ή κατά τον διαμοιρασμό σε φορητό σημείο πρόσβασης Wi-Fi."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "Προσθήκη ατόμου"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "Θα αποσυνδεθείτε. Στην οθόνη σύνδεσης, το νέο άτομο επιλέγει όνομα, όνομα χρήστη και κωδικό πρόσβασης."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "Διαχειριστής"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Οι διαχειριστές μπορούν να εγκαθιστούν λογισμικό για όλους, να κάνουν αλλαγές στο σύστημα και να διαχειρίζονται λογαριασμούς."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "Αλλαγή κωδικού πρόσβασης"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "Επιβεβαίωση"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "Επιβεβαίωση νέου κωδικού πρόσβασης"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "Τρέχων κωδικός πρόσβασης"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "Επιλέξτε έναν νέο κωδικό πρόσβασης"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Παρουσιάστηκε πρόβλημα. Δοκιμάστε ξανά."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "Αυτή η συσκευή χρειάζεται τουλάχιστον έναν διαχειριστή"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "Να γίνει ο χρήστης NAME διαχειριστής;"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "Νέος κωδικός πρόσβασης"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "Κανένα άλλο άτομο δεν έχει λογαριασμό σε αυτή τη συσκευή."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "Άλλα άτομα σε αυτή τη συσκευή"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Κάθε άτομο έχει τον δικό του λογαριασμό και τα δικά του αρχεία. Οι διαχειριστές μπορούν να εγκαθιστούν λογισμικό για όλους, να κάνουν αλλαγές στο σύστημα και να διαχειρίζονται λογαριασμούς."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "Κάτοχος, διαχειριστής"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "Οι νέοι κωδικοί πρόσβασης δεν ταιριάζουν"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "Κατάργηση"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "Να γίνει ο χρήστης NAME τυπικός χρήστης;"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "Ο λογαριασμός και όλα τα αρχεία αυτού του ατόμου θα διαγραφούν από αυτή τη συσκευή. Δεν είναι δυνατή η αναίρεση αυτής της ενέργειας."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "Κατάργηση του χρήστη NAME;"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "Έξοδος"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "Τυπικός χρήστης"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "Ο κωδικός πρόσβασης δεν είναι σωστός"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "Ο λογαριασμός σας"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "Ο κωδικός πρόσβασής σας"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "Μόνο ένας διαχειριστής αυτής της συσκευής μπορεί να αλλάξει αυτές τις ρυθμίσεις."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "Για εφαρμογές που έχουν δημιουργηθεί μόνο για τους επεξεργαστές ARM των τηλεφώνων, μεταξύ των οποίων και πολλά παιχνίδια. Ιδιόκτητο λογισμικό, που λαμβάνεται όταν το ενεργοποιείτε."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "Πολλές εφαρμογές Android, ιδίως παιχνίδια, έχουν δημιουργηθεί μόνο για τους επεξεργαστές ARM των τηλεφώνων. Για να εκτελεστούν σε αυτόν τον υπολογιστή, το Android χρειάζεται έναν μεταφραστή. Το NickelOS δεν δημιουργεί ούτε περιλαμβάνει μεταφραστή: με την ενεργοποίηση γίνεται λήψη του λογισμικού TRANSLATOR από το GitHub, του ίδιου αντιγράφου που εγκαθιστά το waydroid_script της κοινότητας του Waydroid."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "Πρόκειται για ιδιόκτητο λογισμικό, που υπόκειται στους όρους του κατόχου του, και την εγκατάσταση την κάνετε εσείς. Ορισμένες εφαρμογές ενδέχεται να εκτελούνται αργά ή να μην εκτελούνται καθόλου. Το Android θα επανεκκινηθεί για να το χρησιμοποιήσει."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "Αποδοχή και ενεργοποίηση"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "Ενεργοποίηση υποστήριξης εφαρμογών ARM;"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "Υποστήριξη εφαρμογών ARM"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "Κατάργηση..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "Λήψη και εγκατάσταση..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "Λήψη του Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "Η λήψη δεν ολοκληρώθηκε. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Παρουσιάστηκε πρόβλημα. Δοκιμάστε ξανά."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "Ρυθμίσεις Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "Ρύθμιση του Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "Κατάργηση"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "Διαγράφει το Android, τις εφαρμογές Android σας και τα δεδομένα τους"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "Το Android, οι εφαρμογές Android σας και τα δεδομένα τους θα διαγραφούν από αυτή τη συσκευή. Τα άλλα άτομα που τη χρησιμοποιούν διατηρούν τα δεδομένα Android τους, αλλά δεν μπορούν να ανοίξουν τις εφαρμογές Android τους μέχρι να ρυθμιστεί ξανά το Android."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "Κατάργηση του Android;"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "Κατάργηση Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "Κατάργηση του Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "Ρύθμιση"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "Οι εφαρμογές Android ανοίγουν στα δικά τους παράθυρα, δίπλα στις άλλες εφαρμογές σας. Με τη ρύθμιση γίνεται λήψη του Android (LineageOS, από το έργο Waydroid): περίπου 1 GB, που καταλαμβάνει 2,5 GB σε αυτή τη συσκευή."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "Εκτέλεση εφαρμογών Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "Εφαρμογές Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "Houdini της Intel"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "NDK Translation της Google"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "Οι εφαρμογές Android δεν είναι διαθέσιμες αυτήν τη στιγμή."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "Το Android χρησιμοποιεί SIZE σε αυτή τη συσκευή"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "Αναγνωριστικό κλειδιού πρόσβασης"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "Προσθήκη λογαριασμού"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "Πίσω"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "Αναγνωριστικό πελάτη"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "Μυστικό πελάτη"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "Σύνδεση"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "Σύνδεση…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "Δείτε το Google Drive, το OneDrive, το Dropbox και άλλους αποθηκευτικούς χώρους cloud στα Αρχεία"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "Προσθήκη αποθηκευτικού χώρου cloud"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "Ο λογαριασμός ACCOUNT_NAME εμφανίζεται πλέον στα Αρχεία."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "Το Google Drive χρειάζεται δικό σας αναγνωριστικό πελάτη και μυστικό από την κονσόλα Google Cloud."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "Email ή όνομα χρήστη"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "Τελικό σημείο (κενό για Amazon S3)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "Δεν ήταν δυνατή η σύνδεση. Ελέγξτε τα στοιχεία και δοκιμάστε ξανά."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "Ολοκληρώθηκε"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "Πώς να τα δημιουργήσετε"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "Στα Αρχεία"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "Όνομα"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "Επόμενο"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "Δεν είναι συνδεδεμένος"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "Κωδικός πρόσβασης"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "Το NickelOS χρησιμοποιεί το rclone για να εμφανίζει τον αποθηκευτικό σας χώρο cloud στα Αρχεία, ώστε να έχετε εύκολη πρόσβαση στα αρχεία σας. Επιλέξτε την υπηρεσία στην οποία θέλετε να συνδεθείτε."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "Περιοχή (προαιρετικό)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "Κατάργηση"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "Η εφαρμογή Αρχεία δεν θα εμφανίζει πλέον αυτόν τον λογαριασμό. Τα αρχεία σας παραμένουν στο cloud και μπορείτε να προσθέσετε ξανά τον λογαριασμό αργότερα."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "Κατάργηση του λογαριασμού ACCOUNT_NAME;"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "Κατάργηση…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "Amazon S3 ή συμβατή υπηρεσία"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "Μυστικό κλειδί πρόσβασης"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "Διεύθυνση διακομιστή"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "Υπηρεσία"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "Ολοκληρώστε τη σύνδεση στη σελίδα που άνοιξε στο πρόγραμμα περιήγησής σας."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "Κατά τη σύνδεση, η σελίδα σύνδεσης της υπηρεσίας ανοίγει στο πρόγραμμα περιήγησής σας."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "Αποθηκευτικός χώρος cloud"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "Κωδικός επαλήθευσης σε 2 βήματα (αν τη χρησιμοποιείτε)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "Όνομα χρήστη"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "Nextcloud ή WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "Μόνο ένας διαχειριστής αυτού του υπολογιστή μπορεί να αλλάξει το όνομά του."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "Αλλαγή"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "Οι άλλες συσκευές βλέπουν αυτό το όνομα στο δίκτυό σας και μέσω Bluetooth, ενώ το εμφανίζουν επίσης το Τερματικό και οι εφαρμογές Linux."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "Αλλαγή ονόματος υπολογιστή"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "Δεν ήταν δυνατή η αλλαγή του ονόματος. Δοκιμάστε ξανά."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "Χρησιμοποιήστε τουλάχιστον ένα λατινικό γράμμα από το A έως το Z ή έναν αριθμό."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "Όνομα υπολογιστή"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "Στο Τερματικό: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "Οι εφαρμογές που ανοίγουν κάθε είδος αρχείου, από τα Αρχεία και από τις εφαρμογές Linux"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "Έγγραφα"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "Ηλεκτρονικό ταχυδρομείο"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "Εικόνες"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "Μουσική"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "Καμία εφαρμογή δεν ανοίγει αυτά τα αρχεία"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "Δεν έχει οριστεί"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "Έγγραφα PDF"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "Παρουσιάσεις"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "Στιγμιότυπα οθόνης (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "Λήψη οθόνης (ενσωματωμένη)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "Υπολογιστικά φύλλα"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "Αρχεία κειμένου"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "Προεπιλεγμένες εφαρμογές"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "Βίντεο"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (ιστότοπος)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "Μονάδες δίσκου μέσα σε αυτή τη συσκευή, εκτός από αυτή με το NickelOS. Η μονάδα δίσκου με τα Windows ανοίγει μόνο για ανάγνωση, ώστε τα Windows να παραμένουν ανέπαφα."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "Άλλες μονάδες δίσκου"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "Να επιτρέπονται αλλαγές"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "Τα Windows βρίσκονται σε αυτή τη μονάδα δίσκου. Είναι μόνο για ανάγνωση, εκτός αν επιτρέψετε αλλαγές."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "Με τη Γρήγορη εκκίνηση, τα Windows δεν τερματίζονται πλήρως και οι αλλαγές που γίνονται εδώ ενδέχεται να χαθούν ή να προκαλέσουν ζημιά σε αρχεία όταν τα Windows ξεκινήσουν ξανά. Πριν κάνετε αλλαγές, απενεργοποιήστε τη Γρήγορη εκκίνηση στα Windows ή κρατήστε πατημένο το πλήκτρο Shift ενώ τερματίζετε τα Windows."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "Να επιτρέπονται αλλαγές στη μονάδα δίσκου των Windows;"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "Τα Windows δεν τερματίστηκαν πλήρως, επομένως η μονάδα δίσκου παραμένει μόνο για ανάγνωση. Τερματίστε πλήρως τα Windows για να κάνετε αλλαγές."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "Εμφάνιση στα Αρχεία"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "Λάβετε βοήθεια από άλλους"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "Το φόρουμ, το Discord και το GitHub, στο nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "Εκμάθηση Gentoo"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "Portage και emerge από την αρχή, με τις αντίστοιχες εντολές pacman και apt δίπλα"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "Οδηγός NickelOS"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "Πώς λειτουργεί το NickelOS. Αυτό το αντίγραφο συνοδεύει την έκδοση του NickelOS που διαθέτετε και λειτουργεί εκτός σύνδεσης."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "Οδηγός, εκμάθηση Gentoo, αντιμετώπιση προβλημάτων"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "Ο οδηγός στο διαδίκτυο"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "Η πιο πρόσφατη έκδοση, στο nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "Βοήθεια"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "Αντιμετώπιση προβλημάτων"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "Αρχεία καταγραφής, αναφορές σφαλμάτων και τα συνηθισμένα προβλήματα με τις λύσεις τους"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "Εφαρμογές Linux"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "Αποδοχή"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "Διαθέσιμο για σύζευξη"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "Ακύρωση"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "Συνδεδεμένο"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "Συνδεδεμένο · Μπαταρία PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "Συνδεδεμένο · Φορτίζει, PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "Με την εφαρμογή KDE Connect σε Android ή iPhone, στο ίδιο δίκτυο Wi‑Fi"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "Περισσότερα για τη συσκευή DEVICE_NAME"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "Δεν υπάρχουν ακόμη τηλέφωνα ή tablet. Εγκαταστήστε το KDE Connect από το Google Play, το F‑Droid ή το App Store, ανοίξτε το στο ίδιο δίκτυο Wi‑Fi και, στη συνέχεια, κάντε σύζευξη από οποιαδήποτε από τις δύο συσκευές."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "Η σύνδεση τηλεφώνων δεν εκτελείται. Αποσυνδεθείτε και συνδεθείτε ξανά για να ξεκινήσει."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "Άνοιγμα Valent"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "Σύζευξη"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "Σε σύζευξη · Μη συνδεδεμένο"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "Αναμονή για αποδοχή"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "Απόρριψη"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "Κουδούνισμα"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "Αποστολή αρχείων"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "Αποστολή αρχείων"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "Τηλέφωνα και tablet"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "Κατάργηση σύζευξης"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "Θέλει να κάνει σύζευξη με αυτή τη συσκευή"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "Επιτρέπει σε εφαρμογές όπως το Discord να χρησιμοποιούν την ομιλία με πάτημα πλήκτρου (push-to-talk) ενώ βρίσκεστε σε άλλα παράθυρα. Βλέπουν τα πλήκτρα που πατάτε μαζί με Ctrl, Alt ή Search και τα πλήκτρα λειτουργιών, ποτέ όσα πληκτρολογείτε."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "Πλήκτρα συντόμευσης για παλαιότερες εφαρμογές Linux"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "Βεβαιωθείτε ότι ο εκτυπωτής σας είναι συνδεδεμένος στο ίδιο δίκτυο Wi-Fi με τη συσκευή NickelOS ή χρησιμοποιήστε ένα καλώδιο USB. LINK_BEGINΜάθετε περισσότερα σχετικά με τη συμβατότηταLINK_END"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "Δεν είναι δυνατή η σύνδεση του εκτυπωτή. Βεβαιωθείτε ότι ο εκτυπωτής είναι ενεργοποιημένος και ότι είναι συνδεδεμένος στη συσκευή NickelOS μέσω Wi-Fi ή USB."
+ },
+ "IDS_SETTINGS_SECURE_DNS_OPEN_CHROME_OS_SETTINGS_LABEL": {
+  "en": "Manage secure DNS in NickelOS settings",
+  "t": "Διαχείριση ασφαλούς DNS στις ρυθμίσεις του NickelOS"
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "Προσωπικός φάκελος"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "Για να ξεκινήσετε, βεβαιωθείτε ότι ο διακόπτης USB ή Bluetooth είναι συνδεδεμένος στη συσκευή NickelOS. Μπορείτε επίσης να χρησιμοποιήσετε τα πλήκτρα του πληκτρολογίου."
+ },
+ "IDS_SHORT_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_SIGNIN_ERROR_SECONDARY_ACCOUNT_DISPLAY_SOURCE": {
+  "en": "NickelOS System",
+  "t": "Σύστημα NickelOS"
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "Για να ξεκλειδώσετε τη συσκευή NickelOS, βεβαιωθείτε ότι το Bluetooth του τηλεφώνου είναι ενεργοποιημένο"
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "Το Bluetooth της συσκευής NickelOS είναι ανενεργό. Ξεκλειδώστε τη συσκευή NickelOS με τον κωδικό πρόσβασης"
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "Το τηλέφωνό σας δεν έχει οθόνη κλειδ/τος. Ξεκλειδώστε τη συσκευή NickelOS με τον κωδ. πρόσβ."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "Για να ξεκλειδώσετε τη συσκευή NickelOS, ξεκλειδώστε πρώτα το τηλέφωνό σας"
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "Η συσκευή σας χρησιμοποιεί έναν ενσωματωμένο αισθητήρα για να εντοπίσει άτομα που βρίσκονται μπροστά της. Όλα τα δεδομένα υποβάλλονται αμέσως σε επεξεργασία στη συσκευή σας και έπειτα διαγράφονται. Τα δεδομένα αισθητήρα δεν αποστέλλονται ποτέ στην Google."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "Αρχεία καταγραφής NickelOS"
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_NETWORK_ROUTES": {
+  "en": "NickelOS Network Routes",
+  "t": "Δρομολογήσεις δικτύου NickelOS"
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_SYSTEM_STATE": {
+  "en": "NickelOS System State and Reports",
+  "t": "Κατάσταση συστήματος NickelOS και αναφορές"
+ },
+ "IDS_SYNC_OTHER_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data due to an error signing in.",
+  "t": "Δεν ήταν δυνατός ο συγχρονισμός των δεδομένων σας από το NickelOS λόγω σφάλματος κατά τη σύνδεση."
+ },
+ "IDS_SYNC_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because your account sign-in details are out of date.",
+  "t": "Δεν ήταν δυνατός ο συγχρονισμός των δεδομένων σας από το NickelOS, επειδή τα στοιχεία σύνδεσης του λογαριασμού σας δεν είναι ενημερωμένα."
+ },
+ "IDS_SYNC_UNAVAILABLE_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because Sync is not available for your domain.",
+  "t": "Δεν ήταν δυνατός ο συγχρονισμός των δεδομένων σας από το NickelOS, επειδή ο συγχρονισμός δεν είναι διαθέσιμος για τον τομέα σας."
+ },
+ "IDS_TERMS_OF_SERVICE_SCREEN_SUBHEADING": {
+  "en": "MANAGER requires that you read and accept the following Terms of Service before using this device. These terms do not expand, modify or limit the NickelOS Terms.",
+  "t": "Το MANAGER απαιτεί να διαβάσετε και να αποδεχτείτε τους παρακάτω Όρους Παροχής Υπηρεσιών πριν από τη χρήση αυτής της συσκευής. Οι συγκεκριμένοι όροι δεν επεκτείνουν, τροποποιούν ή περιορίζουν τους Όρους του NickelOS."
+ },
+ "IDS_UPDATE_RECOMMENDED": {
+  "en": "NickelOS needs to be restarted to apply the update.",
+  "t": "Για να εφαρμοστεί η ενημέρωση, πρέπει να γίνει επανεκκίνηση του NickelOS."
+ },
+ "IDS_UPDATE_RECOMMENDED_DIALOG_TITLE": {
+  "en": "Restart NickelOS",
+  "t": "Επανεκκίνηση NickelOS"
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "Θα συνδέεστε στη συσκευή σας με τον δικό σας λογαριασμό και όποιος τη χρησιμοποιεί μπορεί να έχει τον δικό του."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "Ο δικός σας λογαριασμός στη συσκευή σας"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "Το NickelOS έχει σχεδιαστεί με γνώμονα την ασφάλεια και διατηρείται αυτόματα ενημερωμένο."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "Το NickelOS εκτελεί εφαρμογές ιστού και εφαρμογές Linux παράλληλα. Αποκτήστε εφαρμογές για παραγωγικότητα, διασκέδαση και άλλα."
+ },
+ "IDS_UPDATE_SLIDE_UPDATE_TEXT": {
+  "en": "This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.",
+  "t": "Αυτή είναι η μόνη περίπτωση που θα χρειαστεί να περιμένετε για μια ενημέρωση. Στο NickelOS, οι ενημερώσεις λογισμικού πραγματοποιούνται στο παρασκήνιο."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "Οι εφαρμογές Chrome δεν εκτελούνται στο NickelOS. Εξετάστε το ενδεχόμενο χρήσης μιας εναλλακτικής εφαρμογής."
+ },
+ "IDS_WRONG_HWID_SCREEN_MESSAGE_FIRST_PART": {
+  "en": "Unfortunately, your computer is configured with a malformed hardware ID. This prevents NickelOS from updating with the latest security fixes and your computer BEGIN_BOLDmay be vulnerable to malicious attacksEND_BOLD.",
+  "t": "Δυστυχώς, ο υπολογιστής σας έχει διαμορφωθεί με ένα εσφαλμένο αναγνωριστικό εξοπλισμού. Αυτό εμποδίζει την ενημέρωση του NickelOS με τις πιο πρόσφατες διορθώσεις ασφαλείας και ο υπολογιστής σας BEGIN_BOLDενδέχεται να είναι ευάλωτος σε κακόβουλες επιθέσειςEND_BOLD."
+ }
+}

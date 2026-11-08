@@ -1,0 +1,23 @@
+#!/bin/bash
+# Runs in the SDK (cros_sdk -- .../nickel-image-testkey IMAGE...): gives an
+# image the TEST payload key (chromeos-base/nickel-update/files/
+# update-payload-key-test.pub.pem) in place of the production one the
+# nickel-update package installs. Test images get it always (they are never
+# released, and the VM tests sign their updates with the test key on the
+# build host); base images only when built for tests (NICKEL_TEST_KEY=1:
+# release-update-test.sh, boot-fallback-test.sh). Release images keep the
+# production key, whose private half is only on Dresden's media and laptop
+# (docs/updates.md, "Keys"). nickel-build-stock runs it.
+set -euo pipefail
+key=/mnt/host/source/src/overlays/overlay-nickel/chromeos-base/nickel-update/files/update-payload-key-test.pub.pem
+[ -f "${key}" ] || { echo "nickel-image-testkey: no ${key}" >&2; exit 1; }
+mnt=$(mktemp -d)
+trap 'sudo umount "${mnt}" 2>/dev/null || true; rmdir "${mnt}"' EXIT
+for img in "$@"; do
+	start=$(cgpt show -i 3 -b "${img}")
+	size=$(cgpt show -i 3 -s "${img}")
+	sudo mount -o loop,offset=$((start * 512)),sizelimit=$((size * 512)) "${img}" "${mnt}"
+	sudo install -m 644 "${key}" "${mnt}/usr/share/update_engine/update-payload-key.pub.pem"
+	sudo umount "${mnt}"
+	echo "nickel-image-testkey: $(basename "${img}"): test payload key"
+done

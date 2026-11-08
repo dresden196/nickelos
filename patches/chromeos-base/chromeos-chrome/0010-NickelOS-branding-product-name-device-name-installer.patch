@@ -1,0 +1,131 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS branding: product name, device name, installer
+
+- The OS is NickelOS (IDS_PRODUCT_OS_NAME, IDS_SHORT_PRODUCT_OS_NAME,
+  IDS_INSTALLED_PRODUCT_OS_NAME), so setup, the installer and Settings say
+  NickelOS instead of ChromiumOS.
+- A generic device is a "NickelOS device" ("Welcome to your NickelOS
+  device") instead of a "Chrome device", Google's product name.
+- The installer's introduction drops the g.co/flex links and Google's
+  disclaimer for a free-software one, and the installer and "Install or
+  try" screens show a computer instead of Google's logo.
+
+Only the English strings change; other locales keep their translations
+of the old text until NickelOS has its own.
+
+diff --git a/ash/login/resources/ash_login_strings.grd b/ash/login/resources/ash_login_strings.grd
+index e98bc3690bbf4..a19d87a2fe8a8 100644
+--- a/ash/login/resources/ash_login_strings.grd
++++ b/ash/login/resources/ash_login_strings.grd
+@@ -2637,13 +2637,13 @@
+         Installing <ph name="DEVICE_OS">$1<ex>ChromeOS Flex</ex></ph> will overwrite all data on your device.
+       </message>
+       <message name="IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0" desc="First part of body text of the OS install screen's introduction step.">
+-        Before starting, make sure you have a backup of your data. Installing <ph name="DEVICE_OS">$1<ex>ChromeOS Flex</ex></ph> will overwrite your hard drive. Learn more at g.co/flex/InstallGuide.
++        Before starting, make sure you have a backup of your data. Installing <ph name="DEVICE_OS">$1<ex>ChromeOS Flex</ex></ph> will overwrite the disk you choose.
+       </message>
+       <message name="IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_1" desc="Second part of body text of the OS install screen's introduction step.">
+         Installation takes a few easy steps. You’ll have another chance to confirm before changes are made to your computer.
+       </message>
+       <message name="IDS_OS_INSTALL_SCREEN_INTRO_FOOTER" desc="Footer text of the OS install screen's introduction step.">
+-        Google isn’t responsible for any data loss, and <ph name="DEVICE_OS">$1<ex>ChromeOS Flex</ex></ph> may not work on uncertified models. Learn more at g.co/flex/InstallGuide.
++        <ph name="DEVICE_OS">$1<ex>ChromeOS Flex</ex></ph> is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.
+       </message>
+       <message name="IDS_OS_INSTALL_SCREEN_INTRO_NEXT_BUTTON" desc="Text of the next button on the introduction page of the OS install screen">
+         Install <ph name="DEVICE_OS">$1<ex>ChromeOS Flex</ex></ph>
+diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
+index 87499190d7614..d6961bbe7d92a 100644
+--- a/chrome/app/chromium_strings.grd
++++ b/chrome/app/chromium_strings.grd
+@@ -339,13 +339,13 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
+       </if>
+       <if expr="is_chromeos">
+         <message name="IDS_PRODUCT_OS_NAME" desc="The ChromeOS application name">
+-          ChromiumOS
++          NickelOS
+         </message>
+         <message name="IDS_SHORT_PRODUCT_OS_NAME" desc="The ChromeOS application short name">
+-          ChromiumOS
++          NickelOS
+         </message>
+         <message name="IDS_INSTALLED_PRODUCT_OS_NAME" desc="Installed OS name">
+-          ChromiumOS
++          NickelOS
+         </message>
+       </if>
+       <message name="IDS_PRODUCT_LOGO_ENTERPRISE_ALT_TEXT" desc="Alt text for the Chromium Enterprise logo image." formatter_data="android_java">
+diff --git a/chrome/browser/resources/chromeos/login/screens/common/os_install.html b/chrome/browser/resources/chromeos/login/screens/common/os_install.html
+index d2b3df975dd43..bed2717d77037 100644
+--- a/chrome/browser/resources/chromeos/login/screens/common/os_install.html
++++ b/chrome/browser/resources/chromeos/login/screens/common/os_install.html
+@@ -54,7 +54,7 @@ found in the LICENSE file.
+     role="dialog" for-step="intro"
+     aria-label$="[[i18nDynamic(
+         locale, 'osInstallDialogIntroTitle')]]">
+-  <iron-icon slot="icon" icon="oobe-32:googleg"></iron-icon>
++  <iron-icon slot="icon" icon="oobe-32:computer"></iron-icon>
+   <h1 slot="title" id="osInstallDialogIntroTitleId">
+     [[i18nDynamic(locale, 'osInstallDialogIntroTitle')]]</h1>
+   <div slot="subtitle">
+@@ -88,7 +88,7 @@ found in the LICENSE file.
+ <oobe-adaptive-dialog id="osInstallDialogChooseDisk"
+     role="dialog" for-step="choose-disk"
+     aria-label$="[[i18nDynamic(locale, 'osInstallDialogChooseDiskTitle')]]">
+-  <iron-icon slot="icon" icon="oobe-32:googleg"></iron-icon>
++  <iron-icon slot="icon" icon="oobe-32:computer"></iron-icon>
+   <h1 slot="title">
+     [[i18nDynamic(locale, 'osInstallDialogChooseDiskTitle')]]</h1>
+   <div slot="subtitle">
+@@ -144,7 +144,7 @@ found in the LICENSE file.
+     subtitle-key="osInstallDialogInProgressSubtitle"
+     title-key="osInstallDialogInProgressTitle"
+     aria-label$="[[i18nDynamic(locale, 'osInstallDialogInProgressTitle')]]">
+-  <iron-icon slot="icon" icon="oobe-32:googleg"></iron-icon>
++  <iron-icon slot="icon" icon="oobe-32:computer"></iron-icon>
+ </oobe-loading-dialog>
+ 
+ <oobe-adaptive-dialog id="osInstallDialogError"
+@@ -191,7 +191,7 @@ found in the LICENSE file.
+ <oobe-adaptive-dialog id="osInstallDialogSuccess"
+     role="dialog" for-step="success"
+     aria-label$="[[i18nDynamic(locale, 'osInstallDialogSuccessTitle')]]">
+-  <iron-icon slot="icon" icon="oobe-32:googleg"></iron-icon>
++  <iron-icon slot="icon" icon="oobe-32:computer"></iron-icon>
+   <h1 slot="title">[[i18nDynamic(locale, 'osInstallDialogSuccessTitle')]]
+   </h1>
+   <div slot="subtitle" id="osInstallDialogSuccessSubtitile">
+diff --git a/chrome/browser/resources/chromeos/login/screens/common/os_trial.html b/chrome/browser/resources/chromeos/login/screens/common/os_trial.html
+index abc5c20c015f8..922839c5f7de4 100644
+--- a/chrome/browser/resources/chromeos/login/screens/common/os_trial.html
++++ b/chrome/browser/resources/chromeos/login/screens/common/os_trial.html
+@@ -9,7 +9,7 @@
+ 
+ <oobe-adaptive-dialog id="osTrialDialog" role="dialog"
+     aria-label$="[[i18nDynamic(locale, 'osTrialTitle')]]">
+-  <iron-icon slot="icon" icon="oobe-32:googleg"></iron-icon>
++  <iron-icon slot="icon" icon="oobe-32:computer"></iron-icon>
+   <h1 slot="title">[[i18nDynamic(locale, 'osTrialTitle')]]</h1>
+   <span inner-h-t-m-l="[[i18nAdvancedDynamic(locale, 'osTrialSubtitle')]]"
+       slot="subtitle"></span>
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index a50956478192a..97e6317fb2c5c 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -609,7 +609,7 @@
+         ChromeOS Flex device
+       </message>
+       <message name="IDS_GENERIC_CHROMEOS_DEVICE_NAME" desc="The device name for a generic Chrome device">
+-        Chrome device
++        NickelOS device
+       </message>
+ 
+       <!-- Generic device type names (plural forms) -->
+@@ -629,7 +629,7 @@
+         ChromeOS Flex devices
+       </message>
+       <message name="IDS_GENERIC_CHROMEOS_DEVICE_NAME_IN_PLURAL" desc="The device name (plural) for generic Chrome device">
+-        Chrome devices
++        NickelOS devices
+       </message>
+ 
+       <!-- Input method strings. -->

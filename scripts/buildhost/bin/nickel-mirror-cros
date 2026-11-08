@@ -1,0 +1,19 @@
+#!/bin/bash
+# Full mirror of every public ChromiumOS repo (all branches), then a working
+# checkout of the current release branch that borrows objects from the mirror.
+set -euo pipefail
+export PATH=$HOME/depot_tools:$PATH
+M=/srv/nickel/mirror/chromiumos
+W=/srv/nickel/src
+BRANCH=${NICKEL_BRANCH:-release-R156-16836.B}
+mkdir -p "$M" "$W"
+cd "$M"
+[ -d .repo ] || repo init -u https://chromium.googlesource.com/chromiumos/manifest.git --mirror -g all
+echo "== mirror sync start $(date -Is)"
+repo sync -j16 --retry-fetches=5 || repo sync -j8 --retry-fetches=5
+echo "== mirror sync done $(date -Is)"; du -sh "$M"
+cd "$W"
+[ -d .repo ] || repo init -u "$M/chromiumos/manifest.git" --reference="$M" -b "$BRANCH"
+echo "== checkout sync start $(date -Is)"
+repo sync -j32 --retry-fetches=5
+echo "== checkout done $(date -Is)"; du -sh "$W"

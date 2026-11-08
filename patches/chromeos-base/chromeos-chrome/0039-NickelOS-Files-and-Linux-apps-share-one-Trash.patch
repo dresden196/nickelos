@@ -1,0 +1,211 @@
+diff --git a/chrome/browser/ash/file_manager/file_manager_string_util.cc b/chrome/browser/ash/file_manager/file_manager_string_util.cc
+index 738f6a76f2b42..79722e04a6295 100644
+--- a/chrome/browser/ash/file_manager/file_manager_string_util.cc
++++ b/chrome/browser/ash/file_manager/file_manager_string_util.cc
+@@ -19,6 +19,7 @@
+ #include "chrome/browser/ash/bruschetta/bruschetta_util.h"
+ #include "chrome/browser/ash/crostini/crostini_features.h"
+ #include "chrome/browser/ash/crostini/crostini_util.h"
++#include "chrome/browser/ash/file_manager/path_util.h"
+ #include "chrome/browser/ash/drive/file_system_util.h"
+ #include "chrome/browser/ash/guest_os/guest_os_share_path.h"
+ #include "chrome/browser/ash/guest_os/guest_os_share_path_factory.h"
+@@ -1314,6 +1315,12 @@ void AddFileManagerFeatureStrings(
+             ash::features::IsFilesLocalImageSearchEnabled());
+   dict->Set("FILES_TRASH_DRIVE_ENABLED",
+             base::FeatureList::IsEnabled(ash::features::kFilesTrashDrive));
++  // NickelOS: My files is the Linux home, whose trash Files shares with
++  // Linux apps (trash::GenerateEnabledTrashLocationsForProfile).
++  const base::FilePath my_files =
++      file_manager::util::GetMyFilesFolderForProfile(profile);
++  dict->Set("NICKEL_ONE_HOME",
++            crostini::NickelPathForLinuxApps(profile, my_files) != my_files);
+ 
+   dict->Set("GUEST_OS", true);
+ 
+diff --git a/chrome/browser/ash/file_manager/trash_common_util.cc b/chrome/browser/ash/file_manager/trash_common_util.cc
+index 947bc3d7701f3..4988c9bea2ccd 100644
+--- a/chrome/browser/ash/file_manager/trash_common_util.cc
++++ b/chrome/browser/ash/file_manager/trash_common_util.cc
+@@ -7,6 +7,7 @@
+ #include "ash/constants/ash_features.h"
+ #include "ash/constants/ash_pref_names.h"
+ #include "chrome/browser/ash/crostini/crostini_manager.h"
++#include "chrome/browser/ash/crostini/crostini_util.h"
+ #include "chrome/browser/ash/drive/drive_integration_service.h"
+ #include "chrome/browser/ash/drive/drive_integration_service_factory.h"
+ #include "chrome/browser/ash/file_manager/path_util.h"
+@@ -17,6 +18,7 @@
+ namespace file_manager::trash {
+ 
+ constexpr char kTrashFolderName[] = ".Trash";
++constexpr char kNickelLinuxTrashFolder[] = ".local/share/Trash";
+ constexpr char kInfoFolderName[] = "info";
+ constexpr char kFilesFolderName[] = "files";
+ constexpr char kTrashInfoExtension[] = ".trashinfo";
+@@ -65,20 +67,36 @@ const base::FilePath GenerateTrashPath(const base::FilePath& trash_path,
+ TrashPathsMap GenerateEnabledTrashLocationsForProfile(Profile* profile) {
+   TrashPathsMap enabled_trash_locations;
+ 
+-  enabled_trash_locations.try_emplace(
+-      util::GetMyFilesFolderForProfile(profile),
+-      TrashLocation(
+-          /*supplied_relative_folder_path=*/base::FilePath(kTrashFolderName),
+-          /*supplied_mount_point_path=*/util::GetMyFilesFolderForProfile(
+-              profile)));
+-  enabled_trash_locations.try_emplace(
+-      util::GetDownloadsFolderForProfile(profile),
+-      TrashLocation(
+-          /*supplied_relative_folder_path=*/base::FilePath(kTrashFolderName),
+-          /*supplied_mount_point_path=*/
+-          util::GetMyFilesFolderForProfile(profile),
+-          /*prefix_path=*/
+-          util::GetDownloadsFolderForProfile(profile).BaseName()));
++  // NickelOS: My files is the Linux home (one home), and its trash the one
++  // Linux apps use, $XDG_DATA_HOME/Trash, with the trashed files' paths in
++  // the home's terms (/home/<name>/...), so the Files app and Linux apps
++  // share one Trash. Downloads is a folder of My files there, not a mount.
++  const base::FilePath my_files = util::GetMyFilesFolderForProfile(profile);
++  const base::FilePath linux_home =
++      crostini::NickelPathForLinuxApps(profile, my_files);
++  if (linux_home != my_files) {
++    enabled_trash_locations.try_emplace(
++        my_files, TrashLocation(
++                      /*supplied_relative_folder_path=*/base::FilePath(
++                          kNickelLinuxTrashFolder),
++                      /*supplied_mount_point_path=*/my_files,
++                      /*prefix_path=*/linux_home));
++  } else {
++    enabled_trash_locations.try_emplace(
++        util::GetMyFilesFolderForProfile(profile),
++        TrashLocation(
++            /*supplied_relative_folder_path=*/base::FilePath(kTrashFolderName),
++            /*supplied_mount_point_path=*/util::GetMyFilesFolderForProfile(
++                profile)));
++    enabled_trash_locations.try_emplace(
++        util::GetDownloadsFolderForProfile(profile),
++        TrashLocation(
++            /*supplied_relative_folder_path=*/base::FilePath(kTrashFolderName),
++            /*supplied_mount_point_path=*/
++            util::GetMyFilesFolderForProfile(profile),
++            /*prefix_path=*/
++            util::GetDownloadsFolderForProfile(profile).BaseName()));
++  }
+ 
+   if (base::FeatureList::IsEnabled(ash::features::kFilesTrashDrive)) {
+     auto* integration_service =
+diff --git a/chrome/browser/ash/file_manager/trash_info_validator.cc b/chrome/browser/ash/file_manager/trash_info_validator.cc
+index 336539371a670..5300b13d13852 100644
+--- a/chrome/browser/ash/file_manager/trash_info_validator.cc
++++ b/chrome/browser/ash/file_manager/trash_info_validator.cc
+@@ -13,6 +13,8 @@
+ #include "base/task/sequenced_task_runner.h"
+ #include "base/task/task_traits.h"
+ #include "base/task/thread_pool.h"
++#include "chrome/browser/ash/crostini/crostini_util.h"
++#include "chrome/browser/ash/file_manager/path_util.h"
+ 
+ class Profile;
+ 
+@@ -72,6 +74,8 @@ base::File::Error ValidationErrorToFileError(ValidationError error) {
+ TrashInfoValidator::TrashInfoValidator(Profile* profile) {
+   enabled_trash_locations_ =
+       trash::GenerateEnabledTrashLocationsForProfile(profile);
++  my_files_ = util::GetMyFilesFolderForProfile(profile);
++  linux_home_ = crostini::NickelPathForLinuxApps(profile, my_files_);
+ 
+   parser_ = std::make_unique<ash::trash_service::TrashInfoParser>();
+ }
+@@ -182,6 +186,13 @@ void TrashInfoValidator::OnTrashInfoParsed(
+   std::string_view relative_path =
+       std::string_view(restore_path.value()).substr(1);
+   base::FilePath absolute_restore_path = mount_point_path.Append(relative_path);
++  // NickelOS: the trash of the Linux home names files by their paths in it,
++  // both those Files trashed and those Linux apps did (one home).
++  base::FilePath in_home;
++  if (linux_home_ != my_files_ && mount_point_path == my_files_ &&
++      linux_home_.AppendRelativePath(restore_path, &in_home)) {
++    absolute_restore_path = my_files_.Append(in_home);
++  }
+ 
+   ParsedTrashInfoData parsed_data;
+   parsed_data.trash_info_path = std::move(trash_info_path);
+diff --git a/chrome/browser/ash/file_manager/trash_info_validator.h b/chrome/browser/ash/file_manager/trash_info_validator.h
+index 9dddad50642f8..cb0ff06adf3db 100644
+--- a/chrome/browser/ash/file_manager/trash_info_validator.h
++++ b/chrome/browser/ash/file_manager/trash_info_validator.h
+@@ -123,6 +123,11 @@ class TrashInfoValidator {
+   // A map containing paths which are enabled for trashing.
+   trash::TrashPathsMap enabled_trash_locations_;
+ 
++  // NickelOS: My files and the Linux home it is mounted at (one home), whose
++  // trash names files by their paths in the home. Equal without one home.
++  base::FilePath my_files_;
++  base::FilePath linux_home_;
++
+   // Holds the connection open to the `TrashService`. This is a sandboxed
+   // process that performs parsing of the trashinfo files.
+   std::unique_ptr<ash::trash_service::TrashInfoParser> parser_ = nullptr;
+diff --git a/chromeos/ash/components/trash_service/trash_service_impl.cc b/chromeos/ash/components/trash_service/trash_service_impl.cc
+index f1a6ce223a4c9..ac59a01bc1433 100644
+--- a/chromeos/ash/components/trash_service/trash_service_impl.cc
++++ b/chromeos/ash/components/trash_service/trash_service_impl.cc
+@@ -127,6 +127,14 @@ base::Time ValidateAndCreateDeletionDate(std::string_view line) {
+   line.remove_prefix(kDeletionDateToken.size());
+ 
+   base::Time date;
++  // NickelOS: Linux apps (GIO) write the Trash spec's local time, without
++  // fractions or zone ("2026-10-07T10:13:00"); ChromeOS writes UTC with
++  // milliseconds. They share the Linux home's trash.
++  constexpr size_t kSpecDateSize = 19;
++  if (line.size() == kSpecDateSize &&
++      base::Time::FromString(std::string(line).c_str(), &date)) {
++    return date;
++  }
+   if (line.size() != kISO8601Size ||
+       !base::Time::FromUTCString(std::string(line).c_str(), &date)) {
+     LOG(ERROR) << "Cannot parse date";
+diff --git a/ui/file_manager/file_manager/common/js/trash.ts b/ui/file_manager/file_manager/common/js/trash.ts
+index 6d5b98b1fd3ba..b14603a350e2c 100644
+--- a/ui/file_manager/file_manager/common/js/trash.ts
++++ b/ui/file_manager/file_manager/common/js/trash.ts
+@@ -51,17 +51,28 @@ export class TrashConfig {
+  * Volumes supported for Trash, and location of Trash dir. Items will be
+  * searched in order.
+  */
+-export const TRASH_CONFIG = [
+-  // MyFiles/Downloads is a separate volume on a physical device, and doing a
+-  // move from MyFiles/Downloads/<path> to MyFiles/.Trash actually does a
+-  // copy across volumes, so we have a dedicated MyFiles/Downloads/.Trash.
+-  new TrashConfig(
+-      VolumeType.DOWNLOADS, '/Downloads/', '/Downloads/.Trash/',
+-      /*deleteIsForever=*/ true),
+-  new TrashConfig(
+-      VolumeType.DOWNLOADS, '/', '/.Trash/',
+-      /*deleteIsForever=*/ true),
+-];
++export const TRASH_CONFIG =
++    loadTimeData.valueExists('NICKEL_ONE_HOME') &&
++        loadTimeData.getBoolean('NICKEL_ONE_HOME') ?
++    [
++      // NickelOS: My files is the Linux home, and its trash the one Linux
++      // apps use ($XDG_DATA_HOME/Trash), shared with them.
++      new TrashConfig(
++          VolumeType.DOWNLOADS, '/', '/.local/share/Trash/',
++          /*deleteIsForever=*/ true),
++    ] :
++    [
++      // MyFiles/Downloads is a separate volume on a physical device, and
++      // doing a move from MyFiles/Downloads/<path> to MyFiles/.Trash actually
++      // does a copy across volumes, so we have a dedicated
++      // MyFiles/Downloads/.Trash.
++      new TrashConfig(
++          VolumeType.DOWNLOADS, '/Downloads/', '/Downloads/.Trash/',
++          /*deleteIsForever=*/ true),
++      new TrashConfig(
++          VolumeType.DOWNLOADS, '/', '/.Trash/',
++          /*deleteIsForever=*/ true),
++    ];
+ 
+ if (loadTimeData.getBoolean('FILES_TRASH_DRIVE_ENABLED')) {
+   TRASH_CONFIG.push(new TrashConfig(

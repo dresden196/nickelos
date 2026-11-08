@@ -1,0 +1,30 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the launcher button never shows Google's "G"
+
+With a keyboard ChromeOS takes for one with Google's newest launcher key
+(split modifiers: a function key and a Quick Insert key, as on recent
+Chromebooks), the shelf's launcher button shows the "G"-shaped launcher
+icon (kCampbellHeroIcon) instead of ChromeOS's circle. Seen on the NVIDIA test PC
+with 16852.17.4 (Chrome 157.0.8103.31; 8103.22 didn't), most likely from
+the test tool's virtual keyboard, which reports every key. NickelOS's
+launcher button is ChromeOS's own circle on every keyboard.
+
+---
+diff --git a/ash/shelf/home_button.cc b/ash/shelf/home_button.cc
+index 7fddb4c..116798e 100644
+--- a/ash/shelf/home_button.cc
++++ b/ash/shelf/home_button.cc
+@@ -259,8 +259,11 @@ class HomeButton::ButtonImageView : public views::View {
+   }
+ 
+   void UpdateIconImageModel() {
+-    if (Shell::Get()->keyboard_capability()->GetMetaKeyToDisplay() ==
+-        ui::mojom::MetaKey::kLauncherRefresh) {
++    // NickelOS: always ChromeOS's own launcher button, never the Google "G"
++    // ChromeOS shows for keyboards with Google's newest launcher key.
++    if ((false) &&
++        Shell::Get()->keyboard_capability()->GetMetaKeyToDisplay() ==
++            ui::mojom::MetaKey::kLauncherRefresh) {
+       image_model_ =
+           ui::ImageModel::FromVectorIcon(kCampbellHeroIcon, GetIconColorId());
+     } else {

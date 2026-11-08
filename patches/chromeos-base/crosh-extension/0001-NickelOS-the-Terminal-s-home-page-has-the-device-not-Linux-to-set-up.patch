@@ -1,0 +1,95 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the Terminal's home page has the device, not Linux
+ to set up
+
+NickelOS has no Crostini (Chrome 0099), so the home page's Linux section
+would only say "Linux", "Set up" and "Visit Developer Options to manage
+Linux". With Crostini off and no containers, the section is "This
+device" instead, with one row that opens a shell on the device: the
+vmshell for VM "nickel", container "host", which Chrome 0003 runs
+locally (the same shell the Terminal app opens). "Developer Settings"
+(Settings' Linux page, which Chrome 0099 leaves out) goes with it.
+
+---
+diff --git a/nassh/_locales/en/messages.json b/nassh/_locales/en/messages.json
+index 43e3fec..f16747e 100644
+--- a/nassh/_locales/en/messages.json
++++ b/nassh/_locales/en/messages.json
+@@ -2179,6 +2179,14 @@
+ 		"description": "Title for a dialog to create a New SSH (Secure SHell) connection",
+ 		"message": "New SSH connection"
+ 	},
++	"TERMINAL_HOME_NICKEL_DEVICE_LABEL": {
++		"description": "NickelOS: label of the Terminal home page's section for the device itself, where the shell runs (NickelOS has no Linux VM).",
++		"message": "This device"
++	},
++	"TERMINAL_HOME_NICKEL_SHELL": {
++		"description": "NickelOS: the row that opens a shell on the device.",
++		"message": "Shell"
++	},
+ 	"TERMINAL_HOME_SET_UP": {
+ 		"description": "Label to set up Linux developer settings.",
+ 		"message": "Set up"
+diff --git a/terminal/js/terminal_home_app.js b/terminal/js/terminal_home_app.js
+index 0123384..6a70752 100644
+--- a/terminal/js/terminal_home_app.js
++++ b/terminal/js/terminal_home_app.js
+@@ -247,8 +247,41 @@ export class TerminalHomeApp extends LitElement {
+     }
+   }
+ 
++  /**
++   * NickelOS: no Crostini, so nothing to set up; the device itself has the
++   * shell (the same one the Terminal app opens).
++   *
++   * @return {!TemplateResult}
++   */
++  renderDevice() {
++    const msg = hterm.messageManager.get.bind(hterm.messageManager);
++    const enc = encodeURIComponent;
++    const href = `terminal.html?command=vmshell&args[]=${
++        enc('--vm_name=nickel')}&args[]=${enc('--target_container=host')}`;
++    return html`
++      <section>
++        <div class="line">
++          <div class="header row">
++            <h3>${msg('TERMINAL_HOME_NICKEL_DEVICE_LABEL')}</h3>
++          </div>
++        </div>
++        <ul>
++          <li class="row">
++            <a class="row full-width" target="_blank" href="${href}">
++              <span class="row-icon icon-fill-path">${ICON_LINUX}</span>
++              <div class="rowlabel">${msg('TERMINAL_HOME_NICKEL_SHELL')}</div>
++            </a>
++          </li>
++        </ul>
++      </section>
++    `;
++  }
++
+   /** @return {!TemplateResult} */
+   renderLinux() {
++    if (!this.crostiniEnabled && this.containers.length === 0) {
++      return this.renderDevice();
++    }
+     const msg = hterm.messageManager.get.bind(hterm.messageManager);
+     const sectionLabel = msg('TERMINAL_HOME_DEFAULT_LINUX_CONTAINER_LABEL');
+ 
+@@ -405,6 +438,8 @@ export class TerminalHomeApp extends LitElement {
+                 </div>
+               </button>
+             </li>
++            ${when(this.crostiniEnabled || this.containers.length > 0,
++                () => html`
+             <li>
+               <button class="row full-width"
+                   @click="${this.onOpenSystemSettings}">
+@@ -417,6 +452,7 @@ export class TerminalHomeApp extends LitElement {
+                 </mwc-icon-button>
+               </button>
+             </li>
++            `)}
+           </ul>
+         </section>
+       </div>

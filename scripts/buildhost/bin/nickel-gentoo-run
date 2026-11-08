@@ -1,0 +1,23 @@
+#!/bin/bash
+# Runs a command (bash -c) inside the build host's Gentoo root: NickelOS
+# Unified's (docs/unified.md), /srv/nickel/unified/root, whose packages go
+# into the image and the binhost; NICKEL_GENTOO_ROOT names another (a copy).
+# /dev, /proc, /sys and /run are mounted into it on the first call; the
+# host's resolver is copied in. Run as root.
+#   nickel-gentoo-run 'emerge -uDN @world'
+set -euo pipefail
+R=${NICKEL_GENTOO_ROOT:-/srv/nickel/unified/root}
+[ -x "$R/usr/bin/emerge" ] || { echo "no Gentoo root at $R" >&2; exit 1; }
+for d in proc sys dev run; do
+	mountpoint -q "$R/$d" && continue
+	case $d in
+	proc) mount -t proc proc "$R/proc" ;;
+	sys) mount --rbind /sys "$R/sys"; mount --make-rslave "$R/sys" ;;
+	dev) mount --rbind /dev "$R/dev"; mount --make-rslave "$R/dev" ;;
+	run) mount --bind /run "$R/run"; mount --make-slave "$R/run" ;;
+	esac
+done
+cp -L /etc/resolv.conf "$R/etc/resolv.conf"
+exec chroot "$R" /usr/bin/env -i HOME=/root TERM="${TERM:-dumb}" LANG=C.UTF-8 \
+	PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+	/bin/bash -lc "$1"

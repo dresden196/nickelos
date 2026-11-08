@@ -1,0 +1,1286 @@
+{
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "Linux აპი, ინსტალატორი: INSTALLER"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "Linux აპი"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "დარწმუნდით, რომ თქვენი ტელეფონი და NickelOS მოწყობილობა ერთსა და იმავე ქსელშია, შემდეგ კი ხელახლა ცადეთ. LEARN_MORE"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "თქვენი ტელეფონი იყენებს მობილურ ქსელს. დარწმუნდით, რომ თქვენი ტელეფონი და NickelOS მოწყობილობა ერთსა და იმავე Wi-Fi ქსელშია, შემდეგ კი ხელახლა ცადეთ. LEARN_MORE"
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "პაროლების მმართველი ითხოვს თქვენი ვინაობის დადასტურებას"
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "თქვენი მოწყობილობა ამ დროის განმავლობაში ჩართული და კვების წყაროსთან მიერთებული უნდა იყოს. დარწმუნდით, რომ დამტენის ან ადაპტერის კაბელები კარგად არის შეერთებული როგორც მოწყობილობაში, ისე როზეტში. არ გამორთოთ მოწყობილობა."
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "დაზოგეთ დრო — უპასუხეთ თქვენს ტელეფონზე მიღებულ ტექსტურ შეტყობინებებს თქვენი NickelOS მოწყობილობიდან"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "სამუშაო მაგიდა"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "სანაგვეში გადატანა"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "სახელი არ უნდა იწყებოდეს წერტილით და არ უნდა შეიცავდეს „/“ სიმბოლოს."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "ამ სახელით ელემენტი უკვე არსებობს."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "ახალი საქაღალდე"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "ახალი საქაღალდე"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "გახსნა"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "„სამუშაო მაგიდის“ გახსნა ფაილებში"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "გადარქმევა"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "გადარქმევა ვერ მოხერხდა."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "გადარქმევა"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "ფაილებში ჩვენება"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "თქვენს NickelOS მოწყობილობასთან თავსებადია მხოლოდ დადასტურებული Thunderbolt მოწყობილობები"
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "NickelOS-ის ინსტალაცია"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "თქვენი NickelOS მოწყობილობა ან Bluetooth მოწყობილობა Bluetooth-ის მოძველებულ ვერსიას იყენებს. აუდიოს ხარისხის გასაუმჯობესებლად გამოიყენეთ შიდა მიკროფონი."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "დარწმუნდით, რომ თქვენი NickelOS მოწყობილობა და Chromecast მოწყობილობა დაკავშირებულია ერთსა და იმავე Wi-Fi ქსელთან."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "NickelOS-ის გზამკვლევის გახსნა"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "გაიარეთ სწრაფი ტური და გაიგეთ, როგორ არის მოწყობილი თქვენი PRODUCT_NAME: სად არის თქვენი აპები, როგორ დაამატოთ ახალი და როგორ მუშაობს მის საფუძველში Linux. 7 ნაბიჯი."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "გამარჯობა! მოგესალმებათ თქვენი PRODUCT_NAME."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "ტურის ნაბიჯი STEP / TOTAL_STEPS-დან. Files აპს გამშვებში ნახავთ. „პირადი საქაღალდე“ Linux-ში თქვენი საწყისი საქაღალდეა: Linux აპები და Files აპი ერთსა და იმავე ფაილებს ხედავს, ხოლო ღრუბლოვანი მეხსიერება, რომელსაც პარამეტრებში დაამატებთ, აქაც გამოჩნდება."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "„პირადი საქაღალდე“ Linux-ში თქვენი საწყისი საქაღალდეა: Linux აპები და Files აპი ერთსა და იმავე ფაილებს ხედავს, ხოლო ღრუბლოვანი მეხსიერება, რომელსაც პარამეტრებში დაამატებთ, აქაც გამოჩნდება."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "ტურის ნაბიჯი STEP / TOTAL_STEPS-დან. Waydroid უშვებს Android-ის აპებს, თითოეულს — საკუთარ ფანჯარაში. დააყენეთ ის პარამეტრებში, განყოფილებაში „პროგრამები“, შემდეგ — „Android-ის აპები“. ამის შემდეგ APK ფაილის გახსნით აპი დაინსტალირდება, ხოლო Android-ის აპები გამშვებში გამოჩნდება."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Waydroid უშვებს Android-ის აპებს, თითოეულს — საკუთარ ფანჯარაში. დააყენეთ ის აქ: პარამეტრები > პროგრამები > Android-ის აპები. ამის შემდეგ APK ფაილის გახსნით აპი დაინსტალირდება, ხოლო Android-ის აპები გამშვებში გამოჩნდება."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "ტურის ნაბიჯი STEP / TOTAL_STEPS-დან. მეტი აპი Bazaar-შია: Linux აპები Flathub-იდან, რომლებიც Flatpak-ის სახით ინსტალირდება. ისინი გამშვებში ჩანს, ისევე როგორც ნებისმიერი სხვა აპი."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "მეტი აპი Bazaar-შია: Linux აპები Flathub-იდან, რომლებიც Flatpak-ის სახით ინსტალირდება. ისინი გამშვებში ჩანს, ისევე როგორც ნებისმიერი სხვა აპი."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "ტურის ნაბიჯი STEP / TOTAL_STEPS-დან. ტერმინალი ნამდვილი Linux-ის გარსია, sudo ბრძანების მხარდაჭერით. NickelOS Gentoo-ზეა დაფუძნებული: eix პოულობს პაკეტებს, sudo emerge კი მათ აინსტალირებს, როგორც ნებისმიერ Gentoo სისტემაში."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "ტერმინალი ნამდვილი Linux-ის გარსია, sudo ბრძანების მხარდაჭერით. NickelOS Gentoo-ზეა დაფუძნებული: eix პოულობს პაკეტებს, sudo emerge კი მათ აინსტალირებს, როგორც ნებისმიერ Gentoo სისტემაში."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "ტურის ნაბიჯი STEP / TOTAL_STEPS-დან. გამშვების გააქტიურების შემდეგ ძიების ზოლი გექნებათ. დაიწყეთ ტექსტის აკრეფა და თქვენი PRODUCT_NAME მოგიძებნით აპებს, ფაილებსა და პარამეტრებს."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "აკრიფეთ გამშვებში და თქვენი PRODUCT_NAME მოგიძებნით აპებს, ფაილებსა და პარამეტრებს."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "ტურის ნაბიჯი STEP / TOTAL_STEPS-დან. თქვენი მოწყობილობის პარამეტრების პოვნა გამშვებში შეგიძლიათ. მოირგეთ თქვენი PRODUCT_NAME პარამეტრებში: ფონი, მუქი ან ღია რეჟიმი, ეკრანები და სხვა. ტური დასრულდა! მეტი ინფორმაცია NickelOS-ის გზამკვლევშია."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "მოირგეთ თქვენი PRODUCT_NAME საკუთარ გემოვნებაზე პარამეტრებში: ფონი, მუქი ან ღია რეჟიმი, ეკრანები და სხვა. ტური დასრულდა! მეტი ინფორმაცია NickelOS-ის გზამკვლევშია."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "თქვენი NickelOS მოწყობილობის განსაბლოკად გამოიყენეთ თქვენი თითის ანაბეჭდი, ან განბლოკეთ თქვენი ტელეფონი"
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "დარწმუნდით, რომ თქვენი Bluetooth-მოწყობილობა დაწყვილების რეჟიმშია და ახლოს მდებარეობს. დააწყვილეთ მხოლოდ ის მოწყობილობები, რომლებსაც ენდობით. დაწყვილებული მოწყობილობები ხილულია ამ NickelOS მოწყობილობის ყველა ანგარიშისთვის."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "დარწმუნდით, რომ თქვენი Bluetooth-მოწყობილობა დაწყვილების რეჟიმშია და ახლოს მდებარეობს. დააწყვილეთ მხოლოდ ის მოწყობილობები, რომლებსაც ენდობით. დაწყვილებული მოწყობილობები ხილულია ამ NickelOS მოწყობილობის ყველა ანგარიშისთვის. BEGIN_LINK_LEARN_MOREშეიტყვეთ მეტიEND_LINK_LEARN_MORE"
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "თქვენი მონაცემები სინქრონიზებული იქნება თქვენს ყველა Chrome ბრაუზერთან, რომლებიდანაც ჩართეთ სინქრონიზაცია ამ ანგარიშისთვის. NickelOS-ის სინქრონიზაციის პარამეტრებისთვის გადადით LINK_BEGINNickelOS-ის პარამეტრებზეLINK_END."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "კლავიატურის მალსახმობები"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "სენსორული ეკრანის მარტივი წვდომის ფუნქციების გამოყენება"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "კლავიატურების უმეტესობაზე კლავიში „Search“ არის Windows კლავიში, რომელიც მარცხენა Alt კლავიშის გვერდით მდებარეობს."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "თქვენ იღებთ პროგრამული უზრუნველყოფის ბოლო განახლებას უსაფრთხოების უახლესი გასწორებებითა და ფუნქციებით."
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "BEGIN_H3შეცდომების გამართვის ფუნქციებიEND_H3\n          BR\n          თქვენს NickelOS მოწყობილობაზე, თქვენი საკუთარი კოდის ინსტალაციისთვის და ტესტირებისთვის, შეგიძლიათ ჩართოთ შეცდომების გამართვის ფუნქციები. მათი მეშვეობით თქვენ შეგეძლებათ:BR\n          BEGIN_LIST\n            LIST_ITEMRootFS დადასტურების გაუქმება ოპერაციული სისტემის ფაილების შესაცვლელად\n            LIST_ITEMმოწყობილობაზე სტანდარტული სატესტო გასაღებების მეშვეობით SSH-წვდომის ჩართვა ისეთი ხელსაწყოების გამოსაყენებლად, როგორიცაა BEGIN_CODE'cros flash'END_CODE\n            LIST_ITEMUSB-დან ჩატვირთვის ჩართვა USB დისკიდან ოპერაციული სისტემის იმიჯის ინსტალაციისთვის\n            LIST_ITEMდეველოპერისა და სისტემის ძირეული შესვლის პაროლების დაყენება სასურველ მნიშვნელობაზე მოწყობილობაში SSH-ის მეშვეობით ხელით შესასვლელად\n          END_LIST\n          BR\n          შეცდომების გამართვის ფუნქციების უმეტესობა ჩართული დარჩება კორპორაციულ მოწყობილობაზე Powerwash-ის შესრულების ან მონაცემების ამოშლის შემდეგაც კი. შეცდომების გამართვის ფუნქციების სრულად გამოსართავად ხელახლა დააინსტალირეთ NickelOS.\n          BR\n          BR\n          შეცდომების გამართვის ფუნქციების შესახებ დამატებითი ინფორმაციისთვის გადადით ბმულზე:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDშენიშვნა:END_BOLD პროცესის მსვლელობისას სისტემა გადაიტვირთება."
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "იპოვეთ დამხმარე სტატიები და პასუხები გავრცელებულ შეკითხვებზე"
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "გმადლობთ გამოხმაურებისთვის. ის გაიგზავნება, როცა ინტერნეტს ხელახლა დაუკავშირდებით."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "გმადლობთ გამოხმაურებისთვის."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "პირადი საქაღალდე"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "ეს ფაილი განკუთვნილია კომპიუტერისთვის, რომელიც იყენებს Macintosh პროგრამულ უზრუნველყოფას. ის არ არის თავსებადი თქვენს მოწყობილობასთან, რომელზეც გაშვებულია NickelOS. BEGIN_LINK_HELPშეიტყვეთ მეტიEND_LINK_HELP NickelOS-ზე ფაილების გახსნის შესახებ."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "ეს ფაილი განკუთვნილია პერსონალური კომპიუტერისთვის, რომელიც იყენებს Windows-ის პროგრამულ უზრუნველყოფას. ის არ არის თავსებადი თქვენს მოწყობილობასთან, რომელზეც გაშვებულია NickelOS. BEGIN_LINK_HELPშეიტყვეთ მეტიEND_LINK_HELP NickelOS-ზე ფაილების გახსნის შესახებ."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "თქვენი მოწყობილობა მალე შეწყვეტს განახლებების მიღებას."
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "დაყენების თქვენი Android-ტელეფონის მეშვეობით შესასრულებლად, თქვენი NickelOS მოწყობილობის Bluetooth ჩართული უნდა იყოს"
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "თქვენმა ადმინისტრატორმა ჩართო შემდეგი მონაცემების სინქრონიზაცია თქვენს წინა და მიმდინარე სესიებს შორის თქვენს NickelOS მოწყობილობებზე:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "დაშვება"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "არ დაიშვას"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "ახლა არა"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "შეიყვანეთ ამ კომპიუტერის ადმინისტრატორის (NAME) პაროლი."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "APP_NAME ითხოვს ამ მოწყობილობის კამერის გამოყენებას. თქვენი პასუხი ამ აპისთვის დაიმახსოვრება."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "დაუშვებთ, რომ APP_NAME იყენებდეს კამერას?"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "APP_NAME ითხოვს კამერის გამოყენებას. ამის დასაშვებად ჩართეთ კამერაზე წვდომა კონფიდენციალურობის მართვის საშუალებებში."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "პარამეტრების გახსნა"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "კამერაზე წვდომა გამორთულია"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "დაშვება"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "არ დაიშვას"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "მალსახმობის შესაცვლელად აირჩიეთ მისი კლავიშები და დააჭირეთ ახლებს. Backspace მალსახმობს წაშლის."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "APP_NAME ითხოვს, რომ ეს მალსახმობები მუშაობდეს მაშინაც, როცა სხვა აპებს იყენებთ. ის მხოლოდ იმას გაიგებს, როდის დააჭერთ მათ, და არა იმას, რასაც სხვაგან აკრეფთ."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "კლავიშთან ერთად გამოიყენეთ Ctrl, Alt ან Search, ან ფუნქციური კლავიში."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "არ არის დაყენებული"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "დააჭირეთ კლავიშებს…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "ეს კლავიშები უკვე გამოიყენება. ცადეთ სხვა."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "დაუშვებთ კლავიატურის მალსახმობებს?"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "შეცვლა"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "სამაგიდო კომპიუტერი"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "კომპიუტერი"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "ლეპტოპი"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE (NAME)"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "ტაბლეტი"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "პაროლის დადასტურება"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "მიმდინარეობს თქვენი ანგარიშის შექმნა..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "ანგარიშის შექმნა ვერ მოხერხდა."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "ანგარიშის შექმნა ვერ მოხერხდა: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "აირჩიეთ პაროლი."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "ანგარიშის დაყენება ვერ მოხერხდა: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "ეს მომხმარებლის სახელი დაკავებულია."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "ანგარიშის შექმნას ძალიან დიდი დრო დასჭირდა. ცადეთ ხელახლა."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "მომხმარებლის სახელი უნდა იწყებოდეს ლათინური პატარა ასოთი და შეიცავდეს მხოლოდ ლათინურ პატარა ასოებს, ციფრებს, - და _ სიმბოლოებს (მაქსიმუმ 32)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "პაროლები არ ემთხვევა"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "თქვენი სახელი"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "პაროლი"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "თქვენი სურათი"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "ის ჩანს შესვლის ეკრანზე და სისტემის პანელში. საკუთარი ფოტოს გამოსაყენებლად მოგვიანებით გადადით პარამეტრებში."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "აირჩიეთ სურათი"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "თქვენი ანგარიში და მისი ფაილები ამ მოწყობილობაზე ინახება და თქვენი პაროლით არის დაშიფრული. Google ანგარიშის გარეშე, თუ პაროლი დაგავიწყდებათ, მათი აღდგენა შეუძლებელი იქნება."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "შექმენით თქვენი ანგარიში"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "მომხმარებლის სახელი"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "დაიწყეთ ლათინური პატარა ასოთი; გამოიყენეთ ლათინური პატარა ასოები, ციფრები, - და _ (მაქსიმუმ 32)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "APP_NAME ითხოვს ინფორმაციას, თუ სად იმყოფება ეს მოწყობილობა. მდებარეობა განისაზღვრება ახლომდებარე Wi-Fi ქსელებისა და ინტერნეტ-მისამართის მიხედვით. თქვენი პასუხი ამ აპისთვის დაიმახსოვრება."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "დაუშვებთ, რომ APP_NAME იყენებდეს თქვენს მდებარეობას?"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "APP_NAME ითხოვს თქვენი მდებარეობის გამოყენებას. ამის დასაშვებად ჩართეთ მდებარეობაზე წვდომა კონფიდენციალურობის მართვის საშუალებებში."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "მდებარეობაზე წვდომა გამორთულია"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "APP_NAME ითხოვს ამ მოწყობილობის კლავიატურისა და მაჩვენებლის მართვას. დაუშვით მხოლოდ იმ შემთხვევაში, თუ ენდობით მას, ვინც უკავშირდება."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "APP_NAME მართავს ამ მოწყობილობას."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "დაუშვებთ დისტანციურ მართვას?"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "NickelOS-ის დაყენებისას აირჩიეთ „მინიმალური“, ამიტომ საძიებო სისტემა თქვენთვის არ შეურჩევიათ. ეს საძიებო სისტემები პოპულარულია თქვენს რეგიონში და ნაჩვენებია შემთხვევითი თანმიმდევრობით."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "ორივე შემთხვევაში მიიღებთ Bazaar-ს მეტი აპის მოსაძებნად, ასევე აპებს თქვენი ფოტოების, ვიდეოების, მუსიკისა და დოკუმენტების გასახსნელად."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "სრული ნაკრები"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "ყველაფერი მზადაა გამოსაყენებლად და კონფიდენციალურია. DuckDuckGo ეძებს ინტერნეტში ბრაუზერიდან და გამშვებიდან, uBlock Origin ბრაუზერში ბლოკავს რეკლამებსა და ტრეკერებს, დაინსტალირებულია Proton-ის კონფიდენციალური აპები (Mail, Calendar, Drive, Pass და სხვა), ასევე მოყვება უფასო, ღია კოდის აპები: LibreOffice, OBS Studio, GIMP, Kdenlive და სხვა."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "მინიმალური"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "მხოლოდ აუცილებელი. გამშვები ეძებს მხოლოდ ამ კომპიუტერში და თქვენთვის სხვა არაფერი დაყენდება."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "ყველაფრის შეცვლა მოგვიანებით პარამეტრებში შეგიძლიათ."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "როგორ გსურთ დაწყება?"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "დაწყებამდე დარწმუნდით, რომ თქვენი მონაცემების სარეზერვო ასლი გაქვთ შექმნილი. ინსტალაციისას DEVICE_OS გადაწერს თქვენ მიერ არჩეულ დისკს."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "DEVICE_OS თავისუფალი პროგრამული უზრუნველყოფაა და მოწოდებულია „როგორც არის“ პრინციპით: ის შეიძლება ყველა კომპიუტერზე არ მუშაობდეს, ხოლო მისი ავტორები პასუხს არ აგებენ მონაცემთა დაკარგვაზე."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "განახლებები, დეველოპერთა პარამეტრები"
+ },
+ "IDS_OS_SETTINGS_APP_DETAILS_TYPE_CROS_SYSTEM": {
+  "en": "NickelOS System App",
+  "t": "NickelOS სისტემის აპი"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "ტელეფონები, მახლობლად გაზიარება"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "ტელეფონები, FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "ღრუბლოვანი მეხსიერება"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Google Drive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "ღრუბლოვანი ანგარიშის დამატება"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "თქვენი სურათები"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "როცა ეკრანი უმოქმედოა, შეგიძლიათ გამოაჩინოთ თქვენი სურათები, დრო და მედიაინფორმაცია"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "თქვენი საკუთარი სურათები"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "ეკრანმზოგი აჩვენებს სურათებს საქაღალდიდან „სურათები“ და მასში არსებული საქაღალდეებიდან. დაამატეთ სულ მცირე 2 სურათი."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "საქაღალდე „სურათები“"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "NickelOS-თან ერთად მოწოდებული სურათები"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "ეკრანმზოგი აჩვენებს NickelOS-ის ფონებს. ჩართეთ ეს პარამეტრი, თუ გსურთ, რომ მათ ნაცვლად ნაჩვენები იყოს სურათები საქაღალდიდან ჩემი ფაილები > Pictures."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "NickelOS-ის ფონები"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "Open-Meteo-დან, თქვენი მიახლოებითი მდებარეობისთვის, რომელსაც beaconDB თქვენი IP მისამართის მიხედვით ადგენს"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "ამინდის ჩვენება"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "დარწმუნდით, რომ თქვენი პრინტერი ჩართულია და დაკავშირებულია იმავე ქსელთან, რომელთანაც თქვენი NickelOS მოწყობილობაა დაკავშირებული, ან გამოიყენეთ USB კაბელი"
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "პირადი საქაღალდე"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "როცა ჩართულია, მონაცემები ინახება თქვენს Google ანგარიშში და შესაძლოა, გამოყენებულ იქნას თქვენს ყველა მოწყობილობაზე. გამორთვის შემთხვევაში, მონაცემები მხოლოდ ამ მოწყობილობაზე შეინახება. NickelOS-ის სინქრონიზაციის პარამეტრებისთვის გადადით LINK_BEGINNickelOS-ის პარამეტრებზეLINK_END."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "მიეცით Android აპებს ამ NickelOS მოწყობილობაზე USB მოწყობილობებზე წვდომის უფლება. ნებართვა მოთხოვნილი იქნება USB მოწყობილობის ყოველი მიერთებისას. ცალკეული Android აპები დამატებით ნებართვებს მოითხოვს."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "თქვენი მოწყობილობა აღარ იღებს უსაფრთხოებისა და პროგრამული უზრუნველყოფის განახლებებს."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "ეს მოწყობილობა აღარ იღებს განახლებებს"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "თქვენი მოწყობილობა აღარ იღებს უსაფრთხოებისა და პროგრამული უზრუნველყოფის განახლებებს."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "ეს მოწყობილობა აღარ იღებს განახლებებს"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "მიეცით Android აპებს ამ NickelOS მოწყობილობაზე USB მოწყობილობებზე წვდომის უფლება"
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "ეს ვარიანტი ვრცელდება NickelOS მოწყობილობებზე, რომლებზეც გამოიყენება მობილური ინტერნეტის პაკეტი ან მობილური ქსელის მოდემი, ასევე, პორტატიულ უსადენო ქსელთან ტეტერინგის დროს"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "ადამიანის დამატება"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "თქვენ გამოხვალთ სისტემიდან. შესვლის ეკრანზე ახალი ადამიანი აირჩევს სახელს, მომხმარებლის სახელსა და პაროლს."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "ადმინისტრატორი"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "ადმინისტრატორებს შეუძლიათ ყველასთვის პროგრამების ინსტალაცია, სისტემის შეცვლა და ანგარიშების მართვა."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "პაროლის შეცვლა"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "დადასტურება"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "ახალი პაროლის დადასტურება"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "მიმდინარე პაროლი"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "აირჩიეთ ახალი პაროლი"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "რაღაც შეცდომა მოხდა. ცადეთ ხელახლა."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "ამ მოწყობილობას სულ მცირე ერთი ადმინისტრატორი სჭირდება"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "გახდეს NAME ადმინისტრატორი?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "ახალი პაროლი"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "ამ მოწყობილობაზე ანგარიში სხვა არავის აქვს."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "ამ მოწყობილობის სხვა მომხმარებლები"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "თითოეულ ადამიანს საკუთარი ანგარიში და ფაილები აქვს. ადმინისტრატორებს შეუძლიათ ყველასთვის პროგრამების ინსტალაცია, სისტემის შეცვლა და ანგარიშების მართვა."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "მფლობელი, ადმინისტრატორი"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "ახალი პაროლები არ ემთხვევა"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "ამოშლა"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "გახდეს NAME სტანდარტული მომხმარებელი?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "მისი ანგარიში და ყველა ფაილი ამ მოწყობილობიდან წაიშლება. ამ მოქმედების გაუქმება შეუძლებელია."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "ამოიშალოს NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "გამოსვლა"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "სტანდარტული"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "პაროლი არასწორია"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "თქვენი ანგარიში"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "თქვენი პაროლი"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "ამ პარამეტრების შეცვლა მხოლოდ ამ მოწყობილობის ადმინისტრატორს შეუძლია."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "აპებისთვის, რომლებიც მხოლოდ ტელეფონებში გამოყენებული ARM პროცესორებისთვისაა შექმნილი, მათ შორის ბევრი თამაშისთვის. საკუთრებითი პროგრამული უზრუნველყოფა, რომელიც ჩართვისას ჩამოიტვირთება."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "Android-ის ბევრი აპი, განსაკუთრებით თამაშები, შექმნილია მხოლოდ ტელეფონებში გამოყენებული ARM პროცესორებისთვის. ამ კომპიუტერზე მათ გასაშვებად Android-ს მთარგმნელი სჭირდება. NickelOS ასეთ მთარგმნელს არ ქმნის და არ შეიცავს: ამ ფუნქციის ჩართვისას GitHub-იდან ჩამოიტვირთება TRANSLATOR — ზუსტად ის ასლი, რომელსაც Waydroid-ის საზოგადოების waydroid_script აინსტალირებს."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "ეს საკუთრებითი პროგრამული უზრუნველყოფაა, რომელზეც მისი მფლობელის პირობები ვრცელდება, და მას თქვენ თავად აინსტალირებთ. ზოგიერთი აპი შეიძლება ნელა იმუშაოს ან საერთოდ არ იმუშაოს. მის გამოსაყენებლად Android გადაიტვირთება."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "თანხმობა და ჩართვა"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "ჩაირთოს ARM აპების მხარდაჭერა?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "ARM აპების მხარდაჭერა"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "მიმდინარეობს ამოშლა..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "მიმდინარეობს ჩამოტვირთვა და ინსტალაცია..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "მიმდინარეობს Android-ის ჩამოტვირთვა"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "ჩამოტვირთვა არ დასრულდა. შეამოწმეთ კავშირი და ცადეთ ხელახლა."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "რაღაც შეცდომა მოხდა. ცადეთ ხელახლა."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "Android-ის პარამეტრები"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "მიმდინარეობს Android-ის დაყენება..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "ამოშლა"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "წაიშლება Android, თქვენი Android-ის აპები და მათი მონაცემები"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "Android, თქვენი Android-ის აპები და მათი მონაცემები ამ მოწყობილობიდან წაიშლება. სხვა ადამიანები, რომლებიც მას იყენებენ, შეინარჩუნებენ თავიანთ Android-ის მონაცემებს, მაგრამ ვერ გახსნიან Android-ის აპებს, სანამ Android ხელახლა არ დაყენდება."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "ამოიშალოს Android?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "Android-ის ამოშლა"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "მიმდინარეობს Android-ის ამოშლა..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "დაყენება"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "Android-ის აპები საკუთარ ფანჯრებში იხსნება, თქვენი სხვა აპების გვერდით. დაყენებისას ჩამოიტვირთება Android (LineageOS, Waydroid პროექტიდან): დაახლოებით 1 გბ, ამ მოწყობილობაზე კი 2,5 გბ-ს დაიკავებს."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "Android-ის აპების გაშვება"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "Android-ის აპები"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "Intel-ის Houdini"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "Google-ის NDK translation"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "Android-ის აპები ამჟამად მიუწვდომელია."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "Android ამ მოწყობილობაზე იკავებს: SIZE"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "წვდომის გასაღების ID"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "ანგარიშის დამატება"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "უკან"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "კლიენტის ID"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "კლიენტის საიდუმლო"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "დაკავშირება"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "მიმდინარეობს დაკავშირება…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "იხილეთ Google Drive, OneDrive, Dropbox და სხვა ღრუბლოვანი მეხსიერება ფაილებში"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "ღრუბლოვანი მეხსიერების დამატება"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "ACCOUNT_NAME ახლა ფაილებშია."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "Google Drive-ს სჭირდება თქვენი საკუთარი კლიენტის ID და საიდუმლო Google Cloud-ის კონსოლიდან."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "ელფოსტა ან მომხმარებლის სახელი"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "Endpoint (Amazon S3-ისთვის დატოვეთ ცარიელი)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "დაკავშირება ვერ მოხერხდა. შეამოწმეთ მონაცემები და ცადეთ ხელახლა."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "მზადაა"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "როგორ შევქმნათ ისინი"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "ფაილებშია"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "სახელი"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "შემდეგი"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "არ არის დაკავშირებული"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "პაროლი"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "NickelOS იყენებს rclone-ს, რათა თქვენი ღრუბლოვანი მეხსიერება ფაილებში აჩვენოს და თქვენი ფაილები ადვილად ხელმისაწვდომი იყოს. აირჩიეთ სერვისი, რომელშიც შესვლა გსურთ."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "რეგიონი (არასავალდებულო)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "ამოშლა"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "ფაილები ამ ანგარიშს აღარ აჩვენებს. თქვენი ფაილები ღრუბელში დარჩება და ანგარიშის ხელახლა დამატებას მოგვიანებით შეძლებთ."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "ამოიშალოს ACCOUNT_NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "მიმდინარეობს ამოშლა…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "Amazon S3 ან თავსებადი"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "საიდუმლო წვდომის გასაღები"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "სერვერის მისამართი"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "სერვისი"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "დაასრულეთ შესვლა გვერდზე, რომელიც თქვენს ბრაუზერში გაიხსნა."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "დაკავშირებისას სერვისის შესვლის გვერდი თქვენს ბრაუზერში გაიხსნება."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "ღრუბლოვანი მეხსიერება"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "2-საფეხურიანი დადასტურების კოდი (თუ იყენებთ)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "მომხმარებლის სახელი"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "Nextcloud ან WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "ამ კომპიუტერის სახელის შეცვლა მხოლოდ მის ადმინისტრატორს შეუძლია."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "შეცვლა"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "ამ სახელს სხვა მოწყობილობები ხედავს თქვენს ქსელში და Bluetooth-ით, ასევე მას აჩვენებს ტერმინალი და Linux აპები."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "კომპიუტერის სახელის შეცვლა"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "სახელის შეცვლა ვერ მოხერხდა. ცადეთ ხელახლა."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "გამოიყენეთ სულ მცირე ერთი ლათინური ასო (A–Z) ან ციფრი."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "კომპიუტერის სახელი"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "ტერმინალში: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "აპები, რომლებიც თითოეული ტიპის ფაილს ხსნის ფაილებიდან და Linux აპებიდან"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "დოკუმენტები"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "ელფოსტა"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "სურათები"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "მუსიკა"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "მათ გასახსნელად აპი არ არის"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "არ არის დაყენებული"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "PDF დოკუმენტები"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "პრეზენტაციები"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "ეკრანის ანაბეჭდები (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "ეკრანის აღბეჭდვა (ჩაშენებული)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "ცხრილები"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "ტექსტური ფაილები"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "ნაგულისხმევი აპები"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "ვიდეოები"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (ვებსაიტი)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "ამ მოწყობილობის შიდა დისკები, გარდა იმისა, რომელზეც NickelOS არის. დისკი, რომელზეც Windows-ია, მხოლოდ წასაკითხად იხსნება, რათა Windows ხელუხლებელი დარჩეს."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "სხვა დისკები"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "ცვლილებების დაშვება"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "ამ დისკზე Windows-ია. ის მხოლოდ წასაკითხადაა, თუ ცვლილებებს არ დაუშვებთ."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "სწრაფი გაშვების (Fast Startup) დროს Windows ბოლომდე არ ითიშება, ამიტომ აქ შეტანილი ცვლილებები შეიძლება დაიკარგოს ან Windows-ის მომდევნო გაშვებისას ფაილები დააზიანოს. ცვლილებების შეტანამდე გამორთეთ სწრაფი გაშვება Windows-ში ან Windows-ის გამორთვისას დაიჭირეთ Shift კლავიში."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "დაიშვას ცვლილებები Windows-ის დისკზე?"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "Windows ბოლომდე არ გამორთულა, ამიტომ დისკი მხოლოდ წასაკითხად რჩება. ცვლილებების შესატანად Windows ბოლომდე გამორთეთ."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "ფაილებში ჩვენება"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "სთხოვეთ დახმარება სხვა ადამიანებს"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "ფორუმი, Discord და GitHub nickelos.dev-ზე"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "Gentoo-ს შესწავლა"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "Portage და emerge თავიდანვე, pacman-ისა და apt-ის ბრძანებებთან გვერდიგვერდ"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "NickelOS-ის გზამკვლევი"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "როგორ მუშაობს NickelOS. ეს ასლი თქვენს NickelOS-ის ვერსიას მოჰყვა და ხაზგარეშე რეჟიმშიც მუშაობს."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "გზამკვლევი, Gentoo-ს შესწავლა, პრობლემების მოგვარება"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "ონლაინ გზამკვლევი"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "უახლესი ვერსია nickelos.dev-ზე"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "დახმარება"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "პრობლემების მოგვარება"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "ჟურნალები, ავარიული გათიშვის ანგარიშები, გავრცელებული პრობლემები და მათი მოგვარების გზები"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "Linux აპები"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "მიღება"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "ხელმისაწვდომია დასაწყვილებლად"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "გაუქმება"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "დაკავშირებულია"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "დაკავშირებულია · ბატარეა PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "დაკავშირებულია · იტენება, PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "KDE Connect აპით Android-ზე ან iPhone-ზე, იმავე Wi‑Fi ქსელში"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "მეტი: DEVICE_NAME"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "ტელეფონები და ტაბლეტები ჯერ არ არის. დააინსტალირეთ KDE Connect Google Play-დან, F‑Droid-იდან ან App Store-იდან, გახსენით ის იმავე Wi‑Fi ქსელში და დააწყვილეთ რომელიმე მოწყობილობიდან."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "ტელეფონებთან კავშირი არ მუშაობს. მის გასაშვებად გამოდით სისტემიდან და ხელახლა შედით."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "Valent-ის გახსნა"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "დაწყვილება"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "დაწყვილებულია · არ არის დაკავშირებული"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "ელოდება დადასტურებას"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "უარყოფა"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "ზარის დაკვრა"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "ფაილების გაგზავნა"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "ფაილების გაგზავნა"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "ტელეფონები და ტაბლეტები"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "დაწყვილების გაუქმება"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "ითხოვს ამ მოწყობილობასთან დაწყვილებას"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "საშუალებას აძლევს ისეთ აპებს, როგორიცაა Discord, გამოიყენონ push-to-talk მაშინაც, როცა სხვა ფანჯრებში ხართ. ისინი ხედავენ Ctrl, Alt ან Search კლავიშთან ერთად დაჭერილ კლავიშებს და ფუნქციურ კლავიშებს, მაგრამ არასოდეს — იმას, რასაც აკრეფთ."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "მალსახმობი კლავიშები ძველი Linux აპებისთვის"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "დარწმუნდით, რომ თქვენი პრინტერი დაკავშირებულია იმავე Wi-Fi-ქსელთან, რომელთანაც თქვენი NickelOS მოწყობილობაა დაკავშირებული, ან გამოიყენეთ USB კაბელი. LINK_BEGINშეიტყვეთ მეტი თავსებადობის შესახებLINK_END"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "პრინტერთან დაკავშირება ვერ მოხერხდა. დარწმუნდით, რომ პრინტერი ჩართულია და დაკავშირებულია თქვენს NickelOS მოწყობილობასთან Wi-Fi ქსელის ან USB-ის მეშვეობით."
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "პირადი საქაღალდე"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "დასაწყებად დარწმუნდით, რომ თქვენი USB ან Bluetooth გადამრთველი დაკავშირებულია თქვენს NickelOS მოწყობილობასთან. გარდა ამისა, შეგიძლიათ კლავიატურის კლავიშების გამოყენება."
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "თქვენი NickelOS მოწყობილობის განსაბლოკად დარწმუნდით, რომ თქვენი ტელეფონის Bluetooth ჩართულია"
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "თქვენი NickelOS მოწყობილობის Bluetooth გამორთულია. თქვენი NickelOS მოწყობილობის განსაბლოკად შეიყვანეთ პაროლი."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "თქვენს ტელეფონს არ აქვს ეკრანის დაბლოკვა. თქვენი NickelOS მოწყობილობის განსაბლოკად შეიყვანეთ პაროლი."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "თქვენს NickelOS მოწყობილობაში შესასვლელად, პირველ რიგში, განბლოკეთ თქვენი ტელეფონი"
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "თქვენი მოწყობილობა იყენებს ჩაშენებულ სენსორს მის წინ მყოფი ადამიანების აღმოსაჩენად. ყველა დაკავშირებული მონაცემი მყისიერად მუშავდება თქვენს მოწყობილობაზე, შემდეგ კი იშლება. სენსორის მონაცემები არასოდეს ეგზავნება Google-ს."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "NickelOS-ის ჟურნალები"
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "მოწყობილობაში საკუთარი ანგარიშით შეხვალთ, ხოლო ყველას, ვინც მას იყენებს, შეუძლია საკუთარი ანგარიში ჰქონდეს."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "თქვენი საკუთარი ანგარიში თქვენს მოწყობილობაზე"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "NickelOS უსაფრთხოების გათვალისწინებით არის შექმნილი და ავტომატურად ახლდება."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "NickelOS ვებ-აპებსა და Linux აპებს გვერდიგვერდ უშვებს. ჩამოტვირთეთ აპები პროდუქტიულობისთვის, გართობისთვის და ა.შ."
+ },
+ "IDS_UPDATE_SLIDE_UPDATE_TEXT": {
+  "en": "This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.",
+  "t": "მხოლოდ ამ დროს გიწევთ განახლების ლოდინი. NickelOS-ზე პროგრამული უზრუნველყოფის განახლებები ფონურ რეჟიმში მიმდინარეობს."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "Chrome აპები NickelOS-ზე არ მუშაობს. იფიქრეთ სხვა აპის გამოყენებაზე."
+ }
+}

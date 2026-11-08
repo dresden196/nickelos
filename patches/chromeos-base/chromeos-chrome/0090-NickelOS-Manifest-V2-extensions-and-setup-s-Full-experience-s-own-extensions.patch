@@ -1,0 +1,119 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Manifest V2 extensions, and setup's Full
+ experience's own extensions
+
+Dresden, 2026-10-23: setup's Full experience installs uBlock Origin, the
+full Manifest V2 one, in the browser.
+
+- Manifest V2 extensions work again: ManifestV2Handler's
+  ShouldDisableLegacyExtensions() is false (Chromium 156 still has the code
+  behind it: background pages, blocking webRequest; Brave keeps it the
+  same way).
+- An external extension whose file in /usr/share/chromium/extensions says
+  "nickel_experience": "full" is offered only on a device whose setup chose
+  the Full experience (local state, read when the loader is made, on the UI
+  thread). Chrome's external extensions bring an update when a NickelOS
+  image carries a newer file, and remember a user's uninstall.
+- Such an extension is not marked as the Web Store's (ChromeOS's bundled
+  extensions provider marks all of them so): uBlock Origin comes from its
+  author's signed releases, and Chrome would otherwise check its files
+  against Web Store hashes that don't exist.
+
+diff --git a/chrome/browser/extensions/external_pref_loader.cc b/chrome/browser/extensions/external_pref_loader.cc
+index c5e2bcd1a6abd..fa8f9989d93e4 100644
+--- a/chrome/browser/extensions/external_pref_loader.cc
++++ b/chrome/browser/extensions/external_pref_loader.cc
+@@ -34,6 +34,9 @@
+ #if BUILDFLAG(IS_CHROMEOS)
+ #include "ash/constants/ash_features.h"
+ #include "ash/constants/ash_pref_names.h"
++#include "ash/constants/nickel_pref_names.h"
++#include "chrome/browser/browser_process.h"
++#include "components/prefs/pref_service.h"
+ #include "ash/constants/ash_switches.h"
+ #include "chrome/browser/sync/sync_service_factory.h"
+ #include "components/prefs/pref_change_registrar.h"
+@@ -182,6 +185,15 @@ ExternalPrefLoader::ExternalPrefLoader(int base_path_id,
+       profile_(profile),
+       user_type_(profile ? apps::DetermineUserType(profile) : std::string()) {
+   CHECK_CURRENTLY_ON(BrowserThread::UI, base::NotFatalUntil::M161);
++#if BUILDFLAG(IS_CHROMEOS)
++  if (g_browser_process && g_browser_process->local_state()) {
++    const std::string& experience = g_browser_process->local_state()->GetString(
++        ash::prefs::kNickelSetupPendingExperience);
++    nickel_full_experience_ = experience == "full" ||
++                              experience == "default" ||
++                              experience == "privacy";
++  }
++#endif  // BUILDFLAG(IS_CHROMEOS)
+ }
+ 
+ ExternalPrefLoader::~ExternalPrefLoader() = default;
+@@ -352,6 +364,13 @@ void ExternalPrefLoader::ReadStandaloneExtensionPrefFiles(
+       continue;
+     }
+ 
++    // NickelOS: setup's Full experience's extensions (uBlock Origin) only on
++    // a device whose setup chose it.
++    if (const std::string* only = ext_prefs.FindString("nickel_experience");
++        only && *only == "full" && !nickel_full_experience_) {
++      continue;
++    }
++
+     DVLOG(1) << "Adding extension with id: " << id;
+     prefs.Set(id, std::move(ext_prefs));
+   }
+diff --git a/chrome/browser/extensions/external_pref_loader.h b/chrome/browser/extensions/external_pref_loader.h
+index ce0e47ebc29a8..570cc1435734e 100644
+--- a/chrome/browser/extensions/external_pref_loader.h
++++ b/chrome/browser/extensions/external_pref_loader.h
+@@ -129,6 +129,11 @@ class ExternalPrefLoader : public ExternalLoader {
+   // tests may not be set.
+   const std::string user_type_;
+ 
++  // NickelOS: whether this device's setup chose the Full experience (local
++  // state, read on the UI thread when the loader is made): extensions whose
++  // file says "nickel_experience": "full" are for it alone.
++  bool nickel_full_experience_ = false;
++
+   // Task runner for tasks that touch file.
+   scoped_refptr<base::SequencedTaskRunner> file_task_runner_;
+ 
+diff --git a/chrome/browser/extensions/external_provider_impl.cc b/chrome/browser/extensions/external_provider_impl.cc
+index 81dd40bc0fd23..97e84c63efcaa 100644
+--- a/chrome/browser/extensions/external_provider_impl.cc
++++ b/chrome/browser/extensions/external_provider_impl.cc
+@@ -431,6 +431,12 @@ void ExternalProviderImpl::RetrieveExtensionsFromPrefs(
+     if (is_from_webstore.value_or(false)) {
+       creation_flags |= Extension::FROM_WEBSTORE;
+     }
++    // NickelOS: its own extensions (uBlock Origin, from its author's
++    // releases) are not the Web Store's, whatever the provider's default:
++    // Chrome would check their files against the Store's signed hashes.
++    if (extension_dict.FindString("nickel_experience")) {
++      creation_flags &= ~Extension::FROM_WEBSTORE;
++    }
+ 
+     std::optional<bool> is_bookmark_app =
+         extension_dict.FindBool(kIsBookmarkApp);
+diff --git a/extensions/browser/manifest_v2_handler.cc b/extensions/browser/manifest_v2_handler.cc
+index 5841d3dfbc888..3eeb4d9c56d23 100644
+--- a/extensions/browser/manifest_v2_handler.cc
++++ b/extensions/browser/manifest_v2_handler.cc
+@@ -108,13 +108,10 @@ bool ManifestV2HandlerFactory::ServiceIsCreatedWithBrowserContext() const {
+ }
+ 
+ // Returns true if legacy extensions should be disabled.
++// NickelOS: never. Manifest V2 extensions keep working (setup's Full
++// experience installs uBlock Origin, the Manifest V2 one), as in Brave.
+ bool ShouldDisableLegacyExtensions() {
+-  if (g_allow_mv2_for_testing) {
+-    // We allow legacy MV2 extensions for testing purposes.
+-    return false;
+-  }
+-
+-  return true;
++  return false;
+ }
+ 
+ }  // namespace

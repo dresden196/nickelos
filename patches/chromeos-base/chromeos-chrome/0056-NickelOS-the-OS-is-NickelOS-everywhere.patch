@@ -1,0 +1,1792 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the OS is NickelOS everywhere
+
+ChromiumOS, ChromeOS and Chromebook still showed up across the system UI.
+
+- Every machine is a "NickelOS device": ui::GetChromeOSDeviceName() and
+  its plural no longer look at the form factor, so DEVICE_TYPE placeholders
+  never say Chromebook or Chromebox. The Bluetooth name of a generic PC is
+  NickelOS_XXXX instead of Chromebook_XXXX, and the Bluetooth-off warning,
+  the Recorder app and the Sunfish launcher nudge say "NickelOS device" or
+  "your device" instead of "ChromeOS device" and "Chromebook".
+- Setup screens that named the browser where they mean the OS (the reset,
+  revert, debugging-features and local-state-error screens, the OOBE title
+  and update screen, the login screen's version label) now name NickelOS.
+- English message text: ChromiumOS, ChromeOS and ChromeOS Flex become
+  NickelOS; "your/this/the Chromebook" becomes "your/this/the device"
+  ("NickelOS device" where the message also talks about a phone, printer
+  or other device); "Chromebooks" becomes "NickelOS devices". Messages
+  that made claims that are not true of NickelOS (end-of-life upgrade
+  offers, the update carousel, feedback "reviewed by our team") say
+  something neutral instead. Google's own terms and consent texts, Google
+  services and products (Steam for Chromebook, Chromebook Plus, Chromebox
+  for meetings, Help Center, community) and Quick Share's text about other
+  Chromebooks are left as they are.
+- Settings > About no longer shows "See what's new" or "Get help": release
+  notes and help come from Google's Help app and support site, and NickelOS
+  has neither yet. Settings search no longer offers them.
+
+Only the English text changes. A changed message gets a new ID, so other
+locales show the new English text until NickelOS has its own translations.
+
+diff --git a/ash/app_list/app_list_controller_impl.cc b/ash/app_list/app_list_controller_impl.cc
+index 010d79ea56376..8b35e7d70436f 100644
+--- a/ash/app_list/app_list_controller_impl.cc
++++ b/ash/app_list/app_list_controller_impl.cc
+@@ -1959,7 +1959,8 @@ void AppListControllerImpl::MaybeShowSunfishLauncherNudge(
+   AnchoredNudgeData nudge_data = AnchoredNudgeData(
+       capture_mode::kSunfishLauncherNudgeId,
+       NudgeCatalogName::kSunfishLauncherNudge,
+-      u"Select anything on your screen and let your Chromebook suggest best "
++      // NickelOS: "your device", not "your Chromebook".
++      u"Select anything on your screen and let your device suggest best "
+       u"actions from there",
+       launcher_button);
+ 
+diff --git a/ash/ash_strings.grd b/ash/ash_strings.grd
+index ade14de643928..2e86b9877db7d 100644
+--- a/ash/ash_strings.grd
++++ b/ash/ash_strings.grd
+@@ -638,10 +638,10 @@ Style notes:
+         Connect with a code
+       </message>
+       <message name="IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_TITLE" desc="The main label for the system tray Cast view when no Chromecast devices are available.">
+-        Cast your screen from your Chromebook
++        Cast your screen from your device
+       </message>
+       <message name="IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE" desc="The secondary label for the system tray Cast view when no Chromecast devices are available.">
+-        Make sure your Chromebook is on the same Wi-Fi network as your Chromecast device.
++        Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.
+       </message>
+       <message name="IDS_ASH_STATUS_TRAY_DARK_THEME" desc="The label used as the header in the dark theme popup. [CHAR_LIMIT=19">
+         Dark theme
+@@ -1103,7 +1103,7 @@ Style notes:
+         <ph name="MANAGER">$1<ex>google.com</ex></ph> requires you to roll back your <ph name="DEVICE_TYPE">$2<ex>Chromebook</ex></ph>. Your device will reset and all data will be deleted.
+       </message>
+       <message name="IDS_UPDATE_NOTIFICATION_MESSAGE_SLOW_BOOT" desc="The additional body of the notification to notify the user that the next reboot is slow.">
+-        <ph name="UPDATE_TEXT">$1<ex>Learn more about the latest ChromiumOS update</ex></ph>. This Chromebook needs to restart to apply an update. This can take up to 1 minute.
++        <ph name="UPDATE_TEXT">$1<ex>Learn more about the latest ChromiumOS update</ex></ph>. This device needs to restart to apply an update. This can take up to 1 minute.
+       </message>
+       <message name="IDS_DIALOG_TITLE_SLOW_BOOT" desc="The title of the Slow Boot Shutdown Confirmation Dialog.">
+         Restart may take awhile
+@@ -3547,7 +3547,7 @@ No devices connected.
+       </message>
+ 
+       <message name="IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE" desc="label used to warn that NBS is in use">
+-        Your Chromebook or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.
++        Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.
+       </message>
+ 
+       <message name="IDS_ASH_STATUS_TRAY_AUDIO_INPUT_AGC_INFO" desc="label used for the information of who is controlling mic input gain. [ICU Syntax]">
+@@ -4949,10 +4949,10 @@ No devices connected.
+         This device may contain apps that haven't been verified by Google.
+       </message>
+       <message name="IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_WARNING" desc="Message shown as part of the TPM locked warning bubble when TPM is locked.">
+-        Your Chromebook is locked due to a known issue. You will be able to sign in after: <ph name="TIME_LEFT">$1<ex>1 hour, 15 minutes, 10 seconds</ex></ph>.
++        Your device is locked due to a known issue. You will be able to sign in after: <ph name="TIME_LEFT">$1<ex>1 hour, 15 minutes, 10 seconds</ex></ph>.
+       </message>
+       <message name="IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION" desc="Message shown as part of the TPM locked warning bubble when TPM is locked.">
+-        Your Chromebook needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your Chromebook and the power outlet. Do not turn off your Chromebook.
++        Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.
+       </message>
+       <message name="IDS_ASH_LOGIN_POD_PIN_LOCKED_WARNING" desc="Message shown when pin is soft locked due to multiple wrong attempts.">
+         Too many PIN attempts. Wait <ph name="TIME_LEFT">$1<ex>15 minutes, 10 seconds</ex></ph> and try PIN again, or enter password to sign in immediately.
+@@ -5029,7 +5029,7 @@ No devices connected.
+         Connect your <ph name="NAME">$1<ex>Pixel Buds</ex></ph>
+       </message>
+       <message name="IDS_FAST_PAIR_DISCOVERY_NOTIFICATION_MESSAGE" desc="Notification message shown when there is a device discovered with Fast Pair.">
+-        Connect <ph name="NAME">$1<ex>Pixel Buds</ex></ph> to this Chromebook
++        Connect <ph name="NAME">$1<ex>Pixel Buds</ex></ph> to this device
+       </message>
+       <message name="IDS_FAST_PAIR_DISCOVERY_NOTIFICATION_EMAIL_MESSAGE" desc="Notification message shown when there is a device discovered with Fast Pair that includes the user's email address.">
+         Your <ph name="NAME">$1<ex>Pixel Buds</ex></ph> will appear on devices linked with <ph name="EMAIL">$2<ex>alisha123@gmail.com</ex></ph>
+@@ -5066,10 +5066,10 @@ No devices connected.
+         <ph name="ORIGIN_NAME">$1<ex>example.com</ex></ph> would like to confirm it's you
+       </message>
+       <message name="IDS_ASH_IN_SESSION_AUTH_SETTINGS_PROMPT" desc="Text shown in the settings auth dialog.">
+-        ChromeOS Settings would like to confirm it's you
++        NickelOS Settings would like to confirm it's you
+       </message>
+       <message name="IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT" desc="Text shown in the password manager auth dialog.">
+-        ChromeOS Password Manager would like to confirm it's you
++        Password Manager would like to confirm it's you
+       </message>
+       <message name="IDS_ASH_IN_SESSION_AUTH_PASSWORD_PLACEHOLDER" desc="Text to display as placeholder in the password input field.">
+         Password
+@@ -5254,7 +5254,7 @@ No devices connected.
+         Your devices work even better together
+       </message>
+       <message name="IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB" desc="The text does not mention Phone Hub that shows in the notifier of multidevice setup.">
+-        Save time by quickly replying to your phone's texts from your Chromebook
++        Save time by quickly replying to your phone's texts from your NickelOS device
+       </message>
+       <message name="IDS_ASH_MULTI_DEVICE_SETUP_NEW_USER_POTENTIAL_HOST_EXISTS_MESSAGE" desc="Message shown as part of the notification shown to a user that has not completed the MultiDevice setup when their Chrome device recognizes that they have a phone on their account that the Chrome device can connect to. Clicking it opens a prompt to guide them through setting up.">
+         Connect your <ph name="DEVICE_NAME">$1<ex>Chromebook</ex></ph> with your phone
+@@ -5339,7 +5339,7 @@ No devices connected.
+       </if>
+       <if expr="not _google_chrome">
+         <message name="IDS_ASH_MESSAGE_CENTER_SYSTEM_APP_NAME" desc="The source of a system-generated notification, as displayed to the user.">
+-          ChromiumOS
++          NickelOS
+         </message>
+       </if>
+       <message name="IDS_ASH_MESSAGE_CENTER_ACCELERATOR_NO_NOTIFICATIONS" desc="The toast message displayed when Alt+Shift+N is pressed but there are no notifications.">
+@@ -5607,7 +5607,7 @@ No devices connected.
+         Your detachable keyboard needs a critical update
+       </message>
+       <message name="IDS_ASH_DETACHABLE_BASE_NOTIFICATION_UPDATE_NEEDED_MESSAGE" desc="Body for the notification shown to the user when the detachable base (keyboard) connected to the device has to be updated. This notification is shown if the keyboard is usable without the update.">
+-        To get the update, restart your Chromebook with the keyboard attached.
++        To get the update, restart your device with the keyboard attached.
+       </message>
+ 
+       <!-- For privacy indicators notification -->
+@@ -5700,13 +5700,13 @@ No devices connected.
+         Turn on precise location access?
+       </message>
+       <message name="IDS_PRIVACY_HUB_GEOLOCATION_OFF_NOTIFICATION_MESSAGE" desc="Message for a notification shown to the users when an app tries to use the geolocation while the geolocation is off.">
+-        This allows all apps and websites with the location permission and ChromeOS to use Wi-Fi and mobile networks location.
++        This allows all apps and websites with the location permission and NickelOS to use Wi-Fi and mobile networks location.
+       </message>
+       <message name="IDS_PRIVACY_HUB_GEOLOCATION_OFF_NOTIFICATION_MESSAGE_WITH_ONE_APP_NAME" desc="Message for a notification shown to the users when an app tries to use the geolocation while the geolocation is off.">
+-        This allows <ph name="APP_NAME">$1<ex>Maps</ex></ph> and all apps and websites with the location permission and ChromeOS to use Wi-Fi and mobile networks location.
++        This allows <ph name="APP_NAME">$1<ex>Maps</ex></ph> and all apps and websites with the location permission and NickelOS to use Wi-Fi and mobile networks location.
+       </message>
+       <message name="IDS_PRIVACY_HUB_GEOLOCATION_OFF_NOTIFICATION_MESSAGE_WITH_TWO_APP_NAMES" desc="Message for a notification shown to the users when two and more apps try to use the geolocation while the geolocation is off.">
+-        This allows <ph name="APP_NAME">$1<ex>Maps</ex></ph>, <ph name="APP2_NAME">$2<ex>Waze</ex></ph>and all apps and websites with the location permission and ChromeOS to use Wi-Fi and mobile networks location.
++        This allows <ph name="APP_NAME">$1<ex>Maps</ex></ph>, <ph name="APP2_NAME">$2<ex>Waze</ex></ph>and all apps and websites with the location permission and NickelOS to use Wi-Fi and mobile networks location.
+       </message>
+       <message name="IDS_PRIVACY_HUB_TURN_ON_GEOLOCATION_ACTION_BUTTON" desc="Label for an action button that enables the geolocation.">
+         Turn on location access
+@@ -6453,7 +6453,7 @@ No devices connected.
+         Peripheral not supported
+       </message>
+       <message name="IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY" desc="Notification body text that explains to the user that their peripheral is not supported because it is not part of the approved peripherals list.">
+-        Only approved Thunderbolt devices are compatible with your Chromebook
++        Only approved Thunderbolt devices are compatible with your NickelOS device
+       </message>
+       <message name="IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_BILLBOARD_DEVICE" desc="Notification body text that explains to the user that the connected peripheral type (e.g. Thunderbolt peripheral) is not supported.">
+         The connected peripheral type is not supported
+@@ -6603,28 +6603,28 @@ No devices connected.
+ 
+       <!-- Smart Lock strings shown on the lock screen -->
+       <message name="IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE" desc="Label for the Smart Lock spinner icon on user's lock screen while Chromebook is looking for paired phone.">
+-        To unlock your Chromebook, make sure your phone's Bluetooth is on
++        To unlock your NickelOS device, make sure your phone's Bluetooth is on
+       </message>
+       <message name="IDS_SMART_LOCK_LABEL_PHONE_LOCKED" desc="Label for the Smart Lock icon on user's lock screen when a phone eligible to unlock the Chromebook is detected, but it's locked and thus not allowed to unlock the Chromebook.">
+-        To unlock your Chromebook, first unlock your phone
++        To unlock your NickelOS device, first unlock your phone
+       </message>
+       <message name="IDS_SMART_LOCK_LABEL_NO_PHONE" desc="Label for the Smart Lock icon on user's lock screen when a phone eligible to unlock the Chromebook cannot be found after 15 seconds.">
+         Can’t find your phone. Make sure your phone’s Bluetooth is on.
+       </message>
+       <message name="IDS_SMART_LOCK_LABEL_NO_BLUETOOTH" desc="Label for the Smart Lock icon on user's lock screen when Smart Lock cannot be used because the Chromebook's Bluetooth is turned off.">
+-        Your Chromebook’s Bluetooth is off. To unlock your Chromebook, enter password.
++        Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.
+       </message>
+       <message name="IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN" desc="Label for the Smart Lock icon on user's lock screen when Smart Lock cannot be used because the connected phone does not have a lock screen enabled.">
+-        Your phone doesn’t have a lock screen. To unlock your Chromebook, enter password.
++        Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.
+       </message>
+       <message name="IDS_SMART_LOCK_LABEL_PHONE_TOO_FAR" desc="Label for the Smart Lock icon on user's lock screen when the connected phone is too far away to use Smart Lock, and must be brought closer.">
+         Your phone is too far away. Bring your phone closer.
+       </message>
+       <message name="IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION" desc="Label for the Smart Lock and Fingerprint icons on user's lock screen to select unlock method.">
+-        To unlock your Chromebook, use your fingerprint or unlock your phone
++        To unlock your NickelOS device, use your fingerprint or unlock your phone
+       </message>
+       <message name="IDS_AUTH_FACTOR_LABEL_CANNOT_UNLOCK" desc="Label on user's lock screen when unlock authentication methods fail.">
+-        Can't unlock your Chromebook
++        Can't unlock your device
+       </message>
+       <message name="IDS_AUTH_FACTOR_LABEL_PASSWORD_REQUIRED" desc="Label on user's lock screen prompting user to enter password after other sign in authentication methods fail.">
+         Enter password for more security
+@@ -7345,10 +7345,10 @@ New install
+         This network doesn't support streaming apps from your phone. Try using your phone's hotspot. <ph name="LEARN_MORE">$1<ex>Learn more</ex></ph>
+       </message>
+       <message name="IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT" desc="The main description in the dialog that appears when devices are on different networks">
+-        Make sure your phone and Chromebook are on the same network and then try again. <ph name="LEARN_MORE">$1<ex>Learn more</ex></ph>
++        Make sure your phone and NickelOS device are on the same network and then try again. <ph name="LEARN_MORE">$1<ex>Learn more</ex></ph>
+       </message>
+       <message name="IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT" desc="The main description in the dialog that appears when phone is on cellular">
+-        Your phone is using a mobile network. Make Sure your phone and Chromebook are on the same Wi-Fi network and then try again. <ph name="LEARN_MORE">$1<ex>Learn more</ex></ph>
++        Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. <ph name="LEARN_MORE">$1<ex>Learn more</ex></ph>
+       </message>
+       <message name="IDS_ASH_ECHE_APP_STREMING_ERROR_DIALOG_TURN_ON_HOTSPOT" desc="The button in the dialog that appears when there is a connection error trying to stream app to turn on hotspot">
+         Turn on hotspot
+@@ -7662,7 +7662,7 @@ To shut down the device, press and hold the power button on the device again.
+         Go to Settings
+       </message>
+       <message name="IDS_ASH_ACCESSIBILITY_PREFS_CONFLICT_RESOLUTION_DIALOG_DESCRIPTION" desc="Dialog description.">
+-        These settings are syncing across your other ChromeOS devices. You can change them here, or manage the full list in Settings.
++        These settings are syncing across your other NickelOS devices. You can change them here, or manage the full list in Settings.
+       </message>
+       <message name="IDS_ASH_ACCESSIBILITY_PREFS_CONFLICT_RESOLUTION_DIALOG_TITLE" desc="Label of the title for the informed restore dialog.">
+         Synced accessibility settings
+@@ -8034,10 +8034,10 @@ To shut down the device, press and hold the power button on the device again.
+         Open your previous windows and apps
+       </message>
+       <message name="IDS_ASH_INFORMED_RESTORE_DIALOG_CRASH_DESCRIPTION" desc="Label of the description for the informed restore dialog, if the previous session ended with a crash. Gives a little more information than the title.">
+-        Your Chromebook restarted unexpectedly. Open your previous windows and apps.
++        Your device restarted unexpectedly. Open your previous windows and apps.
+       </message>
+       <message name="IDS_ASH_INFORMED_RESTORE_DIALOG_UPDATE_DESCRIPTION" desc="Label of the description for the informed restore dialog, if the previous session was on a earlier version.">
+-        Your Chromebook has been updated. Open your previous windows and apps.
++        Your device has been updated. Open your previous windows and apps.
+       </message>
+       <message name="IDS_ASH_INFORMED_RESTORE_DIALOG_NO_THANKS_BUTTON" desc="Label of the no thanks button for the informed restore dialog, which users can click if they choose not to restore.">
+         No thanks
+@@ -8153,7 +8153,7 @@ To shut down the device, press and hold the power button on the device again.
+         Frequently opened
+       </message>
+       <message name="IDS_ASH_BIRCH_RELEASE_NOTES_TITLE" desc="Title for the suggestion chip that links to release notes">
+-        Chromebook Updated
++        NickelOS Updated
+       </message>
+       <message name="IDS_ASH_BIRCH_RELEASE_NOTES_SUBTITLE" desc="Subtitle for the suggestion chip that links to release notes">
+         See what's new
+@@ -8539,10 +8539,10 @@ To shut down the device, press and hold the power button on the device again.
+         Use location. Allow apps and services with location permission to use this device’s location. Google may collect location data periodically and use this data in an anonymous way to improve location accuracy and location-based services. <ph name="BEGIN_LINK1">&lt;a href="#" id="learn-more-link-location-service" aria-label="</ph>Learn more about location<ph name="BEGIN_LINK1_END">"&gt;</ph>Learn More<ph name="END_LINK1">&lt;/a&gt;<ex>&lt;/a&gt;</ex></ph>
+       </message>
+       <message name="IDS_ARC_CROS_OPT_IN_LOCATION_SETTING" desc="Message in the opt-in dialog for Android apps for the user to turn on Google location services.">
+-        Use location. Allow ChromeOS and Android apps, websites, and services with location permission to use your device's location. Location Accuracy provides more accurate location for Android apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google's services based on Google's and third parties' legitimate interests to serve users' needs. <ph name="BEGIN_LINK1">&lt;a href="#" id="learn-more-link-location-service"&gt;</ph>Learn more about using location<ph name="END_LINK1">&lt;/a&gt;<ex>&lt;/a&gt;</ex></ph>
++        Use location. Allow NickelOS and Android apps, websites, and services with location permission to use your device's location. Location Accuracy provides more accurate location for Android apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google's services based on Google's and third parties' legitimate interests to serve users' needs. <ph name="BEGIN_LINK1">&lt;a href="#" id="learn-more-link-location-service"&gt;</ph>Learn more about using location<ph name="END_LINK1">&lt;/a&gt;<ex>&lt;/a&gt;</ex></ph>
+       </message>
+       <message name="IDS_ARC_CROS_OPT_IN_LOCATION_SETTING_CHILD" desc="Message in the opt-in dialog for Android apps for the user to turn on Google location services, and a child account is in use.">
+-        Use location. Allow ChromeOS and Android apps, websites, and services with location permission to use this device's location. Location Accuracy provides more accurate location for Android apps and services. To do this, Google periodically processes information about device sensors and wireless signals from this device to crowdsource wireless signal locations. These are used without identifying any individual to improve location accuracy and location-based services and to improve, provide, and maintain Google's services based on Google's and third parties' legitimate interests to serve users' needs. <ph name="BEGIN_LINK1">&lt;a href="#" id="learn-more-link-location-service"&gt;</ph>Learn more about using location<ph name="END_LINK1">&lt;/a&gt;<ex>&lt;/a&gt;</ex></ph>
++        Use location. Allow NickelOS and Android apps, websites, and services with location permission to use this device's location. Location Accuracy provides more accurate location for Android apps and services. To do this, Google periodically processes information about device sensors and wireless signals from this device to crowdsource wireless signal locations. These are used without identifying any individual to improve location accuracy and location-based services and to improve, provide, and maintain Google's services based on Google's and third parties' legitimate interests to serve users' needs. <ph name="BEGIN_LINK1">&lt;a href="#" id="learn-more-link-location-service"&gt;</ph>Learn more about using location<ph name="END_LINK1">&lt;/a&gt;<ex>&lt;/a&gt;</ex></ph>
+       </message>
+       <message name="IDS_ARC_OPT_IN_PAI" desc="Message in the opt-in dialog for Play auto install.">
+         Install updates &#38; apps. By continuing, you agree that this device may also automatically download and install updates and apps from Google, your carrier, and your device's manufacturer, possibly using cellular data. Some of these apps may offer in-app purchases. <ph name="BEGIN_LINK1">&lt;a href="#" id="learn-more-link-pai" aria-label="</ph>Learn more about play auto install<ph name="BEGIN_LINK1_END">"&gt;</ph>Learn More<ph name="END_LINK1">&lt;/a&gt;<ex>&lt;/a&gt;</ex></ph>
+@@ -8628,7 +8628,7 @@ To shut down the device, press and hold the power button on the device again.
+         Couldn't connect to Google Play. Check your network connection and try again. Error code: <ph name="ERROR_CODE">$1<ex>7</ex></ph>.
+       </message>
+       <message name="IDS_ARC_SIGN_IN_BAD_AUTHENTICATION_ERROR" desc="Android sign-in error because of bad authentification">
+-        Couldn't verify your account. Please try again or restart your Chromebook.
++        Couldn't verify your account. Please try again or restart your device.
+       </message>
+       <message name="IDS_ARC_SIGN_IN_GMS_CHECKIN_ERROR" desc="Android sign-in error because of GMS services are unavailable">
+         Couldn't connect with Google services. Check your network connection and try again. Error code: <ph name="ERROR_CODE">$1<ex>7</ex></ph>.
+@@ -8646,7 +8646,7 @@ To shut down the device, press and hold the power button on the device again.
+         Provisioning flow was interrupted. Please try again or contact your device owner or administrator. Error code: <ph name="ERROR_CODE">$1<ex>7</ex></ph>.
+       </message>
+       <message name="IDS_ARC_SIGN_IN_CLOUD_PROVISION_FLOW_NETWORK_ERROR" desc="Android permament sign-in error because of cloud provision flow failed">
+-        Couldn’t connect with the server. Check your network connection and try again. If you're still having trouble, try restarting your Chromebook. Error code: <ph name="ERROR_CODE">$1<ex>7</ex></ph>.
++        Couldn’t connect with the server. Check your network connection and try again. If you're still having trouble, try restarting your device. Error code: <ph name="ERROR_CODE">$1<ex>7</ex></ph>.
+       </message>
+       <message name="IDS_ARC_SIGN_IN_CLOUD_PROVISION_FLOW_PERMANENT_ERROR" desc="Android permament sign-in error because of cloud provision flow failed">
+         Something went wrong. Please contact your device owner or administrator. Error code: <ph name="ERROR_CODE">$1<ex>7</ex></ph>.
+@@ -8673,7 +8673,7 @@ To shut down the device, press and hold the power button on the device again.
+         Something went wrong. Error code: <ph name="ERROR_CODE">$1<ex>7</ex></ph>.
+       </message>
+       <message name="IDS_ARC_SERVER_COMMUNICATION_ERROR" desc="Android sign-in error because of server communication error">
+-        Couldn’t connect with the server. Check your network connection and try again. If you're still having trouble, try restarting your Chromebook.
++        Couldn’t connect with the server. Check your network connection and try again. If you're still having trouble, try restarting your device.
+       </message>
+       <message name="IDS_ARC_ANDROID_MANAGEMENT_REQUIRED_ERROR" desc="Error message shown when Android management is required for an unmanaged ChromeOS user.">
+         Your organization has not enabled Google Play Store for your account. Contact your administrator for more information.
+@@ -8853,7 +8853,7 @@ To shut down the device, press and hold the power button on the device again.
+         Success.
+       </message>
+       <message name="IDS_BRUSCHETTA_RESULT_DLC_INSTALL_ERROR" desc="Bruschetta (codename) result for error installing DLC.">
+-        Error installing DLC (oftentimes a reboot is needed, check Settings\>\>About ChromeOS for more information).
++        Error installing DLC (oftentimes a reboot is needed, check Settings\>\>About NickelOS for more information).
+       </message>
+       <message name="IDS_BRUSCHETTA_RESULT_START_VM_FAILED" desc="Bruschetta (codename) result for when VM fails to start.">
+         Starting VM failed.
+@@ -9028,10 +9028,10 @@ To shut down the device, press and hold the power button on the device again.
+       </if>
+       <if expr="not reven">
+         <message name="IDS_CROSTINI_INSTALLER_NEED_UPDATE_TITLE" desc="Title shown in the Crostini installer dialog when the VM fails to install because the device must be updated">
+-          ChromeOS update required
++          NickelOS update required
+         </message>
+         <message name="IDS_CROSTINI_INSTALLER_NEED_UPDATE_ERROR" desc="Text shown in the Crostini installer dialog when the VM fails to install because the device must be updated first">
+-          To finish setting up Linux, update ChromeOS and try again.
++          To finish setting up Linux, update NickelOS and try again.
+         </message>
+       </if>
+       <message name="IDS_CROSTINI_INSTALLER_CREATE_DISK_IMAGE_ERROR" desc="Text shown in the Crostini installer dialog when the failing to create the disk image">
+@@ -9914,7 +9914,7 @@ To shut down the device, press and hold the power button on the device again.
+         If you move away from your device, your screen will lock automatically. When you're in front of your device, your screen will stay awake longer. If lock screen is disabled, your device will sleep instead of lock.
+       </message>
+       <message name="IDS_SMART_PRIVACY_PROTECTION_CONTENT" desc="Description of the privacy protection features implementation. This message is followed by a 'Learn more' link.">
+-        Your Chromebook uses a built-in sensor to detect people in front of your device. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.
++        Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.
+       </message>
+       <message name="IDS_SMART_PRIVACY_PROTECTION_TURN_ON_BUTTON" desc="Label on a button to turn on the smart privacy protection feature and continue.">
+         Turn on
+@@ -10014,7 +10014,7 @@ To shut down the device, press and hold the power button on the device again.
+         </then>
+         <else>
+           <message name="IDS_TERMS_OF_SERVICE_SCREEN_SUBHEADING" desc="Subheading at the top of the Terms of Service screen. MANAGER can be a domain or an email address.">
+-            <ph name="MANAGER">$1<ex>example.com</ex></ph> requires that you read and accept the following Terms of Service before using this device. These terms do not expand, modify or limit the ChromiumOS Terms.
++            <ph name="MANAGER">$1<ex>example.com</ex></ph> requires that you read and accept the following Terms of Service before using this device. These terms do not expand, modify or limit the NickelOS Terms.
+           </message>
+         </else>
+       </if>
+diff --git a/ash/constants/devicetype.cc b/ash/constants/devicetype.cc
+index 0d64ddb2a8d1d..089eca93ed6df 100644
+--- a/ash/constants/devicetype.cc
++++ b/ash/constants/devicetype.cc
+@@ -15,7 +15,9 @@
+ 
+ namespace ash {
+ namespace {
+-constexpr char kDefaultDeviceTypeName[] = "Chromebook";
++// NickelOS: a generic PC is named NickelOS_XXXX over Bluetooth, not
++// Chromebook_XXXX.
++constexpr char kDefaultDeviceTypeName[] = "NickelOS";
+ }  // namespace
+ 
+ std::string GetDeviceBluetoothName(const std::string& bluetooth_address) {
+diff --git a/ash/login/resources/ash_login_strings.grd b/ash/login/resources/ash_login_strings.grd
+index a19d87a2fe8a8..a64e80abc5d81 100644
+--- a/ash/login/resources/ash_login_strings.grd
++++ b/ash/login/resources/ash_login_strings.grd
+@@ -180,7 +180,7 @@
+         Now it's <ph name="SUPERVISED_USER_NAME">$1<ex>Child 1</ex></ph>'s turn
+       </message>
+       <message name="IDS_LOGIN_PARENTAL_HANDOFF_SCREEN_SUBTITLE" desc="Subtitle of screen which tells user that the parent can handoff the device to supervised user.">
+-        You can hand this Chromebook to <ph name="SUPERVISED_USER_NAME">$1<ex>Child 1</ex></ph>. Setup is almost done, then it's time to explore.
++        You can hand this device to <ph name="SUPERVISED_USER_NAME">$1<ex>Child 1</ex></ph>. Setup is almost done, then it's time to explore.
+       </message>
+       <message name="IDS_LOGIN_PARENTAL_HANDOFF_SCREEN_NEXT_BUTTON" desc="Next button of parental handoff screen">
+         Next
+@@ -217,7 +217,7 @@
+       </if>
+       <if expr="not reven">
+         <message name="IDS_LOGIN_SYNC_CONSENT_SCREEN_SUBTITLE_2" desc="Alternate subtitle of the dialog that explains Chrome Sync and privacy options on first login for non-split.">
+-          Your saved preferences and activity will be ready on any ChromeOS device when you sign in with your Google Account. You can choose what to sync in Settings.
++          Your saved preferences and activity will be ready on any NickelOS device when you sign in with your Google Account. You can choose what to sync in Settings.
+         </message>
+       </if>
+ 
+@@ -486,7 +486,7 @@
+         Turn on Bluetooth?
+       </message>
+       <message name="IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT" desc="The content shown on Quick Start's enable blutooth dialog.">
+-        To set up with your Android phone, your Chromebook's Bluetooth needs to be on
++        To set up with your Android phone, your NickelOS device's Bluetooth needs to be on
+       </message>
+       <message name="IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CANCEL" desc="A lable on the button of the enable bluetooth dialog. It lets the user prevent the bluetooth from being enabled and hence does not continue the Quick Start flow.">
+         Cancel
+@@ -882,7 +882,7 @@
+       </if>
+       <if expr="not reven">
+         <message name="IDS_ENABLE_DEBUGGING_SETUP_MESSAGE" desc="Setup message in dialog for enabling debugging features.">
+-          You are enabling ChromeOS debugging features which will set up sshd daemon and enable booting from USB drives.
++          You are enabling NickelOS debugging features which will set up sshd daemon and enable booting from USB drives.
+         </message>
+       </if>
+       <message name="IDS_ENABLE_DEBUGGING_DONE_MESSAGE" desc="Completion message in dialog for enabling debugging features.">
+@@ -929,7 +929,7 @@
+         <message name="IDS_ENABLE_DEBUGGING_HELP" desc="Help content of the enable debugging features dialog.">
+           <ph name="BEGIN_H3">&lt;h3&gt;</ph>Debugging Features<ph name="END_H3">&lt;/h3&gt;</ph>
+           <ph name="BR">&lt;br&gt;</ph>
+-          You can enable the debugging features on your ChromeOS Device in order to install and test custom code on your device.  This will allow you to:<ph name="BR">&lt;br&gt;</ph>
++          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:<ph name="BR">&lt;br&gt;</ph>
+           <ph name="BEGIN_LIST">&lt;ul&gt;</ph>
+             <ph name="LIST_ITEM">&lt;li&gt;</ph>Remove rootfs verification so you can modify OS files
+             <ph name="LIST_ITEM">&lt;li&gt;</ph>Enable SSH access to the device using the standard test keys so you can use tools such as <ph name="BEGIN_CODE">&lt;span style=&quot;color:grey;font-family:monospace&quot;&gt;</ph>&apos;cros flash&apos;<ph name="END_CODE">&lt;/span&gt;</ph> to access the device
+@@ -937,7 +937,7 @@
+             <ph name="LIST_ITEM">&lt;li&gt;</ph>Set both the dev and the system root login password to a custom value so you can manually SSH into the device
+           <ph name="END_LIST">&lt;/ul&gt;</ph>
+           <ph name="BR">&lt;br&gt;</ph>
+-          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, complete the ChromeOS recovery process (https://support.google.com/chromebook/answer/1080595).
++          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.
+           <ph name="BR">&lt;br&gt;</ph>
+           <ph name="BR">&lt;br&gt;</ph>
+           For more information about the debugging features see:<ph name="BR">&lt;br&gt;</ph>
+@@ -982,7 +982,7 @@
+       </if>
+       <if expr="not reven">
+         <message name="IDS_WRONG_HWID_SCREEN_MESSAGE_FIRST_PART" desc="Warning message shown on screen notifying about malformed hardware ID. First paragraph.">
+-          Unfortunately, your computer is configured with a malformed hardware ID. This prevents ChromeOS from updating with the latest security fixes and your computer <ph name="BEGIN_BOLD">&lt;b&gt;</ph>may be vulnerable to malicious attacks<ph name="END_BOLD">&lt;/b&gt;</ph>.
++          Unfortunately, your computer is configured with a malformed hardware ID. This prevents NickelOS from updating with the latest security fixes and your computer <ph name="BEGIN_BOLD">&lt;b&gt;</ph>may be vulnerable to malicious attacks<ph name="END_BOLD">&lt;/b&gt;</ph>.
+         </message>
+       </if>
+       <message name="IDS_WRONG_HWID_SCREEN_MESSAGE_SECOND_PART" desc="Warning message shown on screen notifying about malformed hardware ID. Second paragraph.">
+@@ -1550,19 +1550,19 @@
+         Use location for Android apps and services.
+       </message>
+       <message name="IDS_CONSOLIDATED_CONSENT_CROS_LOCATION_OPT_IN_TITLE" desc="Title for the message in the consolidated consent screen to opt-in for location services.">
+-        Use location for ChromeOS and Android apps and services.
++        Use location for NickelOS and Android apps and services.
+       </message>
+       <message name="IDS_CONSOLIDATED_CONSENT_ARC_LOCATION_OPT_IN" desc="Message in the consolidated consent screen to opt-in for location services.">
+         Allow Android apps and services with location permission to use your device's location. Google may collect location data periodically and use this data in an anonymous way to improve location accuracy and location-based services.
+       </message>
+       <message name="IDS_CONSOLIDATED_CONSENT_CROS_LOCATION_OPT_IN" desc="Message in the consolidated consent screen to opt-in for location services.">
+-        Allow ChromeOS and Android apps, websites, and services with location permission to use your device's location. Location Accuracy provides more accurate location for Android apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google's services based on Google's and third parties' legitimate interests to serve users' needs.
++        Allow NickelOS and Android apps, websites, and services with location permission to use your device's location. Location Accuracy provides more accurate location for Android apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google's services based on Google's and third parties' legitimate interests to serve users' needs.
+       </message>
+       <message name="IDS_CONSOLIDATED_CONSENT_ARC_LOCATION_OPT_IN_CHILD" desc="Message in the consolidated consent screen to opt-in for location services for child accounts.">
+         Allow Android apps and services with location permission to use this device's location. Google may collect location data periodically and use this data in an anonymous way to improve location accuracy and location-based services.
+       </message>
+       <message name="IDS_CONSOLIDATED_CONSENT_CROS_LOCATION_OPT_IN_CHILD" desc="Message in the consolidated consent screen to opt-in for location services for child accounts.">
+-        Allow ChromeOS and Android apps, websites, and services with location permission to use this device's location. Location Accuracy provides more accurate location for Android apps and services. To do this, Google periodically processes information about device sensors and wireless signals from this device to crowdsource wireless signal locations. These are used without identifying any individual to improve location accuracy and location-based services and to improve, provide, and maintain Google's services based on Google's and third parties' legitimate interests to serve users' needs.
++        Allow NickelOS and Android apps, websites, and services with location permission to use this device's location. Location Accuracy provides more accurate location for Android apps and services. To do this, Google periodically processes information about device sensors and wireless signals from this device to crowdsource wireless signal locations. These are used without identifying any individual to improve location accuracy and location-based services and to improve, provide, and maintain Google's services based on Google's and third parties' legitimate interests to serve users' needs.
+       </message>
+       <message name="IDS_CONSOLIDATED_CONSENT_ARC_LOCATION_OPT_IN_LEARN_MORE" desc="Text shown in a pop-up dialog in the consolidated consent screen when the user clicks on the learn more for location services opt-in.">
+         <ph name="BEGIN_PARAGRAPH1">&lt;p&gt;</ph>Google's location service uses sources like Wi-Fi, mobile networks, and sensors to help estimate your device's location.<ph name="END_PARAGRAPH1">&lt;/p&gt;</ph>
+@@ -1656,22 +1656,22 @@
+       </if>
+       <if expr="not reven">
+         <message name="IDS_OOBE_CHROMEVOX_HINT_TEXT" desc="Text content in the ChromeVox hint dialog, asking the user if they would like to activate ChromeVox.">
+-          Do you want to activate ChromeVox, the built-in screen reader for ChromeOS?
++          Do you want to activate ChromeVox, the built-in screen reader for NickelOS?
+         </message>
+         <message name="IDS_OOBE_CHROMEVOX_HINT_TEXT_EXPANDED" desc="Text content in the ChromeVox hint dialog, asking the user if they would like to activate ChromeVox.">
+-          The screen reader on ChromeOS, ChromeVox, is primarily used by people with blindness or low vision to read text displayed on the screen with a speech synthesizer or braille display. Press the space bar to turn on ChromeVox. When ChromeVox is activated, you’ll go through a quick tour.
++          The screen reader on NickelOS, ChromeVox, is primarily used by people with blindness or low vision to read text displayed on the screen with a speech synthesizer or braille display. Press the space bar to turn on ChromeVox. When ChromeVox is activated, you’ll go through a quick tour.
+         </message>
+         <message name="IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_LAPTOP" desc="The string spoken when the ChromeVox hint is activated when the device is in laptop mode." is_accessibility_with_no_ui="true">
+-          Do you want to activate ChromeVox, the built-in screen reader for ChromeOS? If so, press the space bar.
++          Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press the space bar.
+         </message>
+         <message name="IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_TABLET" desc="The string spoken when the ChromeVox hint is activated when the device is in tablet mode." is_accessibility_with_no_ui="true">
+-          Do you want to activate ChromeVox, the built-in screen reader for ChromeOS? If so, press and hold both volume keys for five seconds.
++          Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press and hold both volume keys for five seconds.
+         </message>
+         <message name="IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_LAPTOP_EXPANDED" desc="The new string spoken when the ChromeVox hint is activated when the device is in laptop mode." is_accessibility_with_no_ui="true">
+-          The screen reader on ChromeOS, ChromeVox, is primarily used by people with blindness or low vision to read text displayed on the screen with a speech synthesizer or braille display. Press the space bar to turn on ChromeVox. When ChromeVox is activated, you’ll go through a quick tour.
++          The screen reader on NickelOS, ChromeVox, is primarily used by people with blindness or low vision to read text displayed on the screen with a speech synthesizer or braille display. Press the space bar to turn on ChromeVox. When ChromeVox is activated, you’ll go through a quick tour.
+         </message>
+         <message name="IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_TABLET_EXPANDED" desc="The new string spoken when the ChromeVox hint is activated when the device is in tablet mode." is_accessibility_with_no_ui="true">
+-          The screen reader on ChromeOS, ChromeVox, is primarily used by people with blindness or low vision to read text displayed on the screen with a speech synthesizer or braille display. Press and hold both volume keys for five seconds to turn on ChromeVox. When ChromeVox is activated, you’ll go through a quick tour.
++          The screen reader on NickelOS, ChromeVox, is primarily used by people with blindness or low vision to read text displayed on the screen with a speech synthesizer or braille display. Press and hold both volume keys for five seconds to turn on ChromeVox. When ChromeVox is activated, you’ll go through a quick tour.
+         </message>
+       </if>
+ 
+@@ -1986,10 +1986,10 @@
+         Installing the latest update
+       </message>
+       <message name="IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE" desc="Subtitle of the dialog shown to the user consumer update screen when update in progress.">
+-        You’re getting the latest software update for enhanced security and the newest Chromebook features. This update includes an improved setup experience to help you get off to a smooth start on your Chromebook.
++        You’re getting the latest software update, with the newest security fixes and features.
+       </message>
+       <message name="IDS_CONSUMER_UPDATE_PROGRESS_ADDITIONAL_SUBTITLE" desc="Additional subtitle of the dialog shown to the user  consumer update screen when update in progress.">
+-        Your Chromebook will restart once the download is complete and you can continue setup.
++        Your device will restart once the download is complete and you can continue setup.
+       </message>
+ 
+       <!-- Strings for the Fjord variant of OOBE -->
+@@ -2420,7 +2420,7 @@
+         Access your Google Drive files when you’re offline
+       </message>
+       <message name="IDS_OOBE_DRIVE_PINNING_SUBTITLE" desc="Description of the drive pinning screen.">
+-        Your files in My Drive will sync to your Chromebook automatically so you can access them without an internet connection. You can change this anytime in Settings > Files.
++        Your files in My Drive will sync to your device automatically so you can access them without an internet connection. You can change this anytime in Settings > Files.
+       </message>
+       <message name="IDS_OOBE_DRIVE_PINNING_TOGGLE_TITLE" desc="Title of the toggle button of the drive pinning screen.">
+         File sync
+@@ -2509,7 +2509,7 @@
+         From here on out, no waiting required
+       </message>
+       <message name="IDS_UPDATE_SLIDE_UPDATE_TEXT" desc="Text of educative slide.">
+-        This is the only time you’ll wait for an update. On Chromebooks, software updates happen in the background.
++        This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.
+       </message>
+       <message name="IDS_UPDATE_SLIDE_UPDATE_ADDITIONAL_SETTINGS_TEXT" desc="Text of educative slide.">
+         After this, software updates will happen in the background. You can review update preferences in Settings.
+@@ -2518,25 +2518,25 @@
+         Built-in virus protection
+       </message>
+       <message name="IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT" desc="Text of educative slide.">
+-        Chromebooks are designed for security. Your device is protected from malware automatically – no extra software required.
++        NickelOS is designed with security in mind, and it keeps itself up to date automatically.
+       </message>
+       <message name="IDS_UPDATE_SLIDE_APPS_TITLE" desc="Title of educative slide.">
+         Find apps on the Google Play Store
+       </message>
+       <message name="IDS_UPDATE_SLIDE_APPS_TEXT" desc="Text of educative slide.">
+-        Chromebooks use apps instead of traditional software. Get apps for productivity, entertainment, and more.
++        NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.
+       </message>
+       <message name="IDS_UPDATE_SLIDE_ACCOUNT_TITLE" desc="Title of educative slide.">
+-        Your Google Account is your Chromebook sign-in
++        Your own account on your device
+       </message>
+       <message name="IDS_UPDATE_SLIDE_ACCOUNT_TEXT" desc="Text of educative slide.">
+-        You’ll use your Google Account to sign in to your Chromebook – the same account you use for Gmail, Drive, YouTube, and more.
++        You’ll sign in to your device with your own account, and everyone who uses it can have one.
+       </message>
+       <message name="IDS_UPDATE_BATTERY_WARNING_TITLE" desc="Title of battery warning which is shown during update process if battery is running out.">
+-        Charge your Chromebook
++        Charge your device
+       </message>
+       <message name="IDS_UPDATE_BATTERY_WARNING_TEXT" desc="Text of battery warning which is shown during update process if battery is running out.">
+-        Looks like your Chromebook will run out of power before the update is complete. Make sure it's charging correctly to avoid interruption.
++        Looks like your device will run out of power before the update is complete. Make sure it's charging correctly to avoid interruption.
+       </message>
+       <message name="IDS_UPDATE_NO_UPDATE_AVAILABLE_TITLE" desc="Title of the screen that is shown when there is no update available.">
+         Your device is up to date
+diff --git a/ash/system/bluetooth/hid_preserving_controller/disable_bluetooth_dialog_controller_impl.cc b/ash/system/bluetooth/hid_preserving_controller/disable_bluetooth_dialog_controller_impl.cc
+index 82208d955c46b..b72d0ed8ce291 100644
+--- a/ash/system/bluetooth/hid_preserving_controller/disable_bluetooth_dialog_controller_impl.cc
++++ b/ash/system/bluetooth/hid_preserving_controller/disable_bluetooth_dialog_controller_impl.cc
+@@ -9,15 +9,14 @@
+ #include "ash/accessibility/accessibility_controller.h"
+ #include "ash/ash_element_identifiers.h"
+ #include "ash/constants/ash_features.h"
+-#include "ash/constants/devicetype.h"
+ #include "ash/shell.h"
+ #include "ash/strings/grit/ash_strings.h"
+ #include "ash/system/bluetooth/hid_preserving_controller/disable_bluetooth_dialog_controller.h"
+ #include "base/strings/string_number_conversions.h"
+ #include "base/strings/utf_string_conversions.h"
+-#include "chromeos/constants/devicetype.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/mojom/ui_base_types.mojom-shared.h"
++#include "ui/chromeos/devicetype_utils.h"
+ #include "ui/views/controls/bulleted_label_list/bulleted_label_list_view.h"
+ #include "ui/views/controls/image_view.h"
+ #include "ui/views/layout/layout_provider.h"
+@@ -30,8 +29,6 @@ namespace ash {
+ 
+ namespace {
+ 
+-constexpr char kUnknownDeviceTypeName[] = "ChromeOS device";
+-
+ // The dialog that is shown should have a maximum of three devices listed.
+ constexpr size_t kMaxDeviceListLength = 3;
+ 
+@@ -55,25 +52,23 @@ void DisableBluetoothDialogControllerImpl::ShowDialog(
+   DCHECK_EQ(dialog_widget_, nullptr);
+   CHECK(!devices.empty());
+ 
+-  std::string device_type = DeviceTypeToString(chromeos::GetDeviceType());
+-  if (device_type.empty()) {
+-    device_type = kUnknownDeviceTypeName;
+-  }
++  // NickelOS: the device's name as everywhere else ("NickelOS device").
++  const std::u16string device_type = ui::GetChromeOSDeviceName();
+ 
+   std::u16string dialog_description;
+ 
+   if (devices.size() == 1) {
+     dialog_description = l10n_util::GetStringFUTF16(
+         IDS_ASH_DISCONNECT_BLUETOOTH_WARNING_DIALOG_DESCRIPTION_ONE_DEVICE,
+-        base::UTF8ToUTF16(device_type));
++        device_type);
+   } else if (devices.size() == 2) {
+     dialog_description = l10n_util::GetStringFUTF16(
+         IDS_ASH_DISCONNECT_BLUETOOTH_WARNING_DIALOG_DESCRIPTION_TWO_DEVICES,
+-        base::UTF8ToUTF16(device_type));
++        device_type);
+   } else {
+     dialog_description = l10n_util::GetStringFUTF16(
+         IDS_ASH_DISCONNECT_BLUETOOTH_WARNING_DIALOG_DESCRIPTION_MULTIPLE_DEVICES,
+-        base::NumberToString16(devices.size()), base::UTF8ToUTF16(device_type));
++        base::NumberToString16(devices.size()), device_type);
+   }
+ 
+   auto dialog = views::Builder<SystemDialogDelegateView>()
+diff --git a/ash/webui/recorder_app_ui/BUILD.gn b/ash/webui/recorder_app_ui/BUILD.gn
+index 5e7e1b79aa0f0..318e752d7aefe 100644
+--- a/ash/webui/recorder_app_ui/BUILD.gn
++++ b/ash/webui/recorder_app_ui/BUILD.gn
+@@ -37,6 +37,7 @@ static_library("recorder_app_ui") {
+     "//google_apis",
+     "//mojo/public/cpp/bindings",
+     "//services/on_device_model/public/cpp:buildflags",
++    "//ui/chromeos",
+     "//ui/message_center",
+     "//ui/webui",
+   ]
+diff --git a/ash/webui/recorder_app_ui/recorder_app_ui.cc b/ash/webui/recorder_app_ui/recorder_app_ui.cc
+index b8bdeaf403eed..20dbd367bc6e2 100644
+--- a/ash/webui/recorder_app_ui/recorder_app_ui.cc
++++ b/ash/webui/recorder_app_ui/recorder_app_ui.cc
+@@ -11,7 +11,6 @@
+ #include <vector>
+ 
+ #include "ash/constants/ash_features.h"
+-#include "ash/constants/devicetype.h"
+ #include "ash/webui/common/trusted_types_util.h"
+ #include "ash/webui/recorder_app_ui/model_constants.h"
+ #include "ash/webui/recorder_app_ui/recorder_app_ui_delegate.h"
+@@ -23,10 +22,10 @@
+ #include "base/check_is_test.h"
+ #include "base/feature_list.h"
+ #include "base/strings/string_number_conversions.h"
++#include "base/strings/utf_string_conversions.h"
+ #include "base/system/sys_info.h"
+ #include "chromeos/ash/components/audio/cras_audio_handler.h"
+ #include "chromeos/ash/components/mojo_service_manager/connection.h"
+-#include "chromeos/constants/devicetype.h"
+ #include "chromeos/services/machine_learning/public/cpp/service_connection.h"
+ #include "components/media_device_salt/media_device_salt_service.h"
+ #include "components/metrics/structured/event.h"
+@@ -45,6 +44,7 @@
+ #include "services/on_device_model/public/cpp/buildflags.h"
+ #include "third_party/blink/public/common/storage_key/storage_key.h"
+ #include "third_party/cros_system_api/mojo/service_constants.h"
++#include "ui/chromeos/devicetype_utils.h"
+ #include "ui/message_center/message_center.h"
+ #include "ui/webui/webui_allowlist.h"
+ 
+@@ -61,8 +61,6 @@ namespace {
+ // description.
+ const uint32_t kFeedbackDescriptionTemplateMaxChars = 49000;  // 1000 + 4 * 12k
+ 
+-constexpr char kDefaultDeviceTypeName[] = "Chromebook";
+-
+ std::string_view SodaInstallerErrorCodeToString(
+     speech::SodaInstaller::ErrorCode error) {
+   switch (error) {
+@@ -135,8 +133,8 @@ int GetResourceIdFromStringName(const std::string& name) {
+ }
+ 
+ std::string GetDeviceTypeString() {
+-  std::string device_type = ash::DeviceTypeToString(chromeos::GetDeviceType());
+-  return device_type.empty() ? kDefaultDeviceTypeName : device_type;
++  // NickelOS: the device's name as everywhere else ("NickelOS device").
++  return base::UTF16ToUTF8(ui::GetChromeOSDeviceName());
+ }
+ 
+ void DoInstallSoda(PrefService& local_state,
+diff --git a/chrome/app/certificate_manager.grdp b/chrome/app/certificate_manager.grdp
+index 080b180c42705..9d7ac0cf12a4f 100644
+--- a/chrome/app/certificate_manager.grdp
++++ b/chrome/app/certificate_manager.grdp
+@@ -68,13 +68,13 @@
+ 
+     <if expr="is_chromeos">
+       <message name="IDS_SETTINGS_CERTIFICATE_MANAGER_V2_PLATFORM" desc="Label for the OS platform.">
+-        ChromeOS
++        NickelOS
+       </message>
+       <message name="IDS_SETTINGS_CERTIFICATE_MANAGER_V2_PLATFORM_CERTS_TITLE" desc="Label for the title of the platform certs subpage.">
+-        Imported from ChromeOS
++        Imported from NickelOS
+       </message>
+       <message name="IDS_SETTINGS_CERTIFICATE_MANAGER_V2_PLATFORM_CERTS_VIEW_LINK" desc="Label for a link to view the imported platform certs.">
+-        View imported certificates from ChromeOS
++        View imported certificates from NickelOS
+       </message>
+     </if>
+ 
+diff --git a/chrome/app/chromeos_strings.grdp b/chrome/app/chromeos_strings.grdp
+index ad268d3f5122f..e60197cd0a64d 100644
+--- a/chrome/app/chromeos_strings.grdp
++++ b/chrome/app/chromeos_strings.grdp
+@@ -359,10 +359,10 @@
+     Bluetooth is turned off. To see available devices, turn Bluetooth on.
+   </message>
+   <message name="IDS_BLUETOOTH_PAIRING_LEARN_MORE" desc="Bluetooth pairing dialog: Message informing the user on what actions to take in order to see a device in the list of available devices.">
+-    Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this Chromebook. <ph name="BEGIN_LINK_LEARN_MORE">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK_LEARN_MORE">&lt;/a&gt;</ph>
++    Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. <ph name="BEGIN_LINK_LEARN_MORE">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK_LEARN_MORE">&lt;/a&gt;</ph>
+   </message>
+   <message name="IDS_BLUETOOTH_PAIRING_DESCRIPTION" desc="Bluetooth pairing dialog: Message informing the user on what actions to take in order to see a device in the list of available devices.">
+-    Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this Chromebook.
++    Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.
+   </message>
+   <message name="IDS_BLUETOOTH_PAIRING_ENTER_PIN" desc="Bluetooth pairing dialog: Message displayed informing the user to enter a PIN in other to complete device pairing.">
+     Enter PIN to pair with <ph name="DEVICE_NAME">$1<ex>Nexus S</ex></ph>
+@@ -1037,7 +1037,7 @@
+   </if>
+   <if expr="not reven">
+     <message name="IDS_CHROME_OS_NOTIFICATION_SOURCE" desc="The name of the source of a ChromeOS notification">
+-      ChromeOS
++      NickelOS
+     </message>
+   </if>
+   <message name="IDS_APP_USING_CAMERA_NOTIFICATION_MESSAGE" desc="Message shown in notification when an app is using the camera">
+@@ -1494,7 +1494,7 @@ You can manage this account’s settings by installing the Family Link app on yo
+     Set up Microsoft 365 to open files
+   </message>
+   <message name="IDS_OFFICE_WELCOME_BODY_TEXT" desc="Body text for the welcome dialog when the user sets up Microsoft Office for the first time.">
+-    <ph name="LINK_BEGIN">&lt;a href="https://support.google.com/chromebook?p=edit_office_files" target="_blank"&gt;</ph>Learn more<ph name="LINK_END">&lt;/a&gt;</ph> about Microsoft 365 on your Chromebook.
++    <ph name="LINK_BEGIN">&lt;a href="https://support.google.com/chromebook?p=edit_office_files" target="_blank"&gt;</ph>Learn more<ph name="LINK_END">&lt;/a&gt;</ph> about Microsoft 365 on your device.
+   </message>
+   <message name="IDS_OFFICE_WELCOME_INSTALL_MICROSOFT365" desc="A bullet point in the welcome dialog when the user sets up Microsoft Office for the first time, telling the user that Microsoft 365 web app will be installed.">
+     Install Microsoft 365
+@@ -1517,7 +1517,7 @@ You can manage this account’s settings by installing the Family Link app on yo
+     Connect to Microsoft OneDrive
+   </message>
+   <message name="IDS_CONNECT_TO_ONEDRIVE_BODY_TEXT" desc="Explanation text for a dialog which allows the user to connect Files app and Microsoft OneDrive storage.">
+-    Connect OneDrive to the Files app to manage your stored documents from your Chromebook. You'll need to sign in with your Microsoft account.
++    Connect OneDrive to the Files app to manage your stored documents from your device. You'll need to sign in with your Microsoft account.
+   </message>
+   <message name="IDS_CONNECT_TO_ONEDRIVE_SIGNIN_FLOW_BODY_TEXT" desc="Explanation text for a dialog which allows the user to connect Files app and Microsoft OneDrive storage via sign in flow.">
+     Microsoft 365 uses OneDrive to open and edit Word, Excel, and PowerPoint files. These files will be found in the Files app side navigation labeled “Microsoft OneDrive.” You'll need to sign in with your Microsoft account. <ph name="LINK_BEGIN">&lt;a href="https://support.google.com/chromebook?p=edit_office_files" target="_blank"&gt;</ph>Learn more<ph name="LINK_END">&lt;/a&gt;</ph>
+diff --git a/chrome/app/chromium_strings.grd b/chrome/app/chromium_strings.grd
+index d6961bbe7d92a..b1d986ea47112 100644
+--- a/chrome/app/chromium_strings.grd
++++ b/chrome/app/chromium_strings.grd
+@@ -524,10 +524,10 @@ New bookmarks can’t be saved in your account until you delete some. If you sig
+       </if>
+       <if expr="is_chromeos">
+         <message name="IDS_ABOUT_CROS_VERSION_LICENSE" desc="Additional text displayed beneath the Chromium open source URLs for ChromeOS.">
+-          ChromiumOS is made possible by additional <ph name="BEGIN_LINK_CROS_OSS">&lt;a target="_blank" href="$1"&gt;</ph>open source software<ph name="END_LINK_CROS_OSS">&lt;/a&gt;</ph>.
++          NickelOS is made possible by additional <ph name="BEGIN_LINK_CROS_OSS">&lt;a target="_blank" href="$1"&gt;</ph>open source software<ph name="END_LINK_CROS_OSS">&lt;/a&gt;</ph>.
+         </message>
+         <message name="IDS_ABOUT_CROS_WITH_LINUX_VERSION_LICENSE" desc="Additional text displayed beneath the Chromium open source URLs for ChromeOS when Crostini is installed.">
+-          ChromiumOS is made possible by additional <ph name="BEGIN_LINK_CROS_OSS">&lt;a target="_blank" href="$1"&gt;</ph>open source software<ph name="END_LINK_CROS_OSS">&lt;/a&gt;</ph>, as is <ph name="BEGIN_LINK_LINUX_OSS">&lt;a target="_blank" href="$2"&gt;</ph>Linux development environment<ph name="END_LINK_LINUX_OSS">&lt;/a&gt;</ph>.
++          NickelOS is made possible by additional <ph name="BEGIN_LINK_CROS_OSS">&lt;a target="_blank" href="$1"&gt;</ph>open source software<ph name="END_LINK_CROS_OSS">&lt;/a&gt;</ph>, as is <ph name="BEGIN_LINK_LINUX_OSS">&lt;a target="_blank" href="$2"&gt;</ph>Linux development environment<ph name="END_LINK_LINUX_OSS">&lt;/a&gt;</ph>.
+         </message>
+         <message name="IDS_ABOUT_SAFETY_INFORMATION" desc="The safety label in the About box." translateable="false">
+           Not used in Chromium. Placeholder to keep resource maps in sync.
+@@ -1177,7 +1177,7 @@ Chromium is unable to recover your settings.
+           About &amp;Chromium
+         </message>
+         <message name="IDS_RELAUNCH_TO_UPDATE" desc="The text label of the relaunch to update ChromeOS menu item">
+-          Relaunch to update &amp;ChromiumOS
++          Relaunch to update &amp;NickelOS
+         </message>
+       </if>
+ 
+@@ -1568,22 +1568,22 @@ Chromium is unable to recover your settings.
+       <!-- Sync/sign-in error messages -->
+       <if expr="is_chromeos">
+         <message name="IDS_SIGNIN_ERROR_SECONDARY_ACCOUNT_DISPLAY_SOURCE" desc="Context title shown in the notification header of sign-in error notification for ChromiumOS Secondary Accounts.">
+-          ChromiumOS System
++          NickelOS System
+         </message>
+         <message name="IDS_SYNC_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE" desc="Message in the sign-in error notification when the user's sign-in credentials are out of date.">
+-          ChromiumOS could not sync your data because your account sign-in details are out of date.
++          NickelOS could not sync your data because your account sign-in details are out of date.
+         </message>
+         <message name="IDS_SYNC_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE_2" desc="Message in the sign-in error notification when the user's sign-in credentials are out of date.">
+-          ChromiumOS could not save Chromium data in your Google Account because your account sign-in details are out of date
++          NickelOS could not save Chromium data in your Google Account because your account sign-in details are out of date
+         </message>
+         <message name="IDS_SYNC_UNAVAILABLE_ERROR_BUBBLE_VIEW_MESSAGE" desc="Message in the sign-in error notification when sync is not available for their domain.">
+-          ChromiumOS could not sync your data because Sync is not available for your domain.
++          NickelOS could not sync your data because Sync is not available for your domain.
+         </message>
+         <message name="IDS_SYNC_OTHER_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE" desc="Message in the sign-in error notification when there's an error signing in.">
+-          ChromiumOS could not sync your data due to an error signing in.
++          NickelOS could not sync your data due to an error signing in.
+         </message>
+         <message name="IDS_SYNC_OTHER_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE_2" desc="Message in the sign-in error notification when there's an error signing in.">
+-          ChromiumOS could not save Chromium data in your Google Account due to an error signing in
++          NickelOS could not save Chromium data in your Google Account due to an error signing in
+         </message>
+         <message name="IDS_SYNC_PASSPHRASE_ERROR_BUBBLE_VIEW_MESSAGE_2" desc="Message in the sync error bubble view when the user needs to enter their sync passphrase.">
+           To use and save Chromium data in your Google Account, enter your passphrase
+@@ -1877,10 +1877,10 @@ Chromium is unable to recover your settings.
+       </if>
+       <if expr="is_chromeos">
+         <message name="IDS_UPDATE_RECOMMENDED_DIALOG_TITLE" desc="The window title for the Update Recommended dialog.">
+-          Restart ChromiumOS
++          Restart NickelOS
+         </message>
+         <message name="IDS_UPDATE_RECOMMENDED" desc="The main text of the Update Recommended dialog.">
+-          ChromiumOS needs to be restarted to apply the update.
++          NickelOS needs to be restarted to apply the update.
+         </message>
+         <message name="IDS_RELAUNCH_AND_UPDATE" desc="The button in the Update Recommended dialog which updates and restarts ChromeOS.">
+           Restart
+@@ -2499,10 +2499,10 @@ Chromium is unable to recover your settings.
+       <!-- OOBE -->
+       <if expr="is_chromeos">
+         <message name="IDS_INSTALLING_UPDATE" desc="Label shown on the updates installation screen during OOBE">
+-          Please wait while Chromium installs the latest system updates.
++          Please wait while NickelOS installs the latest system updates.
+         </message>
+         <message name="IDS_EULA_SCREEN_ACCESSIBLE_TITLE" desc="Title to be spoken on opening the OOBE EULA screen">
+-          ChromiumOS terms
++          NickelOS terms
+         </message>
+       </if>
+ 
+diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
+index d862b3a3e01f2..91121f6982345 100644
+--- a/chrome/app/generated_resources.grd
++++ b/chrome/app/generated_resources.grd
+@@ -5204,7 +5204,7 @@ are declared in tools/grit/grit_args.gni.
+         </if>
+         <if expr="not reven">
+           <message name="IDS_UTILITY_PROCESS_IMAGE_WRITER_NAME" desc="The name of the utility process used for writing ChromeOS system images.">
+-            ChromeOS System Image Writer
++            NickelOS System Image Writer
+           </message>
+         </if>
+       </if>
+@@ -5675,7 +5675,7 @@ are declared in tools/grit/grit_args.gni.
+           Read information about your browser, OS, and device
+         </message>
+         <message name="IDS_EXTENSION_PROMPT_WARNING_ENTERPRISE_REMOTE_APPS" desc="Permission string for access to the Remote Apps Enterprise API.">
+-          Add remote apps to the ChromeOS launcher
++          Add remote apps to the NickelOS launcher
+         </message>
+         <if expr="reven">
+           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_ATTACHED_DEVICE_INFO" desc="Permission string for accessing information of attached devices.">
+@@ -5714,25 +5714,25 @@ are declared in tools/grit/grit_args.gni.
+             Read Bluetooth peripherals information and data
+           </message>
+           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_DIAGNOSTICS" desc="Permission string for chrome.os.diagnostcs API.">
+-            Run ChromeOS diagnostic tests
++            Run NickelOS diagnostic tests
+           </message>
+           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_DIAGNOSTICS_NETWORK_INFO_FOR_MLAB" desc="Permission string for chrome.os.diagnostics.network_info_mlab API.">
+             Collect IP address and network measurement results for Measurement Lab, according to their privacy policy (measurementlab.net/privacy)
+           </message>
+           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_EVENTS" desc="Permission string for chrome.os.events API.">
+-            Subscribe to ChromeOS system events
++            Subscribe to NickelOS system events
+           </message>
+           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_MANAGEMENT_AUDIO" desc="Permission string for chrome.os.management.audio API.">
+-            Manage ChromeOS audio settings
++            Manage NickelOS audio settings
+           </message>
+           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_TELEMETRY" desc="Permission string for chrome.os.telemetry API.">
+-            Read ChromeOS device information and data
++            Read NickelOS device information and data
+           </message>
+           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_TELEMETRY_SERIAL_NUMBER" desc="Permission string for serial number permission.">
+-            Read ChromeOS device and component serial numbers
++            Read NickelOS device and component serial numbers
+           </message>
+           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_TELEMETRY_NETWORK_INFORMATION" desc="Permission string for accessing network information.">
+-            Read ChromeOS network information
++            Read NickelOS network information
+           </message>
+           <message name="IDS_EXTENSION_PROMPT_WARNING_OMNIBOX_DIRECT_INPUT" desc="Permission string for omnibox labs.">
+             Read and save keyboard input from the address bar
+@@ -15667,10 +15667,10 @@ Please help our engineers fix this problem. Tell us what happened right before y
+ 
+       <if expr="is_chromeos">
+         <message name="IDS_SYNC_DASHBOARD_DISABLED_BUBBLE_VIEW_TITLE" desc="Title in the notification shown when sync has been reset from the Google Dashboard.">
+-          ChromeOS data no longer synced
++          NickelOS data no longer synced
+         </message>
+         <message name="IDS_SYNC_DASHBOARD_DISABLED_BUBBLE_VIEW_MESSAGE" desc="Message in the notification shown when sync has been reset from the Google Dashboard.">
+-          To get your apps, settings, and Wi-Fi networks on all your devices, turn on sync in your ChromeOS settings
++          To get your apps, settings, and Wi-Fi networks on all your devices, turn on sync in your NickelOS settings
+         </message>
+         <message name="IDS_SYNC_PASSPHRASE_ERROR_BUBBLE_VIEW_MESSAGE" desc="Message in the sync error bubble view when the user needs to enter their sync passphrase.">
+           To start sync, enter your passphrase
+@@ -20202,13 +20202,13 @@ Please help our engineers fix this problem. Tell us what happened right before y
+     <!-- Chrome Apps Deprecation -->
+     <if expr="is_chromeos">
+       <message name="IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_NOTIFICATION_MESSAGE" desc="Message of the notification displayed while launching a user-installed app.">
+-        This Chrome app will stop working after your ChromeOS version is updated. Save any app data you want to keep. To learn about your options, contact the app developer or your IT support team.
++        This Chrome app will stop working after your NickelOS version is updated. Save any app data you want to keep. To learn about your options, contact the app developer or your IT support team.
+       </message>
+       <message name="IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_TITLE" desc="The title of the dialog displayed when a Crome App launch is blocked.">
+         <ph name="APP_NAME">$1<ex>Application</ex></ph> can't be launched
+       </message>
+       <message name="IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE" desc="The content of the dialog displayed when a Crome App launch is blocked, explaining why the app was not launched.">
+-        Chrome apps stopped running on ChromeOS devices in July 2025. Consider an alternative app.
++        Chrome apps don’t run on NickelOS. Consider an alternative app.
+       </message>
+       <message name="IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_CLOSE_BUTTON" desc="The text of the button to dismiss the dialog displayed when a Chrome App launch is blocked.">
+         Got it
+diff --git a/chrome/app/os_settings_strings.grdp b/chrome/app/os_settings_strings.grdp
+index 10721ee2c709c..10776f08f4b68 100644
+--- a/chrome/app/os_settings_strings.grdp
++++ b/chrome/app/os_settings_strings.grdp
+@@ -119,7 +119,7 @@
+     Powerwash for added security
+   </message>
+   <message name="IDS_SETTINGS_ABOUT_TPM_FIRMWARE_UPDATE_DESCRIPTION" desc="Descriptive text shown alongside the line item on the about page that allows the user to trigger a device hardware reset and request installation of a TPM firmware update.">
+-    This upgrade resets your Chromebook and removes current user data.
++    This upgrade resets your device and removes current user data.
+   </message>
+   <message name="IDS_SETTINGS_ABOUT_PAGE_CHANGE_CHANNEL" desc="Button label for channel switch.">
+     Change channel
+@@ -200,7 +200,7 @@
+     Automatic updates provide you with the latest features. Explore highlights from recent updates.
+   </message>
+   <message name="IDS_SETTINGS_UPGRADE_TRY_AGAIN" desc="Status label: Update check error (ChromiumOS/ChromeOS)">
+-    Couldn't update your Chromebook. Please try again later.
++    Couldn't update your device. Please try again later.
+   </message>
+   <message name="IDS_SETTINGS_UPGRADE_DOWNLOAD_ERROR" desc="Status label: Update check download error(ChromiumOS/ChromeOS)">
+     Couldn't download the update. Please try again later.
+@@ -286,16 +286,16 @@
+ 
+  <!-- ChromeOS End Of Life Incentive -->
+   <message name="IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE" desc="The title of the end of life incentive which informs the user of an offer with a dollar amount they can get save when upgrading to a new Chromebook.">
+-    Save &#36;50 or more on a new Chromebook, when you upgrade today
++    This device no longer gets updates
+   </message>
+   <message name="IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE" desc="The title of the end of life incentive which informs the user that they should upgrade their device to continue getting software updates.">
+-    Upgrade to a new Chromebook for the latest security and software
++    This device no longer gets updates
+   </message>
+   <message name="IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE" desc="The message of the end of life incentive which informs the user that their device will no longer get updates, and to upgrade the device for the latest features, using an offer.">
+-    Your Chromebook is no longer receiving security and software updates. Upgrade your device for the latest security and new features. Offer terms apply.
++    Your device is no longer receiving security and software updates.
+   </message>
+   <message name="IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE" desc="The message of the end of life incentive which informs the user that their device will no longer get updates, and they should get a new Chromebook.">
+-    Your Chromebook is no longer receiving security and software updates. Get a new Chromebook for the best experience.
++    Your device is no longer receiving security and software updates.
+   </message>
+   <message name="IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_BUTTON" desc="The button label for the end of life incentive offer which will take the user to a URL to shop for a new device.">
+     Shop Now
+@@ -329,10 +329,10 @@
+   </if>
+   <if expr="not reven">
+     <message name="IDS_OS_SETTINGS_SYNC_FEATURE_LABEL" desc="Label describing the OS sync feature.">
+-      Your apps and settings will sync across all ChromeOS devices where you are signed in with your Google account. For browser sync options, go to <ph name="LINK_BEGIN">&lt;a href='#'&gt;</ph>Chrome settings<ph name="LINK_END">&lt;/a&gt;</ph>.
++      Your apps and settings will sync across all NickelOS devices where you are signed in with your Google account. For browser sync options, go to <ph name="LINK_BEGIN">&lt;a href='#'&gt;</ph>Chrome settings<ph name="LINK_END">&lt;/a&gt;</ph>.
+     </message>
+     <message name="IDS_OS_SETTINGS_SYNC_FEATURE_LABEL_2" desc="Label describing the OS sync feature.">
+-      Your apps and settings will sync across all ChromeOS devices where you are signed in with your Google Account. To manage what browser data is saved in your Google Account, go to <ph name="LINK_BEGIN">&lt;a href='#'&gt;</ph>Chrome settings<ph name="LINK_END">&lt;/a&gt;</ph>.
++      Your apps and settings will sync across all NickelOS devices where you are signed in with your Google Account. To manage what browser data is saved in your Google Account, go to <ph name="LINK_BEGIN">&lt;a href='#'&gt;</ph>Chrome settings<ph name="LINK_END">&lt;/a&gt;</ph>.
+     </message>
+   </if>
+   <message name="IDS_OS_SETTINGS_SYNC_APPS_CHECKBOX_LABEL" desc="Label for the checkbox which enables syncing of apps across devices.">
+@@ -470,7 +470,7 @@
+     Change device language
+   </message>
+   <message name="IDS_OS_SETTINGS_LANGUAGES_CHANGE_DEVICE_LANGUAGE_DIALOG_DESCRIPTION" desc="Description for the dialog to change device language.">
+-    You need to restart your Chromebook to change the device language. <ph name="BEGIN_LINK_LEARN_MORE">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK_LEARN_MORE">&lt;/a&gt;</ph>
++    You need to restart your device to change the device language. <ph name="BEGIN_LINK_LEARN_MORE">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK_LEARN_MORE">&lt;/a&gt;</ph>
+   </message>
+   <message name="IDS_OS_SETTINGS_LANGUAGES_SELECTED_DEVICE_LANGUAGE_INSTRUCTION" desc="Instruction read by screen reader when users can unselect a language.">
+     <ph name="LANGUAGE">$1<ex>English</ex></ph> selected. Press Search plus Space to unselect.
+@@ -1152,10 +1152,10 @@
+     File sync
+   </message>
+   <message name="IDS_SETTINGS_GOOGLE_DRIVE_FILE_SYNC_SUBTITLE_WITHOUT_STORAGE" desc="Subtitle for the everything offline feature in Settings: Files: Google Drive.">
+-    Your files in My Drive sync to your Chromebook automatically so you can access them without an internet connection.
++    Your files in My Drive sync to your device automatically so you can access them without an internet connection.
+   </message>
+   <message name="IDS_SETTINGS_GOOGLE_DRIVE_FILE_SYNC_SUBTITLE_WITH_STORAGE" desc="Subtitle for the everything offline feature in Settings: Files: Google Drive.">
+-    Your files in My Drive sync to your Chromebook automatically so you can access them without an internet connection. This will use about <ph name="REQUIRED_SPACE">$1<ex>12.2 GB</ex></ph>. You currently have <ph name="FREE_SPACE_AVAILABLE">$2<ex>96.7 GB</ex></ph> available.
++    Your files in My Drive sync to your device automatically so you can access them without an internet connection. This will use about <ph name="REQUIRED_SPACE">$1<ex>12.2 GB</ex></ph>. You currently have <ph name="FREE_SPACE_AVAILABLE">$2<ex>96.7 GB</ex></ph> available.
+   </message>
+   <message name="IDS_SETTINGS_GOOGLE_DRIVE_OFFLINE_STORAGE_TITLE" desc="Title for the Offline Storage row where users can clear their offline storage in Settings: Files: Google Drive.">
+     Offline storage
+@@ -1170,7 +1170,7 @@
+     Turn off file sync?
+   </message>
+   <message name="IDS_SETTINGS_GOOGLE_DRIVE_FILE_SYNC_TURN_OFF_BODY_TEXT" desc="Body text for the confirmation dialog that spawns when attempting to turn off bulk pinning in Settings: Files: Google Drive.">
+-    New files in My Drive will stop syncing automatically to this Chromebook
++    New files in My Drive will stop syncing automatically to this device
+   </message>
+   <message name="IDS_SETTINGS_GOOGLE_DRIVE_FILE_SYNC_LISTING_FILES_TITLE_TEXT" desc="Title text for the dialog that spawns when a user tries to turn on bulk pinning whilst we're still listing files in Settings: Files: Google Drive.">
+     Scanning is taking longer than expected
+@@ -1185,7 +1185,7 @@
+     Remove Google Drive access?
+   </message>
+   <message name="IDS_SETTINGS_GOOGLE_DRIVE_REMOVE_ACCESS_DIALOG_BODY" desc="Body text of the dialog that appears when the Remove Drive access button is pressed in Settings: Files: Google Drive">
+-    This will remove access to Google Drive on this Chromebook, including access to any files that have been made available offline
++    This will remove access to Google Drive on this device, including access to any files that have been made available offline
+   </message>
+   <message name="IDS_SETTINGS_GOOGLE_DRIVE_REMOVE_BUTTON_TEXT" desc="Action button text of the dialog that appears when the Remove Drive access button is pressed in Settings: Files: Google Drive">
+     Remove
+@@ -1200,7 +1200,7 @@
+     You are currently offline
+   </message>
+   <message name="IDS_SETTINGS_GOOGLE_DRIVE_FILE_SYNC_OFFLINE_ERROR_BODY_TEXT" desc="Body text for the confirmation dialog that spawns when attempting to turn on bulk pinning but the device is offline in Settings: Files: Google Drive.">
+-    For initial setup, you need to connect to the internet so files can sync to your Chromebook
++    For initial setup, you need to connect to the internet so files can sync to your device
+   </message>
+   <message name="IDS_SETTINGS_GOOGLE_DRIVE_BULK_PINNING_NOT_ENOUGH_SPACE_TITLE_TEXT" desc="Title text for the confirmation dialog that spawns when attempting to turn on bulk pinning but the user doesn't have enough free space in Settings: Files: Google Drive.">
+     Not enough storage space
+@@ -1260,7 +1260,7 @@
+     <ph name="ORIGIN_NAME">$1<ex>Chrome</ex></ph> would like to confirm it's you
+   </message>
+   <message name="IDS_SETTINGS_IN_SESSION_AUTH_ORIGIN_NAME_PROMPT_LOCATION" desc="Location in text shown in the auth dialog to indicate we are currently authenticating for ChromeOS settings">
+-    ChromeOS Settings
++    NickelOS Settings
+   </message>
+   <message name="IDS_SETTINGS_DOWNLOADS_SHARE_ADDED_NOT_FOUND_MESSAGE" desc="The message shown when mounting a new SMB share fails because the share cannot be found.">
+     Error mounting share. The specified share was not found on the network.
+@@ -1349,7 +1349,7 @@
+     Face control
+   </message>
+   <message name="IDS_OS_SETTINGS_ACCESSIBILITY_FACEGAZE_DESCRIPTION" desc="The description for the checkbox that enables controlling the mouse cursor and keyboard with face movements.">
+-    Use head movements and facial expressions to control your Chromebook. <ph name="LINK_BEGIN">&lt;a&gt;</ph>Learn more<ph name="LINK_END">&lt;/a&gt;</ph>
++    Use head movements and facial expressions to control your device. <ph name="LINK_BEGIN">&lt;a&gt;</ph>Learn more<ph name="LINK_END">&lt;/a&gt;</ph>
+   </message>
+   <message name="IDS_OS_SETTINGS_ACCESSIBILITY_FACEGAZE_PREVIOUS" desc="Label for previous button.">
+     Previous
+@@ -2593,7 +2593,7 @@ Press an assigned switch or key to remove assignment.
+     Switch Access setup guide
+   </message>
+   <message name="IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY" desc="The message displayed on the first page of the Switch Access setup guide, instructing the user to confirm that their external switch is appropriately connected to the chromebook. Switch Access is an alternative input method designed for users with limited mobility, where the user has as little as one switch (for example, a button) to control the computer.">
+-    To get started, please make sure your USB or Bluetooth switch is connected to your Chromebook. You can also use keyboard keys.
++    To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.
+   </message>
+   <message name="IDS_SETTINGS_SWITCH_ACCESS_SETUP_ASSIGN_SELECT_TITLE" desc="The title for the page of the Switch Access setup guide where the user assigns a switch to perform the action select, which selects the element onscreen currently surrounded by the focus ring. Switch Access is an alternative input method designed for users with limited mobility, where the user has as little as one switch (for example, a button) to control the computer.">
+     Assign switch for “Select”
+@@ -2924,7 +2924,7 @@ Press an assigned switch or key to remove assignment.
+     Manage USB devices
+   </message>
+   <message name="IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION" desc="Description for managing shared USB devices.">
+-    Give Android apps control over USB devices on this Chromebook
++    Give Android apps control over USB devices on this NickelOS device
+   </message>
+   <message name="IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_EXTRA_DESCRIPTION" desc="Extra description for managing shared USB devices.">
+     Only supported devices are shown. USB devices will no longer be available to native apps until disconnected.
+@@ -3160,7 +3160,7 @@ Press an assigned switch or key to remove assignment.
+     Reserve size
+   </message>
+   <message name="IDS_SETTINGS_CROSTINI_ARC_ADB_POWERWASH_REQUIRED_SUBLABEL" desc="Sublabel notifying user of powerwash requirement before enabling ARC ADB sideloading.">
+-    A factory reset of this Chromebook is required to enable ADB debugging. <ph name="BEGIN_LINK_LEARN_MORE">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK_LEARN_MORE">&lt;/a&gt;</ph>
++    A factory reset of this device is required to enable ADB debugging. <ph name="BEGIN_LINK_LEARN_MORE">&lt;a target="_blank" href="$1"&gt;</ph>Learn more<ph name="END_LINK_LEARN_MORE">&lt;/a&gt;</ph>
+   </message>
+   <message name="IDS_SETTINGS_CROSTINI_ARC_ADB_CONFIRMATION_MESSAGE_ENABLE" desc="Describes what will happen if the user enables ADB Sideloading.">
+     To enable ADB debugging, a restart of this <ph name="DEVICE_TYPE">$1<ex>Chromebook</ex></ph> is required. Disabling it requires a reset to factory settings.
+@@ -3249,7 +3249,7 @@ Press an assigned switch or key to remove assignment.
+     Remove Google Play and Android apps?
+   </message>
+   <message name="IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION" desc="Description for managing shared USB devices. Do not translate 'ARCVM'.">
+-    Give Android apps control over USB devices on this Chromebook. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.
++    Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.
+   </message>
+   <message name="IDS_OS_SETTINGS_OPEN_GOOGLE_PLAY" desc="Label for launching Google Play Store.">
+     Open Google Play
+@@ -3581,7 +3581,7 @@ Press an assigned switch or key to remove assignment.
+     Forget
+   </message>
+   <message name="IDS_SETTINGS_FORGET_DEVICE_DIALOG_LABEL" desc="Bluetooth device details page > Forget device dialog: Label for dialog that forgets the device.">
+-    <ph name="DEVICE">$1<ex>Beats</ex></ph> will be removed from this Chromebook and won’t be saved to <ph name="PRIMARY_EMAIL">$2<ex>john@google.com</ex></ph>.
++    <ph name="DEVICE">$1<ex>Beats</ex></ph> will be removed from this device and won’t be saved to <ph name="PRIMARY_EMAIL">$2<ex>john@google.com</ex></ph>.
+   </message>
+   <message name="IDS_SETTINGS_FORGET_DEVICE_DIALOG_TITLE" desc="Bluetooth device details page > Forget device dialog: Title for dialog that forgets the device." meaning="'Forget this device' means the device will be unpaired and removed from the account">
+     Forget this device?
+@@ -3731,7 +3731,7 @@ Press an assigned switch or key to remove assignment.
+     Focused voice
+   </message>
+   <message name="IDS_SETTINGS_AUDIO_INPUT_BEAMFORMING_DESCRIPTION" desc="In Device Settings, the description of the beamforming effect under the input section in audio settings subpage.">
+-    Beamforming mic so the person using the Chromebook sounds clear.
++    Beamforming mic so the person using the device sounds clear.
+   </message>
+   <message name="IDS_SETTINGS_AUDIO_DEVICE_FRONT_MIC_LABEL" desc="In Device Settings, the label used for the front microphone.">
+     Front microphone
+@@ -4179,7 +4179,7 @@ Press an assigned switch or key to remove assignment.
+     Don’t see your printer?
+   </message>
+   <message name="IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION" desc="In CUPS printing settings subpage, this description helps users when trying to connect to a local printer.">
+-    Make sure your printer is connected to the same Wi-Fi network as your Chromebook or use a USB cable. <ph name="LINK_BEGIN">&lt;a&gt;</ph>Learn more about compatibility<ph name="LINK_END">&lt;/a&gt;</ph>
++    Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. <ph name="LINK_BEGIN">&lt;a&gt;</ph>Learn more about compatibility<ph name="LINK_END">&lt;/a&gt;</ph>
+   </message>
+   <message name="IDS_SETTINGS_PRINTING_CUPS_SHOW_MORE" desc="Text for the button to show more printers when there are more printers than currently displayed to the user.">
+     Show more
+@@ -4311,7 +4311,7 @@ Press an assigned switch or key to remove assignment.
+     Unable to add printer. Please check your printer's configuration and try again.
+   </message>
+   <message name="IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE" desc="The message shown when the printer that is to be added is unreachable for configuration.">
+-    Can&#x2019;t connect to printer. Check that the printer is turned on and is connected to your Chromebook by Wi-Fi or USB.
++    Can&#x2019;t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.
+   </message>
+   <message name="IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PPD_TOO_LARGE_MESSAGE" desc="The message shown when the PPD provided while trying to add new printer is too large.">
+     Can&#x2019;t load large PPD. Maximum size is 250 kB.
+@@ -4320,10 +4320,10 @@ Press an assigned switch or key to remove assignment.
+     File is the wrong format. Check the PPD file and try again.
+   </message>
+   <message name="IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PPD_NOT_FOUND" desc="The message shown when the PPD provided while trying to add a new printer cannot be found.">
+-    Can&#x2019;t find PPD. Make sure your Chromebook is online and try again.
++    Can&#x2019;t find PPD. Make sure your device is online and try again.
+   </message>
+   <message name="IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PPD_UNRETRIEVABLE" desc="The message shown when the PPD provided while trying to add a new printer is unretrievable.">
+-    Can&#x2019;t find PPD. Make sure your Chromebook is online and try again.
++    Can&#x2019;t find PPD. Make sure your device is online and try again.
+   </message>
+   <message name="IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_NATIVE_PRINTERS_NOT_ALLOWED_MESSAGE" desc="The message shown when the user is prevented from configuring printers due to an enterprise policy.">
+     Printer configuration is handled by the administrator.
+@@ -4640,7 +4640,7 @@ Press an assigned switch or key to remove assignment.
+     Show notification
+   </message>
+   <message name="IDS_SETTINGS_INTERNET_TETHER_NOTIFICATION_CONTROL_DESCRIPTION" desc="Description of a control allowing users to disable notifications for Instant Hotspot.">
+-    When your Chromebook is offline and hotspots are available
++    When your device is offline and hotspots are available
+   </message>
+   <message name="IDS_SETTINGS_INTERNET_NO_NETWORKS" desc="Entry when there are no preferred networks or no networks of a particular type.">
+     None
+@@ -5938,7 +5938,7 @@ Press an assigned switch or key to remove assignment.
+     Restart your device
+   </message>
+   <message name="IDS_OS_SETTINGS_FACTORY_RESET_DESCRIPTION" desc="Description of the factory reset option on the ChromeOS settings page">
+-    Remove all user accounts and reset your Chromebook to be just like new.
++    Remove all user accounts and reset your device to be just like new.
+   </message>
+   <message name="IDS_SETTINGS_FACTORY_RESET_WARNING" desc="Warning text in the 'Factory Reset' window">
+     A restart is required before your device can be reset with Powerwash. <ph name="LINK_BEGIN">&lt;a&gt;</ph>Learn more<ph name="LINK_END">&lt;/a&gt;</ph>
+@@ -5977,13 +5977,13 @@ Press an assigned switch or key to remove assignment.
+     Remove unwanted pop-ups, fix network issues, and more by restoring your settings to safe defaults.
+   </message>
+   <message name="IDS_OS_SETTINGS_SANITIZE_DESCRIPTION" desc="Description of the sanitize feature on the sanitize window.">
+-    Getting unwanted pop-ups, or other unexpected behavior? Sometimes, apps and extensions that you install can change your ChromeOS settings without you knowing.
++    Getting unwanted pop-ups, or other unexpected behavior? Sometimes, apps and extensions that you install can change your NickelOS settings without you knowing.
+   </message>
+   <message name="IDS_OS_SETTINGS_SANITIZE_WARNING" desc="Warning text in the sanitize window.">
+     This will disable extensions and reset your settings to safe defaults. Tabs, files, and cookies will be preserved. <ph name="LINK_BEGIN">&lt;a&gt;</ph>Learn more<ph name="LINK_END">&lt;/a&gt;</ph>
+   </message>
+   <message name="IDS_OS_SETTINGS_SANITIZE_FEEDBACK" desc="Feedback label in the Reset Profile Settings dialog.">
+-    Help make ChromeOS better by reporting the <ph name="BEGIN_LINK">&lt;a is="action-link" target="_blank"&gt;</ph>current settings<ph name="END_LINK">&lt;/a&gt;</ph>
++    Help make NickelOS better by reporting the <ph name="BEGIN_LINK">&lt;a is="action-link" target="_blank"&gt;</ph>current settings<ph name="END_LINK">&lt;/a&gt;</ph>
+   </message>
+ 
+   <!-- Device display (OS settings) -->
+@@ -6702,7 +6702,7 @@ Press &amp; hold keyboard keys to see accent marks and special characters. This
+   <!-- TODO(jamescook): Use device type instead of "Chromebook", which may
+         require changing ArcPlayTermsOfServiceConsent resource id handling. -->
+   <message name="IDS_OS_SETTINGS_ANDROID_APPS_DISABLE_DIALOG_MESSAGE" desc="Describes what will happen if the user opts out of android apps.">
+-    Google Play and apps you've downloaded from Google Play will be deleted from this Chromebook.
++    Google Play and apps you've downloaded from Google Play will be deleted from this device.
+     <ph name="LINE_BREAKS1">&lt;br&gt;&lt;br&gt;</ph>
+     Content you've purchased through Google Play such as movies, TV shows, music, books, as well as purchases from other apps may also be deleted.
+     <ph name="LINE_BREAKS2">&lt;br&gt;&lt;br&gt;</ph>
+@@ -6835,7 +6835,7 @@ Press &amp; hold keyboard keys to see accent marks and special characters. This
+     Get content recommendations
+   </message>
+   <message name="IDS_OS_SETTINGS_ENABLE_SUGGESTED_CONTENT_DESCRIPTION" desc="The description of the checkbox to enable/disable Suggested Content in ChromeOS settings. Suggested Content includes app search recommendations and website recommendations which can show up in places such as the launcher search and suggestion chips.">
+-  See suggestions for new apps and web content in Launcher and search results. Sends statistics to improve suggestions only if you have chosen to send crash reports and diagnostics and usage data to ChromeOS.
++  See suggestions for new apps and web content in Launcher and search results. Sends statistics to improve suggestions only if you have chosen to send crash reports and diagnostics and usage data to NickelOS.
+   </message>
+   <message name="IDS_SETTINGS_ENABLE_CONTENT_PROTECTION_ATTESTATION" desc="description label for verified access about premium contents">
+     Enable Verified Access
+@@ -7352,7 +7352,7 @@ Press &amp; hold keyboard keys to see accent marks and special characters. This
+     Web App
+   </message>
+   <message name="IDS_OS_SETTINGS_APP_DETAILS_TYPE_CROS_SYSTEM" desc="Text to explain that the type of an app is ChromeOS System app">
+-    ChromeOS System App
++    NickelOS System App
+   </message>
+   <message name="IDS_OS_SETTINGS_APP_DETAILS_TYPE_ANDROID_INSTALL_REASON_POLICY" desc="Explanation text for the android app installation reason, describing the type of the app, and that it is installed by the administrator.">
+     Android app installed by your device administrator.
+@@ -7377,10 +7377,10 @@ Press &amp; hold keyboard keys to see accent marks and special characters. This
+ 
+   <!-- Safety Hub -->
+   <message name="IDS_SETTINGS_SAFETY_HUB_VERSION_CARD_HEADER_RESTART" desc="Safety Hub settings page (chrome://settings/safetyHub) gives users an overview over their safety status. The version card, which this text is a part of, informs the user whether their Chrome is up to date. This title of the card is shown when Chrome is not up to date but there is an update available and the user needs to restart their browser to finish the update. Shown above the subtitle 'Relaunch to finish update. Your tabs will reopen'.">
+-    ChromeOS is out of date
++    NickelOS is out of date
+   </message>
+   <message name="IDS_SETTINGS_SAFETY_HUB_VERSION_CARD_HEADER_UPDATED" desc="Safety Hub settings page (chrome://settings/safetyHub) gives users an overview over their safety status. The version card, which this text is a part of, informs the user whether their Chrome is up to date. This title of the card is shown when Chrome is up to date and the user does not need to take any action. Shown above the subtitle that is the Chrome version.">
+-    ChromeOS is up to date
++    NickelOS is up to date
+   </message>
+ 
+   <!-- Lobster -->
+diff --git a/chrome/app/printing_strings.grdp b/chrome/app/printing_strings.grdp
+index ff4c6e61e0a93..fd431746b87b0 100644
+--- a/chrome/app/printing_strings.grdp
++++ b/chrome/app/printing_strings.grdp
+@@ -276,7 +276,7 @@
+         Manage your printers in printer settings
+       </message>
+       <message name="IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT" desc="In preview-area, message shown to users when printer is offline.">
+-        Make sure your printer is turned on and connected to the same network as your Chromebook or use a USB cable
++        Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable
+       </message>
+       <message name="IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_HEADING_NO_PRINTERS_TEXT" desc="In CrOS destination dialog, heading shown to users when destination list has no printers.">
+         No printer available
+diff --git a/chrome/app/settings_chromium_strings.grdp b/chrome/app/settings_chromium_strings.grdp
+index 66b9cc089bf9d..fa49bda553f1a 100644
+--- a/chrome/app/settings_chromium_strings.grdp
++++ b/chrome/app/settings_chromium_strings.grdp
+@@ -42,10 +42,10 @@
+   </if>
+   <if expr="is_chromeos">
+     <message name="IDS_SETTINGS_ABOUT_OS" desc="Menu title for the About ChromiumOS page.">
+-      About ChromiumOS
++      About NickelOS
+     </message>
+     <message name="IDS_OS_SETTINGS_TAG_OS_VERSION" desc="Text for search result item which, when clicked, navigates the user to about ChromeOS settings, which gives information about the current ChromeOS version.">
+-      ChromiumOS version
++      NickelOS version
+     </message>
+   </if>
+ 
+diff --git a/chrome/app/settings_strings.grdp b/chrome/app/settings_strings.grdp
+index 20ab26dea7b6f..bdd2035b13e19 100644
+--- a/chrome/app/settings_strings.grdp
++++ b/chrome/app/settings_strings.grdp
+@@ -1341,7 +1341,7 @@
+       </if>
+       <if expr="not reven">
+         <message name="IDS_SETTINGS_LANGUAGES_OPEN_CHROME_OS_SETTINGS_LABEL" desc="Label for the section that allow users to open languages settings in ChromeOS.">
+-          Manage languages in ChromeOS settings
++          Manage languages in NickelOS settings
+         </message>
+       </if>
+       <message name="IDS_SETTINGS_LANGUAGES_KEYBOARD_APPS" desc="Title for the list of keyboard apps installed via Play Store by the user.">
+@@ -1393,7 +1393,7 @@
+       </if>
+       <if expr="not reven">
+         <message name="IDS_SETTINGS_SECURE_DNS_OPEN_CHROME_OS_SETTINGS_LABEL" desc="Label for the section that allow users to open Secure DNS settings in ChromeOS.">
+-          Manage secure DNS in ChromeOS settings
++          Manage secure DNS in NickelOS settings
+         </message>
+       </if>
+     </if>
+@@ -3695,7 +3695,7 @@
+     </if>
+     <if expr="is_chromeos">
+       <message name="IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS" desc="Description of the section in the account settings page for managing data types on ChromeOS.">
+-        When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For ChromeOS sync options, go to <ph name="LINK_BEGIN">&lt;a&gt;</ph>ChromeOS settings<ph name="LINK_END">&lt;/a&gt;</ph>.
++        When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to <ph name="LINK_BEGIN">&lt;a&gt;</ph>NickelOS settings<ph name="LINK_END">&lt;/a&gt;</ph>.
+       </message>
+     </if>
+     <message name="IDS_SETTINGS_ACCOUNT_SYNC_DISABLED"  desc="Section in the account settings page informing the user when the toggles to save a specific data type to the user's Google Account are disabled as per an Enterprise policy.">
+diff --git a/chrome/app/shared_settings_strings.grdp b/chrome/app/shared_settings_strings.grdp
+index 35ef542fa88ef..d7884e5948521 100644
+--- a/chrome/app/shared_settings_strings.grdp
++++ b/chrome/app/shared_settings_strings.grdp
+@@ -187,7 +187,7 @@
+     May incur mobile data charges
+   </message>
+   <message name="IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP" desc="Explanation of when the mobile data usage setting applies. When selected, Mobile data means that Wi-Fi or cell data may be used for transfers for the Nearby Share feature.">
+-    This option applies to Chromebooks with a data plan or mobile network dongle, or when tethering to a portable hotspot
++    This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot
+   </message>
+   <message name="IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_OFFLINE_LABEL" desc="Label for the data usage setting where transfers will only take place offline for the Nearby Share feature.">
+     Without internet
+@@ -428,7 +428,7 @@
+ 
+   <if expr="is_chromeos">
+     <message name="IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL" desc="Label describing the browser sync feature.">
+-      Your data will be synced across all Chrome browsers where you have turned on sync for this account. For ChromeOS sync options, go to <ph name="LINK_BEGIN">&lt;a&gt;</ph>ChromeOS settings<ph name="LINK_END">&lt;/a&gt;</ph>.
++      Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to <ph name="LINK_BEGIN">&lt;a&gt;</ph>NickelOS settings<ph name="LINK_END">&lt;/a&gt;</ph>.
+     </message>
+     <message name="IDS_SETTINGS_COOKIES_CHECKBOX_LABEL" desc="Label for the checkbox which enables or disables syncing cookies between multiple browser instances.">
+       Cookies
+@@ -440,7 +440,7 @@
+     Checking for updates
+   </message>
+   <message name="IDS_SETTINGS_UPDATE_TO_ROLLBACK_VERSION_DISALLOWED" desc="Status label: After a consumer rollback, updating to the previously installed version just rolledback from is disallowed (ChromiumOS/ChromeOS)">
+-    You reverted to a previous version of ChromeOS. To get updates, wait until the next version is available.
++    You reverted to a previous version of NickelOS. To get updates, wait until the next version is available.
+   </message>
+ 
+   <if expr="is_chromeos">
+diff --git a/chrome/app/support_tool_strings.grdp b/chrome/app/support_tool_strings.grdp
+index 00aa5c6cebc5a..c54e0a41e95ef 100644
+--- a/chrome/app/support_tool_strings.grdp
++++ b/chrome/app/support_tool_strings.grdp
+@@ -115,7 +115,7 @@
+             UI Hierarchy
+         </message>
+         <message name="IDS_SUPPORT_TOOL_ADDITIONAL_CROS_PLATFROM_LOGS" desc="Additional logs for ChromeOS platfrom.">
+-            Additional ChromeOS Platform Logs
++            Additional NickelOS Platform Logs
+         </message>
+         <message name="IDS_SUPPORT_TOOL_DEVICE_EVENT" desc="The events that happen on the device.">
+             Device Event
+@@ -127,40 +127,40 @@
+             Touch Events
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS" desc="ChromeOS Flex logs. ChromeOS Flex is ChromeOS version that can run on different hardwares.">
+-            ChromeOS Flex Logs
++            NickelOS Logs
+         </message>
+         <message name="IDS_SUPPORT_TOOL_DBUS_DETAILS" desc="DBus memory details. DBus is a message-oriented middleware mechanism that allows communication between multiple processes running concurrently on the same machine.">
+             DBus Details
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_NETWORK_ROUTES" desc="Network routes information for ChromeOS. Network routing is the process of selecting a path for a packet to travel between networks. An IP route consists of simply a mapping of a destination IP address or network to a next hop and interface.">
+-            ChromeOS Network Routes
++            NickelOS Network Routes
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_SHILL_LOGS" desc="Logs from ChromeOS connection manager, Shill.">
+-            ChromeOS Shill (Connection Manager) Logs
++            NickelOS Shill (Connection Manager) Logs
+         </message>
+         <message name="IDS_SUPPORT_TOOL_POLICIES" desc="Policies on managed devices.">
+             Policies
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_SYSTEM_STATE" desc="System state and reports of ChromeOS.">
+-            ChromeOS System State and Reports
++            NickelOS System State and Reports
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_SYSTEM_LOGS" desc="System logs on ChromeOS.">
+-            ChromeOS System Logs
++            NickelOS System Logs
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_CHROME_USER_LOGS" desc="Chrome logs from user's session on ChromeOS.">
+-            ChromeOS Chrome User Logs
++            NickelOS Chrome User Logs
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_BLUETOOTH_FLOSS" desc="Bluetooth logs if Floss is enabled on the device. Floss is the project that works on converging on a single Bluetooth stack between Android and ChromeOS.">
+-            ChromeOS Bluetooth
++            NickelOS Bluetooth
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_CONNECTED_INPUT_DEVICES" desc="Information about connected input devices to a ChromeOS device.">
+-            ChromeOS Connected Input Devices
++            NickelOS Connected Input Devices
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_VIRTUAL_KEYBOARD" desc="Virtual keyboard details on ChromeOS.">
+-            ChromeOS Virtual Keyboard
++            NickelOS Virtual Keyboard
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_NETWORK_HEALTH" desc=" Network health data of a ChromeOS device.">
+-            ChromeOS Network Health
++            NickelOS Network Health
+         </message>
+         <message name="IDS_SUPPORT_TOOL_PERFORMANCE" desc="Performance and battery state of ChromeOS device.">
+             Performance and Battery State
+@@ -169,10 +169,10 @@
+             Sign In State
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_APP_SERVICE" desc="ChromeOS App Service gathers information from app service about installed and running apps.">
+-            ChromeOS App Service
++            NickelOS App Service
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROMEOS_KIOSK_APP_LEVEL_LOGS" desc="Logs collected from service workers, app windows and browser during a ChromeOS kiosk app session.">
+-            ChromeOS Kiosk App Logs
++            NickelOS Kiosk App Logs
+         </message>
+         <message name="IDS_SUPPORT_TOOL_CHROME_UPDATER" desc="Diagnostic information regarding Chrome's updater.">
+             Updater
+diff --git a/chrome/browser/ash/login/version_info_updater.cc b/chrome/browser/ash/login/version_info_updater.cc
+index 8d7b565d7980a..26a3c59fc0796 100644
+--- a/chrome/browser/ash/login/version_info_updater.cc
++++ b/chrome/browser/ash/login/version_info_updater.cc
+@@ -141,7 +141,8 @@ void VersionInfoUpdater::UpdateVersionLabel() {
+ 
+   std::string label_text = l10n_util::GetStringFUTF8(
+       IDS_LOGIN_VERSION_LABEL_FORMAT,
+-      l10n_util::GetStringUTF16(IDS_PRODUCT_NAME),
++      // NickelOS: "NickelOS 156.0... (Platform ...)", not "Chromium 156.0...".
++      l10n_util::GetStringUTF16(IDS_PRODUCT_OS_NAME),
+       base::UTF8ToUTF16(GetVersionNumberWithInformationalSuffix()),
+       base::UTF8ToUTF16(version_text_.value()),
+       base::UTF8ToUTF16(GetDeviceIdsLabel()));
+diff --git a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
+index eda13126ebcf2..cf339c5315663 100644
+--- a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
++++ b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
+@@ -206,6 +206,10 @@
+             </a>
+           </div>
+         </cr-link-row>
++  <!-- NickelOS: no "See what's new" or "Get help": release notes and help
++       come from Google's Help app and support site, and nickelos.dev has
++       neither yet. -->
++  <if expr="_google_chrome">
+         <template is="dom-if" if="[[hasInternetConnection_]]">
+           <cr-link-row class="hr" id="releaseNotesOnline"
+               start-icon="os-settings:about-release-notes"
+@@ -234,6 +238,7 @@
+             external
+             deep-link-focus-id$="[[Setting.kGetHelpWithChromeOs]]">
+         </cr-link-row>
++  </if>
+   <if expr="_google_chrome">
+         <cr-link-row class="hr" id="reportIssue"
+             start-icon="os-settings:about-feedback"
+diff --git a/chrome/browser/resources/chromeos/accessibility/strings/chromevox_strings.grdp b/chrome/browser/resources/chromeos/accessibility/strings/chromevox_strings.grdp
+index 535002cb7705e..44eee092b471b 100644
+--- a/chrome/browser/resources/chromeos/accessibility/strings/chromevox_strings.grdp
++++ b/chrome/browser/resources/chromeos/accessibility/strings/chromevox_strings.grdp
+@@ -2095,7 +2095,7 @@
+     In ChromeVox, the Search key is the modifier key. Most ChromeVox shortcuts start with the Search key. You’ll also use the arrow keys for navigation.
+   </message>
+   <message desc="Text explaining where to find the Search key on a Chromebook keyboard" name="IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH">
+-    On the Chromebook, the Search key is immediately above the left Shift key.
++    On most keyboards, the Search key is the Windows key, next to the left Alt key.
+   </message>
+   <message desc="Text explaining that while the ChromeVox tutorial is open, users can press any key to hear the key's name" name="IDS_CHROMEVOX_TUTORIAL_ANY_KEY">
+     During this tutorial, press any key to hear its name.
+@@ -2156,17 +2156,17 @@
+     Learn More
+   </message>
+   <message desc="Part of the ChromeVox tutorial, explaining that this is the end of the tutorial and that there are links to more information." name="IDS_CHROMEVOX_TUTORIAL_LEARN_MORE">
+-    Congratulations! You’ve learned the essentials to use ChromeVox successfully. Remember that you can open the ChromeVox command menu at any time by pressing Search+Period. To learn even more about ChromeVox and ChromeOS, visit the following articles.
++    Congratulations! You’ve learned the essentials to use ChromeVox successfully. Remember that you can open the ChromeVox command menu at any time by pressing Search+Period. To learn even more about ChromeVox and NickelOS, visit the following articles.
+     If you're done with the tutorial, use ChromeVox to navigate to the Close button and click it.
+   </message>
+   <message desc="Title of an article on the command reference for 'ChromeVox'" name="IDS_CHROMEVOX_NEXT_COMMAND_REFERENCE">
+     ChromeVox Command Reference
+   </message>
+   <message desc="Title of an article on keyboard shortcuts for Chromebooks" name="IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS">
+-    Chromebook keyboard shortcuts
++    Keyboard shortcuts
+   </message>
+   <message desc="Title of an article on how to use accessibility features of the Chromebook touch screen" name="IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY">
+-    Use Chromebook touch screen accessibility features
++    Use touch screen accessibility features
+   </message>
+   <message desc="Describes a UI element invoked after pressing enter such as an ok button in a dialog" name="IDS_CHROMEVOX_DEFAULT_STATE">
+     default
+diff --git a/chrome/browser/ui/webui/ash/login/core_oobe_handler.cc b/chrome/browser/ui/webui/ash/login/core_oobe_handler.cc
+index e0702e2a31af7..f563293e741c8 100644
+--- a/chrome/browser/ui/webui/ash/login/core_oobe_handler.cc
++++ b/chrome/browser/ui/webui/ash/login/core_oobe_handler.cc
+@@ -41,8 +41,9 @@ CoreOobeHandler::~CoreOobeHandler() = default;
+ 
+ void CoreOobeHandler::DeclareLocalizedValues(
+     ::login::LocalizedValuesBuilder* builder) {
+-  builder->Add("title", IDS_SHORT_PRODUCT_NAME);
+-  builder->Add("productName", IDS_SHORT_PRODUCT_NAME);
++  // NickelOS: the setup screens name the OS, not the browser.
++  builder->Add("title", IDS_SHORT_PRODUCT_OS_NAME);
++  builder->Add("productName", IDS_SHORT_PRODUCT_OS_NAME);
+   builder->Add("learnMore", IDS_LEARN_MORE);
+ 
+   // Strings for Asset Identifier shown in version string.
+diff --git a/chrome/browser/ui/webui/ash/login/enable_debugging_screen_handler.cc b/chrome/browser/ui/webui/ash/login/enable_debugging_screen_handler.cc
+index 6e92eb7c6d76d..e1a395a018224 100644
+--- a/chrome/browser/ui/webui/ash/login/enable_debugging_screen_handler.cc
++++ b/chrome/browser/ui/webui/ash/login/enable_debugging_screen_handler.cc
+@@ -49,14 +49,15 @@ void EnableDebuggingScreenHandler::DeclareLocalizedValues(
+   builder->Add("enableDebuggingLearnMore", IDS_ENABLE_DEBUGGING_LEARN_MORE);
+   builder->Add("enableDebuggingSetupMessage",
+                IDS_ENABLE_DEBUGGING_SETUP_MESSAGE);
++  // NickelOS: "this NickelOS device", not "this Chromium device".
+   builder->AddF("enableDebuggingWarningTitle",
+                 IDS_ENABLE_DEBUGGING_SCREEN_WARNING_MSG,
+-                IDS_SHORT_PRODUCT_NAME);
++                IDS_SHORT_PRODUCT_OS_NAME);
+   builder->AddF("enableDebuggingDoneMessage", IDS_ENABLE_DEBUGGING_DONE_MESSAGE,
+-                IDS_SHORT_PRODUCT_NAME);
++                IDS_SHORT_PRODUCT_OS_NAME);
+   builder->Add("enableDebuggingErrorTitle", IDS_ENABLE_DEBUGGING_ERROR_TITLE);
+   builder->AddF("enableDebuggingErrorMessage",
+-                IDS_ENABLE_DEBUGGING_ERROR_MESSAGE, IDS_SHORT_PRODUCT_NAME);
++                IDS_ENABLE_DEBUGGING_ERROR_MESSAGE, IDS_SHORT_PRODUCT_OS_NAME);
+   builder->Add("enableDebuggingPasswordLabel",
+                IDS_ENABLE_DEBUGGING_ROOT_PASSWORD_LABEL);
+   builder->Add("enableDebuggingConfirmPasswordLabel",
+diff --git a/chrome/browser/ui/webui/ash/login/local_state_error_screen_handler.cc b/chrome/browser/ui/webui/ash/login/local_state_error_screen_handler.cc
+index 3022b1b859445..6179b3c1eb690 100644
+--- a/chrome/browser/ui/webui/ash/login/local_state_error_screen_handler.cc
++++ b/chrome/browser/ui/webui/ash/login/local_state_error_screen_handler.cc
+@@ -29,8 +29,9 @@ LocalStateErrorScreenHandler::AsWeakPtr() {
+ void LocalStateErrorScreenHandler::DeclareLocalizedValues(
+     ::login::LocalizedValuesBuilder* builder) {
+   builder->Add("localStateErrorTitle", IDS_RESET_SCREEN_REVERT_ERROR);
++  // NickelOS: the OS recovers the settings, not the browser.
+   builder->AddF("localStateErrorText0", IDS_LOCAL_STATE_ERROR_TEXT_0,
+-                IDS_SHORT_PRODUCT_NAME);
++                IDS_SHORT_PRODUCT_OS_NAME);
+   builder->Add("localStateErrorText1", IDS_LOCAL_STATE_ERROR_TEXT_1);
+   builder->Add("localStateErrorPowerwashButton",
+                IDS_LOCAL_STATE_ERROR_POWERWASH_BUTTON);
+diff --git a/chrome/browser/ui/webui/ash/login/reset_screen_handler.cc b/chrome/browser/ui/webui/ash/login/reset_screen_handler.cc
+index 55d9f28c17aef..ec3aa1c275aca 100644
+--- a/chrome/browser/ui/webui/ash/login/reset_screen_handler.cc
++++ b/chrome/browser/ui/webui/ash/login/reset_screen_handler.cc
+@@ -42,11 +42,12 @@ void ResetScreenHandler::DeclareLocalizedValues(
+   builder->Add("resetWarningDataDetails",
+                IDS_RESET_SCREEN_WARNING_DETAILS_DATA);
+   builder->Add("resetRestartMessage", IDS_RESET_SCREEN_RESTART_MSG);
++  // NickelOS: it is the OS that restarts and reverts, not the browser.
+   builder->AddF("resetRevertPromise", IDS_RESET_SCREEN_PREPARING_REVERT_PROMISE,
+-                IDS_SHORT_PRODUCT_NAME);
++                IDS_SHORT_PRODUCT_OS_NAME);
+   builder->AddF("resetRevertSpinnerMessage",
+                 IDS_RESET_SCREEN_PREPARING_REVERT_SPINNER_MESSAGE,
+-                IDS_SHORT_PRODUCT_NAME);
++                IDS_SHORT_PRODUCT_OS_NAME);
+ 
+   builder->Add("resetTPMFirmwareUpdate",
+                IDS_RESET_SCREEN_TPM_FIRMWARE_UPDATE_OPTION);
+@@ -65,7 +66,7 @@ void ResetScreenHandler::DeclareLocalizedValues(
+                 ui::GetChromeOSDeviceName());
+   builder->AddF("resetRollbackErrorMessageBody",
+                 IDS_RESET_SCREEN_REVERT_ERROR_EXPLANATION,
+-                IDS_SHORT_PRODUCT_NAME);
++                IDS_SHORT_PRODUCT_OS_NAME);
+ 
+   builder->Add("confirmPowerwashTitle", IDS_RESET_SCREEN_POPUP_POWERWASH_TITLE);
+   builder->Add("confirmRollbackTitle", IDS_RESET_SCREEN_POPUP_ROLLBACK_TITLE);
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc b/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc
+index ffdb1d2580998..a49e77b9b3a27 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc
+@@ -100,6 +100,9 @@ base::span<const SearchConcept> GetAboutSearchConcepts() {
+        mojom::SearchResultDefaultRank::kMedium,
+        mojom::SearchResultType::kSetting,
+        {.setting = mojom::Setting::kCheckForOsUpdate}},
++#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
++      // NickelOS: About hides "Get help" and "See what's new", so search
++      // does not offer them.
+       {IDS_OS_SETTINGS_TAG_ABOUT_HELP,
+        mojom::kAboutChromeOsSectionPath,
+        mojom::SearchResultIcon::kHelp,
+@@ -114,6 +117,7 @@ base::span<const SearchConcept> GetAboutSearchConcepts() {
+        {.setting = mojom::Setting::kSeeWhatsNew},
+        {IDS_OS_SETTINGS_TAG_ABOUT_RELEASE_NOTES_ALT1,
+         SearchConcept::kAltTagEnd}},
++#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
+   });
+   return tags;
+ }
+diff --git a/chromeos/chromeos_strings.grd b/chromeos/chromeos_strings.grd
+index d792954d07231..c94f26225b720 100644
+--- a/chromeos/chromeos_strings.grd
++++ b/chromeos/chromeos_strings.grd
+@@ -655,7 +655,7 @@
+           Use as a personal device
+         </message>
+         <message name="IDS_ASH_SHELF_OS_INSTALL_BUTTON" desc="Text shown on install ChromeOS Flex button on login screen.">
+-          Install ChromeOS Flex
++          Install NickelOS
+         </message>
+         <message name="IDS_ASH_SHELF_APP_LIST_LAUNCHER_TITLE" desc="The title used for the Ash Launcher in the Shelf (not mentioning 'Apps' since this is a general launcher).">
+           Launcher
+@@ -678,7 +678,7 @@
+           Change password
+         </message>
+         <message name="IDS_PASSWORD_CHANGE_NOTIFICATION_TITLE" desc="Message title for a notification that tells the user that the password was updated.">
+-          ChromeOS password updated
++          NickelOS password updated
+         </message>
+         <message name="IDS_PASSWORD_CHANGE_NOTIFICATION_BODY" desc="Message body on a notification that politely requests the user to start using the new password.">
+           Your password change was successful. Please use the new password from now on.
+@@ -725,7 +725,7 @@
+         </message>
+ 
+         <message name="IDS_IME_SERVICE_DISPLAY_NAME" desc="The display name (in the system task manager, etc) of the service process providing the input methods.">
+-          ChromeOS Input Method Service
++          NickelOS Input Method Service
+         </message>
+ 
+         <!-- Content transfer App -->
+@@ -777,10 +777,10 @@
+           Perks
+         </message>
+         <message name="IDS_HELP_APP_WHATS_NEW_SUGGESTION_CHIP" desc="Text for the suggestion chip to view updated patch notes are available. [CHAR_LIMIT=24]">
+-          What's new with ChromeOS
++          What's new with NickelOS
+         </message>
+         <message name="IDS_HELP_APP_WHATS_NEW_CONTINUE_TASK_TITLE" desc="Title for a ChromeOS launcher continue section item that can be used to quickly access most recent ChromeOS release notes. Continue section contains set of UI elements that are suggestions for continuing recent user workflows. Release notes element is shown after ChromeOS device updates to a new version. Clicking the relese notes element will redirect user to an app that gives the user more information about the ChromeOS update [CHAR_LIMIT=20]">
+-          ChromeOS update
++          NickelOS update
+         </message>
+         <message name="IDS_HELP_APP_WHATS_NEW_CONTINUE_TASK_DETAILS" desc="Details label for a ChromeOS launcher continue section item that can be used to quickly access most recent ChromeOS release notes. Continue section contains set of UI elements that are suggestions for continuing recent user workflows. Release notes element is shown after ChromeOS device updates to a new version. Clicking the relese notes element will redirect user to an app that gives the user more information about the ChromeOS update [CHAR_LIMIT=22]">
+           See what's new
+@@ -3284,10 +3284,10 @@
+           Safety reset has been completed
+         </message>
+         <message name="IDS_SANITIZE_DONE_DESCRIPTION" desc="Description of the safety reset done dialog">
+-          Your Chromebook was reset to safe defaults. You can adjust these changes anytime in Settings.
++          Your device was reset to safe defaults. You can adjust these changes anytime in Settings.
+         </message>
+         <message name="IDS_SANITIZE_DONE_ROLLBACK" desc="Summary title">
+-          Your Chromebook was reset to safe defaults. You can make changes anytime in Settings.
++          Your device was reset to safe defaults. You can make changes anytime in Settings.
+         </message>
+         <message name="IDS_SANITIZE_DONE" desc="Name of the button that will close the safety reset done dialog">
+           Done
+@@ -3302,7 +3302,7 @@
+           Extensions disabled to prevent changes to settings. Only turn on extensions you trust.
+         </message>
+         <message name="IDS_SANITIZE_DONE_ACCORDION_CHROMEOS_TITLE" desc="Accordion title for ChromeOS resets">
+-          ChromeOS Settings
++          NickelOS Settings
+         </message>
+         <message name="IDS_SANITIZE_DONE_ACCORDION_CHROMEOS_INPUT_SUBHEADER" desc="Subheader for instructions to adjust ChromeOS Inputs">
+           Input method
+@@ -6155,16 +6155,16 @@
+           Thanks for your feedback
+         </message>
+         <message name="IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE" desc="Thank you note when feedback tool is offline">
+-          Thanks for your feedback. Your feedback helps us improve the Chromebook experience and will be reviewed by our team. Because of the large number of reports, we won’t be able to send a reply.
++          Thanks for your feedback. It will be sent when you’re back online.
+         </message>
+         <message name="IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE" desc="Thank you note when feedback tool is online">
+-          Your feedback helps us improve the Chromebook experience and will be reviewed by our team. Because of the large number of reports, we won’t be able to send a reply.
++          Thanks for your feedback.
+         </message>
+         <message name="IDS_FEEDBACK_TOOL_PAGE_TITLE_SEND_OFFLINE" desc="Label showing the title of the feedback tool when the user attempts to send a report while offline.">
+           You're offline. Feedback will be sent later.
+         </message>
+         <message name="IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION" desc="Description of the explore app that links to some resourses like help articals and new features of Chromebook.">
+-          Find help articles and answers to common Chromebook questions
++          Find help articles and answers to common questions
+         </message>
+         <message name="IDS_FEEDBACK_TOOL_HELP_RESOURCES_LABEL" desc="Label of some other help resources.">
+           Here are some other helpful resources:
+diff --git a/components/management_strings.grdp b/components/management_strings.grdp
+index 7c7f1dd48a579..b947517d1364f 100644
+--- a/components/management_strings.grdp
++++ b/components/management_strings.grdp
+@@ -255,7 +255,7 @@
+       Desk sync
+     </message>
+     <message name="IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION" desc="Message explaining that the Desk sync feature is enabled and it will result in synchronization of some data between user's ChromeOS devices. Data will be listed in a list below.">
+-      Your administrator enabled the following to be synced between your previous and current sessions across your ChromeOS devices:
++      Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:
+     </message>
+     <message name="IDS_MANAGEMENT_DESK_SYNC_WINDOWS_NOTICE" desc="This string is used to mention windows (i.e. browser and application windows) in the list of data which is synced by the Desk sync feature.">
+       Windows and tabs arrangement
+diff --git a/components/omnibox_pedal_ui_strings.grdp b/components/omnibox_pedal_ui_strings.grdp
+index 480e8831d9237..b6b1537b2c3b3 100644
+--- a/components/omnibox_pedal_ui_strings.grdp
++++ b/components/omnibox_pedal_ui_strings.grdp
+@@ -499,13 +499,13 @@
+     Manage accessibility settings
+   </message>
+   <message name="IDS_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUGGESTION_CONTENTS" desc="The button hover tooltip text to describe pedal action, MANAGE_CHROMEOS_ACCESSIBILITY">
+-    Personalize your accessibility tools in ChromeOS settings
++    Personalize your accessibility tools in NickelOS settings
+   </message>
+   <message name="IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUFFIX" desc="Suffix for spoken suggestion description with pedal action button, to explain keystroke used to MANAGE_CHROMEOS_ACCESSIBILITY.">
+-    <ph name="MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT">$1<ex>The Chromium Projects http://www.chromium.org bookmark</ex></ph>, Press tab then Enter to personalize your accessibility tools in ChromeOS settings
++    <ph name="MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT">$1<ex>The Chromium Projects http://www.chromium.org bookmark</ex></ph>, Press tab then Enter to personalize your accessibility tools in NickelOS settings
+   </message>
+   <message name="IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY" desc="Announcement when pedal action button is focused, MANAGE_CHROMEOS_ACCESSIBILITY">
+-    Manage accessibility settings button, Enter to personalize your accessibility tools in ChromeOS settings
++    Manage accessibility settings button, Enter to personalize your accessibility tools in NickelOS settings
+   </message>
+ 
+   <message name="IDS_OMNIBOX_PEDAL_SET_CHROME_AS_DEFAULT_BROWSER_HINT" desc="The button text contents to suggest pedal action, SET_CHROME_AS_DEFAULT_BROWSER">
+diff --git a/components/page_info_strings.grdp b/components/page_info_strings.grdp
+index 5a4e88cfdb3ac..e2ba27da97673 100644
+--- a/components/page_info_strings.grdp
++++ b/components/page_info_strings.grdp
+@@ -976,7 +976,7 @@
+     This means site features should work as expected, but you may have less browsing protection.
+   </message>
+   <message name="IDS_PAGE_INFO_COOKIE_SYNC_DESCRIPTION" desc="The disclaimer about cookies for this site being synced across ChromeOS devices.">
+-    Cookies for this site are synced across your ChromeOS devices. To manage what you sync, go to <ph name="SYNC_SETTINGS">$1<ex>Sync settings</ex></ph>.
++    Cookies for this site are synced across your NickelOS devices. To manage what you sync, go to <ph name="SYNC_SETTINGS">$1<ex>Sync settings</ex></ph>.
+   </message>
+   <message name="IDS_PAGE_INFO_SYNC_SETTINGS_LINK" desc="The text of the link to Chrome Sync settings.">
+     Sync settings
+diff --git a/components/permissions_strings.grdp b/components/permissions_strings.grdp
+index a9c5c50333e3b..02b1a8487c3bc 100644
+--- a/components/permissions_strings.grdp
++++ b/components/permissions_strings.grdp
+@@ -610,7 +610,7 @@ This will otherwise be blocked by your privacy settings. This will allow the con
+     Windows
+   </message>
+   <message name="IDS_CHROMEOS_NAME_FRAGMENT" desc="Text fragment identifying the ChromeOS">
+-    ChromeOS
++    NickelOS
+   </message>
+   <if expr="is_android">
+     <message name="IDS_ANDROID_NAME_FRAGMENT" desc="Text fragment identifying the Android">
+diff --git a/extensions/strings/extensions_strings.grd b/extensions/strings/extensions_strings.grd
+index f9b2679ff7d18..76a12dffd68de 100644
+--- a/extensions/strings/extensions_strings.grd
++++ b/extensions/strings/extensions_strings.grd
+@@ -461,7 +461,7 @@
+       </if>
+       <if expr="not reven">
+         <message name="IDS_EXTENSION_INSTALL_KIOSK_MODE_ONLY" desc="Error displayed during installation of an app with 'kiosk_only' attribute but user is not in ChromeOS kiosk mode.">
+-          App with 'kiosk_only' manifest attribute must be installed in ChromeOS kiosk mode
++          App with 'kiosk_only' manifest attribute must be installed in NickelOS kiosk mode
+         </message>
+       </if>
+       <message name="IDS_EXTENSION_INSTALL_NOT_ENABLED" desc="Error displayed during installation of apps or extensions when installation is not enabled.">
+diff --git a/ui/chromeos/devicetype_utils.cc b/ui/chromeos/devicetype_utils.cc
+index 33927f294820e..a0e0ccf3a24a7 100644
+--- a/ui/chromeos/devicetype_utils.cc
++++ b/ui/chromeos/devicetype_utils.cc
+@@ -4,9 +4,6 @@
+ 
+ #include "ui/chromeos/devicetype_utils.h"
+ 
+-#include "base/notreached.h"
+-#include "build/chromeos_buildflags.h"
+-#include "chromeos/constants/devicetype.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/chromeos/strings/grit/ui_chromeos_strings.h"
+ 
+@@ -21,24 +18,9 @@ std::u16string GetChromeOSDeviceName() {
+ }
+ 
+ int GetChromeOSDeviceTypeResourceId() {
+-#if BUILDFLAG(IS_REVEN)
+-  return IDS_REVEN_DEVICE_NAME;
+-#else
+-  switch (chromeos::GetDeviceType()) {
+-    case chromeos::DeviceType::kChromebase:
+-      return IDS_CHROMEBASE_DEVICE_NAME;
+-    case chromeos::DeviceType::kChromebook:
+-      return IDS_CHROMEBOOK_DEVICE_NAME;
+-    case chromeos::DeviceType::kChromebox:
+-      return IDS_CHROMEBOX_DEVICE_NAME;
+-    case chromeos::DeviceType::kChromebit:
+-      return IDS_CHROMEBIT_DEVICE_NAME;
+-    case chromeos::DeviceType::kUnknown:
+-      return IDS_GENERIC_CHROMEOS_DEVICE_NAME;
+-  }
+-
+-  NOTREACHED();
+-#endif
++  // NickelOS: every machine is a "NickelOS device", whatever form factor
++  // lsb-release or --form-factor reports, never a Chromebook or Chromebox.
++  return IDS_GENERIC_CHROMEOS_DEVICE_NAME;
+ }
+ 
+ std::u16string GetChromeOSDeviceNameInPlural() {
+@@ -46,24 +28,8 @@ std::u16string GetChromeOSDeviceNameInPlural() {
+ }
+ 
+ int GetChromeOSDeviceTypeInPluralResourceId() {
+-#if BUILDFLAG(IS_REVEN)
+-  return IDS_REVEN_DEVICE_NAME_IN_PLURAL;
+-#else
+-  switch (chromeos::GetDeviceType()) {
+-    case chromeos::DeviceType::kChromebase:
+-      return IDS_CHROMEBASE_DEVICE_NAME_IN_PLURAL;
+-    case chromeos::DeviceType::kChromebook:
+-      return IDS_CHROMEBOOK_DEVICE_NAME_IN_PLURAL;
+-    case chromeos::DeviceType::kChromebox:
+-      return IDS_CHROMEBOX_DEVICE_NAME_IN_PLURAL;
+-    case chromeos::DeviceType::kChromebit:
+-      return IDS_CHROMEBIT_DEVICE_NAME_IN_PLURAL;
+-    case chromeos::DeviceType::kUnknown:
+-      return IDS_GENERIC_CHROMEOS_DEVICE_NAME_IN_PLURAL;
+-  }
+-
+-  NOTREACHED();
+-#endif
++  // NickelOS: see GetChromeOSDeviceTypeResourceId().
++  return IDS_GENERIC_CHROMEOS_DEVICE_NAME_IN_PLURAL;
+ }
+ 
+ }  // namespace ui
+diff --git a/ui/chromeos/file_manager_strings.grdp b/ui/chromeos/file_manager_strings.grdp
+index 2d6b654d6982e..aa4e8063340ac 100644
+--- a/ui/chromeos/file_manager_strings.grdp
++++ b/ui/chromeos/file_manager_strings.grdp
+@@ -1289,13 +1289,13 @@
+     Got it
+   </message>
+   <message name="IDS_FILE_BROWSER_NO_TASK_FOR_FILE" desc="Message shown when user tries to open file, which we can't handle.">
+-    This file type is not supported. <ph name="BEGIN_LINK_HELP">&lt;a target='_blank' href='$1'&gt;</ph>Learn More<ph name="END_LINK_HELP">&lt;/a&gt;</ph> about opening files on ChromeOS.
++    This file type is not supported. <ph name="BEGIN_LINK_HELP">&lt;a target='_blank' href='$1'&gt;</ph>Learn More<ph name="END_LINK_HELP">&lt;/a&gt;</ph> about opening files on NickelOS.
+   </message>
+   <message name="IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE" desc="Message shown when user tries to open a windows executable file, which we can't handle.">
+-    This file is designed for a PC using Windows software. This is not compatible with your device which runs ChromeOS. <ph name="BEGIN_LINK_HELP">&lt;a target='_blank' href='$1'&gt;</ph>Learn More<ph name="END_LINK_HELP">&lt;/a&gt;</ph> about opening files on ChromeOS.
++    This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. <ph name="BEGIN_LINK_HELP">&lt;a target='_blank' href='$1'&gt;</ph>Learn More<ph name="END_LINK_HELP">&lt;/a&gt;</ph> about opening files on NickelOS.
+   </message>
+   <message name="IDS_FILE_BROWSER_NO_TASK_FOR_DMG" desc="Message shown when user tries to open a windows executable file, which we can't handle.">
+-    This file is designed for a computer using Macintosh software. This is not compatible with your device which runs ChromeOS. <ph name="BEGIN_LINK_HELP">&lt;a target='_blank' href='$1'&gt;</ph>Learn More<ph name="END_LINK_HELP">&lt;/a&gt;</ph> about opening files on ChromeOS.
++    This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. <ph name="BEGIN_LINK_HELP">&lt;a target='_blank' href='$1'&gt;</ph>Learn More<ph name="END_LINK_HELP">&lt;/a&gt;</ph> about opening files on NickelOS.
+   </message>
+   <message name="IDS_FILE_BROWSER_NO_TASK_FOR_CRX_TITLE" desc="Message shown when a user tries to open a *.crx file, which we don't handle in the Files app.">
+     Wait just a sec
+@@ -1423,10 +1423,10 @@
+     This file type is not supported. Please visit the Chrome Web Store to find an app that can open this type of file.
+   </message>
+   <message name="IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_DMG" desc="Error message when user attempts to open a dmg file in the Files app via Downloads panel.">
+-    This file is designed for a computer using Macintosh software. This is not compatible with your device which runs ChromeOS. Please search the Chrome Web Store for a suitable replacement app.
++    This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.
+   </message>
+   <message name="IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_EXECUTABLE" desc="Error message when user attempts to open a exe file in the Files app via Downloads panel.">
+-    This file is designed for a PC using Windows software. This is not compatible with your device which runs ChromeOS. Please search the Chrome Web Store for a suitable replacement app.
++    This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.
+   </message>
+   <message name="IDS_FILE_BROWSER_ERROR_UNRESOLVABLE_FILE" desc="Error message when the file attempted to open from Downloads panel was not found under paths managed by file manager.">
+     This file has wandered off somewhere. Please check your download location setting and try again.
+@@ -1670,10 +1670,10 @@
+     Access your Google Drive files offline with file sync
+   </message>
+   <message name="IDS_FILE_BROWSER_BULK_PINNING_EXPLANATION" desc="The main text of the dialog offering the Google Drive bulk pinning feature">
+-    Your files in My Drive will sync to your Chromebook automatically so you can access them without an internet connection.
++    Your files in My Drive will sync to your device automatically so you can access them without an internet connection.
+   </message>
+   <message name="IDS_FILE_BROWSER_BULK_PINNING_POINT_1" desc="First bullet point of the dialog offering the Google Drive bulk pinning feature">
+-    Files will be stored in the cloud and on this Chromebook.
++    Files will be stored in the cloud and on this device.
+   </message>
+   <message name="IDS_FILE_BROWSER_GOOGLE_DRIVE_MULTIPLE_FILES_SYNCING_LABEL" desc="The text used when Google drive items are being downloaded and this represents the total number of items to sync.">
+     Syncing <ph name="NUMBER_OF_FILES_SYNCING">$1<ex>1,687</ex></ph> Drive files
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index 82a9a2a6389c0..7d5b84ecd5d83 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -1964,7 +1964,7 @@
+         Final update
+       </message>
+       <message name="IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE" desc="Notification message shown to inform the user that this device will no longer receive latest software updates.">
+-        Your ChromeOS Flex device will stop receiving updates soon. Consider upgrading to a ChromeOS device.
++        Your device will stop receiving updates soon.
+       </message>
+       <message name="IDS_FROZEN_UPDATE_DISMISS_BUTTON" desc="A button label shown in the notification for frozen update status change to dismiss the notification.">
+         Don't remind me again

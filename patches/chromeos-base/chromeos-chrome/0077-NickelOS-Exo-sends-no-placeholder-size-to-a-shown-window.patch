@@ -1,0 +1,40 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Exo sends no placeholder size to a shown window
+
+Firefox (Gentoo's firefox-bin, on Wayland and on X11 through sommelier)
+opened at 500x120, its minimum, every time. It shows its window with a
+1x1 surface before its first real frame; the window then gets focus, and
+the configure for that carried the widget's bounds, still Exo's 1x1
+placeholder: GTK 3 took it as the size asked for and clamped it to the
+minimum (seen in WAYLAND_DEBUG: configure(1, 1) right after
+set_window_geometry(26, 23, 1280, 972)). 0025 sends an empty size (the
+client chooses) for that placeholder only until the window is shown; it
+now does so whenever the bounds are still the placeholder.
+
+diff --git a/components/exo/shell_surface.cc b/components/exo/shell_surface.cc
+index 79e9e38d06d1e..3c66e008a9a8a 100644
+--- a/components/exo/shell_surface.cc
++++ b/components/exo/shell_surface.cc
+@@ -1048,13 +1048,16 @@ void ShellSurface::Configure(bool ends_drag) {
+       // apps talk to Exo directly (Crostini's go through sommelier), and GTK
+       // 4 asks for state changes then (unset maximized and fullscreen on
+       // every new window), each answered with a configure: sizing the client
+-      // to 1x1 opened every GTK 4 window at its minimum size. Until the
+-      // window is first shown, an empty size (0x0: the client chooses) goes
+-      // out instead, as in the configure sent before the widget existed.
+-      // Bounds it has been given (window restore) still do.
++      // to 1x1 opened every GTK 4 window at its minimum size. While the
++      // bounds are still that placeholder, an empty size (0x0: the client
++      // chooses) goes out instead, as in the configure sent before the
++      // widget existed. Shown or not: Firefox shows its window at 1x1 before
++      // its first real frame, and the configure for the focus it then gets
++      // sized it to 1x1 (GTK 3 took its minimum, 500x120). Bounds it has
++      // been given (window restore) still do.
+       gfx::Rect bounds = GetClientBoundsInScreen(widget_);
+-      if (!widget_->IsVisible() && !widget_->IsMinimized() &&
+-          bounds.width() <= 1 && bounds.height() <= 1) {
++      if (!widget_->IsMinimized() && bounds.width() <= 1 &&
++          bounds.height() <= 1) {
+         bounds.set_size(gfx::Size());
+       }
+       serial = configure_callback_.Run(

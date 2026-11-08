@@ -1,0 +1,4 @@
+# NickelOS user package layer (bind-mounted at /usr/local) and Portage's
+# build dir: packages ship symlinks, and Portage itself follows them.
+/mnt/stateful_partition/dev_image
+/var/tmp/portage

@@ -1,0 +1,387 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux apps' notifications are ChromeOS
+ notifications
+
+Native Linux apps send notifications to org.freedesktop.Notifications and
+Flatpak apps through the Notification portal; on NickelOS nothing showed
+them. NickelOS's portal backend now serves both and asks Chrome for each:
+vm_applications' NickelNotify(key, app_id, app_name, title, body, icon,
+buttons, urgent) and NickelNotifyClose(key). NickelNotifications shows them
+in the message center as Crostini's apps' notifications are shown
+(CROSTINI_APPLICATION notifier, the Linux small icon), with the app's name,
+its icon or the notification's image, and its buttons; an urgent one stays
+until closed. Clicks go back through nickel-appd's NotificationEvent with
+an xdg-activation token (exo's MakeActivationToken), so the app can bring
+a window forward; so does the user's closing of it.
+
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index 71f59d8125818..46ba03daab5d4 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -6,6 +6,8 @@ assert(is_chromeos)
+ 
+ static_library("vm") {
+   sources = [
++    "nickel_notifications.cc",
++    "nickel_notifications.h",
+     "nickel_remote_desktop.cc",
+     "nickel_remote_desktop.h",
+     "nickel_screen_cast.cc",
+@@ -33,6 +35,7 @@ static_library("vm") {
+ 
+   deps = [
+     "//ash/constants",
++    "//ash/resources/vector_icons",
+     "//ash/webui/settings/public/constants:mojom",
+     "//chrome/browser/ash/borealis",
+     "//chrome/browser/ash/bruschetta",
+@@ -61,6 +64,7 @@ static_library("vm") {
+     "//chromeos/ash/components/dbus/cicerone:cicerone_proto_lib",
+     "//chromeos/ash/experiences/settings_ui",
+     "//components/app_restore",
++    "//components/exo/wayland",
+     "//components/prefs",
+     "//components/session_manager/core",
+     "//components/user_manager",
+@@ -68,6 +72,7 @@ static_library("vm") {
+     "//ui/base/clipboard:file_info",
+     "//ui/base/data_transfer_policy",
+     "//ui/display/types",
++    "//ui/message_center",
+   ]
+ }
+ 
+diff --git a/chrome/browser/ash/dbus/vm/nickel_notifications.cc b/chrome/browser/ash/dbus/vm/nickel_notifications.cc
+new file mode 100644
+index 0000000000000..086e977be8ab3
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_notifications.cc
+@@ -0,0 +1,132 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/dbus/vm/nickel_notifications.h"
++
++#include <memory>
++#include <optional>
++#include <utility>
++
++#include "ash/resources/vector_icons/vector_icons.h"
++#include "base/functional/callback_helpers.h"
++#include "base/memory/scoped_refptr.h"
++#include "base/strings/strcat.h"
++#include "base/strings/utf_string_conversions.h"
++#include "chrome/browser/ash/crostini/crostini_util.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
++#include "components/exo/wayland/xdg_activation.h"
++#include "components/user_manager/user.h"
++#include "components/user_manager/user_manager.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_proxy.h"
++#include "ui/base/models/image_model.h"
++#include "ui/gfx/image/image.h"
++#include "ui/message_center/message_center.h"
++#include "ui/message_center/public/cpp/notification.h"
++#include "ui/message_center/public/cpp/notification_delegate.h"
++#include "url/gurl.h"
++
++namespace ash {
++
++namespace {
++
++constexpr char kIdPrefix[] = "nickel-notification-";
++
++// To the portal backend, through nickel-appd.
++void SendEvent(const std::string& key,
++               const std::string& event,
++               int button,
++               const std::string& token) {
++  dbus::ObjectProxy* proxy =
++      DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++          crostini::kNickelAppsServiceName,
++          dbus::ObjectPath(crostini::kNickelAppsServicePath));
++  dbus::MethodCall method_call(crostini::kNickelAppsServiceInterface,
++                               "NotificationEvent");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(key);
++  writer.AppendString(event);
++  writer.AppendInt32(button);
++  writer.AppendString(token);
++  proxy->CallMethod(&method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++                    base::DoNothing());
++}
++
++class Delegate : public message_center::NotificationDelegate {
++ public:
++  explicit Delegate(std::string key) : key_(std::move(key)) {}
++  Delegate(const Delegate&) = delete;
++  Delegate& operator=(const Delegate&) = delete;
++
++  // message_center::NotificationDelegate:
++  // Only the user's closing is news to the app: it closed the others itself
++  // (and may already have shown another under the same key).
++  void Close(bool by_user) override {
++    if (by_user) {
++      SendEvent(key_, "closed", 1, std::string());
++    }
++  }
++  void Click(const std::optional<int>& button_index,
++             const std::optional<std::u16string>& reply) override {
++    // The click hands the focus on: the app may bring a window forward.
++    SendEvent(key_, "clicked", button_index.value_or(-1),
++              exo::wayland::MakeActivationToken());
++  }
++
++ private:
++  ~Delegate() override = default;
++
++  const std::string key_;
++};
++
++}  // namespace
++
++// static
++void NickelNotifications::Show(const Content& content) {
++  // As Crostini's apps' notifications (exo::Notification): ChromeOS lists
++  // their apps among those that may notify.
++  message_center::NotifierId notifier(
++      message_center::NotifierType::CROSTINI_APPLICATION,
++      content.app_id.empty() ? "nickel" : content.app_id);
++  if (const user_manager::User* user =
++          user_manager::UserManager::Get()->GetPrimaryUser()) {
++    notifier.profile_id = user->GetAccountId().GetUserEmail();
++  }
++  message_center::RichNotificationData data;
++  data.vector_small_image = &kNotificationLinuxIcon;
++  data.remove_on_click = true;
++  for (const std::string& label : content.buttons) {
++    data.buttons.emplace_back(base::UTF8ToUTF16(label));
++  }
++  if (content.urgent) {
++    data.never_timeout = true;
++    data.priority = message_center::HIGH_PRIORITY;
++  }
++  gfx::Image icon;
++  if (!content.icon_png.empty()) {
++    icon = gfx::Image::CreateFrom1xPNGBytes(content.icon_png);
++  }
++  const std::string id = base::StrCat({kIdPrefix, content.key});
++  auto notification = std::make_unique<message_center::Notification>(
++      message_center::NOTIFICATION_TYPE_SIMPLE, id,
++      base::UTF8ToUTF16(content.title), base::UTF8ToUTF16(content.body),
++      icon.IsEmpty() ? ui::ImageModel() : ui::ImageModel::FromImage(icon),
++      base::UTF8ToUTF16(content.app_name), GURL(), notifier, data,
++      base::MakeRefCounted<Delegate>(content.key));
++  auto* message_center = message_center::MessageCenter::Get();
++  if (message_center->FindNotificationById(id)) {
++    message_center->UpdateNotification(id, std::move(notification));
++  } else {
++    message_center->AddNotification(std::move(notification));
++  }
++}
++
++// static
++void NickelNotifications::Close(const std::string& key) {
++  message_center::MessageCenter::Get()->RemoveNotification(
++      base::StrCat({kIdPrefix, key}), /*by_user=*/false);
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_notifications.h b/chrome/browser/ash/dbus/vm/nickel_notifications.h
+new file mode 100644
+index 0000000000000..d89729e23dd49
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_notifications.h
+@@ -0,0 +1,45 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_DBUS_VM_NICKEL_NOTIFICATIONS_H_
++#define CHROME_BROWSER_ASH_DBUS_VM_NICKEL_NOTIFICATIONS_H_
++
++#include <cstdint>
++#include <string>
++#include <vector>
++
++namespace ash {
++
++// NickelOS: Linux apps' notifications as ChromeOS's own. NickelOS's portal
++// backend serves org.freedesktop.Notifications (native apps) and the
++// Notification portal (Flatpak apps) and asks for each through
++// vm_applications' NickelNotify and NickelNotifyClose. What the user does
++// with one goes back through nickel-appd (org.nickelos.Apps
++// NotificationEvent(key, event, button, token)): "clicked", button -1 for
++// the notification itself, with an xdg-activation token so the app may
++// bring a window forward; "closed" (button 1) when the user closed it.
++class NickelNotifications {
++ public:
++  struct Content {
++    // The backend's name for it; showing the same key again replaces it.
++    std::string key;
++    // The app's desktop file id, and the name shown for it.
++    std::string app_id;
++    std::string app_name;
++    std::string title;
++    std::string body;
++    // PNG; none for no icon.
++    std::vector<uint8_t> icon_png;
++    std::vector<std::string> buttons;
++    // Stays until the user closes it, ahead of others.
++    bool urgent = false;
++  };
++
++  static void Show(const Content& content);
++  static void Close(const std::string& key);
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_ASH_DBUS_VM_NICKEL_NOTIFICATIONS_H_
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index 36999f8da014d..701073364867a 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -19,6 +19,7 @@
+ #include "chrome/browser/ash/borealis/borealis_service.h"
+ #include "chrome/browser/ash/crostini/crostini_features.h"
+ #include "chrome/browser/ash/crostini/crostini_util.h"
++#include "chrome/browser/ash/dbus/vm/nickel_notifications.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_remote_desktop.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_screen_cast.h"
+ #include "chrome/browser/ash/exo/chrome_security_delegate.h"
+@@ -144,6 +145,9 @@ constexpr char kNickelScreenCastStopMethod[] = "NickelScreenCastStop";
+ // NickelOS: called by the RemoteDesktop portal's backend (NickelRemoteDesktop).
+ constexpr char kNickelRemoteDesktopAskMethod[] = "NickelRemoteDesktopAsk";
+ constexpr char kNickelRemoteDesktopInputMethod[] = "NickelRemoteDesktopInput";
++// NickelOS: called by the portal backend's notifications (NickelNotifications).
++constexpr char kNickelNotifyMethod[] = "NickelNotify";
++constexpr char kNickelNotifyCloseMethod[] = "NickelNotifyClose";
+ 
+ }  // namespace
+ 
+@@ -232,6 +236,19 @@ void VmApplicationsServiceProvider::Start(
+           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface, kNickelNotifyMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelNotify,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelNotifyCloseMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelNotifyClose,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+ }
+ 
+ void VmApplicationsServiceProvider::OnExported(
+@@ -482,6 +499,44 @@ void VmApplicationsServiceProvider::NickelRemoteDesktopInput(
+   std::move(response_sender).Run(std::move(response));
+ }
+ 
++// NickelNotify(key, app_id, app_name, title, body, icon (PNG), buttons,
++// urgent): shows a Linux app's notification, or replaces the one with that
++// key (see NickelNotifications).
++void VmApplicationsServiceProvider::NickelNotify(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  NickelNotifications::Content content;
++  base::span<const uint8_t> icon;
++  if (!reader.PopString(&content.key) || !reader.PopString(&content.app_id) ||
++      !reader.PopString(&content.app_name) ||
++      !reader.PopString(&content.title) || !reader.PopString(&content.body) ||
++      !reader.PopArrayOfBytes(&icon) ||
++      !reader.PopArrayOfStrings(&content.buttons) ||
++      !reader.PopBool(&content.urgent) || content.key.empty()) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected key, app_id, app_name, title, body, icon, buttons, "
++            "urgent"));
++    return;
++  }
++  content.icon_png.assign(icon.begin(), icon.end());
++  NickelNotifications::Show(content);
++  std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
++}
++
++void VmApplicationsServiceProvider::NickelNotifyClose(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string key;
++  if (reader.PopString(&key)) {
++    NickelNotifications::Close(key);
++  }
++  std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
++}
++
+ void VmApplicationsServiceProvider::LaunchTerminal(
+     dbus::MethodCall* method_call,
+     dbus::ExportedObject::ResponseSender response_sender) {
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index 3e343590a16ff..2374f6c38712e 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -83,6 +83,10 @@ class VmApplicationsServiceProvider
+   void NickelRemoteDesktopInput(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelNotify(dbus::MethodCall* method_call,
++                    dbus::ExportedObject::ResponseSender response_sender);
++  void NickelNotifyClose(dbus::MethodCall* method_call,
++                         dbus::ExportedObject::ResponseSender response_sender);
+ 
+   // Exposed in the header so unit tests can call it.
+   static void ParseSelectFileDialogFileTypes(
+diff --git a/components/exo/wayland/xdg_activation.cc b/components/exo/wayland/xdg_activation.cc
+index ba8cd95c23c49..c1210a5df78f0 100644
+--- a/components/exo/wayland/xdg_activation.cc
++++ b/components/exo/wayland/xdg_activation.cc
+@@ -188,4 +188,13 @@ void bind_xdg_activation(wl_client* client,
+                                  nullptr);
+ }
+ 
++std::string MakeActivationToken() {
++  const std::string token = base::HexEncode(base::RandBytesAsVector(16));
++  auto& tokens = GoodTokens();
++  const base::TimeTicks now = base::TimeTicks::Now();
++  std::erase_if(tokens, [now](const auto& t) { return t.second <= now; });
++  tokens[token] = now + kTokenLifetime;
++  return token;
++}
++
+ }  // namespace exo::wayland
+diff --git a/components/exo/wayland/xdg_activation.h b/components/exo/wayland/xdg_activation.h
+index d077a17c3c63c..355872d693768 100644
+--- a/components/exo/wayland/xdg_activation.h
++++ b/components/exo/wayland/xdg_activation.h
+@@ -7,6 +7,8 @@
+ 
+ #include <stdint.h>
+ 
++#include <string>
++
+ struct wl_client;
+ 
+ namespace exo::wayland {
+@@ -21,6 +23,11 @@ void bind_xdg_activation(wl_client* client,
+                          uint32_t version,
+                          uint32_t id);
+ 
++// A token that brings a window forward once, within its lifetime, for
++// ChromeOS's own UI handing the focus to a Linux app: a click on the app's
++// notification (NickelNotifications).
++std::string MakeActivationToken();
++
+ }  // namespace exo::wayland
+ 
+ #endif  // COMPONENTS_EXO_WAYLAND_XDG_ACTIVATION_H_

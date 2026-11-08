@@ -1,0 +1,268 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Settings' Files card without Google Drive, OneDrive
+ and Microsoft 365
+
+Cloud storage (patch 0050, nickel-cloud through rclone) takes their place
+at the top of Settings > System preferences > Files: Google Drive's row
+(DriveFS, which needs a Google account NickelOS doesn't sign in with) is
+gone, and the OneDrive and Microsoft 365 rows are never shown. Their search
+tags go too; "Cloud storage", "Google Drive", "OneDrive", "Dropbox" and
+"Add cloud account" find the cloud storage accounts instead. The pages
+themselves stay, reachable by their URLs only.
+
+diff --git a/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.html b/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.html
+index 7baa374f1376f..5233f7b7d6011 100644
+--- a/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.html
++++ b/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.html
+@@ -36,37 +36,38 @@
+ </style>
+ 
+ <settings-card header-text="$i18n{filesPageTitle}">
+-  <cr-link-row id="googleDriveRow"
+-      start-icon="os-settings:google-drive"
+-      on-click="onClickGoogleDrive_"
+-      label="$i18n{googleDriveLabel}"
+-      role-description="$i18n{subpageArrowRoleDescription}">
+-      <div id="googleDriveSubLabel" slot="sub-label"
+-          inner-h-t-m-l="[[getGoogleDriveSubLabelInnerHtml_(
+-              driveDisabled_, bulkPinningPrefEnabled_)]]">
+-      </div>
+-  </cr-link-row>
+-
+-  <template is="dom-if" if="[[shouldShowOneDriveSettings_]]">
+-    <cr-link-row id="oneDriveRow"
+-        start-icon="os-settings:onedrive"
+-        class="hr"
+-        on-click="onClickOneDrive_"
+-        label="$i18n{oneDriveLabel}"
+-        sub-label="[[computeOneDriveSignedInLabel_(oneDriveConnectionState_)]]"
+-        role-description="$i18n{subpageArrowRoleDescription}">
+-    </cr-link-row>
++  <!-- NickelOS: cloud storage accounts, through rclone (nickel-cloud). -->
++  <div id="nickelCloudRow" class="settings-box two-line first">
++    <iron-icon id="nickelCloudIcon" icon="os-settings:cloud"></iron-icon>
++    <div id="nickelCloudTextContainer" class="start settings-box-text">
++      <div>$i18n{nickelCloudTitle}</div>
++      <div class="secondary">$i18n{nickelCloudDescription}</div>
++    </div>
++    <cr-button id="nickelCloudAddButton" on-click="openNickelCloudDialog_">
++      $i18n{nickelCloudAdd}
++    </cr-button>
++  </div>
++  <template is="dom-if" if="[[nickelCloudError_]]" restamp>
++    <div class="settings-box nickel-cloud-error" role="alert">
++      [[nickelCloudError_]]
++    </div>
+   </template>
+-
+-  <template is="dom-if" if="[[shouldShowOfficeSettings_]]">
+-    <cr-link-row id="officeRow"
+-          class="hr"
+-          start-icon="os-settings:ms365"
+-          on-click="onClickOffice_"
+-          label="$i18n{officeLabel}"
+-          sub-label="$i18n{officeSublabel}"
+-          role-description="$i18n{subpageArrowRoleDescription}">
+-      </cr-link-row>
++  <template is="dom-repeat" items="[[nickelCloudAccounts_]]">
++    <div class="settings-box two-line nickel-cloud-account">
++      <iron-icon icon="os-settings:cloud" aria-hidden="true"></iron-icon>
++      <div class="start settings-box-text">
++        <div>[[item.name]]</div>
++        <div class$="secondary [[nickelCloudStatusClass_(item)]]">
++          [[nickelCloudStatus_(item, nickelCloudRemovingNow_)]]
++        </div>
++      </div>
++      <cr-icon-button iron-icon="cr:delete"
++          title="$i18n{nickelCloudRemove}"
++          aria-label$="[[nickelCloudRemoveLabel_(item)]]"
++          disabled="[[isNickelCloudRemoving_(item, nickelCloudRemovingNow_)]]"
++          on-click="onNickelCloudRemoveClick_">
++      </cr-icon-button>
++    </div>
+   </template>
+ 
+   <template is="dom-if" if="[[shouldShowAddSmbButton_]]" restamp>
+@@ -105,40 +106,6 @@
+         role-description="$i18n{subpageArrowRoleDescription}">
+     </cr-link-row>
+   </template>
+-
+-  <!-- NickelOS: cloud storage accounts, through rclone (nickel-cloud). -->
+-  <div id="nickelCloudRow" class="settings-box two-line hr">
+-    <iron-icon id="nickelCloudIcon" icon="os-settings:cloud"></iron-icon>
+-    <div id="nickelCloudTextContainer" class="start settings-box-text">
+-      <div>$i18n{nickelCloudTitle}</div>
+-      <div class="secondary">$i18n{nickelCloudDescription}</div>
+-    </div>
+-    <cr-button id="nickelCloudAddButton" on-click="openNickelCloudDialog_">
+-      $i18n{nickelCloudAdd}
+-    </cr-button>
+-  </div>
+-  <template is="dom-if" if="[[nickelCloudError_]]" restamp>
+-    <div class="settings-box nickel-cloud-error" role="alert">
+-      [[nickelCloudError_]]
+-    </div>
+-  </template>
+-  <template is="dom-repeat" items="[[nickelCloudAccounts_]]">
+-    <div class="settings-box two-line nickel-cloud-account">
+-      <iron-icon icon="os-settings:cloud" aria-hidden="true"></iron-icon>
+-      <div class="start settings-box-text">
+-        <div>[[item.name]]</div>
+-        <div class$="secondary [[nickelCloudStatusClass_(item)]]">
+-          [[nickelCloudStatus_(item, nickelCloudRemovingNow_)]]
+-        </div>
+-      </div>
+-      <cr-icon-button iron-icon="cr:delete"
+-          title="$i18n{nickelCloudRemove}"
+-          aria-label$="[[nickelCloudRemoveLabel_(item)]]"
+-          disabled="[[isNickelCloudRemoving_(item, nickelCloudRemovingNow_)]]"
+-          on-click="onNickelCloudRemoveClick_">
+-      </cr-icon-button>
+-    </div>
+-  </template>
+ </settings-card>
+ 
+ <template is="dom-if" if="[[showNickelCloudDialog_]]" restamp>
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/files/files_section.cc b/chrome/browser/ui/webui/ash/settings/pages/files/files_section.cc
+index 77894121dafa5..6d8d0bef7371e 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/files/files_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/files/files_section.cc
+@@ -63,60 +63,20 @@ base::span<const SearchConcept> GetDefaultSearchConcepts() {
+   return tags;
+ }
+ 
+-base::span<const SearchConcept> GetFilesMicrosoft365SearchConcepts() {
++// NickelOS: "Cloud storage" (and the services' names) finds the cloud storage
++// accounts, on the System preferences page.
++base::span<const SearchConcept> GetNickelCloudSearchConcepts() {
+   static constexpr auto tags = std::to_array<SearchConcept>(
+-      {{IDS_OS_SETTINGS_TAG_FILES_MICROSOFT_365,
+-        mojom::kOfficeFilesSubpagePath,
++      {{IDS_OS_SETTINGS_TAG_NICKEL_CLOUD,
++        mojom::kSystemPreferencesSectionPath,
+         mojom::SearchResultIcon::kFolder,
+         mojom::SearchResultDefaultRank::kMedium,
+-        mojom::SearchResultType::kSubpage,
+-        {.subpage = mojom::Subpage::kOfficeFiles},
+-        {IDS_OS_SETTINGS_TAG_FILES_MICROSOFT_365_ALT1,
+-         SearchConcept::kAltTagEnd}}});
+-  return tags;
+-}
+-
+-base::span<const SearchConcept> GetFilesOneDriveSearchConcepts() {
+-  static constexpr auto tags =
+-      std::to_array<SearchConcept>({{IDS_OS_SETTINGS_TAG_FILES_ONEDRIVE,
+-                                     mojom::kOneDriveSubpagePath,
+-                                     mojom::SearchResultIcon::kOneDrive,
+-                                     mojom::SearchResultDefaultRank::kMedium,
+-                                     mojom::SearchResultType::kSubpage,
+-                                     {.subpage = mojom::Subpage::kOneDrive}}});
+-  return tags;
+-}
+-
+-// Returns specific search terms to surface the "File sync" feature.
+-base::span<const SearchConcept> GetFilesGoogleDriveFileSyncSearchConcepts() {
+-  static constexpr auto tags = std::to_array<SearchConcept>(
+-      {{IDS_OS_SETTINGS_TAG_FILES_GOOGLE_DRIVE_FILE_SYNC,
+-        mojom::kGoogleDriveSubpagePath,
+-        mojom::SearchResultIcon::kGoogleDrive,
+-        mojom::SearchResultDefaultRank::kMedium,
+-        mojom::SearchResultType::kSubpage,
+-        {.setting = mojom::Setting::kGoogleDriveFileSync},
+-        {IDS_OS_SETTINGS_TAG_FILES_GOOGLE_DRIVE_FILE_SYNC_ALT1,
+-         SearchConcept::kAltTagEnd}}});
+-  return tags;
+-}
+-
+-// Returns search terms to navigate to the Google Drive subpage when the feature
+-// is enabled.
+-base::span<const SearchConcept> GetFilesGoogleDriveSubpageSearchConcepts() {
+-  static constexpr auto tags = std::to_array<SearchConcept>(
+-      {{IDS_OS_SETTINGS_TAG_FILES_GOOGLE_DRIVE,
+-        mojom::kGoogleDriveSubpagePath,
+-        mojom::SearchResultIcon::kGoogleDrive,
+-        mojom::SearchResultDefaultRank::kMedium,
+-        mojom::SearchResultType::kSubpage,
+-        {.subpage = mojom::Subpage::kGoogleDrive}},
+-       {IDS_OS_SETTINGS_TAG_FILES_REMOVE_GOOGLE_DRIVE_ACCESS,
+-        mojom::kGoogleDriveSubpagePath,
+-        mojom::SearchResultIcon::kGoogleDrive,
+-        mojom::SearchResultDefaultRank::kMedium,
+-        mojom::SearchResultType::kSetting,
+-        {.setting = mojom::Setting::kGoogleDriveRemoveAccess}}});
++        mojom::SearchResultType::kSection,
++        {.section = mojom::Section::kSystemPreferences},
++        {IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1,
++         IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2,
++         IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3,
++         IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4, SearchConcept::kAltTagEnd}}});
+   return tags;
+ }
+ 
+@@ -127,16 +87,9 @@ FilesSection::FilesSection(Profile* profile,
+     : OsSettingsSection(profile, search_tag_registry) {
+   SearchTagRegistry::ScopedTagUpdater updater = registry()->StartUpdate();
+   updater.AddSearchTags(GetDefaultSearchConcepts());
+-  if (chromeos::IsEligibleAndEnabledUploadOfficeToCloud(profile)) {
+-    updater.AddSearchTags(GetFilesMicrosoft365SearchConcepts());
+-    updater.AddSearchTags(GetFilesOneDriveSearchConcepts());
+-  }
+-
+-  if (drive::util::IsDriveFsBulkPinningAvailable(profile)) {
+-    updater.AddSearchTags(GetFilesGoogleDriveFileSyncSearchConcepts());
+-  }
+-
+-  updater.AddSearchTags(GetFilesGoogleDriveSubpageSearchConcepts());
++  // NickelOS: no Google Drive (DriveFS), OneDrive or Microsoft 365 pages; cloud
++  // storage, Google Drive and OneDrive included, is nickel-cloud's.
++  updater.AddSearchTags(GetNickelCloudSearchConcepts());
+ }
+ 
+ FilesSection::~FilesSection() = default;
+@@ -304,15 +257,10 @@ void FilesSection::AddLoadTimeData(content::WebUIDataSource* html_source) {
+       "googleDriveFileSyncLearnMoreLink",
+       GetHelpUrlWithBoard(ash::external_urls::kGoogleDriveOfflineLearnMoreURL));
+ 
+-  html_source->AddBoolean(
+-      "showOneDriveSettings",
+-      ash::cloud_upload::
+-          IsMicrosoftOfficeOneDriveIntegrationAllowedAndOdfsInstalled(
+-              profile()));
+-
+-  html_source->AddBoolean(
+-      "showOfficeSettings",
+-      chromeos::cloud_upload::IsMicrosoftOfficeCloudUploadAllowed(profile()));
++  // NickelOS: no OneDrive or Microsoft 365 pages (cloud storage, OneDrive
++  // included, is nickel-cloud's).
++  html_source->AddBoolean("showOneDriveSettings", false);
++  html_source->AddBoolean("showOfficeSettings", false);
+ 
+   const user_manager::User* user =
+       BrowserContextHelper::Get()->GetUserByBrowserContext(profile());
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index cd07c14eee79a..82a9a2a6389c0 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -2033,6 +2033,21 @@
+         With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.
+       </message>
+       <!-- NickelOS: Settings > System preferences > Files, cloud storage (rclone). -->
++      <message name="IDS_OS_SETTINGS_TAG_NICKEL_CLOUD" desc="NickelOS: text for search result item which, when clicked, navigates the user to the cloud storage accounts in Settings (System preferences > Files).">
++        Cloud storage
++      </message>
++      <message name="IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1" desc="NickelOS: text for search result item which, when clicked, navigates the user to the cloud storage accounts in Settings, where Google Drive can be added. Alternate phrase for: 'Cloud storage'">
++        Google Drive
++      </message>
++      <message name="IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2" desc="NickelOS: text for search result item which, when clicked, navigates the user to the cloud storage accounts in Settings, where OneDrive can be added. Alternate phrase for: 'Cloud storage'">
++        OneDrive
++      </message>
++      <message name="IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3" desc="NickelOS: text for search result item which, when clicked, navigates the user to the cloud storage accounts in Settings, where Dropbox can be added. Alternate phrase for: 'Cloud storage'">
++        Dropbox
++      </message>
++      <message name="IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4" desc="NickelOS: text for search result item which, when clicked, navigates the user to the cloud storage accounts in Settings. Alternate phrase for: 'Cloud storage'">
++        Add cloud account
++      </message>
+       <message name="IDS_SETTINGS_NICKEL_CLOUD_TITLE" desc="NickelOS: in Settings &gt; System preferences &gt; Files, the heading over the user&#x27;s cloud storage accounts (Google Drive, Dropbox and others), which the Files app shows as drives.">
+         Cloud storage
+       </message>

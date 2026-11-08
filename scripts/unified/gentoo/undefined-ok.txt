@@ -1,0 +1,10 @@
+# Libraries in the image's /usr/lib64 that leave symbols to the program or
+# library loading them (as in stock ChromeOS: checked on build 21, which
+# runs). nickel-unify reports any other library with an unresolved symbol.
+/usr/lib64/libmuaux.so.
+/usr/lib64/libevent_extra-
+/usr/lib64/libparted-fs-resize.so.
+/usr/lib64/libefisec.so.
+/usr/lib64/libsmbldap.so.
+/usr/lib64/libthread_db.so.
+/usr/lib64/libgestures.so.

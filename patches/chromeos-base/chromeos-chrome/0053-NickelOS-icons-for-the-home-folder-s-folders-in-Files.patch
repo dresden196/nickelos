@@ -1,0 +1,109 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: icons for the home folder's folders in Files
+
+My files is the home folder on NickelOS (one home), with Desktop,
+Documents, Downloads, Music, Pictures and Videos in it; only Downloads had
+an icon of its own in Files. Desktop, Documents, Music, Pictures and Videos
+now have theirs too, in the sidebar and in the file list, from Files' own
+icon set (as Camera's folder has its camera): a screen, a document, a note,
+a picture, a film. They are icon types of Files' own (ICON_TYPES), so
+Files takes them without a warning.
+
+diff --git a/ui/file_manager/file_manager/common/js/file_type.ts b/ui/file_manager/file_manager/common/js/file_type.ts
+index 3b585c963b86c..c98d5faeaa08c 100644
+--- a/ui/file_manager/file_manager/common/js/file_type.ts
++++ b/ui/file_manager/file_manager/common/js/file_type.ts
+@@ -239,6 +239,12 @@ export function getIconOverrides(
+     [RootType.DOWNLOADS]: {
+       '/Camera': 'camera-folder',
+       '/Downloads': VolumeType.DOWNLOADS,
++      // NickelOS: My files is the home folder, with its usual folders.
++      '/Desktop': 'desktop-folder',
++      '/Documents': 'documents-folder',
++      '/Music': 'music-folder',
++      '/Pictures': 'pictures-folder',
++      '/Videos': 'videos-folder',
+     },
+   };
+ 
+diff --git a/ui/file_manager/file_manager/foreground/css/file_types.css b/ui/file_manager/file_manager/foreground/css/file_types.css
+index b9a4819138635..b1dd6d54ea0b0 100644
+--- a/ui/file_manager/file_manager/foreground/css/file_types.css
++++ b/ui/file_manager/file_manager/foreground/css/file_types.css
+@@ -353,6 +353,27 @@ body.check-select #list-container li[selected] [file-type-icon],
+   -webkit-mask-image: url(../images/volumes/camera.svg);
+ }
+ 
++/* NickelOS: the home folder's usual folders. */
++[file-type-icon='desktop-folder'] {
++  -webkit-mask-image: url(../images/volumes/computer.svg);
++}
++
++[file-type-icon='documents-folder'] {
++  -webkit-mask-image: url(../images/filetype/filetype_generic.svg);
++}
++
++[file-type-icon='music-folder'] {
++  -webkit-mask-image: url(../images/filetype/filetype_audio.svg);
++}
++
++[file-type-icon='pictures-folder'] {
++  -webkit-mask-image: url(../images/filetype/filetype_image.svg);
++}
++
++[file-type-icon='videos-folder'] {
++  -webkit-mask-image: url(../images/filetype/filetype_video.svg);
++}
++
+ .tree-row > .file-row > [volume-type-icon='drive'] {
+   -webkit-mask-image: url(../images/volumes/drive.svg);
+ }
+diff --git a/ui/file_manager/file_manager/foreground/js/constants.ts b/ui/file_manager/file_manager/foreground/js/constants.ts
+index a38ef2a8489c2..fd5564a3a0255 100644
+--- a/ui/file_manager/file_manager/foreground/js/constants.ts
++++ b/ui/file_manager/file_manager/foreground/js/constants.ts
+@@ -126,6 +126,12 @@ export const ICON_TYPES = {
+   BULK_PINNING_DONE: 'bulk_pinning_done',
+   BULK_PINNING_OFFLINE: 'bulk_pinning_offline',
+   CAMERA_FOLDER: 'camera-folder',
++  // NickelOS: the home folder's usual folders (as the Camera folder).
++  DESKTOP_FOLDER: 'desktop-folder',
++  DOCUMENTS_FOLDER: 'documents-folder',
++  MUSIC_FOLDER: 'music-folder',
++  PICTURES_FOLDER: 'pictures-folder',
++  VIDEOS_FOLDER: 'videos-folder',
+   CANT_PIN: 'cant-pin',
+   CHECK: 'check',
+   CLOUD_DONE: 'cloud_done',
+diff --git a/ui/file_manager/file_manager/widgets/xf_icon.ts b/ui/file_manager/file_manager/widgets/xf_icon.ts
+index 453a3c484185f..143a5020b6054 100644
+--- a/ui/file_manager/file_manager/widgets/xf_icon.ts
++++ b/ui/file_manager/file_manager/widgets/xf_icon.ts
+@@ -225,6 +225,27 @@ function getCSS() {
+       -webkit-mask-image: url(../foreground/images/volumes/camera.svg);
+     }
+ 
++    /* NickelOS: the home folder's usual folders. */
++    :host([type="desktop-folder"]) span {
++      -webkit-mask-image: url(../foreground/images/volumes/computer.svg);
++    }
++
++    :host([type="documents-folder"]) span {
++      -webkit-mask-image: url(../foreground/images/filetype/filetype_generic.svg);
++    }
++
++    :host([type="music-folder"]) span {
++      -webkit-mask-image: url(../foreground/images/filetype/filetype_audio.svg);
++    }
++
++    :host([type="pictures-folder"]) span {
++      -webkit-mask-image: url(../foreground/images/filetype/filetype_image.svg);
++    }
++
++    :host([type="videos-folder"]) span {
++      -webkit-mask-image: url(../foreground/images/filetype/filetype_video.svg);
++    }
++
+     :host([type="computer"]) span {
+       -webkit-mask-image: url(../foreground/images/volumes/computer.svg);
+     }

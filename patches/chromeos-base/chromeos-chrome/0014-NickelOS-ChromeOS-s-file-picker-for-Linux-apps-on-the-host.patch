@@ -1,0 +1,149 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: ChromeOS's file picker for Linux apps on the host
+
+Crostini's apps ask for ChromeOS's file dialog through vm_applications'
+SelectFile; Chrome then shares the chosen files with the VM and sends
+their VM paths to vm_cicerone. NickelOS's portal backend
+(xdg-desktop-portal-nickel) uses the same call for its FileChooser, for
+VM "nickel": the files are local, so they are not shared with any VM, and
+their file: URLs go to nickel-appd (org.nickelos.Apps.FileSelected) with
+the request's token, which passes them on to the backend. No files means
+the dialog was canceled.
+
+Such a dialog belongs to no browser window: SelectFileDialogExtension's
+Owner gets host_app_request (the request's token), which skips looking
+for a browser and gives the dialog a routing id of its own
+("nickel.<token>"). Without it every request without a browser window
+shared the empty routing id, so a second dialog was dropped while one was
+open, and with a browser open the dialog was tied to its active tab. The
+suggested path is already local and is not translated as a VM path.
+
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index 48bbdb4442472..9bba3822ce28a 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -34,11 +34,15 @@
+ #include "chrome/browser/ui/views/select_file_dialog_extension/select_file_dialog_extension.h"
+ #include "chromeos/ash/components/dbus/cicerone/cicerone_client.h"
+ #include "chromeos/ash/components/dbus/cicerone/cicerone_service.pb.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
+ #include "chromeos/ash/components/dbus/vm_applications/apps.pb.h"
+ #include "components/enterprise/data_controls/core/browser/component.h"
+ #include "components/prefs/pref_service.h"
+ #include "dbus/bus.h"
+ #include "dbus/message.h"
++#include "dbus/object_path.h"
++#include "dbus/object_proxy.h"
++#include "net/base/filename_util.h"
+ #include "third_party/cros_system_api/dbus/service_constants.h"
+ #include "ui/base/clipboard/file_info.h"
+ #include "ui/base/data_transfer_policy/data_transfer_endpoint.h"
+@@ -76,8 +80,41 @@ class DialogListener : public ui::SelectFileDialog::Listener {
+   const vm_tools::cicerone::FileSelectedSignal signal_;
+ };
+ 
++// NickelOS host apps (VM "nickel") run on the device itself: the files need
++// no sharing with a VM, and no vm_cicerone waits for the answer. NickelOS's
++// portal backend, which asked for the dialog, gets the files as file: URLs
++// through nickel-appd (org.nickelos.Apps.FileSelected), with the token it
++// sent; no files means the dialog was canceled.
++void SendNickelFileSelected(const std::string& token,
++                            const std::vector<base::FilePath>& paths) {
++  dbus::ObjectProxy* proxy =
++      DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++          crostini::kNickelAppsServiceName,
++          dbus::ObjectPath(crostini::kNickelAppsServicePath));
++  dbus::MethodCall method_call(crostini::kNickelAppsServiceInterface,
++                               "FileSelected");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(token);
++  std::vector<std::string> uris;
++  for (const base::FilePath& path : paths) {
++    uris.push_back(net::FilePathToFileURL(path).spec());
++  }
++  writer.AppendArrayOfStrings(uris);
++  proxy->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce([](dbus::Response* response, dbus::ErrorResponse*) {
++        LOG_IF(WARNING, !response) << "nickel-appd did not take the files";
++      }));
++}
++
+ void DialogListener::MultiFilesSelected(
+     const std::vector<ui::SelectedFileInfo>& files) {
++  if (signal_.vm_name() == crostini::kNickelVmName) {
++    SendNickelFileSelected(signal_.select_file_token(),
++                           ui::SelectedFileInfoListToFilePathList(files));
++    delete this;
++    return;
++  }
+   ShareWithVMAndTranslateToFileUrls(
+       signal_.vm_name(), ui::SelectedFileInfoListToFilePathList(files),
+       base::BindOnce(
+@@ -269,6 +306,9 @@ void VmApplicationsServiceProvider::SelectFile(
+ 
+   owner.dialog_caller = policy::DlpFileDestination(
+       DetermineDlpComponent(profile, request.vm_name()));
++  if (request.vm_name() == crostini::kNickelVmName) {
++    owner.host_app_request = request.select_file_token();
++  }
+ 
+   if (!request.default_path().empty()) {
+     // Parse as file: URL if possible.
+@@ -278,9 +318,12 @@ void VmApplicationsServiceProvider::SelectFile(
+       file_infos.push_back(ui::FileInfo(base::FilePath(request.default_path()),
+                                         base::FilePath()));
+     }
+-    // Translate to path in host and DLP component type if possible.
+-    std::vector<base::FilePath> paths =
+-        TranslateVMPathsToHost(request.vm_name(), file_infos);
++    // Translate to path in host and DLP component type if possible. NickelOS
++    // host apps already give local paths.
++    std::vector<base::FilePath> paths;
++    if (request.vm_name() != crostini::kNickelVmName) {
++      paths = TranslateVMPathsToHost(request.vm_name(), file_infos);
++    }
+     default_path =
+         !paths.empty() ? std::move(paths[0]) : std::move(file_infos[0].path);
+   }
+diff --git a/chrome/browser/ui/views/select_file_dialog_extension/select_file_dialog_extension.cc b/chrome/browser/ui/views/select_file_dialog_extension/select_file_dialog_extension.cc
+index 01340d723c43e..c7e20cfb3026c 100644
+--- a/chrome/browser/ui/views/select_file_dialog_extension/select_file_dialog_extension.cc
++++ b/chrome/browser/ui/views/select_file_dialog_extension/select_file_dialog_extension.cc
+@@ -178,6 +178,9 @@ SelectFileDialogExtension::RoutingID GetRoutingID(
+   if (owner.android_task_id.has_value()) {
+     return base::StringPrintf("android.%d", *owner.android_task_id);
+   }
++  if (owner.host_app_request.has_value()) {
++    return "nickel." + *owner.host_app_request;
++  }
+ 
+   if (web_contents) {
+     return base::StringPrintf(
+@@ -461,8 +464,9 @@ void SelectFileDialogExtension::SelectFileWithFileManagerParams(
+       owner.window->GetId() ==
+           ash::kShellWindowId_CaptureModeFolderSelectionDialogOwner;
+ 
+-  const bool skip_finding_browser =
+-      is_for_capture_mode || owner.android_task_id.has_value();
++  const bool skip_finding_browser = is_for_capture_mode ||
++                                    owner.android_task_id.has_value() ||
++                                    owner.host_app_request.has_value();
+ 
+   can_resize_ = !display::Screen::Get()->InTabletMode() && !is_for_capture_mode;
+ 
+diff --git a/chrome/browser/ui/views/select_file_dialog_extension/select_file_dialog_extension.h b/chrome/browser/ui/views/select_file_dialog_extension/select_file_dialog_extension.h
+index 13db7a78877ac..26a6a3bdfab92 100644
+--- a/chrome/browser/ui/views/select_file_dialog_extension/select_file_dialog_extension.h
++++ b/chrome/browser/ui/views/select_file_dialog_extension/select_file_dialog_extension.h
+@@ -102,6 +102,10 @@ class SelectFileDialogExtension : public ui::SelectFileDialog {
+     // The URL or Component type of the caller that opened the dialog (Save
+     // As/File Picker).
+     std::optional<policy::DlpFileDestination> dialog_caller;
++    // NickelOS: the request token of a dialog a Linux app on the host asked
++    // for (through the portal backend). Such a dialog belongs to no
++    // browser window and gets a routing id of its own.
++    std::optional<std::string> host_app_request;
+   };
+   void SelectFileWithFileManagerParams(Type type,
+                                        const std::u16string& title,

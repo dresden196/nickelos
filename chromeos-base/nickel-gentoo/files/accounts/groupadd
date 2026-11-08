@@ -1,0 +1,12 @@
+#!/bin/sh
+# NickelOS: Portage's groupadd (acct-group.eclass): see useradd.
+[ -n "${EBUILD_PHASE}" ] || { echo "groupadd: not on NickelOS outside Portage" >&2; exit 1; }
+gid=
+while [ $# -gt 1 ]; do
+	case $1 in
+	-g|--gid) gid=$2; shift ;;
+	-R|--root|-P|--prefix) shift ;;
+	esac
+	shift
+done
+exec /usr/sbin/nickel-gentoo account group "$1" gid "$gid"

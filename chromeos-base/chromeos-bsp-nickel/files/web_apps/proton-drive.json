@@ -1,0 +1,24 @@
+{
+  "app_url": "https://drive.proton.me/",
+  "launch_container": "window",
+  "user_type": [
+    "unmanaged"
+  ],
+  "feature_name": "NickelFullExperience",
+  "only_use_offline_manifest": true,
+  "offline_manifest": {
+    "name": "Proton Drive",
+    "start_url": "https://drive.proton.me/",
+    "scope": "https://drive.proton.me/",
+    "display": "standalone",
+    "icon_any_pngs": [
+      "icons/proton-drive-192.png",
+      "icons/proton-drive-512.png"
+    ],
+    "icon_maskable_pngs": [
+      "icons/proton-drive-maskable-192.png",
+      "icons/proton-drive-maskable-512.png"
+    ],
+    "theme_color_argb_hex": "FF1B1340"
+  }
+}

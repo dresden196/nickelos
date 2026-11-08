@@ -1,0 +1,27 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] missive: HKDF without a null salt or info
+
+OpenSSL 3.5 refuses the null salt and info missive set explicitly;
+leaving them unset is the same (RFC 5869).
+---
+--- a/missive/encryption/primitives.cc
++++ b/missive/encryption/primitives.cc
+@@ -65,15 +65,13 @@
+ bool ProduceSymmetricKey(const uint8_t shared_secret[kKeySize],
+                          uint8_t symmetric_key[kKeySize]) {
+   // Since the keys above are only used once, no salt and context is provided.
++  // They are left unset: OpenSSL 3.5 refuses null ones, and unset is the same
++  // (RFC 5869).
+   const crypto::ScopedEVP_PKEY_CTX pctx(
+       EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr));
+   if (!pctx || 1 != EVP_PKEY_derive_init(pctx.get()) ||
+       1 != EVP_PKEY_CTX_set_hkdf_md(pctx.get(), EVP_sha256()) ||
+-      1 != EVP_PKEY_CTX_set1_hkdf_key(pctx.get(), shared_secret, kKeySize) ||
+-      1 != EVP_PKEY_CTX_set1_hkdf_salt(pctx.get(), /*salt=*/nullptr,
+-                                       /*saltlen=*/0) ||
+-      1 != EVP_PKEY_CTX_add1_hkdf_info(pctx.get(), /*info=*/nullptr,
+-                                       /*infolen=*/0)) {
++      1 != EVP_PKEY_CTX_set1_hkdf_key(pctx.get(), shared_secret, kKeySize)) {
+     return false;
+   }
+   size_t symmetric_key_len = kKeySize;

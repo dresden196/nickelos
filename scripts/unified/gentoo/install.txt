@@ -1,0 +1,65 @@
+# NickelOS: Gentoo's packages the image gets besides the swap set
+# (swap.txt), for Portage on the device. nickel-unify installs them with the
+# swap set; uf-dryrun.sh resolves the same list.
+sys-libs/glibc
+sys-apps/portage
+# Your services (sshd, CUPS, Samba): OpenRC under ChromeOS's init
+sys-apps/openrc
+# binutils' install step needs it (Google's record has no files in the image)
+sys-devel/binutils-config
+# Gentoo's own tools (equery)
+app-portage/gentoolkit
+# Tab completion for emerge and equery
+app-shells/bash-completion
+app-shells/gentoo-bashcomp
+# Editors for the Terminal: nano (Gentoo's EDITOR) and vim. The base image
+# had only ChromeOS's small vi (neatvi), which keeps /usr/bin/vi (vim's
+# eselect vi leaves a file it didn't make alone); test images had both from
+# their own /usr/local.
+app-editors/nano
+app-editors/vim
+# man, for the man pages the image keeps (English; nickel-unify) and those
+# of what you install
+sys-apps/man-db
+# eix, the package search the Welcome Tour and the guide show (Gentoo's
+# eix-update runs after each emerge --sync, through Portage's hook)
+app-portage/eix
+# git, which GURU's and steam-overlay's sync uses (both on by default,
+# nickel-gentoo fetches them), and eselect repository, Gentoo's way to turn
+# other repositories on and off (layman's successor)
+dev-vcs/git
+app-eselect/eselect-repository
+# The libc Portage strips from binary packages' dependencies (every binary
+# package's RDEPEND names the glibc it was built with: without this virtual,
+# each looked changed, and emerge built from source)
+virtual/libc
+# The kernel's headers, as Gentoo's packages ask for them
+virtual/os-headers
+# What Gentoo's packages in the image need when installed (IDEPEND), which
+# emerge --root put in the build root rather than the image: Portage on the
+# device checks them for those packages, and emerge --depclean refused to
+# run without them
+sys-apps/locale-gen
+app-eselect/eselect-fontconfig
+app-eselect/eselect-mpg123
+app-eselect/eselect-cdparanoia
+# One Mesa, Gentoo's, for Chrome and Linux apps (vision decision 5); the
+# records step takes Google's and nickel-mesa out
+media-libs/mesa
+# Ours, from NickelOS's Gentoo repository, built for Gentoo's Python
+# (gentoo/device-repo.txt)
+app-containers/waydroid
+dev-python/gbinder
+dev-libs/gbinder
+dev-libs/libglibutil
+# Adwaita, icons and cursors (with their X core names), Gentoo's: our
+# adwaita-cursors had installed its cursors alone and collided with Gentoo's
+# theme when an app pulled it in (firefox-bin); ours sets the default now.
+x11-themes/adwaita-icon-theme
+# Vulkan's headers, which Gentoo's vulkan-loader builds against. Programs
+# that find Vulkan through pkg-config (the loader's vulkan.pc) include them,
+# VLC 4's Vulkan video output for one, and their ebuilds don't list them
+# ("vulkan/vulkan.h: No such file or directory", build 23i). On Gentoo they
+# stay installed from building the loader; the image has the loader as a
+# binary.
+dev-util/vulkan-headers

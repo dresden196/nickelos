@@ -1,0 +1,5 @@
+# NickelOS (nickel-gentoo): for Portage, useradd/usermod/groupadd that keep
+# Gentoo's system accounts with the OS's account files (/etc/passwd is the
+# OS's, with local accounts merged in at boot).
+PATH="/usr/libexec/nickel-gentoo/accounts"
+ROOTPATH="/usr/libexec/nickel-gentoo/accounts"

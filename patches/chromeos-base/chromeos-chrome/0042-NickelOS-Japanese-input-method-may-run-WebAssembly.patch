@@ -1,0 +1,12 @@
+diff --git a/chrome/browser/resources/chromeos/input_method/mozc_manifest.json b/chrome/browser/resources/chromeos/input_method/mozc_manifest.json
+index cbc2774092b0f..9ff09b9c62702 100644
+--- a/chrome/browser/resources/chromeos/input_method/mozc_manifest.json
++++ b/chrome/browser/resources/chromeos/input_method/mozc_manifest.json
+@@ -13,6 +13,7 @@
+   "background": {
+     "page": "nacl_mozc.html"
+   },
++  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+   "ime_path": "/usr/share/chromeos-assets/input_methods/nacl_mozc",
+   "input_components": [
+     {

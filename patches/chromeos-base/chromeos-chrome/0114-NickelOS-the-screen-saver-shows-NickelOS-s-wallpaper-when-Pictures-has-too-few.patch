@@ -1,0 +1,81 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the screen saver shows NickelOS's wallpaper when
+ Pictures has too few pictures
+
+The screen saver (0105) is a slideshow of the account's My files >
+Pictures, and with fewer than the two pictures a slideshow needs it didn't
+start at all: a new account's Pictures is empty, so out of the box the
+screen only dimmed. NickelOS's default wallpaper now makes up the rest:
+the wave photo, at the size and in the light or dark shade the wallpaper
+itself would use (0112), twice for an empty folder, beside the one picture
+otherwise. Pictures put in the folder take over at the next screen saver,
+as before (Dresden, 2026-11-04).
+
+---
+diff --git a/ash/ambient/managed/screensaver_images_policy_handler.cc b/ash/ambient/managed/screensaver_images_policy_handler.cc
+--- a/ash/ambient/managed/screensaver_images_policy_handler.cc
++++ b/ash/ambient/managed/screensaver_images_policy_handler.cc
+@@ -17,11 +17,13 @@
+ #include "ash/public/cpp/ambient/ambient_prefs.h"
+ #include "ash/session/session_controller_impl.h"
+ #include "ash/shell.h"
++#include "ash/wallpaper/wallpaper_controller_impl.h"
+ #include "base/base_paths.h"
+ #include "base/check.h"
+ #include "base/check_deref.h"
+ #include "base/files/file_enumerator.h"
+ #include "base/files/file_path.h"
++#include "base/files/file_util.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback.h"
+ #include "base/logging.h"
+@@ -32,6 +34,7 @@
+ #include "base/time/time.h"
+ #include "components/prefs/pref_registry_simple.h"
+ #include "components/prefs/pref_service.h"
++#include "components/user_manager/user_type.h"
+ #include "services/network/public/cpp/shared_url_loader_factory.h"
+ 
+ namespace ash {
+@@ -150,6 +153,21 @@
+   return images;
+ }
+ 
++// NickelOS: with fewer pictures in the folder than a slideshow needs (a new
++// account's folder is empty, and then there was no screen saver at all),
++// NickelOS's default wallpaper makes up the rest: the wave photo, in the
++// shade of the color mode (Dresden, 2026-11-04).
++std::vector<base::FilePath> FindImagesOrWallpaper(
++    const base::FilePath& folder,
++    const base::FilePath& wallpaper) {
++  std::vector<base::FilePath> images = FindImagesInFolder(folder);
++  if (images.size() < 2 && !wallpaper.empty() &&
++      base::PathExists(wallpaper)) {
++    images.resize(2, wallpaper);
++  }
++  return images;
++}
++
+ }  // namespace
+ 
+ // static
+@@ -170,11 +188,18 @@
+     return;
+   }
+   finding_folder_images_ = true;
++  // The default wallpaper as the wallpaper itself shows it: the size for
++  // this screen, dark or light (Chrome 0112).
++  base::FilePath wallpaper;
++  if (Shell::HasInstance() && Shell::Get()->wallpaper_controller()) {
++    wallpaper = Shell::Get()->wallpaper_controller()->GetDefaultWallpaperPath(
++        user_manager::UserType::kRegular);
++  }
+   base::ThreadPool::PostTaskAndReplyWithResult(
+       FROM_HERE,
+       {base::MayBlock(), base::TaskPriority::USER_VISIBLE,
+        base::TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN},
+-      base::BindOnce(&FindImagesInFolder, folder_),
++      base::BindOnce(&FindImagesOrWallpaper, folder_, wallpaper),
+       base::BindOnce(&ScreensaverImagesPolicyHandler::OnFolderImagesFound,
+                      weak_ptr_factory_.GetWeakPtr()));
+ }

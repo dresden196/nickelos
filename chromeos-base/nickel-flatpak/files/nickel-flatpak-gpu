@@ -1,0 +1,113 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# NVIDIA graphics for Flatpak apps. Flathub's NVIDIA extensions,
+# org.freedesktop.Platform.GL.nvidia-<version> (64-bit) and
+# GL32.nvidia-<version> (32-bit: Steam, Wine), work only with the exact driver
+# they were built for. Flatpak downloads the 64-bit one with an app, but not
+# the 32-bit one (Steam's metadata says no-autodownload), and nothing at all
+# when the driver changes: a NickelOS update with a new NVIDIA driver left
+# every Flatpak app without NVIDIA graphics until someone updated by hand.
+#
+# This keeps the running driver's extensions in every Flatpak installation
+# that has apps on Flathub's runtimes: the system one and each signed-in
+# user's own. It looks every minute (a few directory checks), installs what is
+# missing, and removes older drivers' extensions once the new ones are in.
+# A failed install (no network, or Flathub has not built the new driver's
+# extensions yet) is tried again 30 minutes later.
+log=/var/log/nickel-flatpak-gpu.log
+version=/sys/module/nvidia/version
+
+# NVIDIA's module loads from udev early in boot; on any other machine there is
+# nothing to do.
+waited=0
+until [ -r "${version}" ]; do
+  [ "${waited}" -ge 120 ] && exit 0
+  sleep 10
+  waited=$((waited + 10))
+done
+# Flatpak's name for the driver: nvidia-595-104-02 for 595.104.02.
+driver="nvidia-$(tr . - < "${version}")"
+
+# flatpak runs as root, whose home is read-only: GLib's settings and caches
+# would otherwise fill the log with dconf errors.
+export GSETTINGS_BACKEND=memory
+export XDG_CACHE_HOME=/var/cache/nickel-flatpak-gpu
+mkdir -p "${XDG_CACHE_HOME}"
+
+# The extensions an installation needs: GL with any Flathub runtime, GL32
+# once 32-bit apps (Steam's i386 runtime) are there. $1 is the installation's
+# directory; prints the missing refs.
+missing() {
+  rt="$1/runtime/org.freedesktop.Platform"
+  if [ -d "${rt}.GL.default" ] && ! [ -d "${rt}.GL.${driver}/x86_64/1.4" ]; then
+    echo "org.freedesktop.Platform.GL.${driver}//1.4"
+  fi
+  if { [ -d "${rt}.GL32.default" ] || [ -d "${rt}.Compat.i386" ]; } &&
+      ! [ -d "${rt}.GL32.${driver}/x86_64/1.4" ]; then
+    echo "org.freedesktop.Platform.GL32.${driver}//1.4"
+  fi
+}
+
+# Older drivers' extensions in the installation $1, once this driver's are in.
+stale() {
+  for d in "$1"/runtime/org.freedesktop.Platform.GL.nvidia-* \
+      "$1"/runtime/org.freedesktop.Platform.GL32.nvidia-*; do
+    [ -d "${d}" ] || continue
+    case "${d##*/}" in
+      *."${driver}") ;;
+      *) echo "${d##*/}//1.4" ;;
+    esac
+  done
+}
+
+# Brings the installation $1 up to date. The rest of the arguments run flatpak
+# for it: "flatpak --system", or the user's own flatpak through minijail0.
+sync_installation() {
+  dir="$1"
+  shift
+  refs=$(missing "${dir}")
+  if [ -n "${refs}" ]; then
+    # An installation without Flathub (apps from elsewhere) is left alone.
+    "$@" remotes --columns=name 2>/dev/null | grep -qx flathub || return 0
+    echo "$(date -Is) ${dir}: installing ${refs}" >> "${log}"
+    # shellcheck disable=SC2086
+    "$@" install -y --noninteractive flathub ${refs} >> "${log}" 2>&1 ||
+      return 1
+  fi
+  [ -n "$(missing "${dir}")" ] && return 1
+  refs=$(stale "${dir}")
+  if [ -n "${refs}" ]; then
+    echo "$(date -Is) ${dir}: removing ${refs}" >> "${log}"
+    # shellcheck disable=SC2086
+    "$@" uninstall -y --noninteractive ${refs} >> "${log}" 2>&1
+  fi
+  return 0
+}
+
+retry_at=0
+while :; do
+  now=$(date +%s)
+  if [ "${now}" -ge "${retry_at}" ]; then
+    ok=1
+    sync_installation /var/lib/flatpak flatpak --system || ok=
+    # Users' own installations, while they are signed in (their home is
+    # mounted). Their flatpak runs as them, so their files stay theirs.
+    for dir in /home/*/.local/share/flatpak; do
+      [ -d "${dir}/runtime" ] || continue
+      home=${dir%/.local/share/flatpak}
+      [ "$(stat -c %u "${home}")" -ge 1000 ] 2>/dev/null || continue
+      user=$(stat -c %U "${home}")
+      gid=$(id -g "${user}" 2>/dev/null) || continue
+      sync_installation "${dir}" minijail0 -u "${user}" -g "${gid}" -G -- \
+        /usr/bin/env HOME="${home}" XDG_CACHE_HOME="${home}/.cache" \
+        /usr/bin/flatpak --user || ok=
+    done
+    if [ -n "${ok}" ]; then
+      retry_at=0
+    else
+      retry_at=$((now + 1800))
+    fi
+  fi
+  sleep 60
+done

@@ -1,0 +1,136 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] ash: NickelOS local accounts run Chrome as their Linux user
+
+A local account is a Linux user, and its session runs Chrome, and so the
+Terminal and everything else Chrome starts, as that user instead of
+chronos. The login screen's Chrome runs as chronos; it signs in (cryptohome
+mounts the vault, owned by the user) and starts the session, then restarts
+once session_manager has the session. session_manager runs the next Chrome
+as the account's user (chromeos-login patch), which restores the session
+the way it does after a crash.
+
+Multiple sign-in is off for local accounts: one Chrome cannot run as two
+users.
+
+diff --git a/chrome/browser/ash/login/session/user_session_manager.cc b/chrome/browser/ash/login/session/user_session_manager.cc
+index 2dfd1970c9623..42de977d943c6 100644
+--- a/chrome/browser/ash/login/session/user_session_manager.cc
++++ b/chrome/browser/ash/login/session/user_session_manager.cc
+@@ -5,7 +5,9 @@
+ #include "chrome/browser/ash/login/session/user_session_manager.h"
+ #include "components/user_manager/nickel_local_account.h"
+ 
++#include <pwd.h>
+ #include <stddef.h>
++#include <unistd.h>
+ 
+ #include <algorithm>
+ #include <map>
+@@ -676,6 +678,25 @@ signin::ConsentLevel GetExpectedConsentLevel(
+   return signin::ConsentLevel::kSync;
+ }
+ 
++
++// NickelOS: whether `account_id` is a local account whose Linux user is not
++// the user this Chrome runs as, i.e. Chrome must restart to run the session.
++bool NeedsNickelUserSwitch(const AccountId& account_id) {
++  if (!user_manager::IsNickelLocalAccount(account_id)) {
++    return false;
++  }
++  const std::string name =
++      user_manager::NickelLocalAccountUsername(account_id);
++  std::vector<char> buf(16384);
++  struct passwd pwd;
++  struct passwd* result = nullptr;
++  if (getpwnam_r(name.c_str(), &pwd, buf.data(), buf.size(), &result) != 0 ||
++      !result) {
++    LOG(ERROR) << "No Linux user for local account " << name;
++    return false;
++  }
++  return result->pw_uid != geteuid();
++}
+ }  // namespace
+ 
+ // static
+@@ -882,6 +903,20 @@ void UserSessionManager::StartSession(
+   if (!has_active_session)
+     StartCrosSession();
+ 
++  // NickelOS: a local account's session runs Chrome as the account's Linux
++  // user. This Chrome (the login screen's, running as chronos) only starts
++  // the session: once session_manager has it, Chrome restarts, and
++  // session_manager runs the next one as the user, which restores the session
++  // (as after a crash).
++  if (!has_active_session &&
++      NeedsNickelUserSwitch(user_context_.GetAccountId())) {
++    LOG(WARNING) << "Restarting to run the session as its Linux user";
++    SessionManagerClient::Get()->RetrieveActiveSessions(
++        base::BindOnce(&UserSessionManager::OnNickelSessionStarted,
++                       GetUserSessionManagerAsWeakPtr()));
++    return;
++  }
++
+   user_manager::KnownUser known_user(&local_state_.get());
+   // Note: Using `user_context_` here instead of `user_context`.
+   // `CreateUserSession()` call above copies the value of `user_context`
+@@ -1356,6 +1391,17 @@ void UserSessionManager::StoreUserContextDataBeforeProfileIsCreated() {
+   known_user.UpdateId(user_context_.GetAccountId());
+ }
+ 
++void UserSessionManager::OnNickelSessionStarted(
++    std::optional<SessionManagerClient::ActiveSessionsMap> sessions) {
++  // session_manager handles calls in order, so StartSessionEx is done.
++  const std::string& email = user_context_.GetAccountId().GetUserEmail();
++  if (!sessions || !sessions->contains(email)) {
++    LOG(ERROR) << "session_manager has no session for " << email
++               << "; restarting anyway";
++  }
++  attempt_restart_closure_.Run();
++}
++
+ void UserSessionManager::StartCrosSession() {
+   TRACE_EVENT0(kEventCategoryChromeOS, kEventStartCrosSession);
+   BootTimesRecorder* btl = BootTimesRecorder::Get();
+diff --git a/chrome/browser/ash/login/session/user_session_manager.h b/chrome/browser/ash/login/session/user_session_manager.h
+index 3ca7b88d7c420..c9175b047198d 100644
+--- a/chrome/browser/ash/login/session/user_session_manager.h
++++ b/chrome/browser/ash/login/session/user_session_manager.h
+@@ -471,6 +471,11 @@ class UserSessionManager
+   void OnRestoreActiveSessions(
+       std::optional<SessionManagerClient::ActiveSessionsMap> sessions);
+ 
++  // NickelOS: session_manager has the local account's session; restarts
++  // Chrome so that it runs as the account's Linux user.
++  void OnNickelSessionStarted(
++      std::optional<SessionManagerClient::ActiveSessionsMap> sessions);
++
+   // Called by OnRestoreActiveSessions() when there're user sessions in
+   // `pending_user_sessions_` that has to be restored one by one.
+   // Also called after first user session from that list is restored and so on.
+diff --git a/components/user_manager/multi_user/multi_user_sign_in_policy_controller.cc b/components/user_manager/multi_user/multi_user_sign_in_policy_controller.cc
+index 2cb8d67845d21..99896a981732b 100644
+--- a/components/user_manager/multi_user/multi_user_sign_in_policy_controller.cc
++++ b/components/user_manager/multi_user/multi_user_sign_in_policy_controller.cc
+@@ -15,6 +15,7 @@
+ #include "components/prefs/scoped_user_pref_update.h"
+ #include "components/session_manager/core/session.h"
+ #include "components/session_manager/core/session_manager.h"
++#include "components/user_manager/nickel_local_account.h"
+ #include "components/user_manager/user.h"
+ #include "components/user_manager/user_manager.h"
+ #include "components/user_manager/user_manager_pref_names.h"
+@@ -48,6 +49,14 @@ bool MultiUserSignInPolicyController::IsUserAllowedInSession(
+     return true;
+   }
+ 
++  // NickelOS: Chrome runs as the Linux user of a local account's session, so
++  // no other account can join that session, and a local account cannot join
++  // another account's session.
++  if (IsNickelLocalAccount(primary_session->account_id()) ||
++      IsNickelLocalAccount(AccountId::FromUserEmail(user_email))) {
++    return false;
++  }
++
+   const User* primary_user =
+       user_manager_->FindUser(primary_session->account_id());
+   auto primary_user_policy = GetMultiUserSignInPolicy(primary_user);

@@ -1,0 +1,171 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the Welcome Tour shows Android apps
+
+The Welcome Tour (Chrome 0071) gets a step for Android apps, after
+Bazaar: a help bubble on Waydroid in the launcher, which says Android
+apps run in windows of their own, that they are set up in Settings >
+Apps > Android apps (Chrome 0072), and that opening an APK file then
+installs the app. Eight steps now: the shelf, the launcher, search,
+Files, Bazaar, Android apps, the Terminal, Settings.
+
+Waydroid's launcher entry (the host app Waydroid, id
+GuestOsRegistryService::GenerateAppId("Waydroid", "nickel", "host"))
+gets the element identifier kNickelWaydroidAppElementId; its help
+bubble id is a new one, kWelcomeTourNickelAndroid, and its metrics step
+the Explore app window's, which NickelOS has no step for.
+
+diff --git a/ash/ash_element_identifiers.cc b/ash/ash_element_identifiers.cc
+index 33a51b5b10cdc..238a1c3076c97 100644
+--- a/ash/ash_element_identifiers.cc
++++ b/ash/ash_element_identifiers.cc
+@@ -35,6 +35,7 @@ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kFaceGazeBubbleElementId);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kFilesAppElementId);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kNickelBazaarAppElementId);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kNickelTerminalAppElementId);
++DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kNickelWaydroidAppElementId);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kHoldingSpaceTrayElementId);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kHomeButtonElementId);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kHotspotDetailedViewToggleElementId);
+diff --git a/ash/ash_element_identifiers.h b/ash/ash_element_identifiers.h
+index f20392089ea5a..373d6a122c19b 100644
+--- a/ash/ash_element_identifiers.h
++++ b/ash/ash_element_identifiers.h
+@@ -71,12 +71,14 @@ DECLARE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(ASH_EXPORT, kFaceGazeBubbleElementId);
+ // Uniquely identifies an element corresponding to the Files app.
+ DECLARE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(ASH_EXPORT, kFilesAppElementId);
+ 
+-// NickelOS: Bazaar (the app store) and the Terminal app in the launcher, for
+-// the Welcome Tour's NickelOS steps.
++// NickelOS: Bazaar (the app store), the Terminal app and Waydroid (Android
++// apps) in the launcher, for the Welcome Tour's NickelOS steps.
+ DECLARE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(ASH_EXPORT,
+                                           kNickelBazaarAppElementId);
+ DECLARE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(ASH_EXPORT,
+                                           kNickelTerminalAppElementId);
++DECLARE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(ASH_EXPORT,
++                                          kNickelWaydroidAppElementId);
+ 
+ // Uniquely identifies the `HoldingSpaceTray`.
+ DECLARE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(ASH_EXPORT,
+diff --git a/ash/ash_strings.grd b/ash/ash_strings.grd
+index 0cedd7e12cdef..7ceccbad00635 100644
+--- a/ash/ash_strings.grd
++++ b/ash/ash_strings.grd
+@@ -7632,6 +7632,12 @@ To shut down the device, press and hold the power button on the device again.
+       <message name="IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT" desc="NickelOS: text shown in the body of a help bubble anchored to Bazaar, the app store, as part of the Welcome Tour.">
+         Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.
+       </message>
++      <message name="IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME" desc="NickelOS: the accessible name of a help bubble anchored to Waydroid, which runs Android apps, as part of the Welcome Tour.">
++        Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>8</ex></ph>. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.
++      </message>
++      <message name="IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT" desc="NickelOS: text shown in the body of a help bubble anchored to Waydroid, which runs Android apps, as part of the Welcome Tour.">
++        Waydroid runs Android apps, each in a window of its own. Set it up in Settings &gt; Apps &gt; Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.
++      </message>
+       <message name="IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME" desc="NickelOS: the accessible name of a help bubble anchored to the Terminal app as part of the Welcome Tour.">
+         Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>7</ex></ph>. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.
+       </message>
+diff --git a/ash/user_education/user_education_types.h b/ash/user_education/user_education_types.h
+index ba7f0cf6b6268..29ae67f646e1b 100644
+--- a/ash/user_education/user_education_types.h
++++ b/ash/user_education/user_education_types.h
+@@ -33,7 +33,9 @@ enum class HelpBubbleId {
+   kWelcomeTourShelf,
+   kWelcomeTourStatusArea,
+   kWelcomeTourFilesApp,
+-  kMaxValue = kWelcomeTourFilesApp,
++  // NickelOS: the Welcome Tour's Android apps step (Waydroid).
++  kWelcomeTourNickelAndroid,
++  kMaxValue = kWelcomeTourNickelAndroid,
+ };
+ 
+ // Enumeration of quantized time values for easy to interpret metrics about
+diff --git a/ash/user_education/welcome_tour/welcome_tour_controller.cc b/ash/user_education/welcome_tour/welcome_tour_controller.cc
+index d1e85e60afbf4..9f3c2d437a38e 100644
+--- a/ash/user_education/welcome_tour/welcome_tour_controller.cc
++++ b/ash/user_education/welcome_tour/welcome_tour_controller.cc
+@@ -74,8 +74,9 @@ namespace {
+ WelcomeTourController* g_instance = nullptr;
+ 
+ // Strings. V3 adds a Files app step, but removes the status area step.
+-// NickelOS: shelf, launcher, search, Files, Bazaar, Terminal, Settings.
+-constexpr char16_t kTotalSteps[] = u"7";
++// NickelOS: shelf, launcher, search, Files, Bazaar, Android apps (Waydroid),
++// Terminal, Settings.
++constexpr char16_t kTotalSteps[] = u"8";
+ 
+ // NickelOS: where the tour's last button goes, instead of Google's Explore
+ // app (which NickelOS does not have).
+@@ -422,6 +423,36 @@ WelcomeTourController::GetTutorialDescription() const {
+                 /*body_text=*/
+                 l10n_util::GetStringUTF8(
+                     IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT)))
++            .AddCustomNextButton(DefaultNextButtonCallback().Then(
++                base::BindRepeating(
++                    &WelcomeTourController::SetCurrentStep,
++                    weak_ptr_factory_.GetMutableWeakPtr(),
++                    welcome_tour_metrics::Step::kExploreAppWindow)))
++            .InSameContext());
++
++    tutorial_description.steps.emplace_back(
++        user_education::TutorialDescription::EventStep(
++            user_education::kHelpBubbleNextButtonClickedEvent,
++            kNickelBazaarAppElementId)
++            .InSameContext());
++
++    // NickelOS: Waydroid, for Android apps (set up in Settings > Apps, Chrome
++    // 0072). (Its metrics step is the Explore app window's, which NickelOS
++    // has no step for.)
++    tutorial_description.steps.emplace_back(
++        user_education::TutorialDescription::BubbleStep(
++            kNickelWaydroidAppElementId)
++            .SetBubbleArrow(user_education::HelpBubbleArrow::kBottomLeft)
++            .SetBubbleBodyText(IDS_ASH_WELCOME_TOUR_OVERRIDDEN_BUBBLE_BODY_TEXT)
++            .SetExtendedProperties(CreateHelpBubbleExtendedProperties(
++                HelpBubbleId::kWelcomeTourNickelAndroid,
++                /*accessible_name=*/
++                l10n_util::GetStringFUTF8(
++                    IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME,
++                    base::NumberToString16(current_step++), kTotalSteps),
++                /*body_text=*/
++                l10n_util::GetStringUTF8(
++                    IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT)))
+             .AddCustomNextButton(DefaultNextButtonCallback().Then(
+                 base::BindRepeating(&WelcomeTourController::SetCurrentStep,
+                                     weak_ptr_factory_.GetMutableWeakPtr(),
+@@ -431,7 +462,7 @@ WelcomeTourController::GetTutorialDescription() const {
+     tutorial_description.steps.emplace_back(
+         user_education::TutorialDescription::EventStep(
+             user_education::kHelpBubbleNextButtonClickedEvent,
+-            kNickelBazaarAppElementId)
++            kNickelWaydroidAppElementId)
+             .InSameContext());
+ 
+     // NickelOS: the Terminal, a real Linux shell, and Gentoo's packages.
+diff --git a/chrome/browser/ui/ash/user_education/chrome_user_education_delegate.cc b/chrome/browser/ui/ash/user_education/chrome_user_education_delegate.cc
+index 82c1e5ed098c2..4d9881cfa4c13 100644
+--- a/chrome/browser/ui/ash/user_education/chrome_user_education_delegate.cc
++++ b/chrome/browser/ui/ash/user_education/chrome_user_education_delegate.cc
+@@ -80,14 +80,21 @@ std::optional<ui::ElementIdentifier>
+ ChromeUserEducationDelegate::GetElementIdentifierForAppId(
+     const std::string& app_id) const {
+   // NickelOS: Bazaar (the host app io.github.kolunmi.Bazaar; its id as in
+-  // default_pinned_apps.cc, Chrome 0004) and the Terminal app
+-  // (guest_os::kTerminalSystemAppId), for the Welcome Tour's NickelOS steps.
++  // default_pinned_apps.cc, Chrome 0004), Waydroid (the host app Waydroid,
++  // for Android apps: GuestOsRegistryService::GenerateAppId("Waydroid",
++  // "nickel", "host")) and the Terminal app (guest_os::kTerminalSystemAppId),
++  // for the Welcome Tour's NickelOS steps.
+   static constexpr char kNickelBazaarAppId[] =
+       "nhgfgbachfmhdngmjnpllbcbjneihcij";
++  static constexpr char kNickelWaydroidAppId[] =
++      "hlkigenlllednlklganamakddngbcjhn";
+   static constexpr char kTerminalAppId[] = "fhicihalidkgcimdmhpohldehjmcabcf";
+   if (app_id == kNickelBazaarAppId) {
+     return ash::kNickelBazaarAppElementId;
+   }
++  if (app_id == kNickelWaydroidAppId) {
++    return ash::kNickelWaydroidAppElementId;
++  }
+   if (app_id == kTerminalAppId) {
+     return ash::kNickelTerminalAppElementId;
+   }

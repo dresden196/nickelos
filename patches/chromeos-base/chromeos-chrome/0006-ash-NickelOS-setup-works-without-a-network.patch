@@ -1,0 +1,86 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] ash: NickelOS setup works without a network
+
+NickelOS accounts are local, so nothing in setup needs a network. The
+network screen gets a "Set up offline" button, shown while no network is
+connected, which leaves the screen as if it did not apply. What follows
+needs no network on NickelOS: the update screen and the enrollment check
+are skipped on unbranded builds, and "Create your account" is local.
+
+diff --git a/chrome/browser/ash/login/screens/network_screen.cc b/chrome/browser/ash/login/screens/network_screen.cc
+index cafd8afc494fb..fafe738079fac 100644
+--- a/chrome/browser/ash/login/screens/network_screen.cc
++++ b/chrome/browser/ash/login/screens/network_screen.cc
+@@ -42,6 +42,8 @@ constexpr char kUserActionBackButtonClicked[] = "back";
+ constexpr char kUserActionCancelButtonClicked[] = "cancel";
+ constexpr char kUserActionContinueButtonClicked[] = "continue";
+ constexpr char kUserActionQuickStartButtonClicked[] = "activateQuickStart";
++// NickelOS: accounts are local, so setup can go on without a network.
++constexpr char kUserActionOfflineButtonClicked[] = "offline";
+ 
+ chromeos::network_config::mojom::SecurityType ConvertSecurityType(
+     quick_start::mojom::WifiSecurityType type) {
+@@ -175,6 +177,10 @@ void NetworkScreen::OnUserAction(const base::ListValue& args) {
+     OnQuickStartButtonClicked();
+   } else if (action_id == kUserActionContinueButtonClicked) {
+     OnContinueButtonClicked();
++  } else if (action_id == kUserActionOfflineButtonClicked) {
++    connection_timer_.Stop();
++    UnsubscribeNetworkNotification();
++    exit_callback_.Run(Result::NOT_APPLICABLE);
+   } else if (action_id == kUserActionBackButtonClicked) {
+     if (context()->quick_start_setup_ongoing) {
+       // Clicking 'Back' (only visible on the actual network list) while
+diff --git a/chrome/browser/resources/chromeos/login/screens/oobe/oobe_network.html b/chrome/browser/resources/chromeos/login/screens/oobe/oobe_network.html
+index 91dfb1de518fb..9046cd8452e17 100644
+--- a/chrome/browser/resources/chromeos/login/screens/oobe/oobe_network.html
++++ b/chrome/browser/resources/chromeos/login/screens/oobe/oobe_network.html
+@@ -42,6 +42,9 @@
+     </oobe-back-button>
+   </div>
+   <div slot="bottom-buttons" class="flex layout horizontal end-justified">
++    <oobe-text-button id="offlineButton" text-key="networkScreenSetUpOffline"
++        hidden="[[isNetworkConnected]]" on-click="onOfflineClicked">
++    </oobe-text-button>
+     <oobe-next-button
+       id="nextButton"
+       disabled="[[!isNetworkConnected]]"
+diff --git a/chrome/browser/resources/chromeos/login/screens/oobe/oobe_network.ts b/chrome/browser/resources/chromeos/login/screens/oobe/oobe_network.ts
+index a0cc7aab6f57e..73d2efc6a9537 100644
+--- a/chrome/browser/resources/chromeos/login/screens/oobe/oobe_network.ts
++++ b/chrome/browser/resources/chromeos/login/screens/oobe/oobe_network.ts
+@@ -10,6 +10,7 @@ import '//resources/polymer/v3_0/iron-icon/iron-icon.js';
+ import '//resources/ash/common/network/network_list.js';
+ import '../../components/buttons/oobe_back_button.js';
+ import '../../components/buttons/oobe_next_button.js';
++import '../../components/buttons/oobe_text_button.js';
+ import '../../components/common_styles/oobe_common_styles.css.js';
+ import '../../components/common_styles/oobe_dialog_host_styles.css.js';
+ import '../../components/dialogs/oobe_adaptive_dialog.js';
+@@ -328,6 +329,13 @@ class NetworkScreen extends NetworkScreenBase {
+   private onContinue() {
+     this.userActed('continue');
+   }
++
++  /**
++   * NickelOS: continues setup without a network (accounts are local).
++   */
++  private onOfflineClicked() {
++    this.userActed('offline');
++  }
+ }
+ 
+ declare global {
+diff --git a/chrome/browser/ui/webui/ash/login/network_screen_handler.cc b/chrome/browser/ui/webui/ash/login/network_screen_handler.cc
+index f424b4f6e6b31..46d7fcdf52cc6 100644
+--- a/chrome/browser/ui/webui/ash/login/network_screen_handler.cc
++++ b/chrome/browser/ui/webui/ash/login/network_screen_handler.cc
+@@ -45,6 +45,8 @@ void NetworkScreenHandler::DeclareLocalizedValues(
+ 
+   builder->Add("networkScreenQuickStart",
+                IDS_LOGIN_QUICK_START_SETUP_NETWORK_SCREEN_ENTRY_POINT);
++  // TODO(NickelOS): move into a .grd so it can be translated.
++  builder->Add("networkScreenSetUpOffline", "Set up offline");
+ 
+   builder->Add("networkScreenConnectingToWifiTitle",
+                IDS_LOGIN_QUICK_START_WIFI_TRANSFER_TITLE);

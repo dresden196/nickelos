@@ -1,0 +1,50 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: on AMD the GPU process preloads Google's DRI driver
+ from /usr/lib64/cros
+
+NickelOS Unified's Mesa is Gentoo's 26: dri/radeonsi_dri.so is a stub that
+loads libgallium, and there is no libglapi. The AMD preload before the GPU
+sandbox asked for libglapi.so and failed, and the sandbox with it.
+minigbm's amdgpu backend still allocates through the DRI interface of
+Google's radeonsi driver, which the image keeps for it alone in
+/usr/lib64/cros/dri with its libglapi beside it, linked -Bsymbolic. The
+GPU process now preloads that driver the way minigbm's patch 0002 loads
+it, RTLD_LOCAL (and RTLD_NODELETE, as before), so none of its symbols
+become everyone's: Gentoo's Mesa, which loads inside the sandbox (0078),
+keeps its own (the AMD test PC, 2026-10-20).
+
+diff --git a/content/common/gpu_pre_sandbox_hook_linux.cc b/content/common/gpu_pre_sandbox_hook_linux.cc
+index 2c96f4b4c8d05..a47abb3335328 100644
+--- a/content/common/gpu_pre_sandbox_hook_linux.cc
++++ b/content/common/gpu_pre_sandbox_hook_linux.cc
+@@ -592,17 +592,19 @@ void LoadArmGpuLibraries() {
+ }
+ 
+ bool LoadAmdGpuLibraries() {
+-  // Preload the amdgpu-dependent libraries.
+-  if (nullptr == dlopen("libglapi.so", dlopen_flag)) {
+-    LOG(ERROR) << "dlopen(libglapi.so) failed with error: " << dlerror();
+-    return false;
+-  }
+-
+-  const char* radeonsi_lib = "/usr/lib64/dri/radeonsi_dri.so";
+-#if defined(DRI_DRIVER_DIR)
+-  radeonsi_lib = DRI_DRIVER_DIR "/radeonsi_dri.so";
+-#endif
+-  if (nullptr == dlopen(radeonsi_lib, dlopen_flag)) {
++  // NickelOS: Mesa is Gentoo's. Its dri/radeonsi_dri.so is a stub that
++  // loads libgallium, and it has no libglapi: this preload failed at
++  // libglapi.so, and with it the sandbox. minigbm's amdgpu backend still
++  // allocates through the DRI interface of Google's driver, kept for it
++  // alone in /usr/lib64/cros/dri with its libglapi beside it and linked
++  // -Bsymbolic, so its calls to its own functions stay its own (Gentoo's
++  // libgallium exports some of the same names). Load it as minigbm does
++  // (its patch 0002): RTLD_LOCAL, so none of its symbols become
++  // everyone's and Gentoo's Mesa, which loads inside the sandbox
++  // (AddNickelMesaPermissions), keeps its own.
++  const char kRadeonsiLib[] = "/usr/lib64/cros/dri/radeonsi_dri.so";
++  if (nullptr ==
++      dlopen(kRadeonsiLib, RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE)) {
+     LOG(ERROR) << "dlopen(radeonsi_dri.so) failed with error: " << dlerror();
+     return false;
+   }

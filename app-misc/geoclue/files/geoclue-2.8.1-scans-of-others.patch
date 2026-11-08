@@ -1,0 +1,40 @@
+--- a/src/gclue-wifi.c
++++ b/src/gclue-wifi.c
+@@ -146,6 +146,8 @@
+         gulong bss_removed_id;
+         gulong scan_done_id;
+         guint scan_wait_id;
++        /* NickelOS: not allowed to scan (D-Bus policy): others' scans only. */
++        gboolean scan_refused;
+ 
+         guint scan_timeout;
+ 
+@@ -484,6 +486,12 @@
+                                "Type", g_variant_new ("s", "passive"));
+         args = g_variant_builder_end (&builder);
+ 
++        if (priv->scan_refused) {
++                /* Others' scans (ChromeOS's shill) bring the networks. */
++                g_variant_unref (g_variant_ref_sink (args));
++                return;
++        }
++
+         wpa_interface_call_scan (WPA_INTERFACE (priv->interface),
+                                  args,
+                                  priv->bss_cancellable,
+@@ -628,6 +636,15 @@
+ 
+                 wifi = GCLUE_WIFI (user_data);
+ 
++                if (g_error_matches (error, G_DBUS_ERROR,
++                                     G_DBUS_ERROR_ACCESS_DENIED)) {
++                        /* Keep listening for others' ScanDone. */
++                        g_debug ("Not allowed to scan for WiFi networks; "
++                                 "using the scans of others");
++                        wifi->priv->scan_refused = TRUE;
++                        return;
++                }
++
+                 if (error) {
+                         g_warning ("Scanning of WiFi networks failed: %s",
+                                    error->message);

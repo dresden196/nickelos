@@ -1,0 +1,23 @@
+diff --git a/ash/system/power/power_prefs.cc b/ash/system/power/power_prefs.cc
+index fd816523c828c..7dbac7c2cbb9f 100644
+--- a/ash/system/power/power_prefs.cc
++++ b/ash/system/power/power_prefs.cc
+@@ -212,12 +212,16 @@ void PowerPrefs::RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
+ void PowerPrefs::RegisterSigninProfilePrefs(PrefRegistrySimple* registry) {
+   RegisterProfilePrefs(registry);
+ 
++  // NickelOS: the sign-in screen sleeps, as a signed-in session does, when the
++  // lid closes or it sits idle on battery. ChromeOS shuts down there; on a PC,
++  // where sleep is what closing the lid means, the machine seemed to have
++  // crashed.
+   registry->RegisterIntegerPref(
+       prefs::kPowerBatteryIdleAction,
+-      chromeos::PowerPolicyController::ACTION_SHUT_DOWN);
++      chromeos::PowerPolicyController::ACTION_SUSPEND);
+   registry->RegisterIntegerPref(
+       prefs::kPowerLidClosedAction,
+-      chromeos::PowerPolicyController::ACTION_SHUT_DOWN);
++      chromeos::PowerPolicyController::ACTION_SUSPEND);
+ }
+ 
+ // static

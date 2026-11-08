@@ -1,0 +1,9 @@
+# NickelOS proof: packages the image has that are testing-only in Gentoo
+=dev-libs/libdivsufsort-2.0.1-r3 ~amd64
+=media-libs/nvidia-vaapi-driver-0.0.18 ~amd64
+=net-print/dymo-cups-drivers-1.4.0-r2 ~amd64
+=net-misc/usbip-5.15-r1 ~amd64
+=sys-fs/ecryptfs-utils-111_p20170609-r1 ~amd64
+=sys-fs/mount-zip-1.0.15 ~amd64
+=dev-util/stressapptest-1.0.11 ~amd64
+=sys-fs/rar2fs-1.29.6 ~amd64

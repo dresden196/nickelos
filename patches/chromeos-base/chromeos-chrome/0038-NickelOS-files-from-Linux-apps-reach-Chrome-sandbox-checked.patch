@@ -1,0 +1,335 @@
+diff --git a/chrome/browser/ash/exo/chrome_security_delegate.cc b/chrome/browser/ash/exo/chrome_security_delegate.cc
+index f4006fc8f75b8..02ffe6b5d0ab7 100644
+--- a/chrome/browser/ash/exo/chrome_security_delegate.cc
++++ b/chrome/browser/ash/exo/chrome_security_delegate.cc
+@@ -155,6 +155,30 @@ std::vector<FileInfo> TranslateVMToHost(const std::string& vm_name,
+   return file_infos;
+ }
+ 
++// NickelOS: the default server's clients (no VM) are Linux apps running on
++// the device itself, as the user. Their files are the user's, named in their
++// home's terms (one home); Exo has dropped those a sandboxed app cannot read
++// itself (ClientsRunOnTheHost). They reach Chrome as dragged or pasted
++// files, as from the Files app.
++std::vector<FileInfo> TranslateLinuxAppsToHost(
++    std::vector<ui::FileInfo> app_paths) {
++  Profile* profile = ProfileManager::GetPrimaryUserProfile();
++  storage::ExternalMountPoints* mount_points =
++      storage::ExternalMountPoints::GetSystemInstance();
++  std::vector<FileInfo> file_infos;
++  for (ui::FileInfo& info : app_paths) {
++    base::FilePath path = crostini::NickelPathFromLinuxApps(profile, info.path);
++    storage::FileSystemURL url;
++    base::FilePath virtual_path;
++    if (mount_points->GetVirtualPath(path, &virtual_path)) {
++      url = mount_points->CreateCrackedFileSystemURL(
++          blink::StorageKey(), storage::kFileSystemTypeExternal, virtual_path);
++    }
++    file_infos.push_back({std::move(path), std::move(url)});
++  }
++  return file_infos;
++}
++
+ // Crack paths and get FileSystemURL.
+ std::vector<FileInfo> CrackPaths(std::vector<base::FilePath> paths) {
+   storage::ExternalMountPoints* mount_points =
+@@ -360,13 +384,23 @@ bool ChromeSecurityDelegate::CanSetSystemModal() const {
+   return true;
+ }
+ 
++// NickelOS: the default server's clients are Linux apps running on the device
++// itself.
++bool ChromeSecurityDelegate::ClientsRunOnTheHost() const {
++  return true;
++}
++
+ std::vector<ui::FileInfo> ChromeSecurityDelegate::GetFilenames(
+     ui::EndpointType source,
+     const std::vector<uint8_t>& data) const {
+   std::vector<ui::FileInfo> result;
+-  std::vector<FileInfo> file_infos = TranslateVMToHost(
+-      GetVmName(source),
+-      ui::URIListToFileInfos(std::string(data.begin(), data.end())));
++  const std::string vm_name = GetVmName(source);
++  std::vector<ui::FileInfo> paths =
++      ui::URIListToFileInfos(std::string(data.begin(), data.end()));
++  std::vector<FileInfo> file_infos =
++      vm_name.empty() && ClientsRunOnTheHost()
++          ? TranslateLinuxAppsToHost(std::move(paths))
++          : TranslateVMToHost(vm_name, std::move(paths));
+   for (auto& info : file_infos) {
+     result.push_back(ui::FileInfo(std::move(info.path), base::FilePath()));
+   }
+diff --git a/chrome/browser/ash/exo/chrome_security_delegate.h b/chrome/browser/ash/exo/chrome_security_delegate.h
+index 413412710a156..3307e10a3d863 100644
+--- a/chrome/browser/ash/exo/chrome_security_delegate.h
++++ b/chrome/browser/ash/exo/chrome_security_delegate.h
+@@ -41,6 +41,7 @@ class ChromeSecurityDelegate : public exo::SecurityDelegate {
+   bool CanAccessRemoteShell() const override;
+   bool CanSetRestoreInfo() const override;
+   bool CanSetSystemModal() const override;
++  bool ClientsRunOnTheHost() const override;
+   std::vector<ui::FileInfo> GetFilenames(
+       ui::EndpointType source,
+       const std::vector<uint8_t>& data) const override;
+diff --git a/chrome/browser/ash/guest_os/guest_os_security_delegate.cc b/chrome/browser/ash/guest_os/guest_os_security_delegate.cc
+index 21dfd73d9de98..afed5886596c7 100644
+--- a/chrome/browser/ash/guest_os/guest_os_security_delegate.cc
++++ b/chrome/browser/ash/guest_os/guest_os_security_delegate.cc
+@@ -46,6 +46,10 @@ bool GuestOsSecurityDelegate::CanSetSystemModal() const {
+   return false;
+ }
+ 
++bool GuestOsSecurityDelegate::ClientsRunOnTheHost() const {
++  return false;
++}
++
+ std::string GuestOsSecurityDelegate::GetVmName(ui::EndpointType target) const {
+   return vm_name_;
+ }
+diff --git a/chrome/browser/ash/guest_os/guest_os_security_delegate.h b/chrome/browser/ash/guest_os/guest_os_security_delegate.h
+index 7d988d5d14d9e..4bec5c88ffa6b 100644
+--- a/chrome/browser/ash/guest_os/guest_os_security_delegate.h
++++ b/chrome/browser/ash/guest_os/guest_os_security_delegate.h
+@@ -40,6 +40,7 @@ class GuestOsSecurityDelegate : public ash::ChromeSecurityDelegate {
+   bool CanAccessRemoteShell() const override;
+   bool CanSetRestoreInfo() const override;
+   bool CanSetSystemModal() const override;
++  bool ClientsRunOnTheHost() const override;
+   std::string GetVmName(ui::EndpointType target) const override;
+ 
+  private:
+diff --git a/components/exo/data_source.cc b/components/exo/data_source.cc
+index da14fbbca33e3..f3af7222eb5d3 100644
+--- a/components/exo/data_source.cc
++++ b/components/exo/data_source.cc
+@@ -26,6 +26,7 @@
+ #include "third_party/blink/public/common/mime_util/mime_util.h"
+ #include "third_party/icu/source/common/unicode/ucnv.h"
+ #include "ui/base/clipboard/clipboard_constants.h"
++#include "ui/base/clipboard/file_info.h"
+ 
+ namespace exo {
+ 
+@@ -230,13 +231,29 @@ void DataSource::DndFinished() {
+   }
+ }
+ 
++bool DataSourceDelegate::CanReadFile(const base::FilePath& path) const {
++  return true;
++}
++
+ std::vector<ui::FileInfo> DataSource::GetFilenames(
+     ui::EndpointType source,
+     const std::vector<uint8_t>& data) const {
+   if (!delegate_) {
+     return {};
+   }
+-  return delegate_->GetSecurityDelegate()->GetFilenames(source, data);
++  SecurityDelegate* security_delegate = delegate_->GetSecurityDelegate();
++  if (!security_delegate->ClientsRunOnTheHost()) {
++    return security_delegate->GetFilenames(source, data);
++  }
++  // Only the files the client can read itself, by the paths it gave.
++  std::vector<ui::FileInfo> files =
++      ui::URIListToFileInfos(std::string(data.begin(), data.end()));
++  std::erase_if(files, [this](const ui::FileInfo& file) {
++    return !delegate_->CanReadFile(file.path);
++  });
++  const std::string uri_list = ui::FileInfosToURIList(files);
++  return security_delegate->GetFilenames(
++      source, std::vector<uint8_t>(uri_list.begin(), uri_list.end()));
+ }
+ 
+ void DataSource::ReadDataForTesting(const std::string& mime_type,
+diff --git a/components/exo/data_source_delegate.h b/components/exo/data_source_delegate.h
+index bd167696993bb..5d8f6f6a38c9a 100644
+--- a/components/exo/data_source_delegate.h
++++ b/components/exo/data_source_delegate.h
+@@ -12,6 +12,10 @@
+ #include "base/memory/weak_ptr.h"
+ #include "components/exo/data_device.h"
+ 
++namespace base {
++class FilePath;
++}  // namespace base
++
+ namespace exo {
+ 
+ class DataSource;
+@@ -52,6 +56,10 @@ class DataSourceDelegate {
+   // Returns the server's SecurityDelegate.
+   virtual SecurityDelegate* GetSecurityDelegate() const = 0;
+ 
++  // NickelOS: whether the client that offers this source can read |path|
++  // itself (see SecurityDelegate::ClientsRunOnTheHost). Yes by default.
++  virtual bool CanReadFile(const base::FilePath& path) const;
++
+  protected:
+   virtual ~DataSourceDelegate() = default;
+ };
+diff --git a/components/exo/security_delegate.h b/components/exo/security_delegate.h
+index 2cd327bab11b7..8738a5450aaa8 100644
+--- a/components/exo/security_delegate.h
++++ b/components/exo/security_delegate.h
+@@ -87,6 +87,13 @@ class SecurityDelegate {
+   // Returns true if the client may make its windows system-modal.
+   virtual bool CanSetSystemModal() const = 0;
+ 
++  // NickelOS: whether this server's clients run on the device itself, as the
++  // user, naming files by their own paths. Their files then pass only if the
++  // client can read them itself (DataSourceDelegate::CanReadFile): an app in
++  // a sandbox must not hand Chrome a file it cannot see, for Chrome to read
++  // for it (a drop on a web page uploads it).
++  virtual bool ClientsRunOnTheHost() const = 0;
++
+   // Read filenames from text/uri-list |data| which was provided by `source`
+   // endpoint. Translates paths from source to host format.
+   virtual std::vector<ui::FileInfo> GetFilenames(
+diff --git a/components/exo/test/mock_security_delegate.h b/components/exo/test/mock_security_delegate.h
+index b01883e323b62..def31405a431f 100644
+--- a/components/exo/test/mock_security_delegate.h
++++ b/components/exo/test/mock_security_delegate.h
+@@ -26,6 +26,7 @@ class MockSecurityDelegate : public SecurityDelegate {
+   MOCK_METHOD(bool, CanAccessRemoteShell, (), (const, override));
+   MOCK_METHOD(bool, CanSetRestoreInfo, (), (const, override));
+   MOCK_METHOD(bool, CanSetSystemModal, (), (const, override));
++  MOCK_METHOD(bool, ClientsRunOnTheHost, (), (const, override));
+   MOCK_METHOD(std::vector<ui::FileInfo>,
+               GetFilenames,
+               (ui::EndpointType source, const std::vector<uint8_t>& data),
+diff --git a/components/exo/test/test_security_delegate.cc b/components/exo/test/test_security_delegate.cc
+index 25aa50a039403..13ed599045d00 100644
+--- a/components/exo/test/test_security_delegate.cc
++++ b/components/exo/test/test_security_delegate.cc
+@@ -49,6 +49,10 @@ bool TestSecurityDelegate::CanSetSystemModal() const {
+   return system_modal_allowed_;
+ }
+ 
++bool TestSecurityDelegate::ClientsRunOnTheHost() const {
++  return false;
++}
++
+ std::vector<ui::FileInfo> TestSecurityDelegate::GetFilenames(
+     ui::EndpointType source,
+     const std::vector<uint8_t>& data) const {
+diff --git a/components/exo/test/test_security_delegate.h b/components/exo/test/test_security_delegate.h
+index 358ea08a2556b..e978021c81302 100644
+--- a/components/exo/test/test_security_delegate.h
++++ b/components/exo/test/test_security_delegate.h
+@@ -29,6 +29,7 @@ class TestSecurityDelegate : public SecurityDelegate {
+   bool CanAccessRemoteShell() const override;
+   bool CanSetRestoreInfo() const override;
+   bool CanSetSystemModal() const override;
++  bool ClientsRunOnTheHost() const override;
+   std::vector<ui::FileInfo> GetFilenames(
+       ui::EndpointType source,
+       const std::vector<uint8_t>& data) const override;
+diff --git a/components/exo/wayland/wl_data_device_manager.cc b/components/exo/wayland/wl_data_device_manager.cc
+index 618a6f0acb730..86daa248afcad 100644
+--- a/components/exo/wayland/wl_data_device_manager.cc
++++ b/components/exo/wayland/wl_data_device_manager.cc
+@@ -5,13 +5,18 @@
+ #include "components/exo/wayland/wl_data_device_manager.h"
+ 
+ #include <algorithm>
++#include <optional>
++#include <string_view>
+ #include <memory>
+ #include <string>
+ #include <utility>
+ 
++#include "base/files/file_util.h"
+ #include "base/memory/raw_ptr.h"
+ #include "base/memory/weak_ptr.h"
++#include "base/strings/string_split.h"
+ #include "base/strings/string_util.h"
++#include "base/strings/stringprintf.h"
+ #include "components/exo/data_device.h"
+ #include "components/exo/data_device_delegate.h"
+ #include "components/exo/data_offer.h"
+@@ -157,6 +162,84 @@ class WaylandDataSourceDelegate : public DataSourceDelegate {
+   SecurityDelegate* GetSecurityDelegate() const override {
+     return ::exo::wayland::GetSecurityDelegate(client_);
+   }
++  // NickelOS: a client names a file by its path in its own view of the file
++  // system, which for an app in a sandbox (Flatpak) differs from Chrome's.
++  // The file passes if that path leads, in both views, to the same place:
++  // the same file system and the same path in it, from the mount tables
++  // (/proc/<pid>/mountinfo, which Chrome may read; its /proc/<pid>/root it
++  // may not). A document portal path is a file the portal gave the app.
++  bool CanReadFile(const base::FilePath& path) const override {
++    pid_t pid = 0;
++    uid_t uid = 0;
++    gid_t gid = 0;
++    wl_client_get_credentials(client_, &pid, &uid, &gid);
++    if (pid <= 0 || !path.IsAbsolute() || path.ReferencesParent()) {
++      return false;
++    }
++    if (path.value().starts_with(
++            base::StringPrintf("/run/user/%u/doc/", uid))) {
++      return true;
++    }
++    const std::optional<std::string> own =
++        FileSystemPlace("/proc/self/mountinfo", path.value());
++    const std::optional<std::string> theirs = FileSystemPlace(
++        base::StringPrintf("/proc/%d/mountinfo", pid), path.value());
++    return own && theirs && *own == *theirs;
++  }
++
++  // Where |path| leads in the mount table |mountinfo|: the device of the
++  // mount it is under (the longest mount point; a later mount covers an
++  // earlier one) and its path in that file system.
++  static std::optional<std::string> FileSystemPlace(
++      const std::string& mountinfo,
++      const std::string& path) {
++    std::string table;
++    if (!base::ReadFileToString(base::FilePath(mountinfo), &table)) {
++      return std::nullopt;
++    }
++    std::string device;
++    std::string root;
++    std::string point;
++    for (std::string_view line : base::SplitStringPiece(
++             table, "\n", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY)) {
++      // ID PARENT MAJOR:MINOR ROOT MOUNT-POINT ...
++      std::vector<std::string> fields = base::SplitString(
++          line, " ", base::KEEP_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
++      if (fields.size() < 5) {
++        continue;
++      }
++      const std::string mount_point = Unescape(fields[4]);
++      const bool under = mount_point == "/" || path == mount_point ||
++                         base::StartsWith(path, mount_point + "/");
++      if (under && mount_point.size() >= point.size()) {
++        device = fields[2];
++        root = Unescape(fields[3]);
++        point = mount_point;
++      }
++    }
++    if (device.empty()) {
++      return std::nullopt;
++    }
++    const std::string rest = point == "/" ? path : path.substr(point.size());
++    return device + ":" + (root == "/" ? rest : root + rest);
++  }
++
++  // mountinfo writes a space, tab, newline or backslash as \ooo (octal).
++  static std::string Unescape(const std::string& field) {
++    std::string out;
++    for (size_t i = 0; i < field.size(); i++) {
++      if (field[i] == '\\' && i + 3 < field.size() &&
++          base::IsAsciiDigit(field[i + 1])) {
++        out.push_back(static_cast<char>((field[i + 1] - '0') * 64 +
++                                        (field[i + 2] - '0') * 8 +
++                                        (field[i + 3] - '0')));
++        i += 3;
++      } else {
++        out.push_back(field[i]);
++      }
++    }
++    return out;
++  }
+ 
+  private:
+   const raw_ptr<wl_client> client_;

@@ -1,0 +1,32 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] CHROMIUM: LSM: overlayfs mounts for root in the initial namespace
+
+The ChromiumOS LSM refuses every overlayfs mount unless the kernel is
+booted with chromiumos.allow_overlayfs, which would allow them for
+everyone. NickelOS runs Android in Waydroid, whose container manager
+(root, on the host) layers its changes over Android's read-only system
+image with overlayfs; ARM translation libraries and NVIDIA's guest stack
+go into that layer. Allow overlayfs mounts by processes with CAP_SYS_ADMIN
+in the initial user namespace, and keep refusing them everywhere else,
+inside user namespaces in particular, where overlayfs had its privilege
+escalations.
+
+---
+--- a/security/chromiumos/lsm.c
++++ b/security/chromiumos/lsm.c
+@@ -92,7 +92,14 @@
+ 					const char *type, unsigned long flags,
+ 					void *data)
+ {
+-	if (!allow_overlayfs && type && !strcmp(type, "overlay")) {
++	/*
++	 * NickelOS: overlayfs mounts made by root in the initial user namespace
++	 * are allowed (Waydroid's container manager layers its changes over
++	 * Android's read-only image); everyone else's stay refused, inside user
++	 * namespaces too, where overlayfs had its privilege escalations.
++	 */
++	if (!allow_overlayfs && type && !strcmp(type, "overlay") &&
++	    !capable(CAP_SYS_ADMIN)) {
+ 		report("sb_mount", path, "Overlayfs mounts prohibited");
+ 		pr_notice("sb_mount dev=%s type=%s flags=%#lx\n",
+ 			  dev_name, type, flags);

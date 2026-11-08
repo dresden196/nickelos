@@ -1,0 +1,409 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] os_install_service: let the user pick the install disk
+
+The service chose the install disk by itself (largest non-removable
+disk that is not the installer). NickelOS shows a disk picker when more
+than one disk qualifies:
+
+- GetInstallDestinations returns the candidate disks as JSON, best
+  first, with path, model, size, removable and which one an automatic
+  install would choose (lsblk now also reports MODEL).
+- StartOsInstallTo(device_path) installs to the chosen disk; it refuses
+  any path that is not a current candidate.
+
+zram devices are never candidates: lsblk's `--exclude 253` missed zram
+when its major number differed, so the automatic choice could pick it.
+
+StartOsInstall (automatic choice) and auto-install are unchanged otherwise.
+
+---
+diff -ruN a/src/bin/os_install_service/install.rs b/src/bin/os_install_service/install.rs
+--- a/src/bin/os_install_service/install.rs
++++ b/src/bin/os_install_service/install.rs
+@@ -4,6 +4,8 @@
+ 
+ use std::fs;
+ use std::path::{Path, PathBuf};
++
++use serde::Serialize;
+ use std::process::Command;
+ 
+ use super::install_logger;
+@@ -24,6 +26,9 @@
+     #[error("no valid destination disk found")]
+     NoDestinationDeviceFound,
+ 
++    #[error("requested destination is not an install candidate")]
++    InvalidDestination,
++
+     #[error("failed to run process: {0}")]
+     Process(util::ProcessError),
+ }
+@@ -46,7 +51,15 @@
+ /// - Secondarily prefer larger disks over smaller disks
+ ///
+ /// Return value is a full device path, for example "/dev/sdd".
+-fn choose_destination_device_path(mut disks: Vec<Disk>) -> Option<PathBuf> {
++fn choose_destination_device_path(disks: Vec<Disk>) -> Option<PathBuf> {
++    let candidates = candidate_disks(disks);
++    candidates.first().map(|dsk| dsk.device_path.clone())
++}
++
++/// Disks that may be installed to, best first: not the installer's own
++/// disk, big enough, non-removable disks before removable ones, larger
++/// before smaller. The first one is what an automatic install picks.
++fn candidate_disks(mut disks: Vec<Disk>) -> Vec<Disk> {
+     // Estimate of the minimum required disk size. This doesn't need
+     // to be especially precise.
+     let minimum_size_in_bytes = gibibytes_to_bytes(14);
+@@ -71,19 +84,43 @@
+         disks.len()
+     );
+ 
+-    // Sort disks from largest to smallest.
+-    disks.sort_unstable_by_key(|dsk| dsk.size_in_bytes);
+-    disks.reverse();
+-
+-    // Prefer to install to a non-removable disk. This is not a hard
+-    // requirement.
+-    let best_disk = match disks.iter().find(|dsk| !dsk.is_removable) {
+-        Some(disk) => Some(disk),
+-        None => disks.first(),
+-    }?;
++    // Sort disks from largest to smallest, then (stably) put
++    // non-removable disks first: installing to a non-removable disk is
++    // preferred, though not required.
++    disks.sort_by_key(|dsk| std::cmp::Reverse(dsk.size_in_bytes));
++    disks.sort_by_key(|dsk| dsk.is_removable);
++
++    if let Some(best_disk) = disks.first() {
++        info!("best disk: {:?}", best_disk);
++    }
++    disks
++}
+ 
+-    info!("best disk: {:?}", best_disk);
+-    Some(best_disk.device_path.clone())
++/// An install destination offered to the user (NickelOS disk picker).
++#[derive(Debug, Serialize)]
++pub struct Destination {
++    pub path: String,
++    pub model: String,
++    pub size_in_bytes: u64,
++    pub removable: bool,
++    /// What an automatic install would choose.
++    pub recommended: bool,
++}
++
++/// List the disks the OS can be installed to, best first.
++pub fn list_destinations() -> std::result::Result<Vec<Destination>, Error> {
++    let disks = disk::get_disks().map_err(Error::DiskEnumerationFailed)?;
++    Ok(candidate_disks(disks)
++        .into_iter()
++        .enumerate()
++        .map(|(i, dsk)| Destination {
++            path: dsk.device_path.to_string_lossy().into_owned(),
++            model: dsk.model,
++            size_in_bytes: dsk.size_in_bytes,
++            removable: dsk.is_removable,
++            recommended: i == 0,
++        })
++        .collect())
+ }
+ 
+ /// Set up the disk with an empty GPT table.
+@@ -179,7 +216,9 @@
+     Ok(())
+ }
+ 
+-pub fn install() -> Result {
++/// Install to `requested` if given (it must be one of the candidates),
++/// otherwise to the automatically chosen disk.
++pub fn install(requested: Option<PathBuf>) -> Result {
+     // Check if running from installer. This shouldn't really be
+     // needed since the install service should only run from the
+     // installer, but check anyway just to be safe.
+@@ -198,7 +237,20 @@
+     let disks = disk::get_disks().map_err(Error::DiskEnumerationFailed)?;
+ 
+     // Pick destination device
+-    let dest = choose_destination_device_path(disks).ok_or(Error::NoDestinationDeviceFound)?;
++    let dest = match requested {
++        Some(path) => {
++            if !candidate_disks(disks)
++                .iter()
++                .any(|dsk| dsk.device_path == path)
++            {
++                error!("refusing to install to {}", path.display());
++                return Err(Error::InvalidDestination);
++            }
++            path
++        }
++        None => choose_destination_device_path(disks).ok_or(Error::NoDestinationDeviceFound)?,
++    };
++    info!("installing to {}", dest.display());
+ 
+     if let Err(err) = install_to_device(&dest) {
+         error!("installation failed: {}", err);
+@@ -237,6 +289,7 @@
+                 is_removable: false,
+                 is_root: false,
+                 size_in_bytes: gibibytes_to_bytes(32),
++                model: String::new(),
+             }]),
+             Some(PathBuf::from("/dev/sda"))
+         );
+@@ -249,12 +302,14 @@
+                     is_removable: false,
+                     is_root: false,
+                     size_in_bytes: gibibytes_to_bytes(1),
++                    model: String::new(),
+                 },
+                 Disk {
+                     device_path: PathBuf::from("/dev/sdb"),
+                     is_removable: false,
+                     is_root: false,
+                     size_in_bytes: gibibytes_to_bytes(32),
++                    model: String::new(),
+                 }
+             ]),
+             Some(PathBuf::from("/dev/sdb"))
+@@ -268,6 +323,7 @@
+                 is_removable: true,
+                 is_root: false,
+                 size_in_bytes: gibibytes_to_bytes(32),
++                model: String::new(),
+             }]),
+             Some(PathBuf::from("/dev/sda"))
+         );
+@@ -283,6 +339,7 @@
+                 is_removable: false,
+                 is_root: true,
+                 size_in_bytes: gibibytes_to_bytes(32),
++                model: String::new(),
+             }]),
+             None,
+         );
+@@ -295,12 +352,14 @@
+                     is_removable: false,
+                     is_root: true,
+                     size_in_bytes: gibibytes_to_bytes(32),
++                    model: String::new(),
+                 },
+                 Disk {
+                     device_path: PathBuf::from("/dev/sdb"),
+                     is_removable: false,
+                     is_root: false,
+-                    size_in_bytes: gibibytes_to_bytes(1)
++                    size_in_bytes: gibibytes_to_bytes(1),
++                    model: String::new(),
+                 }
+             ]),
+             None,
+diff -ruN a/src/bin/os_install_service/main.rs b/src/bin/os_install_service/main.rs
+--- a/src/bin/os_install_service/main.rs
++++ b/src/bin/os_install_service/main.rs
+@@ -5,7 +5,7 @@
+ mod install;
+ mod install_logger;
+ 
+-use std::path::Path;
++use std::path::{Path, PathBuf};
+ use std::sync::Arc;
+ use std::thread;
+ use std::time::Duration;
+@@ -21,6 +21,11 @@
+ 
+ include!(concat!(env!("OUT_DIR"), "/dbus_constants.rs"));
+ 
++/// NickelOS: list install destinations (a JSON array) for the disk picker,
++/// and install to the one the user chose.
++const METHOD_GET_INSTALL_DESTINATIONS: &str = "GetInstallDestinations";
++const METHOD_START_OS_INSTALL_TO: &str = "StartOsInstallTo";
++
+ #[derive(Clone, Debug, Eq, PartialEq)]
+ enum Status {
+     InProgress,
+@@ -132,12 +137,13 @@
+ /// Function that actually does the installation. Normally this is
+ /// `install::install`, but other functions can be passed in for
+ /// testing.
+-type InstallFn = fn() -> install::Result;
++type InstallFn = fn(Option<PathBuf>) -> install::Result;
+ 
+ struct Installer {
+     /// Channel for the service to tell the installer thread to start
+     /// installing.
+-    start_sender: cbchannel::Sender<()>,
++    /// The destination is None for an automatic choice.
++    start_sender: cbchannel::Sender<Option<PathBuf>>,
+ 
+     /// Channel for the installer thread to send messages to the
+     /// service. These messages then get sent as dbus signal.
+@@ -180,11 +186,11 @@
+ 
+     fn event_loop(
+         install_fn: InstallFn,
+-        start_receiver: cbchannel::Receiver<()>,
++        start_receiver: cbchannel::Receiver<Option<PathBuf>>,
+         signal_sender: cbchannel::Sender<SignalContent>,
+     ) {
+-        while start_receiver.recv().is_ok() {
+-            let status = match (install_fn)() {
++        while let Ok(dest) = start_receiver.recv() {
++            let status = match (install_fn)(dest) {
+                 Ok(()) => {
+                     info!("install succeeded");
+                     Status::Succeeded
+@@ -256,7 +262,7 @@
+         // background; further updates are delivered via signal.
+         let method_start_os_install = f
+             .method(METHOD_START_OS_INSTALL, (), move |m| {
+-                let status = match start_sender.send(()) {
++                let status = match start_sender.send(None) {
+                     Ok(()) => Status::InProgress,
+                     Err(err) => {
+                         error!("failed to start install: {}", err);
+@@ -270,6 +276,37 @@
+             })
+             .outarg::<&str, _>("status");
+ 
++        // Like StartOsInstall, to the disk the user picked.
++        let start_sender_to = self.installer.start_sender.clone();
++        let method_start_os_install_to = f
++            .method(METHOD_START_OS_INSTALL_TO, (), move |m| {
++                let path: &str = m.msg.read1()?;
++                let status = match start_sender_to.send(Some(PathBuf::from(path))) {
++                    Ok(()) => Status::InProgress,
++                    Err(err) => {
++                        error!("failed to start install: {}", err);
++                        Status::Failed
++                    }
++                };
++                Ok(vec![m.msg.method_return().append1(status.as_str())])
++            })
++            .inarg::<&str, _>("device_path")
++            .outarg::<&str, _>("status");
++
++        let method_get_install_destinations = f
++            .method(METHOD_GET_INSTALL_DESTINATIONS, (), move |m| {
++                let json = match install::list_destinations() {
++                    Ok(destinations) => serde_json::to_string(&destinations)
++                        .unwrap_or_else(|_| "[]".to_string()),
++                    Err(err) => {
++                        error!("failed to list destinations: {}", err);
++                        "[]".to_string()
++                    }
++                };
++                Ok(vec![m.msg.method_return().append1(json)])
++            })
++            .outarg::<&str, _>("destinations_json");
++
+         // Register the service's dbus method and signal.
+         let tree = f
+             .tree(())
+@@ -279,6 +316,8 @@
+                     .add(
+                         f.interface(OS_INSTALL_SERVICE_INTERFACE, ())
+                             .add_m(method_start_os_install)
++                            .add_m(method_start_os_install_to)
++                            .add_m(method_get_install_destinations)
+                             .add_s(signal.clone()),
+                     ),
+             )
+@@ -289,7 +328,7 @@
+         let autoinstall = is_autoinstall_file_present();
+         if autoinstall {
+             info!("autoinstall file found");
+-            match self.installer.start_sender.try_send(()) {
++            match self.installer.start_sender.try_send(None) {
+                 Ok(()) => info!("starting install automatically"),
+                 Err(err) => error!("failed to start autoinstall: {}", err),
+             }
+@@ -389,7 +428,7 @@
+         *guard = Some(result)
+     }
+ 
+-    fn mock_install() -> install::Result {
++    fn mock_install(_dest: Option<PathBuf>) -> install::Result {
+         let mut guard = MOCK_INSTALL_RESULT.lock().unwrap();
+         guard.take().unwrap()
+     }
+diff -ruN a/src/disk.rs b/src/disk.rs
+--- a/src/disk.rs
++++ b/src/disk.rs
+@@ -39,6 +39,9 @@
+ 
+     /// Size of the disk in bytes.
+     pub size_in_bytes: u64,
++
++    /// Model name as reported by the disk, possibly empty.
++    pub model: String,
+ }
+ 
+ /// Get information about all disk devices.
+@@ -53,11 +56,17 @@
+         if device.device_type != "disk" {
+             continue;
+         }
++        // zram (RAM-backed swap) is never an install target. lsblk's
++        // `--exclude 253` misses it when its major number is different.
++        if device.kernel_name.starts_with("/dev/zram") {
++            continue;
++        }
+         disks.push(Disk {
+             device_path: Path::new(&device.name).into(),
+             is_removable: device.is_removable,
+             is_root: Path::new(&device.kernel_name) == root_disk_kname,
+             size_in_bytes: device.size_in_bytes,
++            model: device.model.unwrap_or_default().trim().to_string(),
+         });
+     }
+     Ok(disks)
+@@ -139,6 +148,7 @@
+             is_removable: false,
+             size_in_bytes,
+             device_type: "part".into(),
++            model: None,
+         }
+     }
+ 
+diff -ruN a/src/lsblk.rs b/src/lsblk.rs
+--- a/src/lsblk.rs
++++ b/src/lsblk.rs
+@@ -37,6 +37,10 @@
+     /// Device type.
+     #[serde(rename = "type")]
+     pub device_type: String,
++
++    /// Disk model, if the device reports one.
++    #[serde(default)]
++    pub model: Option<String>,
+ }
+ 
+ impl LsBlkDevice {
+@@ -107,7 +111,7 @@
+         "--bytes",
+         // Select the fields to output
+         "--output",
+-        "KNAME,NAME,HOTPLUG,SIZE,TYPE",
++        "KNAME,NAME,HOTPLUG,SIZE,TYPE,MODEL",
+         // Format output as JSON
+         "--json",
+         // Print full device paths
+@@ -155,6 +159,7 @@
+             is_removable: false,
+             size_in_bytes: 0,
+             device_type: "part".into(),
++            model: None,
+         };
+ 
+         // Valid partition devices.
+@@ -184,6 +189,7 @@
+             is_removable,
+             size_in_bytes,
+             device_type: dtype.into(),
++            model: None,
+         }
+     }
+ 

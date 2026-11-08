@@ -1,0 +1,4 @@
+# Yours: where emerge writes what it adds for you (autounmask writes to the
+# last file in this folder, and this one sorts after the OS's). Without it,
+# emerge appended to an OS file, and your copy of that file then hid the
+# OS's next version of it. Edit it, or add files of your own beside it.

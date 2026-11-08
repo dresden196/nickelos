@@ -1,0 +1,58 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# The machine's own boot scripts and services, kept on the data partition
+# because the root partition is replaced by every update:
+#   /usr/local/etc/nickel/boot.d/NAME          run once at each boot, as root,
+#                                              in name order
+#   /usr/local/etc/nickel/services/NAME/run    kept running as root (the
+#                                              nickel-local-service job,
+#                                              instance NAME)
+# A file is used only if it, and every directory above it up to /usr/local,
+# belongs to root and nobody else can write it: anything else could make
+# itself root this way.
+#   nickel-local-services              (nickel-local-services job, at boot)
+#   nickel-local-services --check NAME (may service NAME run?)
+dir=/usr/local/etc/nickel
+
+trusted() {
+	path=$(readlink -f "$1") || return 1
+	while :; do
+		[ -e "${path}" ] || return 1
+		# shellcheck disable=SC2046 # owner and mode, two words
+		set -- $(stat -c '%u %a' "${path}")
+		[ "$1" = 0 ] || return 1
+		[ $((0$2 & 022)) -eq 0 ] || return 1
+		[ "${path}" = /usr/local ] && return 0
+		case "${path}" in /usr/local/*) ;; *) return 1 ;; esac
+		path=${path%/*}
+	done
+}
+
+log() {
+	logger -t nickel-local-services "$*"
+}
+
+if [ "$1" = --check ]; then
+	trusted "${dir}/services/$2/run" && exit 0
+	log "services/$2/run: not root's alone, not started"
+	exit 1
+fi
+
+[ -d "${dir}" ] || exit 0
+for script in "${dir}"/boot.d/*; do
+	[ -f "${script}" ] && [ -x "${script}" ] || continue
+	if ! trusted "${script}"; then
+		log "boot.d/${script##*/}: not root's alone, skipped"
+		continue
+	fi
+	"${script}" || log "boot.d/${script##*/} failed ($?)"
+done
+for run in "${dir}"/services/*/run; do
+	[ -f "${run}" ] && [ -x "${run}" ] || continue
+	name=${run%/run}
+	name=${name##*/}
+	initctl start nickel-local-service NAME="${name}" >/dev/null 2>&1 ||
+		log "services/${name}: did not start"
+done
+exit 0

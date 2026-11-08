@@ -1,0 +1,807 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS host apps are their own kind of app, not Crostini's
+
+NickelOS's Linux apps run on the device itself. nickel-appd registered
+them in the GuestOS registry as Crostini apps (VM type TERMINA, VM
+"nickel"), so everywhere outside the paths 0002 bends they were treated as
+apps in a Crostini VM. Now they have their own types (docs/host-apps.md in
+the NickelOS overlay):
+
+- system_api (Chrome's copy; platform2's has the same patch):
+  vm_tools.apps.VmType NICKEL_HOST = 100, high so that a type ChromiumOS
+  adds later does not take it.
+- App Service: AppType::kNickelHost (also in the app_types proto, value
+  100, and the App Management mojom), with its own publisher,
+  NickelHostApps, a GuestOSApps on the pattern of the Crostini one:
+  allowed whenever host apps are (crostini::IsNickelNativeAppsAllowed),
+  launching through crostini::LaunchCrostiniApp, which hands VM "nickel"
+  to nickel-appd (0002), not shown in App Management yet.
+- GuestOS registry: NICKEL_HOST apps are enabled with host apps and
+  handle links through the same launch path; guest_os::ToAppType maps
+  the VM type to the app type.
+- Every switch over app types and the comparisons that set a window's
+  type and the launcher's behavior treat kNickelHost like kCrostini, so
+  host apps behave as before. Two differences: they get no "Linux apps"
+  launcher folder, and Files offers them for "Open with" without asking
+  whether the files can be shared with a VM.
+
+App ids are unchanged: nickel-appd keeps VM name "nickel" and container
+"host", from which the ids are derived.
+
+diff --git a/chrome/browser/apps/app_service/metrics/app_discovery_metrics.cc b/chrome/browser/apps/app_service/metrics/app_discovery_metrics.cc
+index 022ccac43e2a9..00c3ff25241ae 100644
+--- a/chrome/browser/apps/app_service/metrics/app_discovery_metrics.cc
++++ b/chrome/browser/apps/app_service/metrics/app_discovery_metrics.cc
+@@ -420,6 +420,7 @@ std::optional<std::string> AppDiscoveryMetrics::GetAppStringToRecord(
+     // app_id. For more documentation as to what the desktop_id and app_id,
+     // refer to the documentation in
+     // //chrome/browser/ash/guest_os/guest_os_registry_service.h.
++    case AppType::kNickelHost:
+     case AppType::kCrostini:
+     // Borealis apps are identified using the steam app ID, which is a number
+     // assigned to games by steam.
+diff --git a/chrome/browser/apps/app_service/metrics/app_platform_metrics.cc b/chrome/browser/apps/app_service/metrics/app_platform_metrics.cc
+index a145e360ebdbc..9940f5b3f5ac0 100644
+--- a/chrome/browser/apps/app_service/metrics/app_platform_metrics.cc
++++ b/chrome/browser/apps/app_service/metrics/app_platform_metrics.cc
+@@ -83,6 +83,7 @@ apps::AppTypeNameV2 GetAppTypeNameV2(Profile* profile,
+       return apps::AppTypeNameV2::kUnknown;
+     case apps::AppType::kArc:
+       return apps::AppTypeNameV2::kArc;
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       return apps::AppTypeNameV2::kCrostini;
+     case apps::AppType::kChromeApp:
+@@ -127,6 +128,7 @@ apps::AppTypeNameV2 GetAppTypeNameV2(Profile* profile,
+       return apps::AppTypeNameV2::kUnknown;
+     case apps::AppType::kArc:
+       return apps::AppTypeNameV2::kArc;
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       return apps::AppTypeNameV2::kCrostini;
+     case apps::AppType::kChromeApp:
+@@ -447,6 +449,7 @@ ukm::SourceId AppPlatformMetrics::GetSourceId(Profile* profile,
+       return ukm::AppSourceUrlRecorder::GetSourceIdForUrl(url,
+                                                           ukm::AppType::kPWA);
+     }
++    case AppType::kNickelHost:
+     case AppType::kCrostini:
+       return ukm::AppSourceUrlRecorder::GetSourceIdForUrl(
+           url, ukm::AppType::kCrostini);
+diff --git a/chrome/browser/apps/app_service/metrics/app_platform_metrics_utils.cc b/chrome/browser/apps/app_service/metrics/app_platform_metrics_utils.cc
+index 3e23eb1337707..dce1d5f2787fb 100644
+--- a/chrome/browser/apps/app_service/metrics/app_platform_metrics_utils.cc
++++ b/chrome/browser/apps/app_service/metrics/app_platform_metrics_utils.cc
+@@ -240,6 +240,7 @@ AppTypeName GetAppTypeNameForWindow(Profile* profile,
+       return apps::AppTypeName::kUnknown;
+     case AppType::kArc:
+       return apps::AppTypeName::kArc;
++    case AppType::kNickelHost:
+     case AppType::kCrostini:
+       return apps::AppTypeName::kCrostini;
+     case AppType::kChromeApp:
+@@ -364,6 +365,7 @@ bool ShouldRecordAppKMForAppTypeName(AppType app_type) {
+     case AppType::kChromeApp:
+     case AppType::kWeb:
+     case AppType::kSystemWeb:
++    case AppType::kNickelHost:
+     case AppType::kCrostini:
+     case AppType::kBorealis:
+     case AppType::kExtension:
+@@ -410,6 +412,7 @@ AppTypeName GetAppTypeName(Profile* profile,
+       return apps::AppTypeName::kUnknown;
+     case AppType::kArc:
+       return apps::AppTypeName::kArc;
++    case AppType::kNickelHost:
+     case AppType::kCrostini:
+       return apps::AppTypeName::kCrostini;
+     case AppType::kChromeApp:
+diff --git a/chrome/browser/apps/app_service/publishers/BUILD.gn b/chrome/browser/apps/app_service/publishers/BUILD.gn
+index d76979ac6b4f2..b485d0df0ee95 100644
+--- a/chrome/browser/apps/app_service/publishers/BUILD.gn
++++ b/chrome/browser/apps/app_service/publishers/BUILD.gn
+@@ -62,6 +62,8 @@ source_set("publishers") {
+       "bruschetta_apps.h",
+       "crostini_apps.cc",
+       "crostini_apps.h",
++      "nickel_host_apps.cc",
++      "nickel_host_apps.h",
+       "extension_apps_chromeos.cc",
+       "extension_apps_chromeos.h",
+       "guest_os_apps.cc",
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc b/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
+new file mode 100644
+index 0000000000000..6883117e6a12f
+--- /dev/null
++++ b/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
+@@ -0,0 +1,99 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/apps/app_service/publishers/nickel_host_apps.h"
++
++#include <utility>
++
++#include "ash/public/cpp/app_menu_constants.h"
++#include "ash/strings/grit/ash_strings.h"
++#include "chrome/browser/apps/app_service/app_service_proxy.h"
++#include "chrome/browser/apps/app_service/menu_util.h"
++#include "chrome/browser/ash/crostini/crostini_util.h"
++#include "chrome/grit/chrome_unscaled_resources.h"
++#include "chrome/grit/generated_resources.h"
++#include "components/services/app_service/public/cpp/intent.h"
++#include "ui/display/types/display_constants.h"
++
++namespace apps {
++
++NickelHostApps::NickelHostApps(AppServiceProxy* proxy) : GuestOSApps(proxy) {}
++
++NickelHostApps::~NickelHostApps() = default;
++
++bool NickelHostApps::CouldBeAllowed() const {
++  return crostini::IsNickelNativeAppsAllowed(profile());
++}
++
++apps::AppType NickelHostApps::AppType() const {
++  return AppType::kNickelHost;
++}
++
++guest_os::VmType NickelHostApps::VmType() const {
++  return guest_os::VmType::NICKEL_HOST;
++}
++
++int NickelHostApps::DefaultIconResourceId() const {
++  return IDR_LOGO_CROSTINI_DEFAULT;
++}
++
++// Host apps are still registered under VM "nickel" (the name only feeds
++// their app ids), which crostini::LaunchCrostiniApp hands to nickel-appd
++// before any Crostini step.
++void NickelHostApps::Launch(const std::string& app_id,
++                            int32_t event_flags,
++                            LaunchSource launch_source,
++                            WindowInfoPtr window_info) {
++  crostini::LaunchCrostiniApp(
++      profile(), app_id,
++      window_info ? window_info->display_id : display::kInvalidDisplayId);
++}
++
++void NickelHostApps::LaunchAppWithIntent(const std::string& app_id,
++                                         int32_t event_flags,
++                                         IntentPtr intent,
++                                         LaunchSource launch_source,
++                                         WindowInfoPtr window_info,
++                                         LaunchCallback callback) {
++  auto args = ArgsFromIntent(intent.get());
++  crostini::LaunchCrostiniAppWithIntent(
++      profile(), app_id,
++      window_info ? window_info->display_id : display::kInvalidDisplayId,
++      std::move(intent), std::move(args),
++      base::BindOnce([](bool success, const std::string& failure_reason) {
++        LOG_IF(ERROR, !success) << "NickelOS app launch error: "
++                                << failure_reason;
++        return success ? LaunchResult::kSuccess : LaunchResult::kFailed;
++      }).Then(std::move(callback)));
++}
++
++void NickelHostApps::GetMenuModel(
++    const std::string& app_id,
++    MenuType menu_type,
++    int64_t display_id,
++    base::OnceCallback<void(MenuItems)> callback) {
++  MenuItems menu_items;
++  if (menu_type == MenuType::kShelf) {
++    AddCommandItem(ash::APP_CONTEXT_MENU_NEW_WINDOW, IDS_APP_LIST_NEW_WINDOW,
++                   menu_items);
++  }
++  if (ShouldAddOpenItem(app_id, menu_type, profile())) {
++    AddCommandItem(ash::LAUNCH_NEW, IDS_APP_CONTEXT_MENU_ACTIVATE_ARC,
++                   menu_items);
++  }
++  if (ShouldAddCloseItem(app_id, menu_type, profile())) {
++    AddCommandItem(ash::MENU_CLOSE, IDS_SHELF_CONTEXT_MENU_CLOSE, menu_items);
++  }
++  std::move(callback).Run(std::move(menu_items));
++}
++
++void NickelHostApps::CreateAppOverrides(
++    const guest_os::GuestOsRegistryService::Registration& registration,
++    App* app) {
++  // App Management and uninstalling come with nickel-appd's uninstall
++  // support (docs/host-apps.md, step 3).
++  app->show_in_management = false;
++}
++
++}  // namespace apps
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_host_apps.h b/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
+new file mode 100644
+index 0000000000000..8481d89385ec7
+--- /dev/null
++++ b/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
+@@ -0,0 +1,59 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_APPS_APP_SERVICE_PUBLISHERS_NICKEL_HOST_APPS_H_
++#define CHROME_BROWSER_APPS_APP_SERVICE_PUBLISHERS_NICKEL_HOST_APPS_H_
++
++#include <string>
++
++#include "chrome/browser/apps/app_service/app_service_proxy_forward.h"
++#include "chrome/browser/apps/app_service/publishers/guest_os_apps.h"
++#include "chrome/browser/ash/guest_os/guest_os_registry_service.h"
++#include "components/services/app_service/public/cpp/app_launch_util.h"
++#include "components/services/app_service/public/cpp/app_types.h"
++#include "components/services/app_service/public/cpp/menu.h"
++
++namespace apps {
++
++// NickelOS: Linux apps installed on the device itself (Flatpak, Portage,
++// AppImages), which run on the host as Wayland or X11 clients of Exo, not in
++// a VM. nickel-appd registers their desktop entries in the GuestOS registry
++// with VM type NICKEL_HOST and starts them when they are launched.
++class NickelHostApps : public GuestOSApps {
++ public:
++  explicit NickelHostApps(AppServiceProxy* proxy);
++  NickelHostApps(const NickelHostApps&) = delete;
++  NickelHostApps& operator=(const NickelHostApps&) = delete;
++  ~NickelHostApps() override;
++
++ private:
++  bool CouldBeAllowed() const override;
++  apps::AppType AppType() const override;
++  guest_os::VmType VmType() const override;
++
++  // apps::AppPublisher overrides.
++  int DefaultIconResourceId() const override;
++  void Launch(const std::string& app_id,
++              int32_t event_flags,
++              LaunchSource launch_source,
++              WindowInfoPtr window_info) override;
++  void LaunchAppWithIntent(const std::string& app_id,
++                           int32_t event_flags,
++                           IntentPtr intent,
++                           LaunchSource launch_source,
++                           WindowInfoPtr window_info,
++                           LaunchCallback callback) override;
++  void GetMenuModel(const std::string& app_id,
++                    MenuType menu_type,
++                    int64_t display_id,
++                    base::OnceCallback<void(MenuItems)> callback) override;
++
++  void CreateAppOverrides(
++      const guest_os::GuestOsRegistryService::Registration& registration,
++      App* app) override;
++};
++
++}  // namespace apps
++
++#endif  // CHROME_BROWSER_APPS_APP_SERVICE_PUBLISHERS_NICKEL_HOST_APPS_H_
+diff --git a/chrome/browser/apps/app_service/publishers/publisher_host_impl.cc b/chrome/browser/apps/app_service/publishers/publisher_host_impl.cc
+index ecc704e9a197c..af70b8d7d24e6 100644
+--- a/chrome/browser/apps/app_service/publishers/publisher_host_impl.cc
++++ b/chrome/browser/apps/app_service/publishers/publisher_host_impl.cc
+@@ -13,6 +13,7 @@
+ #include "chrome/browser/ash/borealis/borealis_service_factory.h"
+ #include "chrome/browser/apps/app_service/publishers/bruschetta_apps.h"
+ #include "chrome/browser/apps/app_service/publishers/crostini_apps.h"
++#include "chrome/browser/apps/app_service/publishers/nickel_host_apps.h"
+ #include "chrome/browser/apps/app_service/publishers/extension_apps_chromeos.h"
+ #include "chrome/browser/ash/guest_os/guest_os_registry_service_factory.h"
+ #include "chrome/browser/profiles/profile.h"
+@@ -105,6 +106,9 @@ void PublisherHostImpl::Initialize() {
+     crostini_apps_ = std::make_unique<CrostiniApps>(proxy_);
+     crostini_apps_->Initialize();
+ 
++    nickel_host_apps_ = std::make_unique<NickelHostApps>(proxy_);
++    nickel_host_apps_->Initialize();
++
+   }
+ 
+   chrome_apps_ =
+diff --git a/chrome/browser/apps/app_service/publishers/publisher_host_impl.h b/chrome/browser/apps/app_service/publishers/publisher_host_impl.h
+index e9e40f999dc18..1f1808b04ac53 100644
+--- a/chrome/browser/apps/app_service/publishers/publisher_host_impl.h
++++ b/chrome/browser/apps/app_service/publishers/publisher_host_impl.h
+@@ -22,6 +22,7 @@ namespace apps {
+ class BorealisApps;
+ class BruschettaApps;
+ class CrostiniApps;
++class NickelHostApps;
+ class ExtensionAppsChromeOs;
+ #else
+ class ExtensionApps;
+@@ -52,6 +53,7 @@ class PublisherHostImpl : public PublisherHost {
+   std::unique_ptr<BorealisApps> borealis_apps_;
+   std::unique_ptr<BruschettaApps> bruschetta_apps_;
+   std::unique_ptr<CrostiniApps> crostini_apps_;
++  std::unique_ptr<NickelHostApps> nickel_host_apps_;
+   std::unique_ptr<ExtensionAppsChromeOs> chrome_apps_;
+   std::unique_ptr<ExtensionAppsChromeOs> extension_apps_;
+   std::unique_ptr<web_app::WebApps> web_apps_;
+diff --git a/chrome/browser/apps/link_capturing/chromeos_apps_intent_picker_delegate.cc b/chrome/browser/apps/link_capturing/chromeos_apps_intent_picker_delegate.cc
+index c0e6ad230acd0..d59c9ec585853 100644
+--- a/chrome/browser/apps/link_capturing/chromeos_apps_intent_picker_delegate.cc
++++ b/chrome/browser/apps/link_capturing/chromeos_apps_intent_picker_delegate.cc
+@@ -35,6 +35,7 @@ PickerEntryType GetPickerEntryType(AppType app_type) {
+   PickerEntryType picker_entry_type = PickerEntryType::kUnknown;
+   switch (app_type) {
+     case AppType::kUnknown:
++    case AppType::kNickelHost:
+     case AppType::kCrostini:
+     case AppType::kPluginVm:
+     case AppType::kChromeApp:
+diff --git a/chrome/browser/apps/link_capturing/chromeos_reimpl_navigation_capturing_throttle.cc b/chrome/browser/apps/link_capturing/chromeos_reimpl_navigation_capturing_throttle.cc
+index 3a8c9224a9c67..de0c9beb48be3 100644
+--- a/chrome/browser/apps/link_capturing/chromeos_reimpl_navigation_capturing_throttle.cc
++++ b/chrome/browser/apps/link_capturing/chromeos_reimpl_navigation_capturing_throttle.cc
+@@ -121,6 +121,7 @@ IntentHandlingMetrics::Platform GetMetricsPlatform(AppType app_type) {
+     case AppType::kSystemWeb:
+       return IntentHandlingMetrics::Platform::PWA;
+     case AppType::kUnknown:
++    case AppType::kNickelHost:
+     case AppType::kCrostini:
+     case AppType::kChromeApp:
+     case AppType::kPluginVm:
+diff --git a/chrome/browser/ash/app_list/app_service/app_service_app_item.cc b/chrome/browser/ash/app_list/app_service/app_service_app_item.cc
+index d45d033eb2ae7..622ed6a0d0565 100644
+--- a/chrome/browser/ash/app_list/app_service/app_service_app_item.cc
++++ b/chrome/browser/ash/app_list/app_service/app_service_app_item.cc
+@@ -55,6 +55,7 @@ bool IsNewInstall(const apps::AppUpdate& app_update) {
+       // Chrome, Settings, etc. are built-in.
+       return false;
+     case apps::AppType::kArc:
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+     case apps::AppType::kChromeApp:
+     case apps::AppType::kExtension:
+@@ -196,6 +197,7 @@ void AppServiceAppItem::Activate(int event_flags) {
+       ->AppRegistryCache()
+       .ForOneApp(id(), [&is_active_app](const apps::AppUpdate& update) {
+         if (update.AppType() == apps::AppType::kCrostini ||
++            update.AppType() == apps::AppType::kNickelHost ||
+             update.AppType() == apps::AppType::kWeb ||
+             update.AppType() == apps::AppType::kSystemWeb ||
+             (update.AppType() == apps::AppType::kChromeApp &&
+diff --git a/chrome/browser/ash/app_list/search/app_service_app_result.cc b/chrome/browser/ash/app_list/search/app_service_app_result.cc
+index 094e6a290d46b..548f0ac6084d0 100644
+--- a/chrome/browser/ash/app_list/search/app_service_app_result.cc
++++ b/chrome/browser/ash/app_list/search/app_service_app_result.cc
+@@ -86,6 +86,7 @@ ash::SearchResultType AppServiceAppResult::GetSearchResultType() const {
+   switch (app_type_) {
+     case apps::AppType::kArc:
+       return ash::PLAY_STORE_APP;
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       return ash::CROSTINI_APP;
+     case apps::AppType::kChromeApp:
+@@ -126,6 +127,7 @@ void AppServiceAppResult::Launch(int event_flags,
+   proxy->AppRegistryCache().ForOneApp(
+       app_id(), [&is_active_app](const apps::AppUpdate& update) {
+         if (update.AppType() == apps::AppType::kCrostini ||
++            update.AppType() == apps::AppType::kNickelHost ||
+             update.AppType() == apps::AppType::kWeb ||
+             update.AppType() == apps::AppType::kSystemWeb ||
+             (update.AppType() == apps::AppType::kChromeApp &&
+diff --git a/chrome/browser/ash/app_restore/app_launch_handler.cc b/chrome/browser/ash/app_restore/app_launch_handler.cc
+index 4d9aa539ebae4..16fa4e9329534 100644
+--- a/chrome/browser/ash/app_restore/app_launch_handler.cc
++++ b/chrome/browser/ash/app_restore/app_launch_handler.cc
+@@ -36,6 +36,7 @@ apps::AppTypeName GetHistogrameAppType(apps::AppType app_type) {
+       return apps::AppTypeName::kUnknown;
+     case apps::AppType::kArc:
+       return apps::AppTypeName::kArc;
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       return apps::AppTypeName::kUnknown;
+     case apps::AppType::kChromeApp:
+@@ -168,6 +169,7 @@ void AppLaunchHandler::LaunchApp(apps::AppType app_type,
+       if (ShouldLaunchSystemWebAppOrChromeApp(app_id, it->second))
+         LaunchSystemWebAppOrChromeApp(app_type, app_id, it->second);
+       break;
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+     case apps::AppType::kPluginVm:
+     case apps::AppType::kUnknown:
+diff --git a/chrome/browser/ash/child_accounts/family_user_app_metrics.cc b/chrome/browser/ash/child_accounts/family_user_app_metrics.cc
+index 0f1f575dde2e4..270cb7068593a 100644
+--- a/chrome/browser/ash/child_accounts/family_user_app_metrics.cc
++++ b/chrome/browser/ash/child_accounts/family_user_app_metrics.cc
+@@ -65,6 +65,7 @@ const char* GetAppsCountHistogramName(apps::AppType app_type) {
+       return kUnknownAppsCountHistogramName;
+     case apps::AppType::kArc:
+       return kArcAppsCountHistogramName;
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       return kCrostiniAppsCountHistogramName;
+     case apps::AppType::kChromeApp:
+diff --git a/chrome/browser/ash/child_accounts/time_limits/app_time_policy_helpers.cc b/chrome/browser/ash/child_accounts/time_limits/app_time_policy_helpers.cc
+index 7afa513aef68e..29fbc493a50a4 100644
+--- a/chrome/browser/ash/child_accounts/time_limits/app_time_policy_helpers.cc
++++ b/chrome/browser/ash/child_accounts/time_limits/app_time_policy_helpers.cc
+@@ -88,6 +88,7 @@ std::string AppTypeToPolicyString(apps::AppType app_type) {
+       return "BROWSER-EXTENSION";
+     case apps::AppType::kBruschetta:
+       return "BRUSCHETTA";
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       return "CROSTINI";
+     case apps::AppType::kChromeApp:
+diff --git a/chrome/browser/ash/child_accounts/time_limits/app_types.cc b/chrome/browser/ash/child_accounts/time_limits/app_types.cc
+index 26b795dc9705e..af3a835ba7e6f 100644
+--- a/chrome/browser/ash/child_accounts/time_limits/app_types.cc
++++ b/chrome/browser/ash/child_accounts/time_limits/app_types.cc
+@@ -24,6 +24,7 @@ std::string AppTypeToString(apps::AppType app_type) {
+     case apps::AppType::kChromeApp:
+     case apps::AppType::kExtension:
+       return "Extension";
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       return "Crostini";
+     case apps::AppType::kPluginVm:
+diff --git a/chrome/browser/ash/extensions/autotest_private/autotest_private_api.cc b/chrome/browser/ash/extensions/autotest_private/autotest_private_api.cc
+index 0338c5d4d798b..1a153ed332432 100644
+--- a/chrome/browser/ash/extensions/autotest_private/autotest_private_api.cc
++++ b/chrome/browser/ash/extensions/autotest_private/autotest_private_api.cc
+@@ -391,6 +391,7 @@ api::autotest_private::AppType GetAppType(apps::AppType type) {
+   switch (type) {
+     case apps::AppType::kArc:
+       return api::autotest_private::AppType::kArc;
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       return api::autotest_private::AppType::kCrostini;
+     case apps::AppType::kChromeApp:
+diff --git a/chrome/browser/ash/extensions/file_manager/private_api_util.cc b/chrome/browser/ash/extensions/file_manager/private_api_util.cc
+index 898d07c019539..6a1aeec2ca814 100644
+--- a/chrome/browser/ash/extensions/file_manager/private_api_util.cc
++++ b/chrome/browser/ash/extensions/file_manager/private_api_util.cc
+@@ -245,6 +245,9 @@ fmp::VmType VmTypeToJs(guest_os::VmType vm_type) {
+     case guest_os::VmType::BAGUETTE:
+       // Baguette currently isn't hooked up to file manager
+       return fmp::VmType::kNone;
++    case guest_os::VmType::NICKEL_HOST:
++      // NickelOS host apps have no guest volume; they use local files.
++      return fmp::VmType::kNone;
+     case guest_os::VmType::UNKNOWN:
+     case guest_os::VmType::VmType_INT_MIN_SENTINEL_DO_NOT_USE_:
+     case guest_os::VmType::VmType_INT_MAX_SENTINEL_DO_NOT_USE_:
+diff --git a/chrome/browser/ash/file_manager/app_service_file_tasks.cc b/chrome/browser/ash/file_manager/app_service_file_tasks.cc
+index bc01e7321b709..c24181bb5c2dd 100644
+--- a/chrome/browser/ash/file_manager/app_service_file_tasks.cc
++++ b/chrome/browser/ash/file_manager/app_service_file_tasks.cc
+@@ -91,6 +91,7 @@ TaskType GetTaskType(apps::AppType app_type) {
+       return TASK_TYPE_FILE_HANDLER;
+     case apps::AppType::kBruschetta:
+       return TASK_TYPE_BRUSCHETTA_APP;
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       return TASK_TYPE_CROSTINI_APP;
+     case apps::AppType::kUnknown:
+@@ -241,7 +242,7 @@ void FindAppServiceTasks(Profile* profile,
+       apps::AppType::kArc,       apps::AppType::kWeb,
+       apps::AppType::kSystemWeb, apps::AppType::kChromeApp,
+       apps::AppType::kExtension, apps::AppType::kBruschetta,
+-      apps::AppType::kCrostini,
++      apps::AppType::kCrostini,  apps::AppType::kNickelHost,
+   };
+   for (auto& launch_entry : intent_launch_info) {
+     auto app_type = proxy->AppRegistryCache().GetAppType(launch_entry.app_id);
+diff --git a/chrome/browser/ash/guest_os/guest_os_registry_service.cc b/chrome/browser/ash/guest_os/guest_os_registry_service.cc
+index 2c48dacfbbcdb..217dd2ca56ed5 100644
+--- a/chrome/browser/ash/guest_os/guest_os_registry_service.cc
++++ b/chrome/browser/ash/guest_os/guest_os_registry_service.cc
+@@ -89,6 +89,9 @@ void Launch(vm_tools::apps::VmType vm_type,
+             const GURL& url) {
+   switch (vm_type) {
+     case VmType::TERMINA:
++    // NickelOS host apps: crostini::LaunchCrostiniApp hands them to
++    // nickel-appd.
++    case VmType::NICKEL_HOST:
+       crostini::LaunchCrostiniApp(profile, app_id, display::kInvalidDisplayId,
+                                   {url.spec()}, base::DoNothing());
+       break;
+@@ -567,9 +570,10 @@ GuestOsRegistryService::GetEnabledApps() const {
+     bool enabled = false;
+     switch (it->second.VmType()) {
+       case VmType::TERMINA:
+-        enabled = it->second.VmName() == crostini::kNickelVmName
+-                      ? host_apps_enabled
+-                      : crostini_enabled;
++        enabled = crostini_enabled;
++        break;
++      case VmType::NICKEL_HOST:
++        enabled = host_apps_enabled;
+         break;
+       case VmType::PLUGIN_VM:
+         break;
+diff --git a/chrome/browser/ash/guest_os/public/types.cc b/chrome/browser/ash/guest_os/public/types.cc
+index ccccac436a49a..447ab1bf53f04 100644
+--- a/chrome/browser/ash/guest_os/public/types.cc
++++ b/chrome/browser/ash/guest_os/public/types.cc
+@@ -43,6 +43,8 @@ apps::AppType ToAppType(vm_tools::apps::VmType type) {
+       return apps::AppType::kBorealis;
+     case vm_tools::apps::BRUSCHETTA:
+       return apps::AppType::kBruschetta;
++    case vm_tools::apps::NICKEL_HOST:
++      return apps::AppType::kNickelHost;
+     case vm_tools::apps::ARCVM:
+       return apps::AppType::kArc;
+     // "default" is necessary because proto enums compile with (e.g.)
+diff --git a/chrome/browser/ash/policy/dlp/dlp_files_controller_ash.cc b/chrome/browser/ash/policy/dlp/dlp_files_controller_ash.cc
+index dab27d823be59..07be10ce91bc4 100644
+--- a/chrome/browser/ash/policy/dlp/dlp_files_controller_ash.cc
++++ b/chrome/browser/ash/policy/dlp/dlp_files_controller_ash.cc
+@@ -94,6 +94,7 @@ std::optional<DlpFileDestination> GetFileDestinationForApp(
+           {extensions::kExtensionScheme, "://", app_update.AppId()})));
+     case apps::AppType::kArc:
+       return DlpFileDestination(data_controls::Component::kArc);
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       return DlpFileDestination(data_controls::Component::kCrostini);
+     case apps::AppType::kPluginVm:
+diff --git a/chrome/browser/ash/policy/reporting/metrics_reporting/metric_reporting_prefs.cc b/chrome/browser/ash/policy/reporting/metrics_reporting/metric_reporting_prefs.cc
+index 87d890a362e24..d2bbcc5ef7463 100644
+--- a/chrome/browser/ash/policy/reporting/metrics_reporting/metric_reporting_prefs.cc
++++ b/chrome/browser/ash/policy/reporting/metrics_reporting/metric_reporting_prefs.cc
+@@ -40,6 +40,7 @@ std::optional<std::string> GetAppReportingCategoryForType(
+       return kAppCategoryAndroidApps;
+     case ::apps::AppType::kSystemWeb:
+       return kAppCategorySystemApps;
++    case ::apps::AppType::kNickelHost:
+     case ::apps::AppType::kCrostini:
+     case ::apps::AppType::kBruschetta:
+       return kAppCategoryLinuxApps;
+diff --git a/chrome/browser/ash/policy/status_collector/app_info_generator.cc b/chrome/browser/ash/policy/status_collector/app_info_generator.cc
+index 028f4435ace23..e91397733cc7a 100644
+--- a/chrome/browser/ash/policy/status_collector/app_info_generator.cc
++++ b/chrome/browser/ash/policy/status_collector/app_info_generator.cc
+@@ -56,6 +56,7 @@ em::AppInfo::AppType ExtractAppType(const apps::AppType app_type) {
+   switch (app_type) {
+     case apps::AppType::kArc:
+       return em::AppInfo::AppType::AppInfo_AppType_TYPE_ARC;
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       return em::AppInfo::AppType::AppInfo_AppType_TYPE_CROSTINI;
+     case apps::AppType::kPluginVm:
+diff --git a/chrome/browser/enterprise/connectors/analysis/source_destination_matcher_ash.cc b/chrome/browser/enterprise/connectors/analysis/source_destination_matcher_ash.cc
+index f08d81e278ca5..cdbb864f8fefc 100644
+--- a/chrome/browser/enterprise/connectors/analysis/source_destination_matcher_ash.cc
++++ b/chrome/browser/enterprise/connectors/analysis/source_destination_matcher_ash.cc
+@@ -67,6 +67,8 @@ SourceDestinationMatcherAsh::FsType SourceDestinationMatcherAsh::VolumeToFsType(
+       case guest_os::VmType::ARCVM:
+         return SourceDestinationMatcherAsh::FsType::kArc;
+       case guest_os::VmType::BAGUETTE:
++      // NickelOS host apps have no guest volume.
++      case guest_os::VmType::NICKEL_HOST:
+         return SourceDestinationMatcherAsh::FsType::kUnknownVm;
+       case guest_os::VmType::VmType_INT_MIN_SENTINEL_DO_NOT_USE_:
+       case guest_os::VmType::VmType_INT_MAX_SENTINEL_DO_NOT_USE_:
+diff --git a/chrome/browser/sharesheet/sharesheet_service.cc b/chrome/browser/sharesheet/sharesheet_service.cc
+index 96a67fcd454cf..d0dea0249a6f9 100644
+--- a/chrome/browser/sharesheet/sharesheet_service.cc
++++ b/chrome/browser/sharesheet/sharesheet_service.cc
+@@ -490,6 +490,7 @@ void SharesheetService::RecordUserActionMetrics(
+         SharesheetMetrics::RecordSharesheetActionMetrics(
+             SharesheetMetrics::UserAction::kWeb);
+         return;
++      case apps::AppType::kNickelHost:
+       case apps::AppType::kCrostini:
+       case apps::AppType::kChromeApp:
+       case apps::AppType::kPluginVm:
+diff --git a/chrome/browser/ui/ash/shelf/app_service/app_service_app_window_shelf_controller.cc b/chrome/browser/ui/ash/shelf/app_service/app_service_app_window_shelf_controller.cc
+index e7f3e82729234..ddefaf183ea12 100644
+--- a/chrome/browser/ui/ash/shelf/app_service/app_service_app_window_shelf_controller.cc
++++ b/chrome/browser/ui/ash/shelf/app_service/app_service_app_window_shelf_controller.cc
+@@ -346,6 +346,7 @@ void AppServiceAppWindowShelfController::OnInstanceUpdate(
+   if (update.IsCreation()) {
+     const std::string& app_id = update.AppId();
+     if (GetAppType(app_id) == apps::AppType::kCrostini ||
++        GetAppType(app_id) == apps::AppType::kNickelHost ||
+         guest_os::IsUnregisteredCrostiniShelfAppId(app_id)) {
+       window->SetProperty(chromeos::kAppTypeKey,
+                           chromeos::AppType::CROSTINI_APP);
+diff --git a/chrome/browser/ui/ash/shelf/app_service/app_service_shelf_context_menu.cc b/chrome/browser/ui/ash/shelf/app_service/app_service_shelf_context_menu.cc
+index ea0f66d21f436..b61377b807d98 100644
+--- a/chrome/browser/ui/ash/shelf/app_service/app_service_shelf_context_menu.cc
++++ b/chrome/browser/ui/ash/shelf/app_service/app_service_shelf_context_menu.cc
+@@ -182,6 +182,7 @@ void AppServiceShelfContextMenu::ExecuteCommand(int command_id,
+ 
+     case ash::APP_CONTEXT_MENU_NEW_WINDOW:
+       if (app_type_ == apps::AppType::kCrostini ||
++          app_type_ == apps::AppType::kNickelHost ||
+           app_type_ == apps::AppType::kBruschetta) {
+         ShelfContextMenu::ExecuteCommand(ash::LAUNCH_NEW, event_flags);
+       } else {
+@@ -303,6 +304,7 @@ bool AppServiceShelfContextMenu::IsCommandIdChecked(int command_id) const {
+       }
+     case apps::AppType::kArc:
+       [[fallthrough]];
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       [[fallthrough]];
+     case apps::AppType::kPluginVm:
+@@ -403,7 +405,8 @@ void AppServiceShelfContextMenu::OnGetMenuModel(GetMenuModelCallback callback,
+ 
+   if (app_type_ == apps::AppType::kWeb ||
+       app_type_ == apps::AppType::kSystemWeb ||
+-      app_type_ == apps::AppType::kCrostini) {
++      app_type_ == apps::AppType::kCrostini ||
++      app_type_ == apps::AppType::kNickelHost) {
+     BuildAppShortcutsMenu(std::move(menu_items), std::move(menu_model),
+                           std::move(callback), shortcut_index);
+     return;
+@@ -552,6 +555,7 @@ void AppServiceShelfContextMenu::SetLaunchType(int command_id) {
+       return;
+     case apps::AppType::kArc:
+       [[fallthrough]];
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       [[fallthrough]];
+     case apps::AppType::kPluginVm:
+diff --git a/chrome/browser/ui/ash/shelf/chrome_shelf_controller_util.cc b/chrome/browser/ui/ash/shelf/chrome_shelf_controller_util.cc
+index f16ac6b5d886e..e69222fdd1f8d 100644
+--- a/chrome/browser/ui/ash/shelf/chrome_shelf_controller_util.cc
++++ b/chrome/browser/ui/ash/shelf/chrome_shelf_controller_util.cc
+@@ -155,6 +155,7 @@ bool IsAppPinEditable(apps::AppType app_type,
+     }
+     case apps::AppType::kPluginVm:
+       return false;
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+     case apps::AppType::kBorealis:
+     case apps::AppType::kChromeApp:
+diff --git a/chrome/browser/ui/views/apps/app_dialog/app_uninstall_dialog_view.cc b/chrome/browser/ui/views/apps/app_dialog/app_uninstall_dialog_view.cc
+index 62749b9e6e595..1b66151593875 100644
+--- a/chrome/browser/ui/views/apps/app_dialog/app_uninstall_dialog_view.cc
++++ b/chrome/browser/ui/views/apps/app_dialog/app_uninstall_dialog_view.cc
+@@ -288,6 +288,7 @@ void AppUninstallDialogView::InitializeView(Profile* profile,
+ #else
+       NOTREACHED();
+ #endif
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+       // No longer supported
+       NOTREACHED();
+diff --git a/components/desks_storage/core/desk_template_conversion.cc b/components/desks_storage/core/desk_template_conversion.cc
+index b7f6851c35a32..9c37b51926e4b 100644
+--- a/components/desks_storage/core/desk_template_conversion.cc
++++ b/components/desks_storage/core/desk_template_conversion.cc
+@@ -878,6 +878,8 @@ std::string GetAppTypeForJson(apps::AppRegistryCache* apps_cache,
+     case apps::AppType::kUnknown:
+       return kAppTypeUnknown;
+ 
++    case apps::AppType::kNickelHost:
++
+     case apps::AppType::kCrostini:
+     case apps::AppType::kPluginVm:
+     case apps::AppType::kRemote:
+@@ -1760,6 +1762,8 @@ bool FillApp(const std::string& app_id,
+       break;
+     }
+ 
++    case apps::AppType::kNickelHost:
++
+     case apps::AppType::kCrostini:
+     case apps::AppType::kPluginVm:
+     case apps::AppType::kUnknown:
+diff --git a/components/services/app_service/public/cpp/app_types.cc b/components/services/app_service/public/cpp/app_types.cc
+index 081a27ec70b40..00443f8ba483b 100644
+--- a/components/services/app_service/public/cpp/app_types.cc
++++ b/components/services/app_service/public/cpp/app_types.cc
+@@ -32,6 +32,8 @@ std::ostream& operator<<(std::ostream& os, AppType v) {
+       return os << "AppType::kExtension";
+     case AppType::kBruschetta:
+       return os << "AppType::kBruschetta";
++    case AppType::kNickelHost:
++      return os << "AppType::kNickelHost";
+   }
+ 
+   // Just in case, where the value comes from outside of the chrome code
+@@ -184,6 +186,8 @@ ApplicationType ConvertAppTypeToProtoApplicationType(AppType app_type) {
+       return ApplicationType::APPLICATION_TYPE_EXTENSION;
+     case AppType::kBruschetta:
+       return ApplicationType::APPLICATION_TYPE_BRUSCHETTA;
++    case AppType::kNickelHost:
++      return ApplicationType::APPLICATION_TYPE_NICKEL_HOST;
+   }
+ }
+ 
+@@ -221,6 +225,7 @@ std::optional<PackageType> ConvertAppTypeToPackageType(AppType app_type) {
+     case AppType::kBorealis:
+       return PackageType::kBorealis;
+     case AppType::kBruschetta:
++    case AppType::kNickelHost:
+     case AppType::kCrostini:
+     case AppType::kPluginVm:
+     case AppType::kRemote:
+diff --git a/components/services/app_service/public/cpp/app_types.h b/components/services/app_service/public/cpp/app_types.h
+index 57a38830fd6e3..cc209b7990be5 100644
+--- a/components/services/app_service/public/cpp/app_types.h
++++ b/components/services/app_service/public/cpp/app_types.h
+@@ -42,9 +42,10 @@ enum class AppType {
+   kExtension = 12,  // Browser extension.
+   // kStandaloneBrowserExtension = 13,  // Removed. No longer used.
+   kBruschetta = 14,  // Bruschetta app, see go/bruschetta.
++  kNickelHost = 15,  // NickelOS Linux app on the device itself (no VM).
+ 
+   // The value for UMA. Should be updated when a new entry is added.
+-  kMaxValue = kBruschetta
++  kMaxValue = kNickelHost
+ };
+ 
+ COMPONENT_EXPORT(APP_TYPES)
+diff --git a/components/services/app_service/public/cpp/types_util.cc b/components/services/app_service/public/cpp/types_util.cc
+index 967f9b7d6c753..0edb4f13bc97c 100644
+--- a/components/services/app_service/public/cpp/types_util.cc
++++ b/components/services/app_service/public/cpp/types_util.cc
+@@ -105,6 +105,7 @@ bool AppTypeUsesWebContents(apps::AppType app_type) {
+       return true;
+     case apps::AppType::kUnknown:
+     case apps::AppType::kArc:
++    case apps::AppType::kNickelHost:
+     case apps::AppType::kCrostini:
+     case apps::AppType::kPluginVm:
+     case apps::AppType::kRemote:
+diff --git a/components/services/app_service/public/protos/app_types.proto b/components/services/app_service/public/protos/app_types.proto
+index 30f59b17f4f26..7f0350319539c 100644
+--- a/components/services/app_service/public/protos/app_types.proto
++++ b/components/services/app_service/public/protos/app_types.proto
+@@ -22,6 +22,9 @@ enum ApplicationType {
+   APPLICATION_TYPE_SYSTEM_WEB = 11;
+   APPLICATION_TYPE_EXTENSION = 13;
+   APPLICATION_TYPE_BRUSCHETTA = 15;
++  // NickelOS Linux app on the device itself. A high value, so a type
++  // Chromium adds later does not take it.
++  APPLICATION_TYPE_NICKEL_HOST = 100;
+ 
+   reserved 2, 6, 8, 12, 14;
+ }
+diff --git a/ui/webui/resources/cr_components/app_management/app_management.mojom b/ui/webui/resources/cr_components/app_management/app_management.mojom
+index fa8df8eac9784..35d0f14ac0375 100644
+--- a/ui/webui/resources/cr_components/app_management/app_management.mojom
++++ b/ui/webui/resources/cr_components/app_management/app_management.mojom
+@@ -20,6 +20,7 @@ enum AppType {
+   kSystemWeb,             // System web app.
+   kExtension,             // Browser extension.
+   kBruschetta,            // Bruschetta app, see go/bruschetta.
++  kNickelHost,            // NickelOS Linux app on the device itself.
+ };
+ 
+ // The types of permissions in App Service.
+diff --git a/ui/webui/resources/cr_components/app_management/app_management_mojom_traits.cc b/ui/webui/resources/cr_components/app_management/app_management_mojom_traits.cc
+index 3b01b6e193624..5f811c76e357d 100644
+--- a/ui/webui/resources/cr_components/app_management/app_management_mojom_traits.cc
++++ b/ui/webui/resources/cr_components/app_management/app_management_mojom_traits.cc
+@@ -35,6 +35,8 @@ AppType EnumTraits<AppType, apps::AppType>::ToMojom(apps::AppType input) {
+       return AppType::kExtension;
+     case apps::AppType::kBruschetta:
+       return AppType::kBruschetta;
++    case apps::AppType::kNickelHost:
++      return AppType::kNickelHost;
+   }
+ }
+ 
+@@ -62,6 +64,8 @@ apps::AppType EnumTraits<AppType, apps::AppType>::FromMojom(AppType input) {
+       return apps::AppType::kExtension;
+     case AppType::kBruschetta:
+       return apps::AppType::kBruschetta;
++    case AppType::kNickelHost:
++      return apps::AppType::kNickelHost;
+   }
+ }
+ 
+diff -ruN a/third_party/cros_system_api/dbus/vm_applications/apps.proto b/third_party/cros_system_api/dbus/vm_applications/apps.proto
+--- a/third_party/cros_system_api/dbus/vm_applications/apps.proto
++++ b/third_party/cros_system_api/dbus/vm_applications/apps.proto
+@@ -77,6 +77,9 @@
+   UNKNOWN = 4;
+   ARCVM = 5;
+   BAGUETTE = 6;
++  // NickelOS: Linux apps on the device itself, no VM. A high value, so a
++  // type ChromiumOS adds later does not take it.
++  NICKEL_HOST = 100;
+ }
+ // LINT.ThenChange(/vm_tools/concierge/vm_util.cc,../vm_concierge/concierge_service.proto)
+ 

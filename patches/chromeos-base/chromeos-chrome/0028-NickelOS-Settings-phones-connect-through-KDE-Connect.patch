@@ -1,0 +1,1134 @@
+diff --git a/chrome/app/os_settings_strings.grdp b/chrome/app/os_settings_strings.grdp
+index dfda2877ac3b7..d7df690682c12 100644
+--- a/chrome/app/os_settings_strings.grdp
++++ b/chrome/app/os_settings_strings.grdp
+@@ -5163,10 +5163,73 @@ Press an assigned switch or key to remove assignment.
+     Connected devices
+   </message>
+   <message name="IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION" desc="Description for the Multidevice menu item in the left menu when no phone connected.">
+-    Phone Hub, Nearby Share
++    Phones, Nearby Share
+   </message>
+   <message name="IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH" desc="Feature name placeholder: Description for the Multidevice menu item in the left menu when no phone connected.">
+-    Phone Hub, <ph name="FEATURE_NAME">$1<ex>Nearby Share</ex></ph>
++    Phones, <ph name="FEATURE_NAME">$1<ex>Nearby Share</ex></ph>
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_TITLE" desc="NickelOS: in Settings > Connected devices, the title of the phones and tablets connected through KDE Connect.">
++    Phones and tablets
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION" desc="NickelOS: in Settings > Connected devices, how phones and tablets connect.">
++    With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT" desc="NickelOS: button that opens Valent, the app that connects phones (messages, remote input, media, each phone's settings).">
++    Open Valent
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING" desc="NickelOS: shown when Valent, which connects phones, is not running.">
++    The phone connection isn't running. Sign out and back in to start it.
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_NONE" desc="NickelOS: shown when no phone or tablet has been found yet.">
++    No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR" desc="NickelOS: status of a phone asking to pair with this device.">
++    Wants to pair with this device
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED" desc="NickelOS: status of a phone this device asked to pair with.">
++    Waiting for it to accept
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_AVAILABLE" desc="NickelOS: status of a phone found on the network but not paired.">
++    Available to pair
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED" desc="NickelOS: status of a paired phone that is not connected now.">
++    Paired · Not connected
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_CONNECTED" desc="NickelOS: status of a connected phone.">
++    Connected
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY" desc="NickelOS: status of a connected phone, with its battery level.">
++    Connected · Battery <ph name="PERCENT">$1<ex>80</ex></ph>%
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING" desc="NickelOS: status of a connected phone that is charging, with its battery level.">
++    Connected · Charging, <ph name="PERCENT">$1<ex>80</ex></ph>%
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_PAIR" desc="NickelOS: button that asks a phone to pair with this device.">
++    Pair
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_ACCEPT" desc="NickelOS: button that accepts a phone's request to pair.">
++    Accept
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_REJECT" desc="NickelOS: button that rejects a phone's request to pair.">
++    Reject
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_CANCEL" desc="NickelOS: button that withdraws this device's request to pair with a phone.">
++    Cancel
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_RING" desc="NickelOS: button that makes a phone ring, to find it.">
++    Ring
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_SEND_FILES" desc="NickelOS: button that sends files to a phone.">
++    Send files
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE" desc="NickelOS: title of the file picker for files to send to a phone.">
++    Send files
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_UNPAIR" desc="NickelOS: button that unpairs a phone from this device.">
++    Unpair
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_PHONES_MORE" desc="NickelOS: accessibility label of the button that opens a phone's page in Valent.">
++    More for <ph name="DEVICE_NAME">$1<ex>Pixel 8</ex></ph>
+   </message>
+   <message name="IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PHONE_CONNECTED" desc="Description for the Multidevice menu item in the left menu when there is a phone connected.">
+     Connected to <ph name="HOST_DEVICE_NAME">$1<ex>Android phone</ex></ph>
+diff --git a/chrome/browser/resources/ash/settings/BUILD.gn b/chrome/browser/resources/ash/settings/BUILD.gn
+index a3131fd94433f..d10cbb07755dc 100644
+--- a/chrome/browser/resources/ash/settings/BUILD.gn
++++ b/chrome/browser/resources/ash/settings/BUILD.gn
+@@ -165,6 +165,7 @@ build_webui("build") {
+     "multidevice_page/multidevice_tether_item.ts",
+     "multidevice_page/multidevice_wifi_sync_disabled_link.ts",
+     "multidevice_page/multidevice_wifi_sync_item.ts",
++    "multidevice_page/nickel_phones_card.ts",
+     "nearby_share_page/nearby_share_confirm_page.ts",
+     "nearby_share_page/nearby_share_contact_visibility_dialog.ts",
+     "nearby_share_page/nearby_share_data_usage_dialog.ts",
+diff --git a/chrome/browser/resources/ash/settings/multidevice_page/multidevice_page.html b/chrome/browser/resources/ash/settings/multidevice_page/multidevice_page.html
+index 80f9a214cbfb9..fd2c908895e4f 100644
+--- a/chrome/browser/resources/ash/settings/multidevice_page/multidevice_page.html
++++ b/chrome/browser/resources/ash/settings/multidevice_page/multidevice_page.html
+@@ -12,7 +12,10 @@
+ <os-settings-animated-pages id="pages" section="[[section_]]">
+   <div route-path="default">
+     <settings-card header-text="$i18n{multidevicePageTitle}">
+-      <div id="multideviceItem"
++      <!-- NickelOS: phones and tablets connect through KDE Connect
++           (Valent), not Google's Phone Hub, which needs a Google account. -->
++      <nickel-phones-card></nickel-phones-card>
++      <div id="multideviceItem" hidden
+           class="settings-box first two-line no-padding">
+         <div class="link-wrapper" id="suiteLinkWrapper"
+             actionable$="[[doesClickOpenSubpage_(pageContentData)]]"
+diff --git a/chrome/browser/resources/ash/settings/multidevice_page/multidevice_page.ts b/chrome/browser/resources/ash/settings/multidevice_page/multidevice_page.ts
+index 9f1083f26a561..79fde1e5611f5 100644
+--- a/chrome/browser/resources/ash/settings/multidevice_page/multidevice_page.ts
++++ b/chrome/browser/resources/ash/settings/multidevice_page/multidevice_page.ts
+@@ -21,6 +21,7 @@ import './multidevice_feature_toggle.js';
+ import './multidevice_notification_access_setup_dialog.js';
+ import './multidevice_permissions_setup_dialog.js';
+ import './multidevice_forget_device_dialog.js';
++import './nickel_phones_card.js';
+ 
+ import {NearbyShareSettingsMixin} from '/shared/nearby_share_settings_mixin.js';
+ import {PrefsMixin} from '/shared/settings/prefs/prefs_mixin.js';
+diff --git a/chrome/browser/resources/ash/settings/multidevice_page/nickel_phones_card.html b/chrome/browser/resources/ash/settings/multidevice_page/nickel_phones_card.html
+new file mode 100644
+index 0000000000000..f77d2c063cde4
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/multidevice_page/nickel_phones_card.html
+@@ -0,0 +1,82 @@
++<style include="settings-shared">
++  iron-icon {
++    --iron-icon-fill-color: var(--cros-sys-primary);
++    flex-shrink: 0;
++  }
++
++  .device cr-button,
++  .device cr-icon-button {
++    margin-inline-start: 8px;
++  }
++</style>
++<div class="settings-box first two-line">
++  <iron-icon icon="os-settings:connected-devices"></iron-icon>
++  <div class="middle settings-box-text">
++    <div id="phonesTitle">$i18n{nickelPhonesTitle}</div>
++    <div class="secondary">$i18n{nickelPhonesDescription}</div>
++  </div>
++  <template is="dom-if" if="[[running_]]">
++    <cr-button on-click="onOpenValentClick_">
++      $i18n{nickelPhonesOpenValent}
++    </cr-button>
++  </template>
++</div>
++<template is="dom-if" if="[[!running_]]">
++  <div class="settings-box">
++    <div class="middle secondary">$i18n{nickelPhonesNotRunning}</div>
++  </div>
++</template>
++<template is="dom-if" if="[[showNone_(loaded_, running_, devices_)]]">
++  <div class="settings-box">
++    <div class="middle secondary">$i18n{nickelPhonesNone}</div>
++  </div>
++</template>
++<template is="dom-repeat" items="[[devices_]]" as="device">
++  <div class="settings-box two-line device">
++    <iron-icon icon="[[iconFor_(device)]]"></iron-icon>
++    <div class="middle settings-box-text">
++      <div>[[device.name]]</div>
++      <div class="secondary">[[statusFor_(device)]]</div>
++    </div>
++    <template is="dom-if" if="[[showAnswer_(device)]]" restamp>
++      <cr-button data-id$="[[device.id]]" on-click="onUnpairClick_">
++        $i18n{nickelPhonesReject}
++      </cr-button>
++      <cr-button class="action-button" data-id$="[[device.id]]"
++          on-click="onPairClick_">
++        $i18n{nickelPhonesAccept}
++      </cr-button>
++    </template>
++    <template is="dom-if" if="[[showPair_(device)]]" restamp>
++      <cr-button class="action-button" data-id$="[[device.id]]"
++          on-click="onPairClick_">
++        $i18n{nickelPhonesPair}
++      </cr-button>
++    </template>
++    <template is="dom-if" if="[[showCancelPair_(device)]]" restamp>
++      <cr-button data-id$="[[device.id]]" on-click="onUnpairClick_">
++        $i18n{nickelPhonesCancel}
++      </cr-button>
++    </template>
++    <template is="dom-if" if="[[showRing_(device)]]" restamp>
++      <cr-button data-id$="[[device.id]]" on-click="onRingClick_">
++        $i18n{nickelPhonesRing}
++      </cr-button>
++    </template>
++    <template is="dom-if" if="[[showSend_(device)]]" restamp>
++      <cr-button data-id$="[[device.id]]" on-click="onSendClick_">
++        $i18n{nickelPhonesSendFiles}
++      </cr-button>
++    </template>
++    <template is="dom-if" if="[[showUnpair_(device)]]" restamp>
++      <cr-button data-id$="[[device.id]]" on-click="onUnpairClick_">
++        $i18n{nickelPhonesUnpair}
++      </cr-button>
++    </template>
++    <template is="dom-if" if="[[showMore_(device)]]" restamp>
++      <cr-icon-button class="subpage-arrow" data-id$="[[device.id]]"
++          aria-label="[[moreLabel_(device)]]" on-click="onMoreClick_">
++      </cr-icon-button>
++    </template>
++  </div>
++</template>
+diff --git a/chrome/browser/resources/ash/settings/multidevice_page/nickel_phones_card.ts b/chrome/browser/resources/ash/settings/multidevice_page/nickel_phones_card.ts
+new file mode 100644
+index 0000000000000..c2c552dbea380
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/multidevice_page/nickel_phones_card.ts
+@@ -0,0 +1,219 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++/**
++ * @fileoverview NickelOS: Settings > Connected devices' phones and tablets,
++ * which connect through KDE Connect (Valent, NickelPhonesHandler) instead of
++ * Google's Phone Hub. Lists the devices Valent knows, refreshed every two
++ * seconds while Settings is visible: pairing (a phone asking, or asking
++ * one), what a connected one reports (its battery), ringing it, sending it
++ * files, and Valent's own window for the rest (messages, remote input,
++ * media, each device's settings).
++ */
++
++import 'chrome://resources/ash/common/cr_elements/cr_button/cr_button.js';
++import 'chrome://resources/ash/common/cr_elements/cr_icon_button/cr_icon_button.js';
++import 'chrome://resources/polymer/v3_0/iron-icon/iron-icon.js';
++import '../os_settings_icons.html.js';
++import '../settings_shared.css.js';
++
++import {I18nMixin} from 'chrome://resources/ash/common/cr_elements/i18n_mixin.js';
++import {sendWithPromise} from 'chrome://resources/js/cr.js';
++import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++
++import {getTemplate} from './nickel_phones_card.html.js';
++
++interface NickelPhone {
++  id: string;
++  name: string;
++  // Valent's icon name: phone-symbolic, tablet-symbolic, computer-symbolic...
++  icon: string;
++  connected: boolean;
++  paired: boolean;
++  pairIncoming: boolean;
++  pairOutgoing: boolean;
++  // Percent, or -1 for none.
++  battery: number;
++  charging: boolean;
++  // The device's enabled actions (findmyphone.ring, share.uris...).
++  actions: string[];
++}
++
++interface NickelPhones {
++  running: boolean;
++  devices: NickelPhone[];
++}
++
++const REFRESH_MS = 2000;
++
++const NickelPhonesCardElementBase = I18nMixin(PolymerElement);
++
++export class NickelPhonesCardElement extends NickelPhonesCardElementBase {
++  static get is() {
++    return 'nickel-phones-card' as const;
++  }
++
++  static get template() {
++    return getTemplate();
++  }
++
++  static get properties() {
++    return {
++      running_: {type: Boolean, value: true},
++      loaded_: {type: Boolean, value: false},
++      devices_: {type: Array, value: () => []},
++    };
++  }
++
++  declare private running_: boolean;
++  declare private loaded_: boolean;
++  declare private devices_: NickelPhone[];
++  private timer_: number|null = null;
++
++  override connectedCallback(): void {
++    super.connectedCallback();
++    this.refresh_();
++    this.timer_ = setInterval(() => this.refresh_(), REFRESH_MS);
++  }
++
++  override disconnectedCallback(): void {
++    super.disconnectedCallback();
++    if (this.timer_ !== null) {
++      clearInterval(this.timer_);
++      this.timer_ = null;
++    }
++  }
++
++  private async refresh_(): Promise<void> {
++    if (document.hidden && this.loaded_) {
++      return;
++    }
++    const phones: NickelPhones = await sendWithPromise('nickelGetPhones');
++    this.running_ = phones.running;
++    this.devices_ = phones.devices;
++    this.loaded_ = true;
++  }
++
++  private showNone_(
++      loaded: boolean, running: boolean, devices: NickelPhone[]): boolean {
++    return loaded && running && devices.length === 0;
++  }
++
++  private iconFor_(device: NickelPhone): string {
++    if (device.icon.startsWith('tablet')) {
++      return 'os-settings:tablet';
++    }
++    if (device.icon.startsWith('computer') || device.icon.startsWith('laptop')) {
++      return 'os-settings:laptop-chromebook';
++    }
++    return 'os-settings:smartphone';
++  }
++
++  private statusFor_(device: NickelPhone): string {
++    if (device.pairIncoming) {
++      return this.i18n('nickelPhonesWantsToPair');
++    }
++    if (device.pairOutgoing) {
++      return this.i18n('nickelPhonesPairRequested');
++    }
++    if (!device.paired) {
++      return this.i18n('nickelPhonesAvailable');
++    }
++    if (!device.connected) {
++      return this.i18n('nickelPhonesPairedNotConnected');
++    }
++    if (device.battery >= 0) {
++      return this.i18n(
++          device.charging ? 'nickelPhonesConnectedCharging' :
++                            'nickelPhonesConnectedBattery',
++          String(device.battery));
++    }
++    return this.i18n('nickelPhonesConnected');
++  }
++
++  // A phone asking to pair: Accept or Reject.
++  private showAnswer_(device: NickelPhone): boolean {
++    return device.pairIncoming;
++  }
++
++  private showPair_(device: NickelPhone): boolean {
++    return !device.paired && device.connected && !device.pairIncoming &&
++        !device.pairOutgoing;
++  }
++
++  private showCancelPair_(device: NickelPhone): boolean {
++    return device.pairOutgoing;
++  }
++
++  private ready_(device: NickelPhone, action: string): boolean {
++    return device.paired && device.connected &&
++        device.actions.includes(action);
++  }
++
++  private showRing_(device: NickelPhone): boolean {
++    return this.ready_(device, 'findmyphone.ring');
++  }
++
++  private showSend_(device: NickelPhone): boolean {
++    return this.ready_(device, 'share.uris');
++  }
++
++  // Out of reach, nothing else to do with it here.
++  private showUnpair_(device: NickelPhone): boolean {
++    return device.paired && !device.connected;
++  }
++
++  private showMore_(device: NickelPhone): boolean {
++    return device.paired;
++  }
++
++  private moreLabel_(device: NickelPhone): string {
++    return this.i18n('nickelPhonesMore', device.name);
++  }
++
++  private idOf_(e: Event): string {
++    return (e.currentTarget as HTMLElement).dataset['id'] || '';
++  }
++
++  private async act_(e: Event, action: string): Promise<void> {
++    e.stopPropagation();
++    await sendWithPromise('nickelPhoneAction', this.idOf_(e), action);
++    this.refresh_();
++  }
++
++  private onPairClick_(e: Event): void {
++    this.act_(e, 'pair');
++  }
++
++  // Rejecting a request, cancelling ours, and unpairing are all "unpair".
++  private onUnpairClick_(e: Event): void {
++    this.act_(e, 'unpair');
++  }
++
++  private onRingClick_(e: Event): void {
++    this.act_(e, 'findmyphone.ring');
++  }
++
++  private onSendClick_(e: Event): void {
++    e.stopPropagation();
++    chrome.send('nickelPhoneSendFiles', [this.idOf_(e)]);
++  }
++
++  private onMoreClick_(e: Event): void {
++    e.stopPropagation();
++    sendWithPromise('nickelOpenValent', 'device', this.idOf_(e));
++  }
++
++  private onOpenValentClick_(): void {
++    sendWithPromise('nickelOpenValent', 'main', '');
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    [NickelPhonesCardElement.is]: NickelPhonesCardElement;
++  }
++}
++
++customElements.define(NickelPhonesCardElement.is, NickelPhonesCardElement);
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/multidevice/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/multidevice/BUILD.gn
+index 2cb9ee4e8bd7c..c814881e2d18c 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/multidevice/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/multidevice/BUILD.gn
+@@ -12,6 +12,8 @@ static_library("multidevice") {
+     "multidevice_handler.h",
+     "multidevice_section.cc",
+     "multidevice_section.h",
++    "nickel_phones_handler.cc",
++    "nickel_phones_handler.h",
+   ]
+ 
+   public_deps = [
+@@ -37,6 +39,7 @@ static_library("multidevice") {
+     "//chrome/browser/nearby_sharing/common",
+     "//chrome/browser/profiles:profile",
+     "//chrome/browser/ui/ash/session",
++    "//chrome/browser/ui/select_file_policy",
+     "//chrome/browser/ui/webui/ash/multidevice_setup",
+     "//chrome/browser/ui/webui/ash/settings/search",
+     "//chrome/browser/ui/webui/nearby_share",
+@@ -47,10 +50,15 @@ static_library("multidevice") {
+     "//chromeos/ash/services/multidevice_setup/public/cpp:url_provider",
+     "//chromeos/constants",
+     "//components/content_settings/core/common",
++    "//components/exo/wayland",
+     "//content/public/browser",
++    "//dbus",
++    "//net",
+     "//ui/base",
+     "//ui/chromeos",
++    "//ui/shell_dialogs",
+     "//ui/webui",
++    "//url",
+   ]
+ 
+   if (is_chrome_branded) {
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/multidevice/multidevice_section.cc b/chrome/browser/ui/webui/ash/settings/pages/multidevice/multidevice_section.cc
+index 08437761c1631..d0b145584f76b 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/multidevice/multidevice_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/multidevice/multidevice_section.cc
+@@ -20,6 +20,7 @@
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/ui/ash/session/session_controller_client_impl.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/multidevice/multidevice_handler.h"
++#include "chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/search/search_tag_registry.h"
+ #include "chrome/browser/ui/webui/nearby_share/shared_resources.h"
+ #include "chrome/browser/ui/webui/settings/shared_settings_localized_strings_provider.h"
+@@ -467,6 +468,29 @@ void MultiDeviceSection::AddLoadTimeData(
+   html_source_ = html_source;
+   static constexpr webui::LocalizedString kLocalizedStrings[] = {
+       {"multidevicePageTitle", IDS_SETTINGS_MULTIDEVICE},
++      {"nickelPhonesTitle", IDS_SETTINGS_NICKEL_PHONES_TITLE},
++      {"nickelPhonesDescription", IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION},
++      {"nickelPhonesOpenValent", IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT},
++      {"nickelPhonesNotRunning", IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING},
++      {"nickelPhonesNone", IDS_SETTINGS_NICKEL_PHONES_NONE},
++      {"nickelPhonesWantsToPair", IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR},
++      {"nickelPhonesPairRequested", IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED},
++      {"nickelPhonesAvailable", IDS_SETTINGS_NICKEL_PHONES_AVAILABLE},
++      {"nickelPhonesPairedNotConnected",
++       IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED},
++      {"nickelPhonesConnected", IDS_SETTINGS_NICKEL_PHONES_CONNECTED},
++      {"nickelPhonesConnectedBattery",
++       IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY},
++      {"nickelPhonesConnectedCharging",
++       IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING},
++      {"nickelPhonesPair", IDS_SETTINGS_NICKEL_PHONES_PAIR},
++      {"nickelPhonesAccept", IDS_SETTINGS_NICKEL_PHONES_ACCEPT},
++      {"nickelPhonesReject", IDS_SETTINGS_NICKEL_PHONES_REJECT},
++      {"nickelPhonesCancel", IDS_SETTINGS_NICKEL_PHONES_CANCEL},
++      {"nickelPhonesRing", IDS_SETTINGS_NICKEL_PHONES_RING},
++      {"nickelPhonesSendFiles", IDS_SETTINGS_NICKEL_PHONES_SEND_FILES},
++      {"nickelPhonesUnpair", IDS_SETTINGS_NICKEL_PHONES_UNPAIR},
++      {"nickelPhonesMore", IDS_SETTINGS_NICKEL_PHONES_MORE},
+       {"multideviceMenuItemDescriptionPhoneConnected",
+        IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PHONE_CONNECTED},
+       {"multideviceMenuItemDescriptionDeviceNameMissing",
+@@ -772,6 +796,9 @@ void MultiDeviceSection::AddLoadTimeData(
+ }
+ 
+ void MultiDeviceSection::AddHandlers(content::WebUI* web_ui) {
++  // NickelOS: phones through KDE Connect, in every session.
++  web_ui->AddMessageHandler(std::make_unique<NickelPhonesHandler>());
++
+   // No handlers in guest mode.
+   if (profile()->IsGuestSession()) {
+     return;
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.cc
+new file mode 100644
+index 0000000000000..bd4284bc62836
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.cc
+@@ -0,0 +1,488 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.h"
++
++#include <dbus/dbus.h>
++#include <unistd.h>
++
++#include <algorithm>
++#include <cmath>
++#include <string_view>
++#include <utility>
++
++#include "base/barrier_callback.h"
++#include "base/containers/fixed_flat_set.h"
++#include "base/files/file_path.h"
++#include "base/functional/bind.h"
++#include "base/message_loop/message_pump_type.h"
++#include "base/no_destructor.h"
++#include "base/strings/stringprintf.h"
++#include "base/threading/thread.h"
++#include "chrome/browser/ui/select_file_policy/chrome_select_file_policy.h"
++#include "chrome/grit/generated_resources.h"
++#include "components/exo/wayland/xdg_activation.h"
++#include "content/public/browser/web_contents.h"
++#include "content/public/browser/web_ui.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_path.h"
++#include "dbus/object_proxy.h"
++#include "net/base/filename_util.h"
++#include "ui/base/l10n/l10n_util.h"
++#include "ui/shell_dialogs/selected_file_info.h"
++#include "url/gurl.h"
++
++namespace ash::settings {
++
++namespace {
++
++constexpr char kValentService[] = "ca.andyholmes.Valent";
++constexpr char kValentPath[] = "/ca/andyholmes/Valent";
++constexpr char kDeviceInterface[] = "ca.andyholmes.Valent.Device";
++constexpr char kActionsInterface[] = "org.gtk.Actions";
++constexpr char kObjectManagerInterface[] = "org.freedesktop.DBus.ObjectManager";
++
++// Valent's device states (ValentDeviceState).
++constexpr uint32_t kConnected = 1 << 0;
++constexpr uint32_t kPaired = 1 << 1;
++constexpr uint32_t kPairIncoming = 1 << 2;
++constexpr uint32_t kPairOutgoing = 1 << 3;
++
++// The device actions the page may activate.
++constexpr auto kPageActions = base::MakeFixedFlatSet<std::string_view>(
++    {"pair", "unpair", "findmyphone.ring", "ping.ping"});
++
++// The session's D-Bus, where Valent is: nickel-session's, at
++// /run/user/<uid>/bus, as Chrome runs as the session's user. One private
++// connection, on its own I/O thread, for as long as Chrome runs.
++dbus::Bus* SessionBus() {
++  static base::NoDestructor<base::Thread> thread("NickelSessionDBus");
++  static base::NoDestructor<scoped_refptr<dbus::Bus>> bus;
++  if (!*bus) {
++    CHECK(thread->StartWithOptions(
++        base::Thread::Options(base::MessagePumpType::IO, 0)));
++    dbus::Bus::Options options;
++    options.bus_type = dbus::Bus::CUSTOM_ADDRESS;
++    options.address = base::StringPrintf("unix:path=/run/user/%u/bus",
++                                         static_cast<unsigned>(getuid()));
++    options.connection_type = dbus::Bus::PRIVATE;
++    options.dbus_task_runner = thread->task_runner();
++    *bus = base::MakeRefCounted<dbus::Bus>(std::move(options));
++  }
++  return bus->get();
++}
++
++dbus::ObjectProxy* ValentProxy(const std::string& path) {
++  return SessionBus()->GetObjectProxy(kValentService, dbus::ObjectPath(path));
++}
++
++// The page never starts Valent: nickel-phone runs it, with the firewall open
++// for it. D-Bus activation would start another, outside that job.
++void NoAutoStart(dbus::MethodCall* method_call) {
++  dbus_message_set_auto_start(method_call->raw_message(), false);
++}
++
++// battery.state's description, after its "enabled" flag: the parameter
++// type (g), then the state (av), an a{sv} with percentage, charging and
++// is-present.
++void ReadBattery(DBusMessageIter* description,
++                 NickelPhonesHandler::Device* device) {
++  DBusMessageIter state, variant, dict;
++  if (!dbus_message_iter_next(description) ||
++      !dbus_message_iter_next(description) ||
++      dbus_message_iter_get_arg_type(description) != DBUS_TYPE_ARRAY) {
++    return;
++  }
++  dbus_message_iter_recurse(description, &state);
++  if (dbus_message_iter_get_arg_type(&state) != DBUS_TYPE_VARIANT) {
++    return;
++  }
++  dbus_message_iter_recurse(&state, &variant);
++  if (dbus_message_iter_get_arg_type(&variant) != DBUS_TYPE_ARRAY) {
++    return;
++  }
++  double percentage = -1;
++  dbus_bool_t charging = false;
++  dbus_bool_t present = false;
++  for (dbus_message_iter_recurse(&variant, &dict);
++       dbus_message_iter_get_arg_type(&dict) == DBUS_TYPE_DICT_ENTRY;
++       dbus_message_iter_next(&dict)) {
++    DBusMessageIter entry, value;
++    dbus_message_iter_recurse(&dict, &entry);
++    if (dbus_message_iter_get_arg_type(&entry) != DBUS_TYPE_STRING) {
++      continue;
++    }
++    const char* key = nullptr;
++    dbus_message_iter_get_basic(&entry, &key);
++    if (!dbus_message_iter_next(&entry) ||
++        dbus_message_iter_get_arg_type(&entry) != DBUS_TYPE_VARIANT) {
++      continue;
++    }
++    dbus_message_iter_recurse(&entry, &value);
++    const int type = dbus_message_iter_get_arg_type(&value);
++    const std::string_view name(key);
++    if (name == "percentage" && type == DBUS_TYPE_DOUBLE) {
++      dbus_message_iter_get_basic(&value, &percentage);
++    } else if (name == "charging" && type == DBUS_TYPE_BOOLEAN) {
++      dbus_message_iter_get_basic(&value, &charging);
++    } else if (name == "is-present" && type == DBUS_TYPE_BOOLEAN) {
++      dbus_message_iter_get_basic(&value, &present);
++    }
++  }
++  if (present && percentage >= 0) {
++    device->battery = static_cast<int>(std::lround(percentage));
++    device->charging = charging;
++  }
++}
++
++// org.gtk.Actions DescribeAll's a{s(bgav)}: the device's enabled actions,
++// and its battery. Read with libdbus: dbus::MessageReader cannot read the
++// signature (g) in each description.
++void ReadActions(dbus::Response* response,
++                 NickelPhonesHandler::Device* device) {
++  DBusMessageIter iter, actions;
++  if (!dbus_message_iter_init(response->raw_message(), &iter) ||
++      dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY) {
++    return;
++  }
++  for (dbus_message_iter_recurse(&iter, &actions);
++       dbus_message_iter_get_arg_type(&actions) == DBUS_TYPE_DICT_ENTRY;
++       dbus_message_iter_next(&actions)) {
++    DBusMessageIter entry, description;
++    dbus_message_iter_recurse(&actions, &entry);
++    if (dbus_message_iter_get_arg_type(&entry) != DBUS_TYPE_STRING) {
++      continue;
++    }
++    const char* name = nullptr;
++    dbus_message_iter_get_basic(&entry, &name);
++    if (!dbus_message_iter_next(&entry) ||
++        dbus_message_iter_get_arg_type(&entry) != DBUS_TYPE_STRUCT) {
++      continue;
++    }
++    dbus_message_iter_recurse(&entry, &description);
++    if (dbus_message_iter_get_arg_type(&description) != DBUS_TYPE_BOOLEAN) {
++      continue;
++    }
++    dbus_bool_t enabled = false;
++    dbus_message_iter_get_basic(&description, &enabled);
++    if (enabled) {
++      device->actions.emplace_back(name);
++    }
++    if (std::string_view(name) == "battery.state") {
++      ReadBattery(&description, device);
++    }
++  }
++}
++
++void OnDescribed(NickelPhonesHandler::Device device,
++                 base::RepeatingCallback<void(NickelPhonesHandler::Device)> done,
++                 dbus::Response* response,
++                 dbus::ErrorResponse* error) {
++  if (response) {
++    ReadActions(response, &device);
++  }
++  done.Run(std::move(device));
++}
++
++}  // namespace
++
++NickelPhonesHandler::Device::Device() = default;
++NickelPhonesHandler::Device::Device(const Device&) = default;
++NickelPhonesHandler::Device::Device(Device&&) = default;
++NickelPhonesHandler::Device& NickelPhonesHandler::Device::operator=(
++    const Device&) = default;
++NickelPhonesHandler::Device& NickelPhonesHandler::Device::operator=(
++    Device&&) = default;
++NickelPhonesHandler::Device::~Device() = default;
++
++NickelPhonesHandler::NickelPhonesHandler() = default;
++
++NickelPhonesHandler::~NickelPhonesHandler() {
++  if (select_file_dialog_) {
++    select_file_dialog_->ListenerDestroyed();
++  }
++}
++
++void NickelPhonesHandler::RegisterMessages() {
++  web_ui()->RegisterMessageCallback(
++      "nickelGetPhones",
++      base::BindRepeating(&NickelPhonesHandler::HandleGetPhones,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "nickelPhoneAction",
++      base::BindRepeating(&NickelPhonesHandler::HandlePhoneAction,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "nickelPhoneSendFiles",
++      base::BindRepeating(&NickelPhonesHandler::HandleSendFiles,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "nickelOpenValent",
++      base::BindRepeating(&NickelPhonesHandler::HandleOpenValent,
++                          base::Unretained(this)));
++}
++
++void NickelPhonesHandler::OnJavascriptDisallowed() {
++  weak_ptr_factory_.InvalidateWeakPtrs();
++}
++
++void NickelPhonesHandler::HandleGetPhones(const base::ListValue& args) {
++  AllowJavascript();
++  dbus::MethodCall method_call(kObjectManagerInterface, "GetManagedObjects");
++  NoAutoStart(&method_call);
++  ValentProxy(kValentPath)
++      ->CallMethodWithErrorResponse(
++          &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++          base::BindOnce(&NickelPhonesHandler::OnManagedObjects,
++                         weak_ptr_factory_.GetWeakPtr(),
++                         args[0].GetString()));
++}
++
++void NickelPhonesHandler::OnManagedObjects(std::string callback_id,
++                                           dbus::Response* response,
++                                           dbus::ErrorResponse* error) {
++  if (!response) {
++    // Valent is not running (or the session's bus is not there yet).
++    base::DictValue result;
++    result.Set("running", false);
++    result.Set("devices", base::ListValue());
++    ResolveJavascriptCallback(base::Value(callback_id), result);
++    return;
++  }
++  // a{oa{sa{sv}}}: each object's interfaces and their properties.
++  std::vector<Device> devices;
++  dbus::MessageReader reader(response);
++  dbus::MessageReader objects(nullptr);
++  if (reader.PopArray(&objects)) {
++    while (objects.HasMoreData()) {
++      dbus::MessageReader object(nullptr);
++      dbus::ObjectPath path;
++      dbus::MessageReader interfaces(nullptr);
++      if (!objects.PopDictEntry(&object) || !object.PopObjectPath(&path) ||
++          !object.PopArray(&interfaces)) {
++        break;
++      }
++      while (interfaces.HasMoreData()) {
++        dbus::MessageReader iface(nullptr);
++        std::string name;
++        dbus::MessageReader properties(nullptr);
++        if (!interfaces.PopDictEntry(&iface) ||
++            !iface.PopString(&name) || !iface.PopArray(&properties)) {
++          break;
++        }
++        if (name != kDeviceInterface) {
++          continue;
++        }
++        Device device;
++        device.path = path.value();
++        while (properties.HasMoreData()) {
++          dbus::MessageReader property(nullptr);
++          std::string key;
++          if (!properties.PopDictEntry(&property) ||
++              !property.PopString(&key)) {
++            break;
++          }
++          if (key == "Id") {
++            property.PopVariantOfString(&device.id);
++          } else if (key == "Name") {
++            property.PopVariantOfString(&device.name);
++          } else if (key == "IconName") {
++            property.PopVariantOfString(&device.icon);
++          } else if (key == "State") {
++            dbus::MessageReader variant(nullptr);
++            if (property.PopVariant(&variant)) {
++              variant.PopUint32(&device.state);
++            }
++          }
++        }
++        if (!device.id.empty()) {
++          devices.push_back(std::move(device));
++        }
++      }
++    }
++  }
++
++  paths_.clear();
++  for (const Device& device : devices) {
++    paths_[device.id] = device.path;
++  }
++  if (devices.empty()) {
++    OnDevicesDescribed(std::move(callback_id), {});
++    return;
++  }
++  auto described = base::BarrierCallback<Device>(
++      devices.size(),
++      base::BindOnce(&NickelPhonesHandler::OnDevicesDescribed,
++                     weak_ptr_factory_.GetWeakPtr(), std::move(callback_id)));
++  for (Device& device : devices) {
++    dbus::MethodCall method_call(kActionsInterface, "DescribeAll");
++    NoAutoStart(&method_call);
++    ValentProxy(device.path)
++        ->CallMethodWithErrorResponse(
++            &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++            base::BindOnce(&OnDescribed, std::move(device), described));
++  }
++}
++
++void NickelPhonesHandler::OnDevicesDescribed(std::string callback_id,
++                                             std::vector<Device> devices) {
++  // Paired devices first, then by name.
++  std::ranges::sort(devices, [](const Device& a, const Device& b) {
++    const bool a_paired = a.state & kPaired;
++    const bool b_paired = b.state & kPaired;
++    if (a_paired != b_paired) {
++      return a_paired;
++    }
++    return a.name < b.name;
++  });
++  base::ListValue list;
++  for (const Device& device : devices) {
++    base::ListValue actions;
++    for (const std::string& action : device.actions) {
++      actions.Append(action);
++    }
++    base::DictValue dict;
++    dict.Set("id", device.id);
++    dict.Set("name", device.name);
++    dict.Set("icon", device.icon);
++    dict.Set("connected", (device.state & kConnected) != 0);
++    dict.Set("paired", (device.state & kPaired) != 0);
++    dict.Set("pairIncoming", (device.state & kPairIncoming) != 0);
++    dict.Set("pairOutgoing", (device.state & kPairOutgoing) != 0);
++    dict.Set("battery", device.battery);
++    dict.Set("charging", device.charging);
++    dict.Set("actions", std::move(actions));
++    list.Append(std::move(dict));
++  }
++  base::DictValue result;
++  result.Set("running", true);
++  result.Set("devices", std::move(list));
++  ResolveJavascriptCallback(base::Value(callback_id), result);
++}
++
++void NickelPhonesHandler::HandlePhoneAction(const base::ListValue& args) {
++  AllowJavascript();
++  const std::string& callback_id = args[0].GetString();
++  const auto path = paths_.find(args[1].GetString());
++  const std::string& action = args[2].GetString();
++  if (path == paths_.end() || !kPageActions.contains(action)) {
++    ResolveJavascriptCallback(base::Value(callback_id), base::Value(false));
++    return;
++  }
++  Activate(path->second, action, std::nullopt, callback_id);
++}
++
++void NickelPhonesHandler::HandleSendFiles(const base::ListValue& args) {
++  const auto path = paths_.find(args[0].GetString());
++  if (path == paths_.end()) {
++    return;
++  }
++  send_to_ = path->second;
++  content::WebContents* web_contents = web_ui()->GetWebContents();
++  if (select_file_dialog_) {
++    select_file_dialog_->ListenerDestroyed();
++  }
++  select_file_dialog_ = ui::SelectFileDialog::Create(
++      this, std::make_unique<ChromeSelectFilePolicy>(web_contents));
++  select_file_dialog_->SelectFile(
++      ui::SelectFileDialog::SELECT_OPEN_MULTI_FILE,
++      l10n_util::GetStringUTF16(IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE),
++      base::FilePath(), /*file_types=*/nullptr, /*file_type_index=*/0,
++      base::FilePath::StringType(), web_contents->GetTopLevelNativeWindow());
++}
++
++void NickelPhonesHandler::FileSelected(const ui::SelectedFileInfo& file,
++                                       int index) {
++  MultiFilesSelected({file});
++}
++
++void NickelPhonesHandler::MultiFilesSelected(
++    const std::vector<ui::SelectedFileInfo>& files) {
++  // Valent runs as the same user as Chrome and reads the files itself.
++  base::ListValue uris;
++  for (const ui::SelectedFileInfo& file : files) {
++    const base::FilePath& path =
++        file.local_path.empty() ? file.file_path : file.local_path;
++    uris.Append(net::FilePathToFileURL(path).spec());
++  }
++  if (!send_to_.empty() && !uris.empty()) {
++    Activate(send_to_, "share.uris", base::Value(std::move(uris)),
++             std::nullopt);
++  }
++  send_to_.clear();
++}
++
++void NickelPhonesHandler::FileSelectionCanceled() {
++  send_to_.clear();
++}
++
++void NickelPhonesHandler::HandleOpenValent(const base::ListValue& args) {
++  AllowJavascript();
++  const std::string& callback_id = args[0].GetString();
++  const std::string& what = args[1].GetString();
++  if (what == "messages") {
++    Activate(kValentPath, "messages-window", std::nullopt, callback_id);
++    return;
++  }
++  // Valent's window, on a device's page or its own.
++  const std::string& device_id = args[2].GetString();
++  Activate(kValentPath, "window",
++           base::Value(what == "device" && !device_id.empty() ? device_id
++                                                               : "main"),
++           callback_id);
++}
++
++void NickelPhonesHandler::Activate(const std::string& path,
++                                   const std::string& action,
++                                   std::optional<base::Value> parameter,
++                                   std::optional<std::string> callback_id) {
++  // org.gtk.Actions Activate(s action, av parameter, a{sv} platform_data)
++  dbus::MethodCall method_call(kActionsInterface, "Activate");
++  NoAutoStart(&method_call);
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(action);
++  dbus::MessageWriter parameters(nullptr);
++  writer.OpenArray("v", &parameters);
++  if (parameter && parameter->is_string()) {
++    parameters.AppendVariantOfString(parameter->GetString());
++  } else if (parameter && parameter->is_list()) {
++    std::vector<std::string> strings;
++    for (const base::Value& value : parameter->GetList()) {
++      if (value.is_string()) {
++        strings.push_back(value.GetString());
++      }
++    }
++    dbus::MessageWriter variant(nullptr);
++    parameters.OpenVariant("as", &variant);
++    variant.AppendArrayOfStrings(strings);
++    parameters.CloseContainer(&variant);
++  }
++  writer.CloseContainer(&parameters);
++  // A window Valent shows for it comes forward (Exo's xdg-activation).
++  dbus::MessageWriter platform_data(nullptr);
++  writer.OpenArray("{sv}", &platform_data);
++  dbus::MessageWriter entry(nullptr);
++  platform_data.OpenDictEntry(&entry);
++  entry.AppendString("activation-token");
++  entry.AppendVariantOfString(exo::wayland::MakeActivationToken());
++  platform_data.CloseContainer(&entry);
++  writer.CloseContainer(&platform_data);
++
++  ValentProxy(path)->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&NickelPhonesHandler::OnActivated,
++                     weak_ptr_factory_.GetWeakPtr(), std::move(callback_id)));
++}
++
++void NickelPhonesHandler::OnActivated(std::optional<std::string> callback_id,
++                                      dbus::Response* response,
++                                      dbus::ErrorResponse* error) {
++  if (callback_id) {
++    ResolveJavascriptCallback(base::Value(*callback_id),
++                              base::Value(response != nullptr));
++  }
++}
++
++}  // namespace ash::settings
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.h b/chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.h
+new file mode 100644
+index 0000000000000..2421742932051
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.h
+@@ -0,0 +1,112 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_MULTIDEVICE_NICKEL_PHONES_HANDLER_H_
++#define CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_MULTIDEVICE_NICKEL_PHONES_HANDLER_H_
++
++#include <cstdint>
++#include <map>
++#include <optional>
++#include <string>
++#include <vector>
++
++#include "base/memory/scoped_refptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/values.h"
++#include "chrome/browser/ui/webui/settings/settings_page_ui_handler.h"
++#include "ui/shell_dialogs/select_file_dialog.h"
++
++namespace dbus {
++class ErrorResponse;
++class Response;
++}  // namespace dbus
++
++namespace ash::settings {
++
++// NickelOS: Settings > Connected devices' phones and tablets, in place of
++// Google's Phone Hub. They connect through KDE Connect: Valent runs in the
++// session (nickel-phone) and Chrome, running as the session's user, talks to
++// it on the session's D-Bus. The page lists Valent's devices (its
++// ObjectManager), with their battery and what they can do (each device's
++// org.gtk.Actions); pairs, unpairs, rings and sends files to them (device
++// actions); and opens Valent's own windows for the rest (app actions), with
++// an xdg-activation token so they come forward.
++class NickelPhonesHandler : public ::settings::SettingsPageUIHandler,
++                            public ui::SelectFileDialog::Listener {
++ public:
++  NickelPhonesHandler();
++  NickelPhonesHandler(const NickelPhonesHandler&) = delete;
++  NickelPhonesHandler& operator=(const NickelPhonesHandler&) = delete;
++  ~NickelPhonesHandler() override;
++
++  // ::settings::SettingsPageUIHandler:
++  void RegisterMessages() override;
++  void OnJavascriptAllowed() override {}
++  void OnJavascriptDisallowed() override;
++
++  // ui::SelectFileDialog::Listener:
++  void FileSelected(const ui::SelectedFileInfo& file, int index) override;
++  void MultiFilesSelected(
++      const std::vector<ui::SelectedFileInfo>& files) override;
++  void FileSelectionCanceled() override;
++
++  // A device as the page shows it.
++  struct Device {
++    Device();
++    Device(const Device&);
++    Device(Device&&);
++    Device& operator=(const Device&);
++    Device& operator=(Device&&);
++    ~Device();
++
++    std::string path;
++    std::string id;
++    std::string name;
++    std::string icon;
++    uint32_t state = 0;
++    // The device actions that are enabled (pair, findmyphone.ring...).
++    std::vector<std::string> actions;
++    // Percent, or -1 when the device reports no battery.
++    int battery = -1;
++    bool charging = false;
++  };
++
++ private:
++  // nickelGetPhones(callback_id): {running, devices: [...]}.
++  void HandleGetPhones(const base::ListValue& args);
++  // nickelPhoneAction(callback_id, device_id, action): a device action.
++  void HandlePhoneAction(const base::ListValue& args);
++  // nickelPhoneSendFiles(device_id): ChromeOS's file picker, then sends.
++  void HandleSendFiles(const base::ListValue& args);
++  // nickelOpenValent(callback_id, what, device_id): Valent's window on a
++  // device ("device"), its main window ("main") or Messages ("messages").
++  void HandleOpenValent(const base::ListValue& args);
++
++  void OnManagedObjects(std::string callback_id,
++                        dbus::Response* response,
++                        dbus::ErrorResponse* error);
++  void OnDevicesDescribed(std::string callback_id,
++                          std::vector<Device> devices);
++  void OnActivated(std::optional<std::string> callback_id,
++                   dbus::Response* response,
++                   dbus::ErrorResponse* error);
++  // Activates org.gtk.Actions `action` on Valent's object `path`, with
++  // `parameter` if given (a string, or a list of strings); resolves
++  // `callback_id`, if given, with whether it went through.
++  void Activate(const std::string& path,
++                const std::string& action,
++                std::optional<base::Value> parameter,
++                std::optional<std::string> callback_id);
++
++  // Device id -> object path, from the last listing.
++  std::map<std::string, std::string> paths_;
++  // The device the file picker sends to.
++  std::string send_to_;
++  scoped_refptr<ui::SelectFileDialog> select_file_dialog_;
++  base::WeakPtrFactory<NickelPhonesHandler> weak_ptr_factory_{this};
++};
++
++}  // namespace ash::settings
++
++#endif  // CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_MULTIDEVICE_NICKEL_PHONES_HANDLER_H_

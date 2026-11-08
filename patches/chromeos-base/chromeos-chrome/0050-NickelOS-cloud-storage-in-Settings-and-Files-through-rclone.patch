@@ -1,0 +1,2124 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: cloud storage in Settings and Files, through rclone
+
+nickel-cloud keeps the user's cloud storage accounts (Google Drive,
+OneDrive, Dropbox, Proton Drive, Box, pCloud, S3, Nextcloud/WebDAV) with
+rclone and mounts each one under $XDG_RUNTIME_DIR/nickel-cloud/drives.
+Its D-Bus service, org.nickelos.Cloud on the session bus, is what Chrome
+talks to (file_manager::NickelCloudClient, a private connection to
+/run/user/<uid>/bus on its own thread):
+
+- Files: VolumeManager adds each mounted account as a volume of the new
+  type nickel_cloud (VOLUME_TYPE_NICKEL_CLOUD, RootType.NICKEL_CLOUD),
+  shown in the sidebar's cloud section with a cloud icon, and follows
+  nickel-cloud's Changed signal. Files can't unmount these: the accounts
+  are managed in Settings. The folder tree scans their folders as it does
+  local ones (rclone keeps the listings), so only folders with folders in
+  them get an expand arrow.
+- Settings > System preferences > Files > Cloud storage: the accounts with
+  their state, Add account and Remove. The add dialog (nickel-cloud-dialog)
+  asks for the service and what it needs (Google Drive: the user's own
+  client ID and secret), then answers rclone's configuration one question
+  at a time; services that sign in through their web page open it in the
+  browser, and the dialog waits for it. NickelCloudHandler passes the
+  calls on.
+
+diff --git a/chrome/browser/ash/extensions/file_manager/private_api_mount.cc b/chrome/browser/ash/extensions/file_manager/private_api_mount.cc
+index 985185874ae3d..37ff9a2afe8f1 100644
+--- a/chrome/browser/ash/extensions/file_manager/private_api_mount.cc
++++ b/chrome/browser/ash/extensions/file_manager/private_api_mount.cc
+@@ -254,6 +254,10 @@ ExtensionFunction::ResponseAction FileManagerPrivateRemoveMountFunction::Run() {
+           volume->mount_path());
+       return RespondNow(NoArguments());
+ 
++    case file_manager::VOLUME_TYPE_NICKEL_CLOUD:
++      // NickelOS: cloud storage accounts are removed in Settings.
++      return RespondNow(Error("Cloud storage is managed in Settings"));
++
+     case file_manager::VOLUME_TYPE_TESTING:
+       file_manager::VolumeManager::Get(profile)
+           ->RemoveVolumeForTesting(  // IN-TEST
+diff --git a/chrome/browser/ash/extensions/file_manager/private_api_util.cc b/chrome/browser/ash/extensions/file_manager/private_api_util.cc
+index 6a1aeec2ca814..58d75eda9f82e 100644
+--- a/chrome/browser/ash/extensions/file_manager/private_api_util.cc
++++ b/chrome/browser/ash/extensions/file_manager/private_api_util.cc
+@@ -667,6 +667,9 @@ void VolumeToVolumeMetadata(Profile* profile,
+     case VOLUME_TYPE_SMB:
+       volume_metadata->volume_type = fmp::VolumeType::kSmb;
+       break;
++    case VOLUME_TYPE_NICKEL_CLOUD:
++      volume_metadata->volume_type = fmp::VolumeType::kNickelCloud;
++      break;
+     case VOLUME_TYPE_SYSTEM_INTERNAL:
+       volume_metadata->volume_type = fmp::VolumeType::kSystemInternal;
+       break;
+diff --git a/chrome/browser/ash/file_manager/BUILD.gn b/chrome/browser/ash/file_manager/BUILD.gn
+index 25f251234f330..ade2d530106b3 100644
+--- a/chrome/browser/ash/file_manager/BUILD.gn
++++ b/chrome/browser/ash/file_manager/BUILD.gn
+@@ -93,6 +93,8 @@ static_library("file_manager") {
+     "url_util.h",
+     "virtual_file_tasks.cc",
+     "virtual_file_tasks.h",
++    "nickel_cloud_client.cc",
++    "nickel_cloud_client.h",
+     "volume.cc",
+     "volume.h",
+     "volume_manager.cc",
+@@ -134,6 +136,7 @@ static_library("file_manager") {
+   ]
+ 
+   deps = [
++    "//dbus",
+     "//apps",
+     "//ash",
+     "//ash/constants",
+diff --git a/chrome/browser/ash/file_manager/nickel_cloud_client.cc b/chrome/browser/ash/file_manager/nickel_cloud_client.cc
+new file mode 100644
+index 0000000000000..bb3437af40e78
+--- /dev/null
++++ b/chrome/browser/ash/file_manager/nickel_cloud_client.cc
+@@ -0,0 +1,224 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/file_manager/nickel_cloud_client.h"
++
++#include <unistd.h>
++
++#include <utility>
++
++#include "base/functional/bind.h"
++#include "base/functional/callback_helpers.h"
++#include "base/json/json_reader.h"
++#include "base/logging.h"
++#include "base/message_loop/message_pump_type.h"
++#include "base/strings/stringprintf.h"
++#include "base/task/single_thread_task_runner.h"
++#include "base/threading/thread.h"
++#include "base/time/time.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_path.h"
++#include "dbus/object_proxy.h"
++
++namespace file_manager {
++
++namespace {
++
++constexpr char kService[] = "org.nickelos.Cloud";
++constexpr char kPath[] = "/org/nickelos/Cloud";
++constexpr char kInterface[] = "org.nickelos.Cloud";
++
++// How long and how often the session's bus is waited for.
++constexpr int kMaxConnectTries = 60;
++constexpr base::TimeDelta kConnectRetry = base::Seconds(5);
++
++// The D-Bus thread, for as long as Chrome runs.
++base::Thread* DBusThread() {
++  static base::NoDestructor<base::Thread> thread("NickelCloudDBus");
++  if (!thread->IsRunning()) {
++    CHECK(thread->StartWithOptions(
++        base::Thread::Options(base::MessagePumpType::IO, 0)));
++  }
++  return thread.get();
++}
++
++}  // namespace
++
++// static
++NickelCloudClient* NickelCloudClient::Get() {
++  static base::NoDestructor<NickelCloudClient> client;
++  return client.get();
++}
++
++NickelCloudClient::NickelCloudClient() {
++  Connect();
++}
++
++NickelCloudClient::~NickelCloudClient() = default;
++
++void NickelCloudClient::AddObserver(Observer* observer) {
++  observers_.AddObserver(observer);
++}
++
++void NickelCloudClient::RemoveObserver(Observer* observer) {
++  observers_.RemoveObserver(observer);
++}
++
++// The session's D-Bus: nickel-session's, at /run/user/<uid>/bus (Chrome runs
++// as the session's user). A private connection on its own thread.
++void NickelCloudClient::Connect() {
++  if (connecting_ || proxy_) {
++    return;
++  }
++  connecting_ = true;
++  dbus::Bus::Options options;
++  options.bus_type = dbus::Bus::CUSTOM_ADDRESS;
++  options.address = base::StringPrintf("unix:path=/run/user/%u/bus",
++                                       static_cast<unsigned>(getuid()));
++  options.connection_type = dbus::Bus::PRIVATE;
++  options.dbus_task_runner = DBusThread()->task_runner();
++  bus_ = base::MakeRefCounted<dbus::Bus>(std::move(options));
++  bus_->GetDBusTaskRunner()->PostTaskAndReplyWithResult(
++      FROM_HERE,
++      base::BindOnce([](scoped_refptr<dbus::Bus> bus) { return bus->Connect(); },
++                     bus_),
++      base::BindOnce(&NickelCloudClient::OnConnected,
++                     weak_ptr_factory_.GetWeakPtr()));
++}
++
++void NickelCloudClient::OnConnected(bool connected) {
++  connecting_ = false;
++  if (!connected) {
++    // No session bus yet: a new connection a little later.
++    bus_->GetDBusTaskRunner()->PostTask(
++        FROM_HERE, base::BindOnce(&dbus::Bus::ShutdownAndBlock, bus_));
++    bus_ = nullptr;
++    if (++connect_tries_ < kMaxConnectTries) {
++      base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
++          FROM_HERE,
++          base::BindOnce(&NickelCloudClient::Connect,
++                         weak_ptr_factory_.GetWeakPtr()),
++          kConnectRetry);
++    } else {
++      LOG(ERROR) << "NickelOS: no session bus for cloud storage";
++    }
++    return;
++  }
++  proxy_ = bus_->GetObjectProxy(kService, dbus::ObjectPath(kPath));
++  proxy_->ConnectToSignal(kInterface, "Changed",
++                          base::BindRepeating(&NickelCloudClient::OnChangedSignal,
++                                              weak_ptr_factory_.GetWeakPtr()),
++                          base::DoNothing());
++  proxy_->SetNameOwnerChangedCallback(
++      base::BindRepeating(&NickelCloudClient::OnNameOwnerChanged,
++                          weak_ptr_factory_.GetWeakPtr()));
++  NotifyChanged();
++}
++
++void NickelCloudClient::GetState(Callback callback) {
++  Call("GetState", {}, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT, true,
++       std::move(callback));
++}
++
++void NickelCloudClient::Add(const std::string& name,
++                            const std::string& type,
++                            const std::string& parameters_json,
++                            Callback callback) {
++  Call("Add", {name, type, parameters_json}, dbus::ObjectProxy::TIMEOUT_MAX,
++       true, std::move(callback));
++}
++
++void NickelCloudClient::Continue(const std::string& name,
++                                 const std::string& state,
++                                 const std::string& answer,
++                                 Callback callback) {
++  Call("Continue", {name, state, answer}, dbus::ObjectProxy::TIMEOUT_MAX,
++       true, std::move(callback));
++}
++
++void NickelCloudClient::Cancel(const std::string& name) {
++  Call("Cancel", {name}, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT, false,
++       base::DoNothing());
++}
++
++void NickelCloudClient::Remove(const std::string& name, Callback callback) {
++  Call("Remove", {name}, 60 * 1000, false, std::move(callback));
++}
++
++void NickelCloudClient::Call(const std::string& method,
++                             const std::vector<std::string>& arguments,
++                             int timeout_ms,
++                             bool expect_reply,
++                             Callback callback) {
++  if (!proxy_) {
++    Connect();
++    std::move(callback).Run(std::nullopt,
++                            "Cloud storage isn't running yet. Try again soon.");
++    return;
++  }
++  dbus::MethodCall call(kInterface, method);
++  dbus::MessageWriter writer(&call);
++  for (const std::string& argument : arguments) {
++    writer.AppendString(argument);
++  }
++  proxy_->CallMethodWithErrorResponse(
++      &call, timeout_ms,
++      base::BindOnce(&NickelCloudClient::OnResponse,
++                     weak_ptr_factory_.GetWeakPtr(), expect_reply,
++                     std::move(callback)));
++}
++
++void NickelCloudClient::OnResponse(bool expect_reply,
++                                   Callback callback,
++                                   dbus::Response* response,
++                                   dbus::ErrorResponse* error) {
++  if (!response) {
++    std::string message = "Cloud storage didn't answer";
++    if (error) {
++      dbus::MessageReader reader(error);
++      std::string text;
++      if (reader.PopString(&text) && !text.empty()) {
++        message = text;
++      }
++    }
++    std::move(callback).Run(std::nullopt, message);
++    return;
++  }
++  if (!expect_reply) {
++    std::move(callback).Run(base::Value(), std::string());
++    return;
++  }
++  dbus::MessageReader reader(response);
++  std::string json;
++  if (!reader.PopString(&json)) {
++    std::move(callback).Run(std::nullopt, "Cloud storage answered wrongly");
++    return;
++  }
++  std::optional<base::Value> value =
++      base::JSONReader::Read(json, base::JSON_PARSE_RFC);
++  if (!value) {
++    std::move(callback).Run(std::nullopt, "Cloud storage answered wrongly");
++    return;
++  }
++  std::move(callback).Run(std::move(value), std::string());
++}
++
++void NickelCloudClient::OnChangedSignal(dbus::Signal*) {
++  NotifyChanged();
++}
++
++void NickelCloudClient::OnNameOwnerChanged(const std::string&,
++                                           const std::string& new_owner) {
++  // nickel-cloud started (again), or stopped: its state is new either way.
++  NotifyChanged();
++}
++
++void NickelCloudClient::NotifyChanged() {
++  for (Observer& observer : observers_) {
++    observer.OnNickelCloudChanged();
++  }
++}
++
++}  // namespace file_manager
+diff --git a/chrome/browser/ash/file_manager/nickel_cloud_client.h b/chrome/browser/ash/file_manager/nickel_cloud_client.h
+new file mode 100644
+index 0000000000000..b5d252553f652
+--- /dev/null
++++ b/chrome/browser/ash/file_manager/nickel_cloud_client.h
+@@ -0,0 +1,106 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_FILE_MANAGER_NICKEL_CLOUD_CLIENT_H_
++#define CHROME_BROWSER_ASH_FILE_MANAGER_NICKEL_CLOUD_CLIENT_H_
++
++#include <optional>
++#include <string>
++#include <vector>
++
++#include "base/functional/callback.h"
++#include "base/memory/raw_ptr.h"
++#include "base/memory/scoped_refptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/no_destructor.h"
++#include "base/observer_list.h"
++#include "base/observer_list_types.h"
++#include "base/values.h"
++
++namespace dbus {
++class Bus;
++class ErrorResponse;
++class ObjectProxy;
++class Response;
++class Signal;
++}  // namespace dbus
++
++namespace file_manager {
++
++// NickelOS: talks to nickel-cloud (org.nickelos.Cloud on the session's
++// D-Bus), the session service that runs rclone for the user's cloud storage
++// accounts. Files shows its mounts as volumes (VolumeManager); Settings adds
++// and removes accounts through it. One per browser process, used on the UI
++// thread. Chrome can start before the session's bus does (it starts again as
++// the session's user while the session comes up): the connection is tried
++// again until it works.
++class NickelCloudClient {
++ public:
++  class Observer : public base::CheckedObserver {
++   public:
++    // nickel-cloud's accounts or mounts changed, or nickel-cloud (or the
++    // connection to it) came up: its state is worth reading again.
++    virtual void OnNickelCloudChanged() = 0;
++  };
++
++  // nickel-cloud's JSON answer, parsed, or std::nullopt and why not.
++  using Callback = base::OnceCallback<void(std::optional<base::Value> reply,
++                                           const std::string& error)>;
++
++  static NickelCloudClient* Get();
++
++  NickelCloudClient(const NickelCloudClient&) = delete;
++  NickelCloudClient& operator=(const NickelCloudClient&) = delete;
++
++  void AddObserver(Observer* observer);
++  void RemoveObserver(Observer* observer);
++
++  // nickel-cloud's methods (see chromeos-base/nickel-cloud in
++  // overlay-nickel). Add and Continue can take minutes: a first account
++  // downloads rclone, and a sign-in waits for the browser.
++  void GetState(Callback callback);
++  void Add(const std::string& name,
++           const std::string& type,
++           const std::string& parameters_json,
++           Callback callback);
++  void Continue(const std::string& name,
++                const std::string& state,
++                const std::string& answer,
++                Callback callback);
++  void Cancel(const std::string& name);
++  void Remove(const std::string& name, Callback callback);
++
++ private:
++  friend class base::NoDestructor<NickelCloudClient>;
++
++  NickelCloudClient();
++  ~NickelCloudClient();
++
++  void Connect();
++  void OnConnected(bool connected);
++  void Call(const std::string& method,
++            const std::vector<std::string>& arguments,
++            int timeout_ms,
++            bool expect_reply,
++            Callback callback);
++  void OnResponse(bool expect_reply,
++                  Callback callback,
++                  dbus::Response* response,
++                  dbus::ErrorResponse* error);
++  void OnChangedSignal(dbus::Signal* signal);
++  void OnNameOwnerChanged(const std::string& old_owner,
++                          const std::string& new_owner);
++  void NotifyChanged();
++
++  scoped_refptr<dbus::Bus> bus_;
++  raw_ptr<dbus::ObjectProxy> proxy_ = nullptr;
++  bool connecting_ = false;
++  int connect_tries_ = 0;
++  base::ObserverList<Observer> observers_;
++  base::WeakPtrFactory<NickelCloudClient> weak_ptr_factory_{this};
++};
++
++}  // namespace file_manager
++
++#endif  // CHROME_BROWSER_ASH_FILE_MANAGER_NICKEL_CLOUD_CLIENT_H_
+diff --git a/chrome/browser/ash/file_manager/path_util.cc b/chrome/browser/ash/file_manager/path_util.cc
+index ed2ea576eed8b..3ea0723226768 100644
+--- a/chrome/browser/ash/file_manager/path_util.cc
++++ b/chrome/browser/ash/file_manager/path_util.cc
+@@ -1289,6 +1289,7 @@ std::optional<FilePath> GetDisplayablePath(Profile* profile, FilePath path) {
+     case VOLUME_TYPE_DOCUMENTS_PROVIDER:
+     case VOLUME_TYPE_MTP:
+     case VOLUME_TYPE_SMB:
++    case VOLUME_TYPE_NICKEL_CLOUD:
+       result = FilePath(volume->volume_label());
+       break;
+     case VOLUME_TYPE_TESTING:
+diff --git a/chrome/browser/ash/file_manager/volume.cc b/chrome/browser/ash/file_manager/volume.cc
+index c12bf6fcd5556..3e8165d138c7a 100644
+--- a/chrome/browser/ash/file_manager/volume.cc
++++ b/chrome/browser/ash/file_manager/volume.cc
+@@ -71,6 +71,8 @@ std::string_view VolumeTypeToString(const VolumeType type) {
+       return "system_internal";
+     case VOLUME_TYPE_GUEST_OS:
+       return "guest_os";
++    case VOLUME_TYPE_NICKEL_CLOUD:
++      return "nickel_cloud";
+     case NUM_VOLUME_TYPE:
+       break;
+   }
+@@ -396,6 +398,22 @@ std::unique_ptr<Volume> Volume::CreateForSmb(base::FilePath mount_point,
+   return volume;
+ }
+ 
++// static
++std::unique_ptr<Volume> Volume::CreateForNickelCloud(base::FilePath mount_path,
++                                                     std::string display_name) {
++  std::unique_ptr<Volume> volume(new Volume());
++  volume->type_ = VOLUME_TYPE_NICKEL_CLOUD;
++  // Keep source_path empty.
++  volume->source_ = SOURCE_NETWORK;
++  volume->mount_path_ = std::move(mount_path);
++  volume->volume_id_ = GenerateVolumeId(*volume);
++  volume->volume_label_ = std::move(display_name);
++  // A FUSE mount of a remote: no inotify for changes made elsewhere.
++  volume->watchable_ = false;
++  volume->is_read_only_ = false;
++  return volume;
++}
++
+ // ShareCache is not visible in the file manager and so this volume does not
+ // represent a real, user-visible Volume. However, shared files can be read
+ // through ImageLoader, which needs a Volume present to be able to read from the
+diff --git a/chrome/browser/ash/file_manager/volume.h b/chrome/browser/ash/file_manager/volume.h
+index 5d47538b887c2..d4aac99b16ac5 100644
+--- a/chrome/browser/ash/file_manager/volume.h
++++ b/chrome/browser/ash/file_manager/volume.h
+@@ -37,6 +37,8 @@ enum VolumeType {
+   VOLUME_TYPE_SMB = 10,
+   VOLUME_TYPE_SYSTEM_INTERNAL = 11,  // Internal volume never exposed to users.
+   VOLUME_TYPE_GUEST_OS = 12,  // Guest OS volumes (Crostini, Bruschetta, etc)
++  // NickelOS: a cloud storage account, rclone's mount (nickel-cloud).
++  VOLUME_TYPE_NICKEL_CLOUD = 13,
+   // Append new values here.
+   NUM_VOLUME_TYPE,
+ };
+@@ -122,6 +124,11 @@ class Volume {
+ 
+   static std::unique_ptr<Volume> CreateForShareCache(base::FilePath mount_path);
+ 
++  // NickelOS: a cloud storage account (nickel-cloud's rclone mount at
++  // `mount_path`), shown in Files as `display_name`.
++  static std::unique_ptr<Volume> CreateForNickelCloud(base::FilePath mount_path,
++                                                      std::string display_name);
++
+   static std::unique_ptr<Volume> CreateForTesting(
+       base::FilePath path,
+       VolumeType volume_type,
+diff --git a/chrome/browser/ash/file_manager/volume_manager.cc b/chrome/browser/ash/file_manager/volume_manager.cc
+index 3540ce5b99e21..9fd83ebdf9ac6 100644
+--- a/chrome/browser/ash/file_manager/volume_manager.cc
++++ b/chrome/browser/ash/file_manager/volume_manager.cc
+@@ -53,6 +53,7 @@
+ #include "components/storage_monitor/storage_monitor.h"
+ #include "content/public/browser/browser_task_traits.h"
+ #include "content/public/browser/browser_thread.h"
++#include "base/strings/string_number_conversions.h"
+ #include "crypto/sha2.h"
+ #include "services/device/public/mojom/mtp_storage_info.mojom.h"
+ #include "storage/browser/file_system/external_mount_points.h"
+@@ -444,6 +445,11 @@ void VolumeManager::Initialize() {
+     trash_auto_cleanup_ =
+         trash::TrashAutoCleanup::Create(&local_state_.get(), profile_);
+   }
++
++  // NickelOS: the user's cloud storage accounts.
++  NickelCloudClient::Get()->AddObserver(this);
++  nickel_cloud_observed_ = true;
++  RefreshNickelCloud();
+ }
+ 
+ void VolumeManager::Shutdown() {
+@@ -469,6 +475,10 @@ void VolumeManager::Shutdown() {
+ 
+   drive_observation_.Reset();
+   smb_observer_.reset();
++  if (nickel_cloud_observed_) {
++    NickelCloudClient::Get()->RemoveObserver(this);
++    nickel_cloud_observed_ = false;
++  }
+ 
+   if (file_system_provider_service_) {
+     file_system_provider_service_->RemoveObserver(this);
+@@ -1260,6 +1270,68 @@ void VolumeManager::MountNickelDrive(const std::string& device_path,
+       base::DoNothing());
+ }
+ 
++void VolumeManager::OnNickelCloudChanged() {
++  RefreshNickelCloud();
++}
++
++void VolumeManager::RefreshNickelCloud() {
++  NickelCloudClient::Get()->GetState(
++      base::BindOnce(&VolumeManager::OnNickelCloudState,
++                     weak_ptr_factory_.GetWeakPtr()));
++}
++
++// nickel-cloud's state: {"accounts": [{"name", "mounted", "mountPath"}...]}.
++// A mounted account is a volume; an account gone or not mounted is not. No
++// answer (nickel-cloud stopped, and its mounts went with it) is no accounts.
++void VolumeManager::OnNickelCloudState(std::optional<base::Value> reply,
++                                       const std::string& error) {
++  std::map<base::FilePath, std::string> mounted;
++  const base::ListValue* accounts =
++      reply && reply->is_dict() ? reply->GetDict().FindList("accounts")
++                                : nullptr;
++  if (accounts) {
++    for (const base::Value& account : *accounts) {
++      if (!account.is_dict()) {
++        continue;
++      }
++      const base::DictValue& fields = account.GetDict();
++      const std::string* name = fields.FindString("name");
++      const std::string* path = fields.FindString("mountPath");
++      if (name && path && fields.FindBool("mounted").value_or(false)) {
++        mounted[base::FilePath(*path)] = *name;
++      }
++    }
++  }
++  storage::ExternalMountPoints* const mount_points =
++      storage::ExternalMountPoints::GetSystemInstance();
++  for (auto it = nickel_cloud_volumes_.begin();
++       it != nickel_cloud_volumes_.end();) {
++    if (mounted.contains(it->first)) {
++      ++it;
++      continue;
++    }
++    DoUnmountEvent(*Volume::CreateForNickelCloud(it->first, std::string()));
++    mount_points->RevokeFileSystem(it->second);
++    it = nickel_cloud_volumes_.erase(it);
++  }
++  for (const auto& [path, name] : mounted) {
++    if (nickel_cloud_volumes_.contains(path)) {
++      continue;
++    }
++    const std::string mount_name =
++        "nickel-cloud-" +
++        base::HexEncode(crypto::SHA256HashString(path.value())).substr(0, 16);
++    if (!mount_points->RegisterFileSystem(
++            mount_name, storage::kFileSystemTypeLocal,
++            storage::FileSystemMountOption(), path)) {
++      LOG(ERROR) << "NickelOS: cannot register cloud storage at " << path;
++      continue;
++    }
++    nickel_cloud_volumes_[path] = mount_name;
++    DoMountEvent(Volume::CreateForNickelCloud(path, name));
++  }
++}
++
+ void VolumeManager::OnRemovableStorageAttached(
+     const storage_monitor::StorageInfo& info) {
+   if (!storage_monitor::StorageInfo::IsMTPDevice(info.device_id())) {
+diff --git a/chrome/browser/ash/file_manager/volume_manager.h b/chrome/browser/ash/file_manager/volume_manager.h
+index 2118ac433ef6f..3a646ae0263d1 100644
+--- a/chrome/browser/ash/file_manager/volume_manager.h
++++ b/chrome/browser/ash/file_manager/volume_manager.h
+@@ -25,6 +25,7 @@
+ #include "chrome/browser/ash/file_manager/documents_provider_root_manager.h"
+ #include "chrome/browser/ash/file_manager/fusebox_daemon.h"
+ #include "chrome/browser/ash/file_manager/io_task_controller.h"
++#include "chrome/browser/ash/file_manager/nickel_cloud_client.h"
+ #include "chrome/browser/ash/file_manager/trash_auto_cleanup.h"
+ #include "chrome/browser/ash/file_manager/volume.h"
+ #include "chrome/browser/ash/file_system_provider/observer.h"
+@@ -74,7 +75,8 @@ class VolumeManager
+       ui::ClipboardObserver,
+       DocumentsProviderRootManager::Observer,
+       policy::local_user_files::LocalUserFilesPolicyObserver,
+-      policy::local_user_files::LocalFilesMigrationManager::Observer {
++      policy::local_user_files::LocalFilesMigrationManager::Observer,
++      NickelCloudClient::Observer {
+  public:
+   // An alternate to device::mojom::MtpManager::GetStorageInfo.
+   // Used for injecting fake MTP manager for testing in VolumeManagerTest.
+@@ -257,6 +259,13 @@ class VolumeManager
+   void OnNickelDrivesChanged();
+   void MountNickelDrive(const std::string& device_path, ash::MountError error);
+ 
++  // NickelOS: the user's cloud storage accounts (nickel-cloud's rclone
++  // mounts), each a volume of its own.
++  void OnNickelCloudChanged() override;
++  void RefreshNickelCloud();
++  void OnNickelCloudState(std::optional<base::Value> reply,
++                          const std::string& error);
++
+   // RemovableStorageObserver overrides.
+   void OnRemovableStorageAttached(
+       const storage_monitor::StorageInfo& info) override;
+@@ -416,6 +425,10 @@ class VolumeManager
+   // NickelOS: the Windows volumes allowed changes when the pref was last
+   // looked at, to tell which drives a change concerns.
+   std::set<std::string> nickel_writable_drives_;
++  // NickelOS: the cloud storage volumes, by mount path, with the name each is
++  // registered under in storage::ExternalMountPoints.
++  std::map<base::FilePath, std::string> nickel_cloud_volumes_;
++  bool nickel_cloud_observed_ = false;
+   base::ObserverList<VolumeManagerObserver>::Unchecked observers_;
+   GetMtpStorageInfoCallback get_mtp_storage_info_callback_;
+   Volumes mounted_volumes_;
+diff --git a/chrome/browser/ash/system_web_apps/apps/media_app/chrome_media_app_ui_delegate.cc b/chrome/browser/ash/system_web_apps/apps/media_app/chrome_media_app_ui_delegate.cc
+index 8b1612612174f..b9328ff3e801b 100644
+--- a/chrome/browser/ash/system_web_apps/apps/media_app/chrome_media_app_ui_delegate.cc
++++ b/chrome/browser/ash/system_web_apps/apps/media_app/chrome_media_app_ui_delegate.cc
+@@ -122,6 +122,7 @@ void ChromeMediaAppUIDelegate::IsFileArcWritableImpl(
+     case VolumeType::VOLUME_TYPE_SMB:
+     case VolumeType::VOLUME_TYPE_SYSTEM_INTERNAL:
+     case VolumeType::VOLUME_TYPE_GUEST_OS:
++    case VolumeType::VOLUME_TYPE_NICKEL_CLOUD:
+       std::move(is_file_arc_writable_callback).Run(false);
+       return;
+     case VolumeType::NUM_VOLUME_TYPE:
+diff --git a/chrome/browser/enterprise/connectors/analysis/source_destination_matcher_ash.cc b/chrome/browser/enterprise/connectors/analysis/source_destination_matcher_ash.cc
+index cdbb864f8fefc..2f9e69aabfbbb 100644
+--- a/chrome/browser/enterprise/connectors/analysis/source_destination_matcher_ash.cc
++++ b/chrome/browser/enterprise/connectors/analysis/source_destination_matcher_ash.cc
+@@ -102,6 +102,8 @@ SourceDestinationMatcherAsh::FsType SourceDestinationMatcherAsh::VolumeToFsType(
+     case file_manager::VOLUME_TYPE_SMB:
+       return SourceDestinationMatcherAsh::FsType::kSmb;
+     case file_manager::VOLUME_TYPE_SYSTEM_INTERNAL:
++    // NickelOS: cloud storage through rclone, which no policy names.
++    case file_manager::VOLUME_TYPE_NICKEL_CLOUD:
+       return SourceDestinationMatcherAsh::FsType::kUnknown;
+     case file_manager::VOLUME_TYPE_MOUNTED_ARCHIVE_FILE:
+     case file_manager::VOLUME_TYPE_GUEST_OS:
+diff --git a/chrome/browser/resources/ash/settings/BUILD.gn b/chrome/browser/resources/ash/settings/BUILD.gn
+index d10cbb07755dc..bfcbcee5e2955 100644
+--- a/chrome/browser/resources/ash/settings/BUILD.gn
++++ b/chrome/browser/resources/ash/settings/BUILD.gn
+@@ -260,6 +260,7 @@ build_webui("build") {
+     "os_files_page/files_settings_card.ts",
+     "os_files_page/google_drive_confirmation_dialog.ts",
+     "os_files_page/google_drive_subpage.ts",
++    "os_files_page/nickel_cloud_dialog.ts",
+     "os_files_page/office_page.ts",
+     "os_files_page/one_drive_subpage.ts",
+     "os_files_page/smb_shares_page.ts",
+diff --git a/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.html b/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.html
+index 41e863b98e073..7baa374f1376f 100644
+--- a/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.html
++++ b/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.html
+@@ -9,6 +9,22 @@
+     margin-inline-end: 16px;
+   }
+ 
++  /* NickelOS: cloud storage. */
++  #nickelCloudIcon,
++  .nickel-cloud-account iron-icon {
++    fill: var(--cros-sys-primary);
++    margin-inline-end: 16px;
++  }
++
++  #nickelCloudTextContainer,
++  .nickel-cloud-account .start {
++    flex: 1;
++  }
++
++  .nickel-cloud-error {
++    color: var(--cros-sys-error);
++  }
++
+   #smbSharesTextContainer {
+     /*
+     The Add SMB Shares button changes size based on its text translation. Flex
+@@ -89,8 +105,64 @@
+         role-description="$i18n{subpageArrowRoleDescription}">
+     </cr-link-row>
+   </template>
++
++  <!-- NickelOS: cloud storage accounts, through rclone (nickel-cloud). -->
++  <div id="nickelCloudRow" class="settings-box two-line hr">
++    <iron-icon id="nickelCloudIcon" icon="os-settings:cloud"></iron-icon>
++    <div id="nickelCloudTextContainer" class="start settings-box-text">
++      <div>$i18n{nickelCloudTitle}</div>
++      <div class="secondary">$i18n{nickelCloudDescription}</div>
++    </div>
++    <cr-button id="nickelCloudAddButton" on-click="openNickelCloudDialog_">
++      $i18n{nickelCloudAdd}
++    </cr-button>
++  </div>
++  <template is="dom-if" if="[[nickelCloudError_]]" restamp>
++    <div class="settings-box nickel-cloud-error" role="alert">
++      [[nickelCloudError_]]
++    </div>
++  </template>
++  <template is="dom-repeat" items="[[nickelCloudAccounts_]]">
++    <div class="settings-box two-line nickel-cloud-account">
++      <iron-icon icon="os-settings:cloud" aria-hidden="true"></iron-icon>
++      <div class="start settings-box-text">
++        <div>[[item.name]]</div>
++        <div class$="secondary [[nickelCloudStatusClass_(item)]]">
++          [[nickelCloudStatus_(item, nickelCloudRemovingNow_)]]
++        </div>
++      </div>
++      <cr-icon-button iron-icon="cr:delete"
++          title="$i18n{nickelCloudRemove}"
++          aria-label$="[[nickelCloudRemoveLabel_(item)]]"
++          disabled="[[isNickelCloudRemoving_(item, nickelCloudRemovingNow_)]]"
++          on-click="onNickelCloudRemoveClick_">
++      </cr-icon-button>
++    </div>
++  </template>
+ </settings-card>
+ 
++<template is="dom-if" if="[[showNickelCloudDialog_]]" restamp>
++  <nickel-cloud-dialog existing-names="[[nickelCloudNames_(nickelCloudAccounts_)]]"
++      on-close="closeNickelCloudDialog_"
++      on-nickel-cloud-added="refreshNickelCloud_">
++  </nickel-cloud-dialog>
++</template>
++
++<cr-dialog id="nickelCloudRemoveDialog" close-text="$i18n{close}">
++  <div slot="title">
++    [[i18n('nickelCloudRemoveTitle', nickelCloudRemoving_)]]
++  </div>
++  <div slot="body">$i18n{nickelCloudRemoveBody}</div>
++  <div slot="button-container">
++    <cr-button class="cancel-button" on-click="onNickelCloudRemoveCancel_">
++      $i18n{cancel}
++    </cr-button>
++    <cr-button class="action-button" on-click="onNickelCloudRemoveConfirm_">
++      $i18n{nickelCloudRemove}
++    </cr-button>
++  </div>
++</cr-dialog>
++
+ <template is="dom-if" if="[[shouldShowAddSmbDialog_]]" restamp>
+   <add-smb-share-dialog on-close="closeAddSmbDialog_"
+       last-url="[[prefs.network_file_shares.most_recently_used_url.value]]"
+diff --git a/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.ts b/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.ts
+index 82f12d059c643..50737ed930897 100644
+--- a/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.ts
++++ b/chrome/browser/resources/ash/settings/os_files_page/files_settings_card.ts
+@@ -7,6 +7,9 @@
+  * 'files-settings-card' is the card element containing files settings.
+  */
+ 
++import 'chrome://resources/ash/common/cr_elements/cr_button/cr_button.js';
++import 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
++import 'chrome://resources/ash/common/cr_elements/cr_icon_button/cr_icon_button.js';
+ import 'chrome://resources/ash/common/cr_elements/cr_link_row/cr_link_row.js';
+ import 'chrome://resources/ash/common/cr_elements/localized_link/localized_link.js';
+ import 'chrome://resources/ash/common/smb_shares/add_smb_share_dialog.js';
+@@ -14,11 +17,15 @@ import '../controls/controlled_button.js';
+ import '../controls/settings_toggle_button.js';
+ import '../os_settings_page/settings_card.js';
+ import '../settings_shared.css.js';
++import './nickel_cloud_dialog.js';
+ 
+ import {PrefsMixin} from '/shared/settings/prefs/prefs_mixin.js';
++import type {CrDialogElement} from 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
+ import {I18nMixin} from 'chrome://resources/ash/common/cr_elements/i18n_mixin.js';
+ import {SmbBrowserProxyImpl} from 'chrome://resources/ash/common/smb_shares/smb_browser_proxy.js';
+ import {assert} from 'chrome://resources/js/assert.js';
++import type {WebUiListener} from 'chrome://resources/js/cr.js';
++import {addWebUiListener, removeWebUiListener, sendWithPromise} from 'chrome://resources/js/cr.js';
+ import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
+ import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
+ 
+@@ -32,6 +39,27 @@ import {getTemplate} from './files_settings_card.html.js';
+ import {OneDriveBrowserProxy} from './one_drive_browser_proxy.js';
+ import {OneDriveConnectionState} from './one_drive_subpage.js';
+ 
++/** NickelOS: a cloud storage account, as nickel-cloud reports it. */
++interface NickelCloudAccount {
++  name: string;
++  type: string;
++  mounted: boolean;
++  mountPath: string;
++  error: string;
++}
++
++/** NickelOS: the services' names, by rclone backend. */
++const NICKEL_CLOUD_SERVICES: Record<string, string> = {
++  box: 'Box',
++  drive: 'Google Drive',
++  dropbox: 'Dropbox',
++  onedrive: 'OneDrive',
++  pcloud: 'pCloud',
++  protondrive: 'Proton Drive',
++  s3: 'S3',
++  webdav: 'WebDAV',
++};
++
+ const FilesSettingsCardElementBase =
+     RouteOriginMixin(I18nMixin(DeepLinkingMixin(PrefsMixin(PolymerElement))));
+ 
+@@ -93,6 +121,35 @@ export class FilesSettingsCardElement extends FilesSettingsCardElementBase {
+         type: Boolean,
+         value: false,
+       },
++
++      // NickelOS: cloud storage.
++      nickelCloudAccounts_: {
++        type: Array,
++        value: () => [],
++      },
++
++      showNickelCloudDialog_: {
++        type: Boolean,
++        value: false,
++      },
++
++      // The account the remove dialog asks about.
++      nickelCloudRemoving_: {
++        type: String,
++        value: '',
++      },
++
++      // The account being removed now.
++      nickelCloudRemovingNow_: {
++        type: String,
++        value: '',
++      },
++
++      // Why the last removal failed.
++      nickelCloudError_: {
++        type: String,
++        value: '',
++      },
+     };
+   }
+ 
+@@ -118,6 +175,12 @@ export class FilesSettingsCardElement extends FilesSettingsCardElementBase {
+   declare private shouldShowAddSmbDialog_: boolean;
+   declare private shouldShowOneDriveSettings_: boolean;
+   declare private shouldShowOfficeSettings_: boolean;
++  declare private nickelCloudAccounts_: NickelCloudAccount[];
++  declare private showNickelCloudDialog_: boolean;
++  declare private nickelCloudRemoving_: string;
++  declare private nickelCloudRemovingNow_: string;
++  declare private nickelCloudError_: string;
++  private nickelCloudListener_: WebUiListener|null = null;
+ 
+   // RouteOriginMixin override
+   override route = routes.SYSTEM_PREFERENCES;
+@@ -139,6 +202,19 @@ export class FilesSettingsCardElement extends FilesSettingsCardElementBase {
+       this.oneDriveBrowserProxy_.observer.onODFSMountOrUnmount.addListener(
+           this.updateOneDriveEmail_.bind(this));
+     }
++
++    this.nickelCloudListener_ = addWebUiListener(
++        'nickel-cloud-changed', () => this.refreshNickelCloud_());
++    this.refreshNickelCloud_();
++  }
++
++  override disconnectedCallback(): void {
++    super.disconnectedCallback();
++
++    if (this.nickelCloudListener_) {
++      removeWebUiListener(this.nickelCloudListener_);
++      this.nickelCloudListener_ = null;
++    }
+   }
+ 
+   override ready(): void {
+@@ -250,6 +326,86 @@ export class FilesSettingsCardElement extends FilesSettingsCardElementBase {
+     // Do not show SMB button on the Files page if an SMB mounts.
+     this.shouldShowAddSmbButton_ = false;
+   }
++
++  // NickelOS: cloud storage, through nickel-cloud (NickelCloudHandler).
++
++  private async refreshNickelCloud_(): Promise<void> {
++    const state = await sendWithPromise<{accounts?: NickelCloudAccount[]}>(
++        'nickelCloudGetState');
++    this.nickelCloudAccounts_ = state.accounts || [];
++  }
++
++  private nickelCloudNames_(accounts: NickelCloudAccount[]): string[] {
++    return accounts.map(account => account.name);
++  }
++
++  private nickelCloudStatus_(account: NickelCloudAccount): string {
++    const service = NICKEL_CLOUD_SERVICES[account.type] || account.type;
++    let status = this.i18n('nickelCloudNotConnected');
++    if (this.isNickelCloudRemoving_(account)) {
++      status = this.i18n('nickelCloudRemoving');
++    } else if (account.error) {
++      status = account.error;
++    } else if (account.mounted) {
++      status = this.i18n('nickelCloudInFiles');
++    }
++    return `${service} · ${status}`;
++  }
++
++  private isNickelCloudRemoving_(account: NickelCloudAccount): boolean {
++    return account.name === this.nickelCloudRemovingNow_;
++  }
++
++  private nickelCloudStatusClass_(account: NickelCloudAccount): string {
++    return account.error ? 'nickel-cloud-error' : '';
++  }
++
++  private nickelCloudRemoveLabel_(account: NickelCloudAccount): string {
++    return `${this.i18n('nickelCloudRemove')} ${account.name}`;
++  }
++
++  private openNickelCloudDialog_(): void {
++    this.nickelCloudError_ = '';
++    this.showNickelCloudDialog_ = true;
++  }
++
++  private closeNickelCloudDialog_(): void {
++    this.showNickelCloudDialog_ = false;
++    this.refreshNickelCloud_();
++  }
++
++  private nickelCloudRemoveDialog_(): CrDialogElement {
++    return this.shadowRoot!.querySelector<CrDialogElement>(
++        '#nickelCloudRemoveDialog')!;
++  }
++
++  private onNickelCloudRemoveClick_(e: {model: {item: NickelCloudAccount}}):
++      void {
++    this.nickelCloudError_ = '';
++    this.nickelCloudRemoving_ = e.model.item.name;
++    this.nickelCloudRemoveDialog_().showModal();
++  }
++
++  private onNickelCloudRemoveCancel_(): void {
++    this.nickelCloudRemoving_ = '';
++    this.nickelCloudRemoveDialog_().cancel();
++  }
++
++  private async onNickelCloudRemoveConfirm_(): Promise<void> {
++    const name = this.nickelCloudRemoving_;
++    this.nickelCloudRemoving_ = '';
++    this.nickelCloudRemoveDialog_().close();
++    if (name) {
++      // nickel-cloud waits for changes still uploading (up to half a
++      // minute), and fails if they don't finish.
++      this.nickelCloudRemovingNow_ = name;
++      const result =
++          await sendWithPromise<{error?: string}>('nickelCloudRemove', name);
++      this.nickelCloudRemovingNow_ = '';
++      this.nickelCloudError_ = result.error || '';
++      this.refreshNickelCloud_();
++    }
++  }
+ }
+ 
+ declare global {
+diff --git a/chrome/browser/resources/ash/settings/os_files_page/nickel_cloud_dialog.html b/chrome/browser/resources/ash/settings/os_files_page/nickel_cloud_dialog.html
+new file mode 100644
+index 0000000000000..5085591a0630c
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_files_page/nickel_cloud_dialog.html
+@@ -0,0 +1,146 @@
++<style include="settings-shared md-select">
++  .field {
++    display: block;
++    margin-block-start: 16px;
++  }
++
++  .note {
++    color: var(--cros-sys-on_surface_variant);
++    margin-block-start: 16px;
++  }
++
++  /* rclone's help text keeps its lines. */
++  .help {
++    white-space: pre-line;
++  }
++
++  .error {
++    color: var(--cros-sys-error);
++    margin-block-end: 8px;
++    white-space: pre-line;
++  }
++
++  .waiting {
++    align-items: center;
++    display: flex;
++    gap: 16px;
++    margin-block: 8px;
++  }
++
++  select.md-select {
++    width: 100%;
++  }
++</style>
++
++<cr-dialog id="dialog" show-on-attach close-text="$i18n{close}"
++    on-cancel="onDialogCancel_">
++  <div slot="title">$i18n{nickelCloudDialogTitle}</div>
++  <div slot="body">
++    <template is="dom-if" if="[[isStep_(step_, 'choose')]]" restamp>
++      <div>$i18n{nickelCloudRclone}</div>
++      <label id="serviceLabel" class="cr-form-field-label field">
++        $i18n{nickelCloudService}
++      </label>
++      <select class="md-select" aria-labelledby="serviceLabel"
++          on-change="onServiceChange_">
++        <template is="dom-repeat" items="[[services_]]">
++          <option value="[[item.type]]"
++              selected="[[isSelected_(item.type, selectedType_)]]">
++            [[item.label]]
++          </option>
++        </template>
++      </select>
++      <cr-input class="field" label="$i18n{nickelCloudName}"
++          value="{{name_}}" spellcheck="false"></cr-input>
++      <template is="dom-repeat" items="[[fieldsFor_(selectedType_)]]">
++        <cr-input class="field" label="[[item.label]]"
++            type="[[item.inputType]]" placeholder="[[item.placeholder]]"
++            data-key$="[[item.key]]" spellcheck="false"
++            value="[[valueOf_(item.key, values_)]]"
++            on-value-changed="onFieldChanged_">
++        </cr-input>
++      </template>
++      <template is="dom-if" if="[[isDrive_(selectedType_)]]" restamp>
++        <div class="note">
++          $i18n{nickelCloudDriveHelp}
++          <a href="https://rclone.org/drive/#making-your-own-client-id"
++              target="_blank">$i18n{nickelCloudHow}</a>
++        </div>
++      </template>
++      <template is="dom-if" if="[[isOAuth_(selectedType_)]]" restamp>
++        <div class="note">$i18n{nickelCloudSignInNote}</div>
++      </template>
++    </template>
++
++    <template is="dom-if" if="[[isStep_(step_, 'working')]]" restamp>
++      <div class="waiting">
++        <paper-spinner-lite active></paper-spinner-lite>
++        <div>$i18n{nickelCloudConnecting}</div>
++      </div>
++    </template>
++
++    <template is="dom-if" if="[[isStep_(step_, 'signin')]]" restamp>
++      <div class="waiting">
++        <paper-spinner-lite active></paper-spinner-lite>
++        <div>$i18n{nickelCloudSigningIn}</div>
++      </div>
++    </template>
++
++    <template is="dom-if" if="[[isStep_(step_, 'question')]]" restamp>
++      <div class="error" hidden="[[!questionError_]]">[[questionError_]]</div>
++      <div class="note help" id="questionHelp">[[question_.Help]]</div>
++      <template is="dom-if" if="[[hasExamples_(question_)]]" restamp>
++        <select class="md-select field" aria-labelledby="questionHelp"
++            on-change="onAnswerSelect_">
++          <template is="dom-repeat" items="[[question_.Examples]]">
++            <option value="[[item.Value]]"
++                selected="[[isSelected_(item.Value, answer_)]]">
++              [[exampleLabel_(item)]]
++            </option>
++          </template>
++        </select>
++      </template>
++      <template is="dom-if" if="[[!hasExamples_(question_)]]" restamp>
++        <cr-input class="field" aria-labelledby="questionHelp"
++            type="[[answerInputType_(question_)]]" value="{{answer_}}"
++            spellcheck="false">
++        </cr-input>
++      </template>
++    </template>
++
++    <template is="dom-if" if="[[isStep_(step_, 'done')]]" restamp>
++      <div>[[doneText_]]</div>
++    </template>
++
++    <template is="dom-if" if="[[isStep_(step_, 'error')]]" restamp>
++      <div class="error">[[error_]]</div>
++    </template>
++  </div>
++  <div slot="button-container">
++    <cr-button class="cancel-button" on-click="onCancelClick_"
++        hidden="[[isStep_(step_, 'done')]]">
++      $i18n{cancel}
++    </cr-button>
++    <template is="dom-if" if="[[isStep_(step_, 'choose')]]" restamp>
++      <cr-button class="action-button" on-click="onConnectClick_"
++          disabled="[[!canConnect_(selectedType_, name_, values_)]]">
++        $i18n{nickelCloudConnect}
++      </cr-button>
++    </template>
++    <template is="dom-if" if="[[isStep_(step_, 'question')]]" restamp>
++      <cr-button class="action-button" on-click="onNextClick_">
++        $i18n{nickelCloudNext}
++      </cr-button>
++    </template>
++    <template is="dom-if" if="[[isStep_(step_, 'error')]]" restamp>
++      <cr-button class="action-button" on-click="onBackClick_">
++        $i18n{nickelCloudBack}
++      </cr-button>
++    </template>
++    <template is="dom-if" if="[[isStep_(step_, 'done')]]" restamp>
++      <cr-button class="action-button" on-click="onDoneClick_">
++        $i18n{nickelCloudFinish}
++      </cr-button>
++    </template>
++  </div>
++</cr-dialog>
+diff --git a/chrome/browser/resources/ash/settings/os_files_page/nickel_cloud_dialog.ts b/chrome/browser/resources/ash/settings/os_files_page/nickel_cloud_dialog.ts
+new file mode 100644
+index 0000000000000..13952bae13c1c
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_files_page/nickel_cloud_dialog.ts
+@@ -0,0 +1,371 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++/**
++ * @fileoverview NickelOS: 'nickel-cloud-dialog' adds a cloud storage account
++ * (Settings > System preferences > Files > Cloud storage). nickel-cloud
++ * keeps it through rclone (NickelCloudHandler): the user picks the service
++ * and gives what it needs, then answers rclone's questions one at a time; a
++ * service with a browser sign-in opens its page in the browser, and the
++ * dialog waits for it. Fires 'nickel-cloud-added' with the account's name.
++ */
++import 'chrome://resources/ash/common/cr_elements/cr_button/cr_button.js';
++import 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
++import 'chrome://resources/ash/common/cr_elements/cr_input/cr_input.js';
++import 'chrome://resources/ash/common/cr_elements/md_select.css.js';
++import 'chrome://resources/polymer/v3_0/paper-spinner/paper-spinner-lite.js';
++import '../settings_shared.css.js';
++
++import type {CrDialogElement} from 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
++import {I18nMixin} from 'chrome://resources/ash/common/cr_elements/i18n_mixin.js';
++import {sendWithPromise} from 'chrome://resources/js/cr.js';
++import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++
++import {getTemplate} from './nickel_cloud_dialog.html.js';
++
++/** A field the user fills for a service: an rclone option. */
++interface CloudField {
++  key: string;
++  label: string;
++  inputType: string;
++  required: boolean;
++  placeholder: string;
++}
++
++/** A cloud service, an rclone backend. */
++interface CloudService {
++  type: string;
++  label: string;
++  // Sign-in through the browser (OAuth).
++  oauth: boolean;
++  fields: CloudField[];
++}
++
++/** One of rclone's questions (its config Option). */
++interface RcloneQuestion {
++  Name: string;
++  Help: string;
++  DefaultStr?: string;
++  Examples?: Array<{Value: string, Help: string}>;
++  Exclusive?: boolean;
++  IsPassword?: boolean;
++}
++
++/** nickel-cloud's answer to Add and Continue. */
++interface CloudResult {
++  done?: boolean;
++  state?: string;
++  error?: string;
++  option?: RcloneQuestion;
++}
++
++type Step = 'choose'|'working'|'question'|'signin'|'done'|'error';
++
++const NickelCloudDialogElementBase = I18nMixin(PolymerElement);
++
++class NickelCloudDialogElement extends NickelCloudDialogElementBase {
++  static get is() {
++    return 'nickel-cloud-dialog';
++  }
++
++  static get template() {
++    return getTemplate();
++  }
++
++  static get properties() {
++    return {
++      /** The accounts' names, which a new one must not take. */
++      existingNames: {type: Array, value: () => []},
++      services_: {type: Array},
++      selectedType_: String,
++      name_: String,
++      values_: {type: Object, value: () => ({})},
++      step_: {type: String, value: 'choose'},
++      question_: Object,
++      questionState_: String,
++      questionError_: String,
++      answer_: String,
++      error_: String,
++      doneText_: String,
++    };
++  }
++
++  declare existingNames: string[];
++  declare private services_: CloudService[];
++  declare private selectedType_: string;
++  declare private name_: string;
++  declare private values_: Record<string, string>;
++  declare private step_: Step;
++  declare private question_: RcloneQuestion|null;
++  declare private questionState_: string;
++  declare private questionError_: string;
++  declare private answer_: string;
++  declare private error_: string;
++  declare private doneText_: string;
++  // The name nickel-cloud is adding, once Add was sent.
++  private adding_ = '';
++
++  override connectedCallback(): void {
++    super.connectedCallback();
++    const field = (key: string, label: string, inputType = 'text',
++                   required = false, placeholder = ''): CloudField =>
++        ({key, label, inputType, required, placeholder});
++    this.services_ = [
++      {
++        type: 'drive',
++        label: 'Google Drive',
++        oauth: true,
++        fields: [
++          field('client_id', this.i18n('nickelCloudClientId'), 'text', true),
++          field(
++              'client_secret', this.i18n('nickelCloudClientSecret'),
++              'password', true),
++        ],
++      },
++      {type: 'onedrive', label: 'OneDrive', oauth: true, fields: []},
++      {type: 'dropbox', label: 'Dropbox', oauth: true, fields: []},
++      {
++        type: 'protondrive',
++        label: 'Proton Drive',
++        oauth: false,
++        fields: [
++          field('username', this.i18n('nickelCloudEmail'), 'text', true),
++          field('password', this.i18n('nickelCloudPassword'), 'password', true),
++          field('2fa', this.i18n('nickelCloudTwoFactor')),
++        ],
++      },
++      {
++        type: 'webdav',
++        label: this.i18n('nickelCloudWebdav'),
++        oauth: false,
++        fields: [
++          field(
++              'url', this.i18n('nickelCloudServer'), 'url', true,
++              'https://cloud.example.com/remote.php/dav/files/you'),
++          field('user', this.i18n('nickelCloudUsername')),
++          field('pass', this.i18n('nickelCloudPassword'), 'password'),
++        ],
++      },
++      {
++        type: 's3',
++        label: this.i18n('nickelCloudS3'),
++        oauth: false,
++        fields: [
++          field('endpoint', this.i18n('nickelCloudEndpoint')),
++          field('access_key_id', this.i18n('nickelCloudAccessKey'), 'text',
++                true),
++          field(
++              'secret_access_key', this.i18n('nickelCloudSecretKey'),
++              'password', true),
++          field('region', this.i18n('nickelCloudRegion')),
++        ],
++      },
++      {type: 'box', label: 'Box', oauth: true, fields: []},
++      {type: 'pcloud', label: 'pCloud', oauth: true, fields: []},
++    ];
++    this.selectService_(this.services_[0].type);
++  }
++
++  private service_(type: string): CloudService|undefined {
++    return this.services_.find(service => service.type === type);
++  }
++
++  private selectService_(type: string): void {
++    this.selectedType_ = type;
++    this.values_ = {};
++    // A name not taken yet: "Dropbox", "Dropbox 2"...
++    const label = this.service_(type)!.label;
++    let name = label;
++    for (let i = 2; this.existingNames.includes(name); i++) {
++      name = `${label} ${i}`;
++    }
++    this.name_ = name;
++  }
++
++  private onServiceChange_(e: Event): void {
++    this.selectService_((e.target as HTMLSelectElement).value);
++  }
++
++  private onFieldChanged_(e: CustomEvent<{value: string}>): void {
++    const key = (e.target as HTMLElement).dataset['key'];
++    if (key) {
++      this.values_ = {...this.values_, [key]: e.detail.value};
++    }
++  }
++
++  private fieldsFor_(type: string): CloudField[] {
++    return this.service_(type)?.fields || [];
++  }
++
++  private valueOf_(key: string): string {
++    return this.values_[key] || '';
++  }
++
++  private isSelected_(value: string, selected: string): boolean {
++    return value === selected;
++  }
++
++  private isStep_(step: Step, wanted: Step): boolean {
++    return step === wanted;
++  }
++
++  private isDrive_(type: string): boolean {
++    return type === 'drive';
++  }
++
++  private isOAuth_(type: string): boolean {
++    return !!this.service_(type)?.oauth;
++  }
++
++  private nameError_(name: string): string {
++    const trimmed = (name || '').trim();
++    if (!trimmed || /[:/\\]/.test(trimmed) || trimmed.startsWith('-') ||
++        this.existingNames.includes(trimmed)) {
++      return 'invalid';
++    }
++    return '';
++  }
++
++  private canConnect_(type: string, name: string): boolean {
++    if (this.nameError_(name)) {
++      return false;
++    }
++    return this.fieldsFor_(type).every(
++        field => !field.required || !!(this.values_[field.key] || '').trim());
++  }
++
++  // rclone's options for the service, from what the user filled.
++  private parameters_(): Record<string, string> {
++    const parameters: Record<string, string> = {};
++    for (const [key, value] of Object.entries(this.values_)) {
++      if (value.trim()) {
++        parameters[key] = value.trim();
++      }
++    }
++    switch (this.selectedType_) {
++      case 'drive':
++        parameters['scope'] = 'drive';
++        break;
++      case 'webdav':
++        parameters['vendor'] =
++            (parameters['url'] || '').includes('remote.php') ? 'nextcloud' :
++                                                                'other';
++        break;
++      case 's3':
++        parameters['provider'] = parameters['endpoint'] ? 'Other' : 'AWS';
++        parameters['env_auth'] = 'false';
++        break;
++    }
++    return parameters;
++  }
++
++  private async onConnectClick_(): Promise<void> {
++    if (!this.canConnect_(this.selectedType_, this.name_)) {
++      return;
++    }
++    this.adding_ = this.name_.trim();
++    this.step_ = 'working';
++    const result = await sendWithPromise(
++        'nickelCloudAdd', this.adding_, this.selectedType_,
++        JSON.stringify(this.parameters_()));
++    this.onResult_(result as CloudResult);
++  }
++
++  private async continue_(answer: string): Promise<void> {
++    const result = await sendWithPromise(
++        'nickelCloudContinue', this.adding_, this.questionState_, answer);
++    this.onResult_(result as CloudResult);
++  }
++
++  private onResult_(result: CloudResult): void {
++    if (!this.adding_) {
++      return;  // cancelled meanwhile
++    }
++    if (result.done) {
++      this.doneText_ = this.i18n('nickelCloudDone', this.adding_);
++      this.adding_ = '';
++      this.step_ = 'done';
++      this.dispatchEvent(new CustomEvent(
++          'nickel-cloud-added', {bubbles: true, composed: true}));
++      return;
++    }
++    if (!result.state) {
++      // nickel-cloud ended the attempt (and removed what rclone half-made).
++      this.error_ = result.error || this.i18n('nickelCloudFailed');
++      this.adding_ = '';
++      this.step_ = 'error';
++      return;
++    }
++    this.questionState_ = result.state;
++    const question = result.option || null;
++    // A browser sign-in: always through this device's browser.
++    if (question && question.Name === 'config_is_local') {
++      this.step_ = 'signin';
++      this.continue_('true');
++      return;
++    }
++    this.question_ = question;
++    this.questionError_ = result.error || '';
++    const examples = question?.Examples || [];
++    this.answer_ = question?.DefaultStr ||
++        (examples.length ? examples[0].Value : '');
++    this.step_ = 'question';
++  }
++
++  private hasExamples_(question: RcloneQuestion|null): boolean {
++    return !!question?.Examples?.length;
++  }
++
++  private exampleLabel_(example: {Value: string, Help: string}): string {
++    // rclone's help can be several lines; its first says what it is.
++    const help = (example.Help || '').split('\n')[0];
++    return help ? help : example.Value;
++  }
++
++  private answerInputType_(question: RcloneQuestion|null): string {
++    return question?.IsPassword ? 'password' : 'text';
++  }
++
++  private onAnswerSelect_(e: Event): void {
++    this.answer_ = (e.target as HTMLSelectElement).value;
++  }
++
++  private onNextClick_(): void {
++    this.step_ = 'working';
++    this.continue_(this.answer_ || '');
++  }
++
++  private onBackClick_(): void {
++    this.error_ = '';
++    this.step_ = 'choose';
++  }
++
++  private cancelAdding_(): void {
++    if (this.adding_) {
++      chrome.send('nickelCloudCancel', [this.adding_]);
++      this.adding_ = '';
++    }
++  }
++
++  private onCancelClick_(): void {
++    this.cancelAdding_();
++    this.shadowRoot!.querySelector<CrDialogElement>('#dialog')!.close();
++  }
++
++  private onDialogCancel_(): void {
++    this.cancelAdding_();
++  }
++
++  private onDoneClick_(): void {
++    this.shadowRoot!.querySelector<CrDialogElement>('#dialog')!.close();
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    [NickelCloudDialogElement.is]: NickelCloudDialogElement;
++  }
++}
++
++customElements.define(NickelCloudDialogElement.is, NickelCloudDialogElement);
+diff --git a/chrome/browser/resources/ash/settings/os_settings_icons.html b/chrome/browser/resources/ash/settings/os_settings_icons.html
+index 04ee3d2a4a5ab..7421ec6a433be 100644
+--- a/chrome/browser/resources/ash/settings/os_settings_icons.html
++++ b/chrome/browser/resources/ash/settings/os_settings_icons.html
+@@ -410,6 +410,9 @@ These icons may appear blurry.
+       <g id="camera"><path d="M10 13C11.3807 13 12.5 11.8807 12.5 10.5C12.5 9.11929 11.3807 8 10 8C8.61929 8 7.5 9.11929 7.5 10.5C7.5 11.8807 8.61929 13 10 13Z" fill="#1B1B1F"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M12 3H8L6 5H4C3.44772 5 3 5.44772 3 6V15C3 15.5523 3.44772 16 4 16H16C16.5523 16 17 15.5523 17 15V6C17 5.44772 16.5523 5 16 5H14L12 3ZM5 7H15V14H5V7Z" fill="#1B1B1F"></path></g>
+       <g id="cellular"><path fill-rule="evenodd" clip-rule="evenodd" d="M15.002 15.002V7.41622L7.41622 15.002H15.002ZM16.002 17.002C16.5543 17.002 17.002 16.5543 17.002 16.002V5.002C17.002 4.1111 15.9249 3.66493 15.2949 4.2949L4.2949 15.2949C3.66493 15.9249 4.1111 17.002 5.002 17.002H16.002Z"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M13.5 16.002C13.5 16.5543 13.0523 17.002 12.5 17.002H5.002C4.1111 17.002 3.66493 15.9249 4.2949 15.2949L11.7929 7.79289C12.4229 7.16293 13.5 7.6091 13.5 8.5V16.002Z"></path></g>
+       <g id="chrome" viewBox="0 0 20 20"><path d="M17.418 6.25h-7.417c-1.833 0-3.416 1.417-3.666 3.166l-2.75-4.75c1.5-1.833 3.833-3 6.416-3 3.25 0 6.084 1.834 7.417 4.584Z"/><path d="M6.751 11.833c.667 1.167 1.834 1.917 3.25 1.917.5 0 .917-.084 1.417-.25l-2.75 4.75c-4-.667-7-4.084-7-8.25 0-1.667.5-3.25 1.333-4.583l3.75 6.416Z"/><path d="M13.751 10c0 .666-.166 1.333-.5 1.833l-3.75 6.5h.5c4.584 0 8.334-3.75 8.334-8.333 0-1-.167-2-.5-2.917h-5.5c.833.667 1.416 1.75 1.416 2.917Z"/><path d="M12.918 10a2.917 2.917 0 1 1-5.833 0 2.917 2.917 0 0 1 5.833 0Z"/></g>
++      <!-- NickelOS: cloud storage (Material Icons' outlined "cloud_queue",
++           like the outlined "cloud-off" below). -->
++      <g id="cloud" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4s1.79-4 4-4h.71C7.37 7.69 9.48 6 12 6c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3s-1.34 3-3 3z"></path></g>
+       <g id="cloud-off"><path d="M16.4732571,13.3443682 C16.8002856,12.9882746 17,12.5134184 17,11.9922 C17,10.8882 16.104,9.9922 15,9.9922 L13.494,9.9922 L13.494,9.0002 C13.494,7.0672 11.927,5.5002 9.994,5.5002 C9.5847901,5.5002 9.1930204,5.57089988 8.82954884,5.70065995 L7.33083687,4.20194798 C8.11843435,3.75577808 9.02717677,3.5002 10,3.5002 C12.71,3.5002 14.957,5.4612 15.411,8.0412 C17.424,8.2502 19,9.9312 19,12.0002 C19,13.0718701 18.5784721,14.0451601 17.8921876,14.7632987 L16.4732571,13.3443682 Z M17.8711111,17 L16.8711111,18 L14.8713111,16.0002 L6,16.0002 C3.239,16.0002 1,13.7622 1,11.0002 C1,8.58475294 2.71868905,6.59044755 4.99627833,6.12516722 L2,3.12888889 L3,2.12888889 L17.8711111,17 Z M6.86331111,7.9922 L6,7.9922 C4.343,7.9922 3,9.3352 3,10.9922 C3,12.6492 4.343,13.9922 6,13.9922 L12.8633111,13.9922 L6.86331111,7.9922 Z"></path></g>
+       <g id="color-correction" viewBox="0 0 20 20"><path d="M1.19209e-07 14.0833V10.375L7.125 3.25L6 2.14583L7.0625 1.08333L8.5625 2.58333L10.8542 0.291665C11.0069 0.138887 11.1875 0.0624986 11.3958 0.0624986C11.6181 0.0624986 11.8056 0.138887 11.9583 0.291665L13.7708 2.125C13.9236 2.27778 14 2.46528 14 2.6875C14 2.89583 13.9236 3.07639 13.7708 3.22917L11.5 5.5L13 7.02083L11.9375 8.08333L10.8125 6.95833L3.70833 14.0833H1.19209e-07ZM1.5 12.5833H3.08333L9.75 5.91667L8.1875 4.33333L1.5 11V12.5833ZM10.3333 4.5625L12.2083 2.66667L11.4167 1.85417L9.52083 3.72917L10.3333 4.5625ZM10.3333 4.5625L9.52083 3.72917L10.3333 4.5625Z"></g>
+       <g id="connected-devices" viewBox="0 0 20 20"><path d="M6.306 16.405h-2.37c-.553 0-1.014-.184-1.383-.553A1.919 1.919 0 0 1 2 14.469V5.936c0-.54.184-.994.553-1.363A1.884 1.884 0 0 1 3.936 4h12.326v1.936H3.936v8.533h2.37v1.936Zm1.422 0v-1.56a2.32 2.32 0 0 1-.79-.85 2.607 2.607 0 0 1-.257-1.146c0-.408.093-.79.277-1.145.184-.356.441-.646.77-.87v-1.58h2.845v1.56c.316.238.56.534.73.89.185.342.277.717.277 1.126 0 .395-.085.777-.257 1.145a2.038 2.038 0 0 1-.75.85v1.58H7.728Zm1.403-2.726c.25 0 .454-.079.612-.237A.836.836 0 0 0 10 12.83a.773.773 0 0 0-.257-.593.795.795 0 0 0-.612-.257.836.836 0 0 0-.612.257.773.773 0 0 0-.257.593c0 .237.085.44.257.612a.872.872 0 0 0 .612.237Zm7.862 2.726h-3.516a.993.993 0 0 1-.731-.296 1.057 1.057 0 0 1-.277-.751V8.879c0-.303.092-.553.277-.75a.993.993 0 0 1 .73-.297h3.517a.93.93 0 0 1 .71.296c.198.198.297.448.297.751v6.479c0 .303-.099.553-.296.75a.929.929 0 0 1-.711.297Zm-2.944-1.58h2.37V9.412h-2.37v5.413Z"/></g>
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/files/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/files/BUILD.gn
+index f7c41af5a8e15..a1ae5a80d5d76 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/files/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/files/BUILD.gn
+@@ -12,6 +12,8 @@ static_library("files") {
+     "google_drive_page_handler.h",
+     "google_drive_page_handler_factory.cc",
+     "google_drive_page_handler_factory.h",
++    "nickel_cloud_handler.cc",
++    "nickel_cloud_handler.h",
+     "one_drive_page_handler.cc",
+     "one_drive_page_handler.h",
+     "one_drive_page_handler_factory.cc",
+@@ -45,6 +47,7 @@ static_library("files") {
+     "//components/user_manager",
+     "//content/public/browser",
+     "//ui/base",
++    "//ui/chromeos/strings:strings_grit",
+     "//ui/webui",
+   ]
+ }
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/files/files_section.cc b/chrome/browser/ui/webui/ash/settings/pages/files/files_section.cc
+index 3382daad62998..77894121dafa5 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/files/files_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/files/files_section.cc
+@@ -15,6 +15,7 @@
+ #include "chrome/browser/chromeos/upload_office_to_cloud/upload_office_to_cloud.h"
+ #include "chrome/browser/policy/profile_policy_connector.h"
+ #include "chrome/browser/ui/webui/ash/cloud_upload/cloud_upload_util.h"
++#include "chrome/browser/ui/webui/ash/settings/pages/files/nickel_cloud_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/search/search_tag_registry.h"
+ #include "chrome/browser/ui/webui/ash/smb_shares/smb_handler.h"
+ #include "chrome/browser/ui/webui/ash/smb_shares/smb_shares_localized_strings_provider.h"
+@@ -24,6 +25,7 @@
+ #include "content/public/browser/web_ui_data_source.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/webui/web_ui_util.h"
++#include "ui/chromeos/strings/grit/ui_chromeos_strings.h"
+ #include "ui/webui/webui_util.h"
+ 
+ namespace ash::settings {
+@@ -246,7 +248,45 @@ void FilesSection::AddLoadTimeData(content::WebUIDataSource* html_source) {
+       {"alwaysMoveToOneDrivePreferenceLabel",
+        IDS_SETTINGS_ALWAYS_MOVE_OFFICE_TO_ONEDRIVE_PREFERENCE_LABEL},
+       {"smbSharesTitleDescription",
+-       IDS_OS_SETTINGS_DOWNLOADS_SMB_SHARES_DESCRIPTION}};
++       IDS_OS_SETTINGS_DOWNLOADS_SMB_SHARES_DESCRIPTION},
++      // NickelOS: cloud storage.
++      {"nickelCloudTitle", IDS_SETTINGS_NICKEL_CLOUD_TITLE},
++      {"nickelCloudDescription", IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION},
++      {"nickelCloudAdd", IDS_SETTINGS_NICKEL_CLOUD_ADD},
++      {"nickelCloudInFiles", IDS_SETTINGS_NICKEL_CLOUD_IN_FILES},
++      {"nickelCloudNotConnected", IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED},
++      {"nickelCloudRemove", IDS_SETTINGS_NICKEL_CLOUD_REMOVE},
++      {"nickelCloudRemoveTitle", IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE},
++      {"nickelCloudRemoveBody", IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY},
++      {"nickelCloudRemoving", IDS_SETTINGS_NICKEL_CLOUD_REMOVING},
++      {"nickelCloudDialogTitle", IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE},
++      {"nickelCloudRclone", IDS_SETTINGS_NICKEL_CLOUD_RCLONE},
++      {"nickelCloudService", IDS_SETTINGS_NICKEL_CLOUD_SERVICE},
++      {"nickelCloudName", IDS_SETTINGS_NICKEL_CLOUD_NAME},
++      {"nickelCloudClientId", IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID},
++      {"nickelCloudClientSecret", IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET},
++      {"nickelCloudEmail", IDS_SETTINGS_NICKEL_CLOUD_EMAIL},
++      {"nickelCloudPassword", IDS_SETTINGS_NICKEL_CLOUD_PASSWORD},
++      {"nickelCloudTwoFactor", IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR},
++      {"nickelCloudWebdav", IDS_SETTINGS_NICKEL_CLOUD_WEBDAV},
++      {"nickelCloudServer", IDS_SETTINGS_NICKEL_CLOUD_SERVER},
++      {"nickelCloudUsername", IDS_SETTINGS_NICKEL_CLOUD_USERNAME},
++      {"nickelCloudS3", IDS_SETTINGS_NICKEL_CLOUD_S3},
++      {"nickelCloudEndpoint", IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT},
++      {"nickelCloudAccessKey", IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY},
++      {"nickelCloudSecretKey", IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY},
++      {"nickelCloudRegion", IDS_SETTINGS_NICKEL_CLOUD_REGION},
++      {"nickelCloudDriveHelp", IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP},
++      {"nickelCloudHow", IDS_SETTINGS_NICKEL_CLOUD_HOW},
++      {"nickelCloudSignInNote", IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE},
++      {"nickelCloudConnecting", IDS_SETTINGS_NICKEL_CLOUD_CONNECTING},
++      {"nickelCloudSigningIn", IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN},
++      {"nickelCloudDone", IDS_SETTINGS_NICKEL_CLOUD_DONE},
++      {"nickelCloudFailed", IDS_SETTINGS_NICKEL_CLOUD_FAILED},
++      {"nickelCloudConnect", IDS_SETTINGS_NICKEL_CLOUD_CONNECT},
++      {"nickelCloudNext", IDS_SETTINGS_NICKEL_CLOUD_NEXT},
++      {"nickelCloudBack", IDS_SETTINGS_NICKEL_CLOUD_BACK},
++      {"nickelCloudFinish", IDS_SETTINGS_NICKEL_CLOUD_FINISH}};
+   html_source->AddLocalizedStrings(kLocalizedStrings);
+ 
+   smb_dialog::AddLocalizedStrings(html_source);
+@@ -300,6 +340,7 @@ void FilesSection::AddLoadTimeData(content::WebUIDataSource* html_source) {
+ void FilesSection::AddHandlers(content::WebUI* web_ui) {
+   web_ui->AddMessageHandler(
+       std::make_unique<smb_dialog::SmbHandler>(profile(), base::DoNothing()));
++  web_ui->AddMessageHandler(std::make_unique<NickelCloudHandler>());
+ }
+ 
+ int FilesSection::GetSectionNameMessageId() const {
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/files/nickel_cloud_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/files/nickel_cloud_handler.cc
+new file mode 100644
+index 0000000000000..969c79632fb8a
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/files/nickel_cloud_handler.cc
+@@ -0,0 +1,131 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/webui/ash/settings/pages/files/nickel_cloud_handler.h"
++
++#include <utility>
++
++#include "base/functional/bind.h"
++#include "content/public/browser/web_ui.h"
++
++namespace ash::settings {
++
++namespace {
++
++file_manager::NickelCloudClient* Client() {
++  return file_manager::NickelCloudClient::Get();
++}
++
++// The string at `index` of a message's arguments, or "".
++std::string StringArg(const base::ListValue& args, size_t index) {
++  if (index < args.size() && args[index].is_string()) {
++    return args[index].GetString();
++  }
++  return std::string();
++}
++
++}  // namespace
++
++NickelCloudHandler::NickelCloudHandler() = default;
++
++NickelCloudHandler::~NickelCloudHandler() {
++  if (observing_) {
++    Client()->RemoveObserver(this);
++  }
++}
++
++void NickelCloudHandler::RegisterMessages() {
++  web_ui()->RegisterMessageCallback(
++      "nickelCloudGetState",
++      base::BindRepeating(&NickelCloudHandler::HandleGetState,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "nickelCloudAdd", base::BindRepeating(&NickelCloudHandler::HandleAdd,
++                                            base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "nickelCloudContinue",
++      base::BindRepeating(&NickelCloudHandler::HandleContinue,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "nickelCloudCancel", base::BindRepeating(&NickelCloudHandler::HandleCancel,
++                                               base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "nickelCloudRemove", base::BindRepeating(&NickelCloudHandler::HandleRemove,
++                                               base::Unretained(this)));
++}
++
++void NickelCloudHandler::OnJavascriptAllowed() {
++  if (!observing_) {
++    Client()->AddObserver(this);
++    observing_ = true;
++  }
++}
++
++void NickelCloudHandler::OnJavascriptDisallowed() {
++  if (observing_) {
++    Client()->RemoveObserver(this);
++    observing_ = false;
++  }
++  weak_ptr_factory_.InvalidateWeakPtrs();
++}
++
++void NickelCloudHandler::OnNickelCloudChanged() {
++  if (IsJavascriptAllowed()) {
++    FireWebUIListener("nickel-cloud-changed");
++  }
++}
++
++void NickelCloudHandler::HandleGetState(const base::ListValue& args) {
++  AllowJavascript();
++  Client()->GetState(base::BindOnce(&NickelCloudHandler::Resolve,
++                                    weak_ptr_factory_.GetWeakPtr(),
++                                    StringArg(args, 0)));
++}
++
++void NickelCloudHandler::HandleAdd(const base::ListValue& args) {
++  AllowJavascript();
++  Client()->Add(StringArg(args, 1), StringArg(args, 2), StringArg(args, 3),
++                base::BindOnce(&NickelCloudHandler::Resolve,
++                               weak_ptr_factory_.GetWeakPtr(),
++                               StringArg(args, 0)));
++}
++
++void NickelCloudHandler::HandleContinue(const base::ListValue& args) {
++  AllowJavascript();
++  Client()->Continue(StringArg(args, 1), StringArg(args, 2), StringArg(args, 3),
++                     base::BindOnce(&NickelCloudHandler::Resolve,
++                                    weak_ptr_factory_.GetWeakPtr(),
++                                    StringArg(args, 0)));
++}
++
++void NickelCloudHandler::HandleCancel(const base::ListValue& args) {
++  Client()->Cancel(StringArg(args, 0));
++}
++
++void NickelCloudHandler::HandleRemove(const base::ListValue& args) {
++  AllowJavascript();
++  Client()->Remove(StringArg(args, 1),
++                   base::BindOnce(&NickelCloudHandler::Resolve,
++                                  weak_ptr_factory_.GetWeakPtr(),
++                                  StringArg(args, 0)));
++}
++
++void NickelCloudHandler::Resolve(const std::string& callback_id,
++                                 std::optional<base::Value> reply,
++                                 const std::string& error) {
++  if (!IsJavascriptAllowed()) {
++    return;
++  }
++  if (!reply || reply->is_none()) {
++    base::DictValue failed;
++    if (!error.empty()) {
++      failed.Set("error", error);
++    }
++    ResolveJavascriptCallback(base::Value(callback_id), failed);
++    return;
++  }
++  ResolveJavascriptCallback(base::Value(callback_id), *reply);
++}
++
++}  // namespace ash::settings
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/files/nickel_cloud_handler.h b/chrome/browser/ui/webui/ash/settings/pages/files/nickel_cloud_handler.h
+new file mode 100644
+index 0000000000000..49372690326ed
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/files/nickel_cloud_handler.h
+@@ -0,0 +1,64 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_FILES_NICKEL_CLOUD_HANDLER_H_
++#define CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_FILES_NICKEL_CLOUD_HANDLER_H_
++
++#include <optional>
++#include <string>
++
++#include "base/memory/weak_ptr.h"
++#include "base/values.h"
++#include "chrome/browser/ash/file_manager/nickel_cloud_client.h"
++#include "chrome/browser/ui/webui/settings/settings_page_ui_handler.h"
++
++namespace ash::settings {
++
++// NickelOS: Settings > System preferences > Files > Cloud storage. The
++// user's cloud storage accounts (Google Drive, OneDrive, Dropbox, Proton
++// Drive, S3, WebDAV/Nextcloud...), which nickel-cloud keeps through rclone
++// and Files shows as drives: the page lists them, adds them (rclone's
++// configuration, one question at a time, sign-ins in the browser) and
++// removes them, through file_manager::NickelCloudClient.
++class NickelCloudHandler : public ::settings::SettingsPageUIHandler,
++                           public file_manager::NickelCloudClient::Observer {
++ public:
++  NickelCloudHandler();
++  NickelCloudHandler(const NickelCloudHandler&) = delete;
++  NickelCloudHandler& operator=(const NickelCloudHandler&) = delete;
++  ~NickelCloudHandler() override;
++
++  // ::settings::SettingsPageUIHandler:
++  void RegisterMessages() override;
++  void OnJavascriptAllowed() override;
++  void OnJavascriptDisallowed() override;
++
++  // file_manager::NickelCloudClient::Observer:
++  void OnNickelCloudChanged() override;
++
++ private:
++  // nickelCloudGetState(callback_id): nickel-cloud's state.
++  void HandleGetState(const base::ListValue& args);
++  // nickelCloudAdd(callback_id, name, type, parameters JSON).
++  void HandleAdd(const base::ListValue& args);
++  // nickelCloudContinue(callback_id, name, state, answer).
++  void HandleContinue(const base::ListValue& args);
++  // nickelCloudCancel(name).
++  void HandleCancel(const base::ListValue& args);
++  // nickelCloudRemove(callback_id, name).
++  void HandleRemove(const base::ListValue& args);
++
++  // Resolves the page's promise with nickel-cloud's answer, or with
++  // {"error": ...}.
++  void Resolve(const std::string& callback_id,
++               std::optional<base::Value> reply,
++               const std::string& error);
++
++  bool observing_ = false;
++  base::WeakPtrFactory<NickelCloudHandler> weak_ptr_factory_{this};
++};
++
++}  // namespace ash::settings
++
++#endif  // CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_FILES_NICKEL_CLOUD_HANDLER_H_
+diff --git a/chromeos/ash/experiences/extensions/common/api/file_manager_private.idl b/chromeos/ash/experiences/extensions/common/api/file_manager_private.idl
+index 5ac5e7c01209a..7ef57a5f243fa 100644
+--- a/chromeos/ash/experiences/extensions/common/api/file_manager_private.idl
++++ b/chromeos/ash/experiences/extensions/common/api/file_manager_private.idl
+@@ -49,7 +49,8 @@ namespace fileManagerPrivate {
+ // Type of the mounted volume.
+ enum VolumeType { drive, downloads, removable, archive, provided, mtp,
+                   media_view, crostini, android_files, documents_provider,
+-                  testing, smb, system_internal, guest_os };
++                  testing, smb, system_internal, guest_os,
++                  nickel_cloud };
+ 
+ // Device type. Available if this is removable volume.
+ enum DeviceType { usb, sd, optical, mobile, unknown };
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index 0586fa8a9587e..cd07c14eee79a 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -2032,6 +2032,118 @@
+       <message name="IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY" desc="NickelOS: in the dialog that asks before the user may change files on the drive that holds Windows: the risk of Windows' Fast Startup and how to avoid it.">
+         With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.
+       </message>
++      <!-- NickelOS: Settings > System preferences > Files, cloud storage (rclone). -->
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_TITLE" desc="NickelOS: in Settings &gt; System preferences &gt; Files, the heading over the user&#x27;s cloud storage accounts (Google Drive, Dropbox and others), which the Files app shows as drives.">
++        Cloud storage
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION" desc="NickelOS: in Settings &gt; System preferences &gt; Files, under the cloud storage heading: what it does.">
++        See Google Drive, OneDrive, Dropbox and other cloud storage in Files
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_ADD" desc="NickelOS: in Settings &gt; System preferences &gt; Files, the button that adds a cloud storage account.">
++        Add account
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_IN_FILES" desc="NickelOS: in Settings &gt; System preferences &gt; Files, the status of a cloud storage account that the Files app shows.">
++        In Files
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED" desc="NickelOS: in Settings &gt; System preferences &gt; Files, the status of a cloud storage account that the Files app cannot show right now (offline, or rclone is not running).">
++        Not connected
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_REMOVE" desc="NickelOS: in Settings &gt; System preferences &gt; Files, the button (and its tooltip) that removes a cloud storage account.">
++        Remove
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_REMOVING" desc="NickelOS: in Settings &gt; System preferences &gt; Files, the status of a cloud storage account while it is being removed (after its changes finish uploading).">
++        Removing…
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE" desc="NickelOS: in Settings &gt; System preferences &gt; Files, the title of the dialog that asks before a cloud storage account is removed.">
++        Remove <ph name="ACCOUNT_NAME">$1<ex>Dropbox</ex></ph>?
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY" desc="NickelOS: in Settings &gt; System preferences &gt; Files, in the dialog that asks before a cloud storage account is removed: what happens to the files.">
++        Files stops showing this account. Your files stay in the cloud, and you can add the account again later.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE" desc="NickelOS: the title of the dialog that adds a cloud storage account.">
++        Add cloud storage
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_RCLONE" desc="NickelOS: in the dialog that adds a cloud storage account, the first thing it says: how cloud storage works on NickelOS.">
++        NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_SERVICE" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the list of services (Google Drive, Dropbox, OneDrive...).">
++        Service
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_NAME" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the field with the account&#x27;s name, which Files shows.">
++        Name
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the field for the Google Cloud OAuth client ID that Google Drive needs.">
++        Client ID
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the field for the Google Cloud OAuth client secret that Google Drive needs.">
++        Client secret
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_EMAIL" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the field for the Proton account&#x27;s email or username.">
++        Email or username
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_PASSWORD" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the password field.">
++        Password
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the field for the Proton account&#x27;s current two-factor code, if it has two-factor authentication.">
++        2-step verification code (if you use one)
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_WEBDAV" desc="NickelOS: in the dialog that adds a cloud storage account, the name of the service for a Nextcloud or other WebDAV server, in the list of services.">
++        Nextcloud or WebDAV
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_SERVER" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the field for a WebDAV server&#x27;s address.">
++        Server address
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_USERNAME" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the username field.">
++        Username
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_S3" desc="NickelOS: in the dialog that adds a cloud storage account, the name of the service for Amazon S3 and storage that works like it, in the list of services.">
++        Amazon S3 or compatible
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the field for an S3 service&#x27;s address; empty means Amazon S3 itself.">
++        Endpoint (empty for Amazon S3)
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the field for an S3 access key ID.">
++        Access key ID
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the field for an S3 secret access key.">
++        Secret access key
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_REGION" desc="NickelOS: in the dialog that adds a cloud storage account, the label of the field for an S3 region, which may be left empty.">
++        Region (optional)
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP" desc="NickelOS: in the dialog that adds a cloud storage account, under the Google Drive fields: why Google Drive needs the user&#x27;s own client ID. A link follows it.">
++        Google Drive needs your own client ID and secret from the Google Cloud console.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_HOW" desc="NickelOS: in the dialog that adds a cloud storage account, the link, after the explanation of Google Drive&#x27;s client ID, to the instructions for making one.">
++        How to make them
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE" desc="NickelOS: in the dialog that adds a cloud storage account, under a service that signs in through its own web page: what happens next.">
++        When you connect, the service's sign-in page opens in your browser.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_CONNECTING" desc="NickelOS: in the dialog that adds a cloud storage account, while it connects to the service (and, the first time, downloads rclone).">
++        Connecting…
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN" desc="NickelOS: in the dialog that adds a cloud storage account, while the user signs in on the service&#x27;s page in the browser.">
++        Finish signing in on the page that opened in your browser.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_DONE" desc="NickelOS: in the dialog that adds a cloud storage account, when the account was added.">
++        <ph name="ACCOUNT_NAME">$1<ex>Dropbox</ex></ph> is in Files now.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_FAILED" desc="NickelOS: in the dialog that adds a cloud storage account, when the account could not be added and no reason is known.">
++        Couldn't connect. Check the details and try again.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_CONNECT" desc="NickelOS: in the dialog that adds a cloud storage account, the button that connects to the chosen service.">
++        Connect
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_NEXT" desc="NickelOS: in the dialog that adds a cloud storage account, the button that answers one of rclone&#x27;s questions and goes on.">
++        Next
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_BACK" desc="NickelOS: in the dialog that adds a cloud storage account, the button that goes back to the service&#x27;s details after an error.">
++        Back
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_CLOUD_FINISH" desc="NickelOS: in the dialog that adds a cloud storage account, the button that closes it after the account was added.">
++        Done
++      </message>
+     </messages>
+   </release>
+ </grit>
+diff --git a/ui/file_manager/file_manager/common/js/shared_types.ts b/ui/file_manager/file_manager/common/js/shared_types.ts
+index e5290218a5518..87fec9346958b 100644
+--- a/ui/file_manager/file_manager/common/js/shared_types.ts
++++ b/ui/file_manager/file_manager/common/js/shared_types.ts
+@@ -33,6 +33,8 @@ export enum VolumeType {
+   SMB = 'smb',
+   SYSTEM_INTERNAL = 'system_internal',
+   TRASH = 'trash',
++  // NickelOS: a cloud storage account (nickel-cloud's rclone mount).
++  NICKEL_CLOUD = 'nickel_cloud',
+ }
+ 
+ /**
+diff --git a/ui/file_manager/file_manager/common/js/translations.ts b/ui/file_manager/file_manager/common/js/translations.ts
+index b07c4332c57e8..3f1cb75bf786e 100644
+--- a/ui/file_manager/file_manager/common/js/translations.ts
++++ b/ui/file_manager/file_manager/common/js/translations.ts
+@@ -186,6 +186,7 @@ export function getRootTypeLabel(locationInfo: EntryLocation) {
+     case RootType.DOCUMENTS_PROVIDER:
+     case RootType.SMB:
+     case RootType.GUEST_OS:
++    case RootType.NICKEL_CLOUD:
+       return volumeInfoLabel;
+     default:
+       console.error('Unsupported root type: ' + locationInfo.rootType);
+diff --git a/ui/file_manager/file_manager/common/js/uma.ts b/ui/file_manager/file_manager/common/js/uma.ts
+index bd650c051fd84..40e192764ee03 100644
+--- a/ui/file_manager/file_manager/common/js/uma.ts
++++ b/ui/file_manager/file_manager/common/js/uma.ts
+@@ -29,6 +29,7 @@ export const UMA_VOLUME_TYPES = [
+   VolumeType.SMB,
+   VolumeType.SYSTEM_INTERNAL,
+   VolumeType.GUEST_OS,
++  VolumeType.NICKEL_CLOUD,
+ ];
+ 
+ /**
+diff --git a/ui/file_manager/file_manager/common/js/volume_manager_types.ts b/ui/file_manager/file_manager/common/js/volume_manager_types.ts
+index 2b80c8a7ca4dd..1ee1d400dd330 100644
+--- a/ui/file_manager/file_manager/common/js/volume_manager_types.ts
++++ b/ui/file_manager/file_manager/common/js/volume_manager_types.ts
+@@ -114,6 +114,9 @@ export enum RootType {
+ 
+   // Trash.
+   TRASH = 'trash',
++
++  // NickelOS: root directory of a cloud storage account.
++  NICKEL_CLOUD = 'nickel_cloud',
+ }
+ 
+ /**
+@@ -152,6 +155,7 @@ export const RootTypesForUMA: Array<RootType|string> = [
+   'DEPRECATED_RECENT_VIDEOS',          // 26
+   RootType.TRASH,                      // 27
+   RootType.GUEST_OS,                   // 28
++  RootType.NICKEL_CLOUD,               // 29
+ ];
+ 
+ /** Error type of VolumeManager. */
+@@ -198,7 +202,8 @@ export function isNative(type: VolumeType): boolean {
+   return type === VolumeType.DOWNLOADS || type === VolumeType.DRIVE ||
+       type === VolumeType.ANDROID_FILES || type === VolumeType.CROSTINI ||
+       type === VolumeType.GUEST_OS || type === VolumeType.REMOVABLE ||
+-      type === VolumeType.ARCHIVE || type === VolumeType.SMB;
++      type === VolumeType.ARCHIVE || type === VolumeType.SMB ||
++      type === VolumeType.NICKEL_CLOUD;
+ }
+ 
+ /** Gets volume type from root type. */
+@@ -239,6 +244,8 @@ export function getVolumeTypeFromRootType(rootType: RootType): VolumeType {
+       return VolumeType.MY_FILES;
+     case RootType.SMB:
+       return VolumeType.SMB;
++    case RootType.NICKEL_CLOUD:
++      return VolumeType.NICKEL_CLOUD;
+     case RootType.TRASH:
+       return VolumeType.TRASH;
+     case RootType.RECENT:
+@@ -280,6 +287,8 @@ export function getRootTypeFromVolumeType(volumeType: VolumeType): RootType {
+       return RootType.REMOVABLE;
+     case VolumeType.SMB:
+       return RootType.SMB;
++    case VolumeType.NICKEL_CLOUD:
++      return RootType.NICKEL_CLOUD;
+     case VolumeType.TRASH:
+       return RootType.TRASH;
+     default:
+diff --git a/ui/file_manager/file_manager/definitions/file_manager_private.d.ts b/ui/file_manager/file_manager/definitions/file_manager_private.d.ts
+index 05e9098bfb428..aee47d2a054e8 100644
+--- a/ui/file_manager/file_manager/definitions/file_manager_private.d.ts
++++ b/ui/file_manager/file_manager/definitions/file_manager_private.d.ts
+@@ -33,6 +33,7 @@ declare global {
+         SMB = 'smb',
+         SYSTEM_INTERNAL = 'system_internal',
+         GUEST_OS = 'guest_os',
++        NICKEL_CLOUD = 'nickel_cloud',
+       }
+ 
+       export enum DeviceType {
+diff --git a/ui/file_manager/file_manager/foreground/js/quick_view_controller.ts b/ui/file_manager/file_manager/foreground/js/quick_view_controller.ts
+index db6c28c22a50d..56430a8a1c660 100644
+--- a/ui/file_manager/file_manager/foreground/js/quick_view_controller.ts
++++ b/ui/file_manager/file_manager/foreground/js/quick_view_controller.ts
+@@ -693,6 +693,7 @@ const LOCAL_VOLUME_TYPES_ = [
+   VolumeType.MEDIA_VIEW,
+   VolumeType.DOCUMENTS_PROVIDER,
+   VolumeType.SMB,
++  VolumeType.NICKEL_CLOUD,
+ ];
+ 
+ /**
+diff --git a/ui/file_manager/file_manager/state/ducks/all_entries.ts b/ui/file_manager/file_manager/state/ducks/all_entries.ts
+index af1d6c72d9058..99e34461d8b92 100644
+--- a/ui/file_manager/file_manager/state/ducks/all_entries.ts
++++ b/ui/file_manager/file_manager/state/ducks/all_entries.ts
+@@ -195,6 +195,8 @@ function getEntryIcon(
+         return ICON_TYPES.MY_FILES;
+       case VolumeType.SMB:
+         return ICON_TYPES.SMB;
++      case VolumeType.NICKEL_CLOUD:
++        return ICON_TYPES.CLOUD;
+       case VolumeType.PROVIDED:
+       // Fallthrough
+       case VolumeType.DOCUMENTS_PROVIDER: {
+@@ -251,6 +253,11 @@ export function shouldDelayLoadingChildren(
+ }
+ 
+ function isVolumeSlowToScan(volume?: Volume|VolumeInfo|null): boolean {
++  // NickelOS: not cloud storage accounts (NICKEL_CLOUD), though they are
++  // network volumes: rclone keeps their listings, so their folders are
++  // scanned as local ones are, and only folders with folders in them get an
++  // expand arrow. Treated as slow, every folder had one, and unfolding the
++  // many that hold only files showed nothing and took the arrow away.
+   return volume?.source === Source.NETWORK &&
+       volume.volumeType === VolumeType.SMB;
+ }
+diff --git a/ui/file_manager/file_manager/state/ducks/navigation.ts b/ui/file_manager/file_manager/state/ducks/navigation.ts
+index f362b029e9812..07b3be0a8cf56 100644
+--- a/ui/file_manager/file_manager/state/ducks/navigation.ts
++++ b/ui/file_manager/file_manager/state/ducks/navigation.ts
+@@ -25,6 +25,7 @@ sections.set(VolumeType.DOWNLOADS, NavigationSection.MY_FILES);
+ // Cloud.
+ sections.set(VolumeType.DRIVE, NavigationSection.CLOUD);
+ sections.set(VolumeType.SMB, NavigationSection.CLOUD);
++sections.set(VolumeType.NICKEL_CLOUD, NavigationSection.CLOUD);
+ sections.set(VolumeType.PROVIDED, NavigationSection.CLOUD);
+ sections.set(VolumeType.DOCUMENTS_PROVIDER, NavigationSection.CLOUD);
+ // Removable.
+@@ -172,6 +173,8 @@ function refreshNavigationRootsReducer(currentState: State): State {
+     // ODFS is a PROVIDED volume type but is a special case to be directly
+     // below Drive.
+     // ODFS : 0
++    // NickelOS: cloud storage accounts, before file shares.
++    [VolumeType.NICKEL_CLOUD]: 0,
+     [VolumeType.SMB]: 1,
+     [VolumeType.PROVIDED]: 2,  // FSP.
+     [VolumeType.DOCUMENTS_PROVIDER]: 3,

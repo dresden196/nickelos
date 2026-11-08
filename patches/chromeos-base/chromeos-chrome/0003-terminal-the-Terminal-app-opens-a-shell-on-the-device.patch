@@ -1,0 +1,127 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] terminal: the Terminal app opens a shell on the device
+
+NickelOS has a real terminal: opening the Terminal app starts a login
+shell of the signed-in user on the device. The connections page (SSH,
+settings) stays pinned as the first tab.
+
+- guest_os::LaunchTerminalDefault(): opening the Terminal app (the web
+  app publisher's Terminal launch) opens "vmshell" for the NickelOS host
+  (VM "nickel", container "host"); without host apps it is
+  LaunchTerminalHome() as before. Other LaunchTerminalHome() callers
+  (the Files app's SFTP mount flow) are unchanged.
+- terminalPrivate: vmshell for the host runs nickel-terminal-shell
+  locally instead of vsh into a VM: nickel-appd starts a login shell of
+  the session user in their home directory, outside the no_new_privs and
+  Landlock sandbox session_manager puts Chrome in, so sudo and mount work.
+  Arguments after `--` (Terminal=true apps) run in that shell instead of a
+  prompt.
+
+diff --git a/chrome/browser/ash/guest_os/guest_os_terminal.cc b/chrome/browser/ash/guest_os/guest_os_terminal.cc
+index b0a134935ca3b..1f80964ab6170 100644
+--- a/chrome/browser/ash/guest_os/guest_os_terminal.cc
++++ b/chrome/browser/ash/guest_os/guest_os_terminal.cc
+@@ -208,6 +208,19 @@ void LaunchTerminalHome(Profile* profile, int64_t display_id, int restore_id) {
+                         GURL(GetTerminalHomeUrl()));
+ }
+ 
++void LaunchTerminalDefault(Profile* profile,
++                           int64_t display_id,
++                           int restore_id) {
++  if (!crostini::IsNickelNativeAppsAllowed(profile)) {
++    return LaunchTerminalHome(profile, display_id, restore_id);
++  }
++  LaunchTerminalWithUrl(
++      profile, display_id, restore_id,
++      GenerateTerminalURL(profile, /*settings_profile=*/std::string(),
++                          GuestId(VmType::TERMINA, crostini::kNickelVmName,
++                                  crostini::kNickelContainerName)));
++}
++
+ void LaunchTerminalWithUrl(Profile* profile,
+                            int64_t display_id,
+                            int restore_id,
+diff --git a/chrome/browser/ash/guest_os/guest_os_terminal.h b/chrome/browser/ash/guest_os/guest_os_terminal.h
+index 0e016ee0f0a25..f611cd49297fe 100644
+--- a/chrome/browser/ash/guest_os/guest_os_terminal.h
++++ b/chrome/browser/ash/guest_os/guest_os_terminal.h
+@@ -142,6 +142,13 @@ void LaunchTerminal(Profile* profile,
+ 
+ void LaunchTerminalHome(Profile* profile, int64_t display_id, int restore_id);
+ 
++// NickelOS: what opening the Terminal app does. Starts a shell on the device
++// (the host, crostini::kNickelVmName) with the connections page pinned as the
++// first tab; elsewhere, the connections page.
++void LaunchTerminalDefault(Profile* profile,
++                           int64_t display_id,
++                           int restore_id);
++
+ void LaunchTerminalWithUrl(Profile* profile,
+                            int64_t display_id,
+                            int restore_id,
+diff --git a/chrome/browser/extensions/api/terminal/terminal_private_api.cc b/chrome/browser/extensions/api/terminal/terminal_private_api.cc
+index 521812409c8c6..ec46f4dfc1608 100644
+--- a/chrome/browser/extensions/api/terminal/terminal_private_api.cc
++++ b/chrome/browser/extensions/api/terminal/terminal_private_api.cc
+@@ -109,6 +109,37 @@ const char kSwitchContainerFeatures[] = "container_features";
+ 
+ const char kCwdTerminalIdPrefix[] = "terminal_id:";
+ 
++// NickelOS: "vmshell" for the host (crostini::kNickelVmName) is a login shell
++// of the signed-in user on the device itself, not vsh into a VM.
++bool IsNickelHostShell(const std::optional<std::vector<std::string>>& args) {
++  if (!args) {
++    return false;
++  }
++  std::vector<std::string> argv = {kVmShellCommand};
++  argv.insert(argv.end(), args->begin(), args->end());
++  return base::CommandLine(argv).GetSwitchValueASCII(kSwitchVmName) ==
++         crostini::kNickelVmName;
++}
++
++base::CommandLine NickelHostShellCommandLine(
++    const std::optional<std::vector<std::string>>& args) {
++  std::vector<std::string> argv = {kVmShellCommand};
++  if (args) {
++    argv.insert(argv.end(), args->begin(), args->end());
++  }
++  base::CommandLine params(argv);
++  // nickel-terminal-shell (nickel-appd) has the session start a login shell
++  // of the signed-in user in their home directory, outside Chrome's sandbox:
++  // session_manager starts Chrome with no_new_privs and Landlock, which a
++  // shell started by Chrome would inherit (no sudo, no mount). Args after
++  // `--` (apps with Terminal=true) run instead of a prompt.
++  base::CommandLine shell(base::FilePath("/usr/bin/nickel-terminal-shell"));
++  for (const auto& arg : params.GetArgs()) {
++    shell.AppendArg(arg);
++  }
++  return shell;
++}
++
+ // Prefs that we read and observe.
+ constexpr auto kPrefsReadAllowList = std::to_array<std::string_view>({
+     ash::prefs::kAccessibilitySpokenFeedbackEnabled,
+@@ -340,6 +371,10 @@ TerminalPrivateOpenTerminalProcessFunction::OpenProcess(
+       OpenProcess(user_id_hash,
+                   base::CommandLine(base::FilePath(kStubbedCroshCommand)));
+     }
++  } else if (process_name == kVmShellName && IsNickelHostShell(args) &&
++             crostini::IsNickelNativeAppsAllowed(
++                 Profile::FromBrowserContext(browser_context()))) {
++    OpenProcess(user_id_hash, NickelHostShellCommandLine(args));
+   } else if (process_name == kVmShellName) {
+     // Ensure vms are allowed before starting terminal.
+     if (!virtual_machines::AreVirtualMachinesAllowedByPolicy()) {
+diff --git a/chrome/browser/web_applications/app_service/web_app_publisher_helper.cc b/chrome/browser/web_applications/app_service/web_app_publisher_helper.cc
+index e5c575d7a5a15..00c6e9ee95c7f 100644
+--- a/chrome/browser/web_applications/app_service/web_app_publisher_helper.cc
++++ b/chrome/browser/web_applications/app_service/web_app_publisher_helper.cc
+@@ -1176,7 +1176,7 @@ void WebAppPublisherHelper::LaunchAppWithParams(
+ #if BUILDFLAG(IS_CHROMEOS)
+   // Terminal SWA has custom launch code and manages its own restore data.
+   if (params.app_id == guest_os::kTerminalSystemAppId) {
+-    guest_os::LaunchTerminalHome(profile_, params.display_id,
++    guest_os::LaunchTerminalDefault(profile_, params.display_id,
+                                  params.restore_id);
+     std::move(on_complete).Run(nullptr);
+     return;

@@ -1,0 +1,1025 @@
+diff --git a/components/exo/wayland/BUILD.gn b/components/exo/wayland/BUILD.gn
+index e3701e01765f9..e5042cc56c230 100644
+--- a/components/exo/wayland/BUILD.gn
++++ b/components/exo/wayland/BUILD.gn
+@@ -137,10 +137,14 @@ source_set("wayland") {
+     "zwp_pointer_constraints.h",
+     "zwp_pointer_gestures.cc",
+     "zwp_pointer_gestures.h",
++    "zwp_primary_selection.cc",
++    "zwp_primary_selection.h",
+     "zwp_relative_pointer_manager.cc",
+     "zwp_relative_pointer_manager.h",
+     "zwp_text_input_manager.cc",
+     "zwp_text_input_manager.h",
++    "zwp_text_input_v3.cc",
++    "zwp_text_input_v3.h",
+     "zxdg_decoration_manager.h",
+     "zxdg_output_manager.cc",
+     "zxdg_output_manager.h",
+@@ -188,6 +192,7 @@ source_set("wayland") {
+     "//third_party/wayland-protocols:pointer_constraints_protocol",
+     "//third_party/wayland-protocols:pointer_gestures_protocol",
+     "//third_party/wayland-protocols:presentation_time_protocol",
++    "//third_party/wayland-protocols:primary_selection_protocol",
+     "//third_party/wayland-protocols:relative_pointer_protocol",
+     "//third_party/wayland-protocols:remote_shell_protocol",
+     "//third_party/wayland-protocols:secure_output_protocol",
+diff --git a/components/exo/wayland/server.cc b/components/exo/wayland/server.cc
+index 84080f5d2eeb9..0240fea6961d3 100644
+--- a/components/exo/wayland/server.cc
++++ b/components/exo/wayland/server.cc
+@@ -21,11 +21,13 @@
+ #include <pointer-constraints-unstable-v1-server-protocol.h>
+ #include <pointer-gestures-unstable-v1-server-protocol.h>
+ #include <presentation-time-server-protocol.h>
++#include <primary-selection-unstable-v1-server-protocol.h>
+ #include <relative-pointer-unstable-v1-server-protocol.h>
+ #include <stylus-tools-unstable-v1-server-protocol.h>
+ #include <sys/socket.h>
+ #include <text-input-extension-unstable-v1-server-protocol.h>
+ #include <text-input-unstable-v1-server-protocol.h>
++#include <text-input-unstable-v3-server-protocol.h>
+ #include <touchpad-haptics-unstable-v1-server-protocol.h>
+ #include <viewporter-server-protocol.h>
+ #include <vsync-feedback-unstable-v1-server-protocol.h>
+@@ -96,7 +98,9 @@
+ #include "components/exo/wayland/zwp_pointer_constraints.h"
+ #include "components/exo/wayland/zwp_pointer_gestures.h"
+ #include "components/exo/wayland/zwp_relative_pointer_manager.h"
++#include "components/exo/wayland/zwp_primary_selection.h"
+ #include "components/exo/wayland/zwp_text_input_manager.h"
++#include "components/exo/wayland/zwp_text_input_v3.h"
+ #include "components/exo/wayland/zxdg_decoration_manager.h"
+ #include "ui/ozone/public/ozone_platform.h"
+ 
+@@ -174,8 +178,10 @@ bool IsStandardGlobal(const wl_client* client,
+       "zwp_linux_dmabuf_v1",
+       "zwp_pointer_constraints_v1",
+       "zwp_pointer_gestures_v1",
++      "zwp_primary_selection_device_manager_v1",
+       "zwp_relative_pointer_manager_v1",
+       "zwp_text_input_manager_v1",
++      "zwp_text_input_manager_v3",
+       "zxdg_decoration_manager_v1",
+       "zxdg_output_manager_v1",
+   });
+@@ -405,6 +411,14 @@ void Server::Initialize() {
+   wl_global_create(wl_display_.get(), &zwp_text_input_manager_v1_interface,
+                    /*version=*/1, zwp_text_manager_data_.get(),
+                    bind_text_input_manager);
++  // NickelOS: the standard ones, for Linux apps (zwp_text_input_v3.h,
++  // zwp_primary_selection.h).
++  wl_global_create(wl_display_.get(), &zwp_text_input_manager_v3_interface,
++                   /*version=*/1, display_, bind_text_input_manager_v3);
++  wl_global_create(wl_display_.get(),
++                   &zwp_primary_selection_device_manager_v1_interface,
++                   /*version=*/1, display_,
++                   bind_primary_selection_device_manager);
+ 
+   zcr_text_input_extension_data_ =
+       std::make_unique<WaylandTextInputExtension>();
+diff --git a/components/exo/wayland/zwp_primary_selection.cc b/components/exo/wayland/zwp_primary_selection.cc
+new file mode 100644
+index 0000000000000..a3942de313c7e
+--- /dev/null
++++ b/components/exo/wayland/zwp_primary_selection.cc
+@@ -0,0 +1,307 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "components/exo/wayland/zwp_primary_selection.h"
++
++#include <primary-selection-unstable-v1-server-protocol.h>
++#include <wayland-server-core.h>
++#include <wayland-server-protocol-core.h>
++
++#include <memory>
++#include <set>
++#include <string>
++#include <vector>
++
++#include "base/files/scoped_file.h"
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/no_destructor.h"
++#include "components/exo/seat.h"
++#include "components/exo/seat_observer.h"
++#include "components/exo/surface.h"
++#include "components/exo/wayland/server_util.h"
++#include "components/exo/wayland/wl_seat.h"
++
++namespace exo::wayland {
++namespace {
++
++constexpr int kPrimarySelectionSeatObserverPriority = 1;
++
++class PrimarySelectionSource;
++class PrimarySelectionDevice;
++
++// The primary selection: its source, and every client's devices, which are
++// offered it while their client has the keyboard focus. One for all of
++// Exo's servers.
++struct PrimarySelection {
++  raw_ptr<PrimarySelectionSource> source = nullptr;
++  std::set<raw_ptr<PrimarySelectionDevice>> devices;
++};
++
++PrimarySelection& GetPrimarySelection() {
++  static base::NoDestructor<PrimarySelection> selection;
++  return *selection;
++}
++
++void OfferToFocusedClient();
++
++class PrimarySelectionSource {
++ public:
++  explicit PrimarySelectionSource(wl_resource* resource)
++      : resource_(resource) {}
++  PrimarySelectionSource(const PrimarySelectionSource&) = delete;
++  PrimarySelectionSource& operator=(const PrimarySelectionSource&) = delete;
++  ~PrimarySelectionSource() {
++    PrimarySelection& selection = GetPrimarySelection();
++    if (selection.source == this) {
++      selection.source = nullptr;
++      OfferToFocusedClient();
++    }
++  }
++
++  void Offer(const char* mime_type) { mime_types_.emplace_back(mime_type); }
++  const std::vector<std::string>& mime_types() const { return mime_types_; }
++
++  // The client writes the selection into |fd| (libwayland sends a copy).
++  void Send(const std::string& mime_type, int fd) {
++    zwp_primary_selection_source_v1_send_send(resource_, mime_type.c_str(),
++                                              fd);
++    wl_client_flush(wl_resource_get_client(resource_));
++  }
++
++  void Cancel() {
++    zwp_primary_selection_source_v1_send_cancelled(resource_);
++    wl_client_flush(wl_resource_get_client(resource_));
++  }
++
++  base::WeakPtr<PrimarySelectionSource> GetWeakPtr() {
++    return weak_factory_.GetWeakPtr();
++  }
++
++ private:
++  const raw_ptr<wl_resource> resource_;
++  std::vector<std::string> mime_types_;
++  base::WeakPtrFactory<PrimarySelectionSource> weak_factory_{this};
++};
++
++// An offer of the source that was the selection when it was made; once
++// another selection replaced it, receiving gets nothing (the fd is closed).
++class PrimarySelectionOffer {
++ public:
++  explicit PrimarySelectionOffer(base::WeakPtr<PrimarySelectionSource> source)
++      : source_(std::move(source)) {}
++
++  void Receive(const char* mime_type, int fd) {
++    base::ScopedFD owned_fd(fd);
++    if (source_ && GetPrimarySelection().source == source_.get()) {
++      source_->Send(mime_type, owned_fd.get());
++    }
++  }
++
++ private:
++  base::WeakPtr<PrimarySelectionSource> source_;
++};
++
++void offer_receive(wl_client* client,
++                   wl_resource* resource,
++                   const char* mime_type,
++                   int32_t fd) {
++  GetUserDataAs<PrimarySelectionOffer>(resource)->Receive(mime_type, fd);
++}
++
++void offer_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++constexpr struct zwp_primary_selection_offer_v1_interface offer_implementation =
++    {
++        offer_receive,
++        offer_destroy,
++};
++
++class PrimarySelectionDevice : public SeatObserver {
++ public:
++  PrimarySelectionDevice(wl_resource* resource, Seat* seat)
++      : resource_(resource), seat_(seat->GetWeakPtr()) {
++    GetPrimarySelection().devices.insert(this);
++    seat->AddObserver(this, kPrimarySelectionSeatObserverPriority);
++    if (HasFocus()) {
++      Offer();
++    }
++  }
++  PrimarySelectionDevice(const PrimarySelectionDevice&) = delete;
++  PrimarySelectionDevice& operator=(const PrimarySelectionDevice&) = delete;
++  ~PrimarySelectionDevice() override {
++    GetPrimarySelection().devices.erase(this);
++    if (seat_) {
++      seat_->RemoveObserver(this);
++    }
++  }
++
++  void SetSelection(PrimarySelectionSource* source) {
++    PrimarySelection& selection = GetPrimarySelection();
++    if (selection.source == source) {
++      return;
++    }
++    PrimarySelectionSource* previous = selection.source;
++    selection.source = source;
++    if (previous) {
++      previous->Cancel();
++    }
++    OfferToFocusedClient();
++  }
++
++  // True if this device's client has the keyboard focus.
++  bool HasFocus() const {
++    Surface* focused = seat_ ? seat_->GetFocusedSurface() : nullptr;
++    if (!focused) {
++      return false;
++    }
++    wl_resource* surface_resource = GetSurfaceResource(focused);
++    return surface_resource && wl_resource_get_client(surface_resource) ==
++                                   wl_resource_get_client(resource_);
++  }
++
++  // Offers the client the current selection (or none).
++  void Offer() {
++    PrimarySelectionSource* source = GetPrimarySelection().source;
++    wl_client* client = wl_resource_get_client(resource_);
++    if (!source) {
++      zwp_primary_selection_device_v1_send_selection(resource_, nullptr);
++      wl_client_flush(client);
++      return;
++    }
++    wl_resource* offer_resource =
++        wl_resource_create(client, &zwp_primary_selection_offer_v1_interface,
++                           wl_resource_get_version(resource_), 0);
++    SetImplementation(
++        offer_resource, &offer_implementation,
++        std::make_unique<PrimarySelectionOffer>(source->GetWeakPtr()));
++    zwp_primary_selection_device_v1_send_data_offer(resource_, offer_resource);
++    for (const std::string& mime_type : source->mime_types()) {
++      zwp_primary_selection_offer_v1_send_offer(offer_resource,
++                                                mime_type.c_str());
++    }
++    zwp_primary_selection_device_v1_send_selection(resource_, offer_resource);
++    wl_client_flush(client);
++  }
++
++ private:
++  // SeatObserver:
++  void OnSurfaceFocused(Surface* gained_focus,
++                        Surface* lost_focus,
++                        bool has_focused_client) override {
++    if (gained_focus && HasFocus()) {
++      Offer();
++    }
++  }
++
++  const raw_ptr<wl_resource> resource_;
++  const base::WeakPtr<Seat> seat_;
++};
++
++void OfferToFocusedClient() {
++  // Copied: offering creates resources, not devices, but stay safe.
++  std::vector<PrimarySelectionDevice*> devices;
++  for (PrimarySelectionDevice* device : GetPrimarySelection().devices) {
++    devices.push_back(device);
++  }
++  for (PrimarySelectionDevice* device : devices) {
++    if (device->HasFocus()) {
++      device->Offer();
++    }
++  }
++}
++
++////////////////////////////////////////////////////////////////////////////////
++// zwp_primary_selection_source_v1 interface:
++
++void source_offer(wl_client* client,
++                  wl_resource* resource,
++                  const char* mime_type) {
++  GetUserDataAs<PrimarySelectionSource>(resource)->Offer(mime_type);
++}
++
++void source_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++constexpr struct zwp_primary_selection_source_v1_interface
++    source_implementation = {
++        source_offer,
++        source_destroy,
++};
++
++////////////////////////////////////////////////////////////////////////////////
++// zwp_primary_selection_device_v1 interface:
++
++void device_set_selection(wl_client* client,
++                          wl_resource* resource,
++                          wl_resource* source_resource,
++                          uint32_t serial) {
++  GetUserDataAs<PrimarySelectionDevice>(resource)->SetSelection(
++      source_resource ? GetUserDataAs<PrimarySelectionSource>(source_resource)
++                      : nullptr);
++}
++
++void device_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++constexpr struct zwp_primary_selection_device_v1_interface
++    device_implementation = {
++        device_set_selection,
++        device_destroy,
++};
++
++////////////////////////////////////////////////////////////////////////////////
++// zwp_primary_selection_device_manager_v1 interface:
++
++void manager_create_source(wl_client* client,
++                           wl_resource* resource,
++                           uint32_t id) {
++  wl_resource* source_resource =
++      wl_resource_create(client, &zwp_primary_selection_source_v1_interface,
++                         wl_resource_get_version(resource), id);
++  SetImplementation(source_resource, &source_implementation,
++                    std::make_unique<PrimarySelectionSource>(source_resource));
++}
++
++void manager_get_device(wl_client* client,
++                        wl_resource* resource,
++                        uint32_t id,
++                        wl_resource* seat_resource) {
++  Seat* seat = GetUserDataAs<WaylandSeat>(seat_resource)->seat;
++  wl_resource* device_resource =
++      wl_resource_create(client, &zwp_primary_selection_device_v1_interface,
++                         wl_resource_get_version(resource), id);
++  SetImplementation(
++      device_resource, &device_implementation,
++      std::make_unique<PrimarySelectionDevice>(device_resource, seat));
++}
++
++void manager_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++constexpr struct zwp_primary_selection_device_manager_v1_interface
++    manager_implementation = {
++        manager_create_source,
++        manager_get_device,
++        manager_destroy,
++};
++
++}  // namespace
++
++void bind_primary_selection_device_manager(wl_client* client,
++                                           void* data,
++                                           uint32_t version,
++                                           uint32_t id) {
++  wl_resource* resource = wl_resource_create(
++      client, &zwp_primary_selection_device_manager_v1_interface, 1, id);
++  wl_resource_set_implementation(resource, &manager_implementation, data,
++                                 nullptr);
++}
++
++}  // namespace exo::wayland
+diff --git a/components/exo/wayland/zwp_primary_selection.h b/components/exo/wayland/zwp_primary_selection.h
+new file mode 100644
+index 0000000000000..cd765ba8adf87
+--- /dev/null
++++ b/components/exo/wayland/zwp_primary_selection.h
+@@ -0,0 +1,26 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef COMPONENTS_EXO_WAYLAND_ZWP_PRIMARY_SELECTION_H_
++#define COMPONENTS_EXO_WAYLAND_ZWP_PRIMARY_SELECTION_H_
++
++#include <stdint.h>
++
++struct wl_client;
++
++namespace exo::wayland {
++
++// NickelOS: zwp_primary_selection_device_manager_v1 (wayland-protocols,
++// unstable): the primary selection, middle-click paste, between Linux apps.
++// The last app to select text owns it; the app with the keyboard focus is
++// offered it. ChromeOS has no primary selection of its own, so it stays
++// among Linux apps (Exo's sockets share it, X11 apps' through sommelier).
++void bind_primary_selection_device_manager(wl_client* client,
++                                           void* data,
++                                           uint32_t version,
++                                           uint32_t id);
++
++}  // namespace exo::wayland
++
++#endif  // COMPONENTS_EXO_WAYLAND_ZWP_PRIMARY_SELECTION_H_
+diff --git a/components/exo/wayland/zwp_text_input_v3.cc b/components/exo/wayland/zwp_text_input_v3.cc
+new file mode 100644
+index 0000000000000..a9582d3499f72
+--- /dev/null
++++ b/components/exo/wayland/zwp_text_input_v3.cc
+@@ -0,0 +1,560 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "components/exo/wayland/zwp_text_input_v3.h"
++
++#include <text-input-unstable-v3-server-protocol.h>
++#include <wayland-server-core.h>
++#include <wayland-server-protocol-core.h>
++
++#include <algorithm>
++#include <memory>
++#include <optional>
++#include <string>
++#include <string_view>
++#include <vector>
++
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/strings/utf_offset_string_conversions.h"
++#include "base/strings/utf_string_conversions.h"
++#include "components/exo/seat.h"
++#include "components/exo/seat_observer.h"
++#include "components/exo/surface.h"
++#include "components/exo/surface_observer.h"
++#include "components/exo/text_input.h"
++#include "components/exo/wayland/server_util.h"
++#include "components/exo/wayland/wl_seat.h"
++#include "ui/base/ime/composition_text.h"
++#include "ui/base/ime/text_input_client.h"
++#include "ui/base/ime/text_input_flags.h"
++#include "ui/base/ime/text_input_mode.h"
++#include "ui/base/ime/text_input_type.h"
++#include "ui/events/event.h"
++#include "ui/gfx/geometry/rect.h"
++#include "ui/gfx/range/range.h"
++
++namespace exo::wayland {
++namespace {
++
++// Seat observers of this priority run after the keyboard's (1 is the
++// highest Seat allows), so wl_keyboard.enter comes first.
++constexpr int kTextInputV3SeatObserverPriority = 1;
++
++class TextInputV3;
++
++// The input method's side: TextInput owns it and calls it; it passes the
++// calls on to the protocol object.
++class TextInputV3Delegate : public TextInput::Delegate {
++ public:
++  explicit TextInputV3Delegate(TextInputV3* owner) : owner_(owner) {}
++  ~TextInputV3Delegate() override = default;
++
++ private:
++  // TextInput::Delegate:
++  void Activated() override {}
++  void Deactivated() override {}
++  void OnVirtualKeyboardVisibilityChanged(bool is_visible) override {}
++  void OnVirtualKeyboardOccludedBoundsChanged(
++      const gfx::Rect& screen_bounds) override {}
++  bool SupportsFinalizeVirtualKeyboardChanges() override { return false; }
++  void SetCompositionText(const ui::CompositionText& composition) override;
++  void Commit(std::u16string_view text) override;
++  // text-input-v3 cannot move the client's cursor.
++  void SetCursor(std::u16string_view surrounding_text,
++                 const gfx::Range& selection) override {}
++  void DeleteSurroundingText(std::u16string_view surrounding_text,
++                             const gfx::Range& range) override;
++  void SendKey(const ui::KeyEvent& event) override;
++  void OnTextDirectionChanged(base::i18n::TextDirection direction) override {}
++  void SetCompositionFromExistingText(
++      std::u16string_view surrounding_text,
++      const gfx::Range& cursor,
++      const gfx::Range& range,
++      const std::vector<ui::ImeTextSpan>& ui_ime_text_spans) override {}
++  void ClearGrammarFragments(std::u16string_view surrounding_text,
++                             const gfx::Range& range) override {}
++  void AddGrammarFragment(std::u16string_view surrounding_text,
++                          const ui::GrammarFragment& fragment) override {}
++  void SetAutocorrectRange(std::u16string_view surrounding_text,
++                           const gfx::Range& range) override {}
++  // Not supported: TextInput then commits the composition itself.
++  bool ConfirmComposition(bool keep_selection) override { return false; }
++  bool SupportsConfirmPreedit() override { return false; }
++  bool HasImageInsertSupport() override { return false; }
++  void InsertImage(const GURL& src) override {}
++
++  const raw_ptr<TextInputV3> owner_;
++};
++
++// One zwp_text_input_v3. The compositor tells it where the keyboard focus is
++// (enter and leave, for the client's own surfaces); the client enables it on
++// a text field and sends its state, applied at commit; the input method's
++// preedit, commits and deletions go back as events, each batch closed by
++// done with the number of commits received so far.
++class TextInputV3 : public SeatObserver, public SurfaceObserver {
++ public:
++  TextInputV3(wl_resource* resource, Seat* seat)
++      : resource_(resource),
++        seat_(seat->GetWeakPtr()),
++        text_input_(std::make_unique<TextInput>(
++            std::make_unique<TextInputV3Delegate>(this))) {
++    seat->AddObserver(this, kTextInputV3SeatObserverPriority);
++    Surface* focused = seat->GetFocusedSurface();
++    if (focused && OwnsSurface(focused)) {
++      Enter(focused);
++    }
++  }
++
++  TextInputV3(const TextInputV3&) = delete;
++  TextInputV3& operator=(const TextInputV3&) = delete;
++
++  ~TextInputV3() override {
++    text_input_.reset();
++    if (focus_) {
++      focus_->RemoveSurfaceObserver(this);
++    }
++    if (seat_) {
++      seat_->RemoveObserver(this);
++    }
++  }
++
++  // Requests.
++  void Enable() {
++    // Enabling resets all state from earlier requests.
++    pending_ = State();
++    pending_.enabled = true;
++  }
++  void Disable() { pending_.enabled = false; }
++  void SetSurroundingText(const char* text, int32_t cursor, int32_t anchor) {
++    pending_.surrounding_text = text;
++    pending_.cursor = cursor;
++    pending_.anchor = anchor;
++  }
++  void SetContentType(uint32_t hint, uint32_t purpose) {
++    pending_.content_type = std::make_pair(hint, purpose);
++  }
++  void SetCursorRectangle(const gfx::Rect& rect) {
++    pending_.cursor_rectangle = rect;
++  }
++  void Commit();
++
++  // From the input method.
++  void SendPreedit(const ui::CompositionText& composition);
++  void SendCommit(std::u16string_view text);
++  void SendDeleteSurroundingText(std::u16string_view surrounding_text,
++                                 const gfx::Range& range);
++
++ private:
++  struct State {
++    bool enabled = false;
++    std::optional<std::string> surrounding_text;
++    int32_t cursor = 0;
++    int32_t anchor = 0;
++    std::optional<std::pair<uint32_t, uint32_t>> content_type;
++    std::optional<gfx::Rect> cursor_rectangle;
++  };
++
++  // SeatObserver:
++  void OnSurfaceFocused(Surface* gained_focus,
++                        Surface* lost_focus,
++                        bool has_focused_client) override {
++    if (focus_ && gained_focus != focus_) {
++      Leave();
++    }
++    if (gained_focus && gained_focus != focus_ && OwnsSurface(gained_focus)) {
++      Enter(gained_focus);
++    }
++  }
++
++  // SurfaceObserver:
++  void OnSurfaceDestroying(Surface* surface) override {
++    if (surface != focus_) {
++      return;
++    }
++    // Its resource is gone already: no leave.
++    SetEnabled(false);
++    focus_->RemoveSurfaceObserver(this);
++    focus_ = nullptr;
++  }
++
++  bool OwnsSurface(Surface* surface) const {
++    wl_resource* surface_resource = GetSurfaceResource(surface);
++    return surface_resource && wl_resource_get_client(surface_resource) ==
++                                   wl_resource_get_client(resource_);
++  }
++
++  void Enter(Surface* surface) {
++    focus_ = surface;
++    focus_->AddSurfaceObserver(this);
++    zwp_text_input_v3_send_enter(resource_, GetSurfaceResource(surface));
++    wl_client_flush(wl_resource_get_client(resource_));
++  }
++
++  void Leave() {
++    // The client is to disable it; the input method lets go now.
++    SetEnabled(false);
++    pending_ = State();
++    wl_resource* surface_resource = GetSurfaceResource(focus_);
++    focus_->RemoveSurfaceObserver(this);
++    focus_ = nullptr;
++    if (surface_resource) {
++      zwp_text_input_v3_send_leave(resource_, surface_resource);
++      wl_client_flush(wl_resource_get_client(resource_));
++    }
++  }
++
++  void SetEnabled(bool enabled) {
++    if (enabled == enabled_) {
++      return;
++    }
++    if (enabled) {
++      if (!focus_ || !seat_) {
++        return;
++      }
++      text_input_->Activate(seat_.get(), focus_,
++                            ui::TextInputClient::FOCUS_REASON_OTHER);
++    } else {
++      text_input_->Deactivate();
++      surrounding_text_.clear();
++      cursor_ = 0;
++      has_surrounding_text_ = false;
++    }
++    enabled_ = enabled;
++  }
++
++  void ApplyContentType(uint32_t hint, uint32_t purpose);
++  void ApplySurroundingText(const std::string& text,
++                            int32_t cursor,
++                            int32_t anchor);
++
++  void SendDone() {
++    zwp_text_input_v3_send_done(resource_, serial_);
++    wl_client_flush(wl_resource_get_client(resource_));
++  }
++
++  const raw_ptr<wl_resource> resource_;
++  const base::WeakPtr<Seat> seat_;
++  std::unique_ptr<TextInput> text_input_;
++  // The client's surface with the keyboard focus (enter was sent for it).
++  raw_ptr<Surface> focus_ = nullptr;
++  State pending_;
++  bool enabled_ = false;
++  // The surrounding text and cursor (UTF-8 byte offset) the client last sent.
++  std::string surrounding_text_;
++  int32_t cursor_ = 0;
++  bool has_surrounding_text_ = false;
++  // Commit requests received.
++  uint32_t serial_ = 0;
++};
++
++void TextInputV3::Commit() {
++  ++serial_;
++  const bool was_enabled = enabled_;
++  SetEnabled(pending_.enabled);
++  if (enabled_) {
++    if (pending_.surrounding_text) {
++      ApplySurroundingText(*pending_.surrounding_text, pending_.cursor,
++                           pending_.anchor);
++    }
++    if (pending_.content_type) {
++      ApplyContentType(pending_.content_type->first,
++                       pending_.content_type->second);
++    } else if (!was_enabled) {
++      // An input method needs a text field to work on.
++      text_input_->SetTypeModeFlags(
++          ui::TEXT_INPUT_TYPE_TEXT, ui::TEXT_INPUT_MODE_DEFAULT,
++          ui::TEXT_INPUT_FLAG_NONE, /*should_do_learning=*/true,
++          /*can_compose_inline=*/true, has_surrounding_text_);
++    }
++    if (pending_.cursor_rectangle) {
++      text_input_->SetCaretBounds(*pending_.cursor_rectangle);
++    }
++  }
++  // The state of a commit is applied once; enabled stays.
++  pending_.surrounding_text.reset();
++  pending_.content_type.reset();
++  pending_.cursor_rectangle.reset();
++}
++
++void TextInputV3::ApplySurroundingText(const std::string& text,
++                                       int32_t cursor,
++                                       int32_t anchor) {
++  if (cursor < 0 || anchor < 0) {
++    return;
++  }
++  auto minmax = std::minmax(cursor, anchor);
++  std::vector<size_t> offsets{static_cast<size_t>(minmax.first),
++                              static_cast<size_t>(minmax.second)};
++  std::u16string u16_text = base::UTF8ToUTF16AndAdjustOffsets(text, &offsets);
++  if (offsets[0] == std::u16string::npos ||
++      offsets[1] == std::u16string::npos) {
++    return;
++  }
++  surrounding_text_ = text;
++  cursor_ = cursor;
++  has_surrounding_text_ = true;
++  text_input_->SetSurroundingText(u16_text, /*offset=*/0,
++                                  gfx::Range(offsets[0], offsets[1]),
++                                  std::nullopt, std::nullopt);
++}
++
++void TextInputV3::ApplyContentType(uint32_t hint, uint32_t purpose) {
++  ui::TextInputType type = ui::TEXT_INPUT_TYPE_TEXT;
++  ui::TextInputMode mode = ui::TEXT_INPUT_MODE_DEFAULT;
++  int flags = ui::TEXT_INPUT_FLAG_NONE;
++  bool should_do_learning = true;
++  if (hint & ZWP_TEXT_INPUT_V3_CONTENT_HINT_COMPLETION) {
++    flags |= ui::TEXT_INPUT_FLAG_AUTOCOMPLETE_ON;
++  }
++  if (hint & ZWP_TEXT_INPUT_V3_CONTENT_HINT_SPELLCHECK) {
++    flags |= ui::TEXT_INPUT_FLAG_SPELLCHECK_ON |
++             ui::TEXT_INPUT_FLAG_AUTOCORRECT_ON;
++  }
++  if (hint & ZWP_TEXT_INPUT_V3_CONTENT_HINT_AUTO_CAPITALIZATION) {
++    flags |= ui::TEXT_INPUT_FLAG_AUTOCAPITALIZE_SENTENCES;
++  }
++  if (hint & ZWP_TEXT_INPUT_V3_CONTENT_HINT_LOWERCASE) {
++    flags |= ui::TEXT_INPUT_FLAG_AUTOCAPITALIZE_NONE;
++  }
++  if (hint & ZWP_TEXT_INPUT_V3_CONTENT_HINT_UPPERCASE) {
++    flags |= ui::TEXT_INPUT_FLAG_AUTOCAPITALIZE_CHARACTERS;
++  }
++  if (hint & ZWP_TEXT_INPUT_V3_CONTENT_HINT_TITLECASE) {
++    flags |= ui::TEXT_INPUT_FLAG_AUTOCAPITALIZE_WORDS;
++  }
++  if (hint & ZWP_TEXT_INPUT_V3_CONTENT_HINT_HIDDEN_TEXT) {
++    flags |= ui::TEXT_INPUT_FLAG_AUTOCOMPLETE_OFF |
++             ui::TEXT_INPUT_FLAG_AUTOCORRECT_OFF;
++  }
++  if (hint & ZWP_TEXT_INPUT_V3_CONTENT_HINT_SENSITIVE_DATA) {
++    should_do_learning = false;
++  }
++  // Unused hints: LATIN, MULTILINE.
++
++  switch (purpose) {
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_DIGITS:
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_PIN:
++      mode = ui::TEXT_INPUT_MODE_DECIMAL;
++      type = ui::TEXT_INPUT_TYPE_NUMBER;
++      break;
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_NUMBER:
++      mode = ui::TEXT_INPUT_MODE_NUMERIC;
++      type = ui::TEXT_INPUT_TYPE_NUMBER;
++      break;
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_PHONE:
++      mode = ui::TEXT_INPUT_MODE_TEL;
++      type = ui::TEXT_INPUT_TYPE_TELEPHONE;
++      break;
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_URL:
++      mode = ui::TEXT_INPUT_MODE_URL;
++      type = ui::TEXT_INPUT_TYPE_URL;
++      break;
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_EMAIL:
++      mode = ui::TEXT_INPUT_MODE_EMAIL;
++      type = ui::TEXT_INPUT_TYPE_EMAIL;
++      break;
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_PASSWORD:
++      should_do_learning = false;
++      type = ui::TEXT_INPUT_TYPE_PASSWORD;
++      break;
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_DATE:
++      type = ui::TEXT_INPUT_TYPE_DATE;
++      break;
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_TIME:
++      type = ui::TEXT_INPUT_TYPE_TIME;
++      break;
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_DATETIME:
++      type = ui::TEXT_INPUT_TYPE_DATE_TIME;
++      break;
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_NORMAL:
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_ALPHA:
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_NAME:
++    case ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_TERMINAL:
++      break;
++  }
++
++  text_input_->SetTypeModeFlags(type, mode, flags, should_do_learning,
++                                /*can_compose_inline=*/true,
++                                has_surrounding_text_);
++}
++
++void TextInputV3::SendPreedit(const ui::CompositionText& composition) {
++  if (composition.text.empty()) {
++    zwp_text_input_v3_send_preedit_string(resource_, nullptr, 0, 0);
++  } else {
++    std::vector<size_t> offsets{composition.selection.GetMin(),
++                                composition.selection.GetMax()};
++    const std::string utf8 =
++        base::UTF16ToUTF8AndAdjustOffsets(composition.text, &offsets);
++    // An unknown cursor puts it at the end of the preedit.
++    const int32_t begin = offsets[0] == std::string::npos
++                              ? static_cast<int32_t>(utf8.size())
++                              : static_cast<int32_t>(offsets[0]);
++    const int32_t end = offsets[1] == std::string::npos
++                            ? begin
++                            : static_cast<int32_t>(offsets[1]);
++    zwp_text_input_v3_send_preedit_string(resource_, utf8.c_str(), begin, end);
++  }
++  SendDone();
++}
++
++void TextInputV3::SendCommit(std::u16string_view text) {
++  zwp_text_input_v3_send_commit_string(resource_,
++                                       base::UTF16ToUTF8(text).c_str());
++  SendDone();
++}
++
++void TextInputV3::SendDeleteSurroundingText(
++    std::u16string_view surrounding_text,
++    const gfx::Range& range) {
++  // text-input-v3 deletes around the cursor, in bytes; TextInput knows where
++  // its idea of the cursor is in the same text.
++  gfx::Range selection;
++  if (!text_input_->GetEditableSelectionRange(&selection)) {
++    return;
++  }
++  std::vector<size_t> offsets{range.GetMin(), range.GetMax(),
++                              selection.GetMin(), selection.GetMax()};
++  base::UTF16ToUTF8AndAdjustOffsets(surrounding_text, &offsets);
++  if (std::ranges::find(offsets, std::string::npos) != offsets.end()) {
++    return;
++  }
++  const size_t before =
++      offsets[2] > offsets[0] ? std::min(offsets[2], offsets[1]) - offsets[0]
++                              : 0;
++  const size_t after =
++      offsets[1] > offsets[3] ? offsets[1] - std::max(offsets[3], offsets[0])
++                              : 0;
++  zwp_text_input_v3_send_delete_surrounding_text(
++      resource_, static_cast<uint32_t>(before), static_cast<uint32_t>(after));
++  SendDone();
++}
++
++void TextInputV3Delegate::SetCompositionText(
++    const ui::CompositionText& composition) {
++  owner_->SendPreedit(composition);
++}
++
++void TextInputV3Delegate::Commit(std::u16string_view text) {
++  owner_->SendCommit(text);
++}
++
++void TextInputV3Delegate::DeleteSurroundingText(
++    std::u16string_view surrounding_text,
++    const gfx::Range& range) {
++  owner_->SendDeleteSurroundingText(surrounding_text, range);
++}
++
++void TextInputV3Delegate::SendKey(const ui::KeyEvent& event) {
++  // text-input-v3 has no key event: a character the input method made from
++  // a key it took is committed as text. Other keys reach the client through
++  // wl_keyboard.
++  if (event.type() != ui::EventType::kKeyPressed) {
++    return;
++  }
++  const char16_t character = event.GetCharacter();
++  if (character >= 0x20 && character != 0x7f) {
++    owner_->SendCommit(std::u16string_view(&character, 1));
++  }
++}
++
++////////////////////////////////////////////////////////////////////////////////
++// zwp_text_input_v3 interface:
++
++void text_input_v3_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++void text_input_v3_enable(wl_client* client, wl_resource* resource) {
++  GetUserDataAs<TextInputV3>(resource)->Enable();
++}
++
++void text_input_v3_disable(wl_client* client, wl_resource* resource) {
++  GetUserDataAs<TextInputV3>(resource)->Disable();
++}
++
++void text_input_v3_set_surrounding_text(wl_client* client,
++                                        wl_resource* resource,
++                                        const char* text,
++                                        int32_t cursor,
++                                        int32_t anchor) {
++  GetUserDataAs<TextInputV3>(resource)->SetSurroundingText(text, cursor,
++                                                           anchor);
++}
++
++void text_input_v3_set_text_change_cause(wl_client* client,
++                                         wl_resource* resource,
++                                         uint32_t cause) {}
++
++void text_input_v3_set_content_type(wl_client* client,
++                                    wl_resource* resource,
++                                    uint32_t hint,
++                                    uint32_t purpose) {
++  GetUserDataAs<TextInputV3>(resource)->SetContentType(hint, purpose);
++}
++
++void text_input_v3_set_cursor_rectangle(wl_client* client,
++                                        wl_resource* resource,
++                                        int32_t x,
++                                        int32_t y,
++                                        int32_t width,
++                                        int32_t height) {
++  GetUserDataAs<TextInputV3>(resource)->SetCursorRectangle(
++      gfx::Rect(x, y, width, height));
++}
++
++void text_input_v3_commit(wl_client* client, wl_resource* resource) {
++  GetUserDataAs<TextInputV3>(resource)->Commit();
++}
++
++constexpr struct zwp_text_input_v3_interface text_input_v3_implementation = {
++    text_input_v3_destroy,
++    text_input_v3_enable,
++    text_input_v3_disable,
++    text_input_v3_set_surrounding_text,
++    text_input_v3_set_text_change_cause,
++    text_input_v3_set_content_type,
++    text_input_v3_set_cursor_rectangle,
++    text_input_v3_commit,
++};
++
++////////////////////////////////////////////////////////////////////////////////
++// zwp_text_input_manager_v3 interface:
++
++void text_input_manager_v3_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++void text_input_manager_v3_get_text_input(wl_client* client,
++                                          wl_resource* resource,
++                                          uint32_t id,
++                                          wl_resource* seat_resource) {
++  Seat* seat = GetUserDataAs<WaylandSeat>(seat_resource)->seat;
++  wl_resource* text_input_resource =
++      wl_resource_create(client, &zwp_text_input_v3_interface, 1, id);
++  SetImplementation(text_input_resource, &text_input_v3_implementation,
++                    std::make_unique<TextInputV3>(text_input_resource, seat));
++}
++
++constexpr struct zwp_text_input_manager_v3_interface
++    text_input_manager_v3_implementation = {
++        text_input_manager_v3_destroy,
++        text_input_manager_v3_get_text_input,
++};
++
++}  // namespace
++
++void bind_text_input_manager_v3(wl_client* client,
++                                void* data,
++                                uint32_t version,
++                                uint32_t id) {
++  wl_resource* resource =
++      wl_resource_create(client, &zwp_text_input_manager_v3_interface, 1, id);
++  wl_resource_set_implementation(resource,
++                                 &text_input_manager_v3_implementation, data,
++                                 nullptr);
++}
++
++}  // namespace exo::wayland
+diff --git a/components/exo/wayland/zwp_text_input_v3.h b/components/exo/wayland/zwp_text_input_v3.h
+new file mode 100644
+index 0000000000000..05a07e2804cad
+--- /dev/null
++++ b/components/exo/wayland/zwp_text_input_v3.h
+@@ -0,0 +1,27 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef COMPONENTS_EXO_WAYLAND_ZWP_TEXT_INPUT_V3_H_
++#define COMPONENTS_EXO_WAYLAND_ZWP_TEXT_INPUT_V3_H_
++
++#include <stdint.h>
++
++struct wl_client;
++
++namespace exo::wayland {
++
++// NickelOS: zwp_text_input_v3 (wayland-protocols, unstable), what GTK 3 and 4,
++// Qt 6 and Electron apps type through: ChromeOS's input methods (Pinyin,
++// Zhuyin, Cangjie, Hangul, ...) compose for them as for Chrome's own text
++// fields, on the same TextInput as zwp_text_input_v1, which Lacros and
++// sommelier use. Keys the input method does not take reach the app through
++// wl_keyboard, as without an input method.
++void bind_text_input_manager_v3(wl_client* client,
++                                void* data,
++                                uint32_t version,
++                                uint32_t id);
++
++}  // namespace exo::wayland
++
++#endif  // COMPONENTS_EXO_WAYLAND_ZWP_TEXT_INPUT_V3_H_

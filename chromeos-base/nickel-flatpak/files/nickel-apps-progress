@@ -1,0 +1,44 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# NickelOS: while the first boot installs the default apps (the Bazaar app
+# store and GNOME's apps for pictures, videos, music and PDFs,
+# nickel-flatpak-defaults), say so in a notification, and say again when they
+# are ready, or that it will try again at the next start if it could not.
+# Otherwise the apps are simply missing for the first half hour or so.
+# Runs as the session user (nickel-apps-progress.conf); the notification
+# server is ChromeOS's, through nickel-portal.
+state=/run/nickel/flatpak-defaults
+
+notify() {  # REPLACES_ID SUMMARY BODY -> prints the notification's id
+  gdbus call --session --dest org.freedesktop.Notifications \
+    --object-path /org/freedesktop/Notifications \
+    --method org.freedesktop.Notifications.Notify \
+    "NickelOS" "$1" "system-software-install" "$2" "$3" "[]" "{}" 0 2>/dev/null |
+    sed -n 's/^(uint32 \([0-9]*\),)$/\1/p'
+}
+
+current() { cat "${state}" 2>/dev/null; }
+
+case "$(current)" in
+  waiting|installing) ;;
+  *) exit 0 ;;  # nothing running (done, failed or never started)
+esac
+
+id=$(notify 0 "Installing your apps" \
+  "NickelOS is downloading its apps: Bazaar, the app store, and the apps that open pictures, videos, music and PDFs. They appear in the launcher when they are ready.")
+while :; do
+  case "$(current)" in
+    done)
+      notify "${id:-0}" "Your apps are ready" \
+        "They are in the launcher. Find and install more apps from Flathub in Bazaar." >/dev/null
+      exit 0
+      ;;
+    failed)
+      notify "${id:-0}" "Apps could not be installed yet" \
+        "Some apps could not be downloaded. NickelOS tries again the next time it starts." >/dev/null
+      exit 0
+      ;;
+  esac
+  sleep 10
+done

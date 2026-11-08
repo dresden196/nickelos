@@ -1,0 +1,320 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux apps pick colours and set the wallpaper
+
+Two more desktop portals for the NickelOS backend
+(xdg-desktop-portal-nickel), on VmApplicationsService:
+
+- NickelPickColor() -> (picked, ARGB): the Screenshot portal's PickColor
+  (colour pickers in GIMP, Inkscape, Krita, design and paint apps).
+  ChromeOS's eyedropper, the one web pages' colour inputs use
+  (components/eye_dropper), on the screen the pointer is on, over
+  everything, Linux apps included; a click picks, Esc cancels; one pick at
+  a time.
+- NickelSetWallpaper(path) -> (done): the Wallpaper portal (GNOME's Image
+  Viewer's "Set as Background", wallpaper apps). The picture becomes the
+  signed-in user's wallpaper, filling the screen, as Wallpaper & style's
+  "My images" sets one (WallpaperController::SetCustomWallpaper keeps its
+  own copy); an empty path brings back the default wallpaper.
+
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index c063b8f6fc1fd..e442ea883f44b 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -8,6 +8,8 @@ static_library("vm") {
+   sources = [
+     "nickel_access.cc",
+     "nickel_access.h",
++    "nickel_desktop_tools.cc",
++    "nickel_desktop_tools.h",
+     "nickel_global_shortcuts.cc",
+     "nickel_global_shortcuts.h",
+     "nickel_inhibit.cc",
+@@ -77,6 +79,7 @@ static_library("vm") {
+     "//chromeos/ash/experiences/settings_ui",
+     "//chromeos/dbus/power",
+     "//components/app_restore",
++    "//components/eye_dropper",
+     "//components/exo/wayland",
+     "//components/prefs",
+     "//components/session_manager/core",
+diff --git a/chrome/browser/ash/dbus/vm/nickel_desktop_tools.cc b/chrome/browser/ash/dbus/vm/nickel_desktop_tools.cc
+new file mode 100644
+index 0000000000000..d2982ff521f43
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_desktop_tools.cc
+@@ -0,0 +1,118 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/dbus/vm/nickel_desktop_tools.h"
++
++#include <memory>
++#include <utility>
++
++#include "ash/public/cpp/shell_window_ids.h"
++#include "ash/public/cpp/wallpaper/wallpaper_controller.h"
++#include "ash/public/cpp/wallpaper/wallpaper_types.h"
++#include "ash/shell.h"
++#include "base/no_destructor.h"
++#include "base/task/sequenced_task_runner.h"
++#include "components/eye_dropper/eye_dropper_view.h"
++#include "components/user_manager/user.h"
++#include "components/user_manager/user_manager.h"
++#include "content/public/browser/eye_dropper_listener.h"
++#include "ui/aura/window.h"
++
++namespace ash {
++
++namespace {
++
++// One colour pick: the eyedropper and who asked.
++class ColorPick : public content::EyeDropperListener {
++ public:
++  explicit ColorPick(NickelDesktopTools::PickColorCallback callback)
++      : callback_(std::move(callback)) {}
++
++  ColorPick(const ColorPick&) = delete;
++  ColorPick& operator=(const ColorPick&) = delete;
++
++  ~ColorPick() override = default;
++
++  void Show() {
++    // As for a web page's eyedropper on ChromeOS: in the menu container,
++    // so it can move between displays; all events go through it, by way of
++    // the root window.
++    aura::Window* root = Shell::GetRootWindowForNewWindows();
++    view_ = std::make_unique<eye_dropper::EyeDropperView>(
++        root->GetChildById(kShellWindowId_MenuContainer), root, this);
++  }
++
++  void Answer(std::optional<SkColor> color) {
++    std::move(callback_).Run(color);
++  }
++
++  // content::EyeDropperListener:
++  void ColorSelected(SkColor color) override { Done(color); }
++  void ColorSelectionCanceled() override { Done(std::nullopt); }
++
++ private:
++  void Done(std::optional<SkColor> color);
++
++  NickelDesktopTools::PickColorCallback callback_;
++  std::unique_ptr<eye_dropper::EyeDropperView> view_;
++};
++
++std::unique_ptr<ColorPick>& CurrentPick() {
++  static base::NoDestructor<std::unique_ptr<ColorPick>> pick;
++  return *pick;
++}
++
++void ColorPick::Done(std::optional<SkColor> color) {
++  // Called from the eyedropper's own code: it goes away afterwards, once.
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++      FROM_HERE, base::BindOnce(
++                     [](std::optional<SkColor> color) {
++                       std::unique_ptr<ColorPick> pick =
++                           std::move(CurrentPick());
++                       if (pick) {
++                         pick->Answer(color);
++                       }
++                     },
++                     color));
++}
++
++}  // namespace
++
++// static
++void NickelDesktopTools::PickColor(PickColorCallback callback) {
++  if (CurrentPick()) {
++    std::move(callback).Run(std::nullopt);
++    return;
++  }
++  CurrentPick() = std::make_unique<ColorPick>(std::move(callback));
++  CurrentPick()->Show();
++}
++
++// static
++void NickelDesktopTools::SetWallpaper(
++    const base::FilePath& path,
++    base::OnceCallback<void(bool done)> callback) {
++  const user_manager::User* user =
++      user_manager::UserManager::Get()->GetActiveUser();
++  WallpaperController* controller = WallpaperController::Get();
++  if (!user || !controller) {
++    std::move(callback).Run(false);
++    return;
++  }
++  if (path.empty()) {
++    controller->SetDefaultWallpaper(user->GetAccountId(),
++                                    /*show_wallpaper=*/true,
++                                    std::move(callback));
++    return;
++  }
++  if (!path.IsAbsolute()) {
++    std::move(callback).Run(false);
++    return;
++  }
++  controller->SetCustomWallpaper(user->GetAccountId(), path,
++                                 WALLPAPER_LAYOUT_CENTER_CROPPED,
++                                 /*preview_mode=*/false, std::move(callback));
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_desktop_tools.h b/chrome/browser/ash/dbus/vm/nickel_desktop_tools.h
+new file mode 100644
+index 0000000000000..031fcb528f224
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_desktop_tools.h
+@@ -0,0 +1,39 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_DBUS_VM_NICKEL_DESKTOP_TOOLS_H_
++#define CHROME_BROWSER_ASH_DBUS_VM_NICKEL_DESKTOP_TOOLS_H_
++
++#include <optional>
++
++#include "base/files/file_path.h"
++#include "base/functional/callback.h"
++#include "third_party/skia/include/core/SkColor.h"
++
++namespace ash {
++
++// NickelOS: what Linux apps ask ChromeOS for through two of their portals,
++// for the NickelOS portal backend (xdg-desktop-portal-nickel), through
++// VmApplicationsService.
++class NickelDesktopTools {
++ public:
++  // The Screenshot portal's PickColor: ChromeOS's eyedropper (the one web
++  // pages' colour inputs use) on the screen the pointer is on, over
++  // everything, Linux apps included. Answers with the colour the user
++  // clicks, or nothing if they press Esc, or if a pick is already open.
++  using PickColorCallback =
++      base::OnceCallback<void(std::optional<SkColor> color)>;
++  static void PickColor(PickColorCallback callback);
++
++  // The Wallpaper portal: the picture at `path` becomes the signed-in user's
++  // wallpaper, filling the screen, as Wallpaper & style's "My images" sets
++  // one (Ash keeps its own copy); an empty path brings back NickelOS's
++  // default wallpaper. Answers whether it did.
++  static void SetWallpaper(const base::FilePath& path,
++                           base::OnceCallback<void(bool done)> callback);
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_ASH_DBUS_VM_NICKEL_DESKTOP_TOOLS_H_
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index 4deee1d9326e4..91b8f20838e5e 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -23,6 +23,7 @@
+ #include "chrome/browser/ash/crostini/crostini_features.h"
+ #include "chrome/browser/ash/crostini/crostini_util.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_access.h"
++#include "chrome/browser/ash/dbus/vm/nickel_desktop_tools.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_inhibit.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_notifications.h"
+@@ -179,6 +180,10 @@ constexpr char kNickelPrintMethod[] = "NickelPrint";
+ // NickelOS: called by nickel-x11-keys, which presses shortcut keys in
+ // Xwayland for X11 apps (NickelX11Keys).
+ constexpr char kNickelX11KeysConnectMethod[] = "NickelX11KeysConnect";
++// NickelOS: called by the Screenshot and Wallpaper portals' backend
++// (NickelDesktopTools).
++constexpr char kNickelPickColorMethod[] = "NickelPickColor";
++constexpr char kNickelSetWallpaperMethod[] = "NickelSetWallpaper";
+ 
+ }  // namespace
+ 
+@@ -332,6 +337,19 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface, kNickelPickColorMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelPickColor,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelSetWallpaperMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelSetWallpaper,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+ }
+ 
+ void VmApplicationsServiceProvider::OnExported(
+@@ -848,6 +866,52 @@ void VmApplicationsServiceProvider::NickelX11KeysConnect(
+   std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
+ }
+ 
++// NickelOS: the Screenshot portal's PickColor, ChromeOS's eyedropper
++// (NickelDesktopTools::PickColor): () -> (picked, ARGB).
++void VmApplicationsServiceProvider::NickelPickColor(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  NickelDesktopTools::PickColor(base::BindOnce(
++      [](dbus::MethodCall* method_call,
++         dbus::ExportedObject::ResponseSender response_sender,
++         std::optional<SkColor> color) {
++        std::unique_ptr<dbus::Response> response =
++            dbus::Response::FromMethodCall(method_call);
++        dbus::MessageWriter writer(response.get());
++        writer.AppendBool(color.has_value());
++        writer.AppendUint32(color.value_or(SK_ColorTRANSPARENT));
++        std::move(response_sender).Run(std::move(response));
++      },
++      method_call, std::move(response_sender)));
++}
++
++// NickelOS: the Wallpaper portal (NickelDesktopTools::SetWallpaper):
++// (path, "" for the default) -> (done).
++void VmApplicationsServiceProvider::NickelSetWallpaper(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string path;
++  if (!reader.PopString(&path)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS, "Expected a path"));
++    return;
++  }
++  NickelDesktopTools::SetWallpaper(
++      base::FilePath(path),
++      base::BindOnce(
++          [](dbus::MethodCall* method_call,
++             dbus::ExportedObject::ResponseSender response_sender,
++             bool done) {
++            std::unique_ptr<dbus::Response> response =
++                dbus::Response::FromMethodCall(method_call);
++            dbus::MessageWriter(response.get()).AppendBool(done);
++            std::move(response_sender).Run(std::move(response));
++          },
++          method_call, std::move(response_sender)));
++}
++
+ void VmApplicationsServiceProvider::LaunchTerminal(
+     dbus::MethodCall* method_call,
+     dbus::ExportedObject::ResponseSender response_sender) {
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index ee59e9148b221..ac3eed76631e6 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -107,6 +107,11 @@ class VmApplicationsServiceProvider
+   void NickelX11KeysConnect(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelPickColor(dbus::MethodCall* method_call,
++                       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelSetWallpaper(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
+ 
+   // Exposed in the header so unit tests can call it.
+   static void ParseSelectFileDialogFileTypes(

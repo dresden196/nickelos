@@ -1,0 +1,55 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the digital internal mic wins a tie
+
+On laptops whose microphone is digital (AMD's ACP, Intel's SOF DMIC), the
+HD-Audio codec often reports an internal mic as well that nothing is wired
+to. CRAS lists both as INTERNAL_MIC, with the same priority and plugged
+time, and Chrome chose the codec's: every app, Chrome's and Linux apps',
+recorded silence until the user picked the other one by hand (Dell
+laptop: "HD-Audio Generic: Realtek codec Analog" peaked at 30 of 32767,
+"acp" recorded room noise at RMS ~350).
+
+LessBuiltInPriority() now puts an internal mic on a digital mic controller
+(device name starting "acp", or containing "dmic") above another internal
+mic of the same priority. A user's own choice still wins (user priority).
+
+diff --git a/chromeos/ash/components/audio/audio_device.cc b/chromeos/ash/components/audio/audio_device.cc
+index 06329e7b86286..42cb7adef2f8e 100644
+--- a/chromeos/ash/components/audio/audio_device.cc
++++ b/chromeos/ash/components/audio/audio_device.cc
+@@ -9,6 +9,7 @@
+ #include "ash/constants/ash_features.h"
+ #include "base/format_macros.h"
+ #include "base/strings/string_number_conversions.h"
++#include "base/strings/string_util.h"
+ #include "base/strings/stringprintf.h"
+ #include "base/strings/utf_string_conversions.h"
+ 
+@@ -220,11 +221,27 @@ bool AudioDevice::IsInternalSpeaker() const {
+   return type == AudioDeviceType::kInternalSpeaker;
+ }
+ 
++// NickelOS: an internal mic on a digital mic controller (AMD's ACP, Intel's
++// SOF DMIC). On laptops whose microphone is digital, the HD-Audio codec often
++// reports an internal mic too that nothing is wired to; CRAS lists both with
++// the same priority and the same plugged time, and Chrome chose the codec's,
++// so every app recorded silence (Dell laptop, 2026-10-23).
++static bool IsDigitalInternalMic(const AudioDevice& device) {
++  if (device.type != AudioDeviceType::kInternalMic) {
++    return false;
++  }
++  const std::string name = base::ToLowerASCII(device.device_name);
++  return name.starts_with("acp") || name.find("dmic") != std::string::npos;
++}
++
+ bool LessBuiltInPriority(const AudioDevice& a, const AudioDevice& b) {
+   if (a.priority < b.priority) {
+     return true;
+   } else if (b.priority < a.priority) {
+     return false;
++  } else if (IsDigitalInternalMic(a) != IsDigitalInternalMic(b)) {
++    // NickelOS: the digital internal mic wins a tie.
++    return IsDigitalInternalMic(b);
+   } else if (a.plugged_time < b.plugged_time) {
+     return true;
+   } else {

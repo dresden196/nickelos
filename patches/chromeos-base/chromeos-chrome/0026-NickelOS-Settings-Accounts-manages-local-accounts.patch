@@ -1,0 +1,1244 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Settings > Accounts manages local accounts
+
+The Accounts page managed Google accounts ("'s accounts", Add Google
+Account, Family Link), which a NickelOS local account does not have and
+which a de-Googled OS does not offer. For a local account it now shows the
+nickel-accounts-card:
+- Your account: name, picture, username, role, and Change password. The
+  password is in two places, the encrypted home (cryptohome's
+  local-password factor, what signing in checks) and the Linux user (sudo,
+  polkit). The card checks the current password with cryptohome
+  (quickUnlockPrivate.getAuthToken), changes the Linux one through
+  nickel-accountsd (which checks the current password itself), then the
+  encrypted home's (PasswordFactorEditor.updateOrSetLocalPassword); if that
+  fails the Linux one is put back.
+- Other people on this device (administrators): each account with its
+  role, an Administrator toggle and Remove, both confirmed with the
+  administrator's password (nickel-accountsd SetAdmin and RemoveUser; then
+  ChromeOS removes the account and its encrypted home). The owner and the
+  signed-in account are not removed; the last administrator stays one.
+  Add person signs out, and the sign-in screen opens account creation
+  (Local State nickel.add_person_at_sign_in).
+NickelAccountsHandler (pages/people) talks to nickel-accountsd. Removing a
+local account from the sign-in screen (its account menu) also removes the
+Linux user now, once ChromeOS has removed the account, and its warning
+no longer says the account "can still sign in later" (a Google account
+can; a removed local account is gone with its files).
+
+diff --git a/ash/login/ui/login_remove_account_dialog.cc b/ash/login/ui/login_remove_account_dialog.cc
+index 7763a6e70ea1c..0c79bbc9e8140 100644
+--- a/ash/login/ui/login_remove_account_dialog.cc
++++ b/ash/login/ui/login_remove_account_dialog.cc
+@@ -14,6 +14,7 @@
+ #include "base/memory/raw_ptr.h"
+ #include "base/strings/strcat.h"
+ #include "base/strings/utf_string_conversions.h"
++#include "components/user_manager/nickel_local_account.h"
+ #include "chromeos/strings/grit/chromeos_strings.h"
+ #include "ui/accessibility/ax_node_data.h"
+ #include "ui/base/l10n/l10n_util.h"
+@@ -205,7 +206,12 @@ LoginRemoveAccountDialog::LoginRemoveAccountDialog(
+             ? IDS_ASH_LOGIN_POD_NON_OWNER_USER_REMOVE_WARNING_PART_2_SUPERVISED_USER
+             : IDS_ASH_LOGIN_POD_NON_OWNER_USER_REMOVE_WARNING_PART_2,
+         email);
+-    warning_message_ = base::StrCat({part1, u" ", part2});
++    // NickelOS: a removed local account cannot "still sign in later" as a
++    // Google account can: it is gone with its files, which part 1 says.
++    const bool nickel_local_account = user_manager::IsNickelLocalAccount(
++        user.basic_user_info.account_id);
++    warning_message_ =
++        nickel_local_account ? part1 : base::StrCat({part1, u" ", part2});
+ 
+     remove_user_confirm_data_ = AddChildView(std::make_unique<views::View>());
+     remove_user_confirm_data_->SetLayoutManager(
+@@ -218,9 +224,11 @@ LoginRemoveAccountDialog::LoginRemoveAccountDialog(
+         login_views_utils::CreateBubbleLabel(part1, this,
+                                              kColorAshTextColorPrimary));
+ 
+-    remove_user_confirm_data_->AddChildView(
+-        login_views_utils::CreateBubbleLabel(part2, this,
+-                                             kColorAshTextColorPrimary));
++    if (!nickel_local_account) {
++      remove_user_confirm_data_->AddChildView(
++          login_views_utils::CreateBubbleLabel(part2, this,
++                                               kColorAshTextColorPrimary));
++    }
+ 
+     remove_user_button_ = new RemoveUserButton(
+         base::BindRepeating(&LoginRemoveAccountDialog::RemoveUserButtonPressed,
+diff --git a/chrome/app/os_settings_strings.grdp b/chrome/app/os_settings_strings.grdp
+index 28099ae334a31..dfda2877ac3b7 100644
+--- a/chrome/app/os_settings_strings.grdp
++++ b/chrome/app/os_settings_strings.grdp
+@@ -362,6 +362,87 @@
+   <message name="IDS_SETTINGS_PEOPLE_MANAGE_OTHER_PEOPLE" desc="Label for the button that opens the multi-profile user manager.">
+     Manage other people
+   </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT" desc="NickelOS: Settings &gt; Accounts, title of the card with the signed-in account.">
++    Your account
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER" desc="NickelOS: Settings &gt; Accounts, role of the account that set up the device.">
++    Owner, administrator
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR" desc="NickelOS: Settings &gt; Accounts, role of an account that can use sudo and manage others; also the toggle's label.">
++    Administrator
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD" desc="NickelOS: Settings &gt; Accounts, role of an account that is not an administrator.">
++    Standard
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD" desc="NickelOS: Settings &gt; Accounts, button and dialog title.">
++    Change password
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE" desc="NickelOS: Settings &gt; Accounts, title of the card listing the other accounts (administrators only).">
++    Other people on this device
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION" desc="NickelOS: Settings &gt; Accounts, explanation in the other people card.">
++    Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE" desc="NickelOS: Settings &gt; Accounts, shown when the device has a single account.">
++    No one else has an account on this device.
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON" desc="NickelOS: Settings &gt; Accounts, button and dialog title.">
++    Add person
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY" desc="NickelOS: Settings &gt; Accounts, explanation in the add person dialog.">
++    You&apos;ll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT" desc="NickelOS: Settings &gt; Accounts, button that signs out to add a person.">
++    Sign out
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE" desc="NickelOS: Settings &gt; Accounts, button that removes an account.">
++    Remove
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY" desc="NickelOS: Settings &gt; Accounts, warning when removing an account.">
++    Their account and all their files are deleted from this device. This can&apos;t be undone.
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY" desc="NickelOS: Settings &gt; Accounts, explanation when making someone an administrator or not.">
++    Administrators can install software for everyone, change the system and manage accounts.
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM" desc="NickelOS: Settings &gt; Accounts, button that confirms a change to another account.">
++    Confirm
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD" desc="NickelOS: Settings &gt; Accounts, label of the password an administrator confirms changes with.">
++    Your password
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD" desc="NickelOS: Settings &gt; Accounts, label in the change password dialog.">
++    Current password
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD" desc="NickelOS: Settings &gt; Accounts, label in the change password dialog.">
++    New password
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD" desc="NickelOS: Settings &gt; Accounts, label in the change password dialog.">
++    Confirm new password
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH" desc="NickelOS: Settings &gt; Accounts, error in the change password dialog.">
++    The new passwords don&apos;t match
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD" desc="NickelOS: Settings &gt; Accounts, error when the new password is empty.">
++    Choose a new password
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD" desc="NickelOS: Settings &gt; Accounts, error when a password is wrong.">
++    That password isn&apos;t right
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN" desc="NickelOS: Settings &gt; Accounts, error when demoting the last administrator.">
++    This device needs at least one administrator
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED" desc="NickelOS: Settings &gt; Accounts, error when a change failed.">
++    Something went wrong. Try again.
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE" desc="NickelOS: Settings &gt; Accounts, title of the dialog removing an account.">
++    Remove <ph name="NAME">$1<ex>Alex</ex></ph>?
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE" desc="NickelOS: Settings &gt; Accounts, title of the dialog making someone an administrator.">
++    Make <ph name="NAME">$1<ex>Alex</ex></ph> an administrator?
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE" desc="NickelOS: Settings &gt; Accounts, title of the dialog making an administrator a standard user.">
++    Make <ph name="NAME">$1<ex>Alex</ex></ph> a standard user?
++  </message>
+   <message name="IDS_SETTINGS_ACCOUNT_MANAGER_EDUCATION_ACCOUNT" desc="Status label which indicates that specified account is a school/EDU account.">
+     School account
+   </message>
+diff --git a/chrome/browser/ash/login/session/user_session_manager.cc b/chrome/browser/ash/login/session/user_session_manager.cc
+index 40ed4933aa97b..92906c3845a36 100644
+--- a/chrome/browser/ash/login/session/user_session_manager.cc
++++ b/chrome/browser/ash/login/session/user_session_manager.cc
+@@ -709,6 +709,7 @@ UserSessionManager* UserSessionManager::GetInstance() {
+ void UserSessionManager::RegisterPrefs(PrefRegistrySimple* registry) {
+   registry->RegisterStringPref(ash::prefs::kRLZBrand, std::string());
+   registry->RegisterBooleanPref(ash::prefs::kRLZDisabled, false);
++  registry->RegisterBooleanPref(user_manager::kNickelAddPersonAtSignIn, false);
+ }
+ 
+ UserSessionManager::UserSessionManager(
+diff --git a/chrome/browser/resources/ash/settings/BUILD.gn b/chrome/browser/resources/ash/settings/BUILD.gn
+index a121a357534d2..a3131fd94433f 100644
+--- a/chrome/browser/resources/ash/settings/BUILD.gn
++++ b/chrome/browser/resources/ash/settings/BUILD.gn
+@@ -284,6 +284,7 @@ build_webui("build") {
+     "os_people_page/fingerprint_list_subpage.ts",
+     "os_people_page/graduation/graduation_settings_card.ts",
+     "os_people_page/local_data_recovery_dialog.ts",
++    "os_people_page/nickel_accounts_card.ts",
+     "os_people_page/lock_screen_password_prompt_dialog.ts",
+     "os_people_page/lock_screen_subpage.ts",
+     "os_people_page/os_people_page.ts",
+diff --git a/chrome/browser/resources/ash/settings/os_people_page/nickel_accounts_card.html b/chrome/browser/resources/ash/settings/os_people_page/nickel_accounts_card.html
+new file mode 100644
+index 0000000000000..4e5f49ca7ce4c
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_people_page/nickel_accounts_card.html
+@@ -0,0 +1,147 @@
++<style include="settings-shared">
++  .avatar {
++    border-radius: 50%;
++    flex-shrink: 0;
++    height: 40px;
++    margin-inline-end: 16px;
++    width: 40px;
++  }
++
++  .avatar-placeholder {
++    --iron-icon-fill-color: var(--cros-sys-on_surface_variant);
++    --iron-icon-height: 40px;
++    --iron-icon-width: 40px;
++    flex-shrink: 0;
++    margin-inline-end: 16px;
++  }
++
++  .admin-label {
++    margin-inline-end: 12px;
++  }
++
++  cr-dialog cr-input {
++    margin-bottom: 12px;
++  }
++
++  #adminPassword {
++    margin-top: 16px;
++  }
++
++  .error {
++    color: var(--cros-sys-error);
++    margin-top: 4px;
++  }
++</style>
++
++<settings-card header-text="$i18n{nickelAccountsYourAccount}">
++  <div class="settings-box first two-line">
++    <template is="dom-if" if="[[me_.pic]]" restamp>
++      <img class="avatar" src="[[me_.pic]]" alt="">
++    </template>
++    <template is="dom-if" if="[[!me_.pic]]" restamp>
++      <iron-icon class="avatar-placeholder" icon="cr:person"></iron-icon>
++    </template>
++    <div class="start">
++      <div id="myName">[[me_.name]]</div>
++      <div class="secondary">[[roleText_(me_)]]</div>
++    </div>
++    <cr-button id="changePassword" on-click="onChangePasswordClick_">
++      $i18n{nickelAccountsChangePassword}
++    </cr-button>
++  </div>
++</settings-card>
++
++<template is="dom-if" if="[[me_.admin]]" restamp>
++  <settings-card header-text="$i18n{nickelAccountsOtherPeople}">
++    <div class="settings-box first">
++      <div class="secondary">$i18n{nickelAccountsOtherPeopleDescription}</div>
++    </div>
++    <template is="dom-repeat" items="[[others_]]">
++      <div class="settings-box two-line">
++        <template is="dom-if" if="[[item.pic]]" restamp>
++          <img class="avatar" src="[[item.pic]]" alt="">
++        </template>
++        <template is="dom-if" if="[[!item.pic]]" restamp>
++          <iron-icon class="avatar-placeholder" icon="cr:person"></iron-icon>
++        </template>
++        <div class="start">
++          <div>[[item.name]]</div>
++          <div class="secondary">[[roleText_(item)]]</div>
++        </div>
++        <template is="dom-if" if="[[!item.owner]]" restamp>
++          <span class="admin-label secondary" aria-hidden="true">
++            $i18n{nickelAccountsAdministrator}
++          </span>
++          <cr-toggle checked="[[item.admin]]" on-change="onAdminToggle_"
++              aria-label="$i18n{nickelAccountsAdministrator}">
++          </cr-toggle>
++          <cr-icon-button class="icon-delete-gray" on-click="onRemoveClick_"
++              title="$i18n{nickelAccountsRemove}"
++              aria-label="$i18n{nickelAccountsRemove}">
++          </cr-icon-button>
++        </template>
++      </div>
++    </template>
++    <template is="dom-if" if="[[!others_.length]]" restamp>
++      <div class="settings-box">
++        <div class="secondary">$i18n{nickelAccountsNoOtherPeople}</div>
++      </div>
++    </template>
++    <div class="settings-box">
++      <cr-button id="addPerson" on-click="onAddPersonClick_">
++        $i18n{nickelAccountsAddPerson}
++      </cr-button>
++    </div>
++  </settings-card>
++</template>
++
++<cr-dialog id="passwordDialog" close-text="$i18n{close}">
++  <div slot="title">$i18n{nickelAccountsChangePassword}</div>
++  <div slot="body">
++    <cr-input id="currentPassword" type="password"
++        label="$i18n{nickelAccountsCurrentPassword}"
++        value="{{currentPassword_}}">
++    </cr-input>
++    <cr-input id="newPassword" type="password"
++        label="$i18n{nickelAccountsNewPassword}" value="{{newPassword_}}">
++    </cr-input>
++    <cr-input id="confirmPassword" type="password"
++        label="$i18n{nickelAccountsConfirmPassword}"
++        value="{{confirmPassword_}}">
++    </cr-input>
++    <div class="error" hidden="[[!dialogError_]]">[[dialogError_]]</div>
++  </div>
++  <div slot="button-container">
++    <cr-button class="cancel-button" on-click="onDialogCancel_">
++      $i18n{cancel}
++    </cr-button>
++    <cr-button id="passwordSubmit" class="action-button"
++        on-click="onPasswordSubmit_" disabled="[[busy_]]">
++      $i18n{nickelAccountsChangePassword}
++    </cr-button>
++  </div>
++</cr-dialog>
++
++<cr-dialog id="confirmDialog" close-text="$i18n{close}"
++    on-close="onConfirmClosed_">
++  <div slot="title">[[confirmTitle_]]</div>
++  <div slot="body">
++    <div>[[confirmBody_]]</div>
++    <template is="dom-if" if="[[confirmNeedsPassword_]]" restamp>
++      <cr-input id="adminPassword" type="password"
++          label="$i18n{nickelAccountsYourPassword}"
++          value="{{adminPassword_}}">
++      </cr-input>
++    </template>
++    <div class="error" hidden="[[!dialogError_]]">[[dialogError_]]</div>
++  </div>
++  <div slot="button-container">
++    <cr-button class="cancel-button" on-click="onDialogCancel_">
++      $i18n{cancel}
++    </cr-button>
++    <cr-button id="confirmSubmit" class="action-button"
++        on-click="onConfirmSubmit_" disabled="[[busy_]]">
++      [[confirmButton_]]
++    </cr-button>
++  </div>
++</cr-dialog>
+diff --git a/chrome/browser/resources/ash/settings/os_people_page/nickel_accounts_card.ts b/chrome/browser/resources/ash/settings/os_people_page/nickel_accounts_card.ts
+new file mode 100644
+index 0000000000000..985c67bbb73a4
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_people_page/nickel_accounts_card.ts
+@@ -0,0 +1,298 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++/**
++ * @fileoverview NickelOS: Settings > Accounts for local accounts, which are
++ * Linux users. Your account (name, whether you are an administrator) and
++ * changing its password; for administrators, the other people on the device:
++ * making them administrators or not, removing them, and adding a person
++ * (NickelAccountsHandler, nickel-accountsd).
++ *
++ * A password lives in two places, the encrypted home (cryptohome's
++ * "local-password" factor, what signing in checks) and the Linux user (sudo,
++ * polkit). Changing it checks the current password with cryptohome for a
++ * token, changes the Linux one (nickel-accountsd checks the current password
++ * again), then cryptohome's with the token; if that fails the Linux one goes
++ * back, so the two never differ.
++ */
++
++import 'chrome://resources/ash/common/cr_elements/cr_button/cr_button.js';
++import 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
++import 'chrome://resources/ash/common/cr_elements/cr_icon_button/cr_icon_button.js';
++import 'chrome://resources/ash/common/cr_elements/cr_input/cr_input.js';
++import 'chrome://resources/ash/common/cr_elements/cr_toggle/cr_toggle.js';
++import 'chrome://resources/ash/common/cr_elements/icons.html.js';
++import 'chrome://resources/polymer/v3_0/iron-icon/iron-icon.js';
++import '../os_settings_page/settings_card.js';
++import '../settings_shared.css.js';
++
++import type {CrDialogElement} from 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
++import type {CrToggleElement} from 'chrome://resources/ash/common/cr_elements/cr_toggle/cr_toggle.js';
++import {I18nMixin} from 'chrome://resources/ash/common/cr_elements/i18n_mixin.js';
++import {sendWithPromise} from 'chrome://resources/js/cr.js';
++import {ConfigureResult, PasswordFactorEditor} from 'chrome://resources/mojo/chromeos/ash/services/auth_factor_config/public/mojom/auth_factor_config.mojom-webui.js';
++import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++
++import {getTemplate} from './nickel_accounts_card.html.js';
++
++interface NickelAccount {
++  username: string;
++  name: string;
++  admin: boolean;
++  owner: boolean;
++  pic: string;
++}
++
++interface NickelAccounts {
++  me: NickelAccount;
++  others: NickelAccount[];
++}
++
++// What the confirmation dialog does when confirmed.
++type PendingAction = {kind: 'admin', account: NickelAccount, admin: boolean}|
++    {kind: 'remove', account: NickelAccount}|{kind: 'add-person'};
++
++const NickelAccountsCardElementBase = I18nMixin(PolymerElement);
++
++export class NickelAccountsCardElement extends NickelAccountsCardElementBase {
++  static get is() {
++    return 'nickel-accounts-card' as const;
++  }
++
++  static get template() {
++    return getTemplate();
++  }
++
++  static get properties() {
++    return {
++      me_: Object,
++      others_: Array,
++      currentPassword_: String,
++      newPassword_: String,
++      confirmPassword_: String,
++      adminPassword_: String,
++      dialogError_: String,
++      busy_: Boolean,
++      confirmTitle_: String,
++      confirmBody_: String,
++      confirmButton_: String,
++      confirmNeedsPassword_: Boolean,
++    };
++  }
++
++  declare private me_: NickelAccount;
++  declare private others_: NickelAccount[];
++  declare private currentPassword_: string;
++  declare private newPassword_: string;
++  declare private confirmPassword_: string;
++  declare private adminPassword_: string;
++  declare private dialogError_: string;
++  declare private busy_: boolean;
++  declare private confirmTitle_: string;
++  declare private confirmBody_: string;
++  declare private confirmButton_: string;
++  declare private confirmNeedsPassword_: boolean;
++  private pending_: PendingAction|null = null;
++
++  constructor() {
++    super();
++    this.me_ = {username: '', name: '', admin: false, owner: false, pic: ''};
++    this.others_ = [];
++    this.resetDialog_();
++  }
++
++  override connectedCallback(): void {
++    super.connectedCallback();
++    this.refresh_();
++  }
++
++  private async refresh_(): Promise<void> {
++    const accounts: NickelAccounts = await sendWithPromise('nickelGetAccounts');
++    this.me_ = accounts.me;
++    this.others_ = accounts.others;
++  }
++
++  private roleText_(account: NickelAccount): string {
++    const role = account.owner ?
++        this.i18n('nickelAccountsOwner') :
++        this.i18n(
++            account.admin ? 'nickelAccountsAdministrator' :
++                            'nickelAccountsStandard');
++    return `${account.username} · ${role}`;
++  }
++
++  private resetDialog_(): void {
++    this.currentPassword_ = '';
++    this.newPassword_ = '';
++    this.confirmPassword_ = '';
++    this.adminPassword_ = '';
++    this.dialogError_ = '';
++    this.busy_ = false;
++  }
++
++  private dialog_(id: string): CrDialogElement {
++    return this.shadowRoot!.getElementById(id) as CrDialogElement;
++  }
++
++  private errorText_(code: string): string {
++    switch (code) {
++      case 'wrong-password':
++        return this.i18n('nickelAccountsWrongPassword');
++      case 'last-admin':
++        return this.i18n('nickelAccountsLastAdmin');
++      default:
++        return this.i18n('nickelAccountsFailed');
++    }
++  }
++
++  private onDialogCancel_(e: Event): void {
++    (e.target as HTMLElement).closest('cr-dialog')?.cancel();
++  }
++
++  // Closed without the action done (Cancel, Esc): an administrator toggle
++  // the user flipped goes back to what is true.
++  private onConfirmClosed_(): void {
++    if (this.pending_) {
++      this.pending_ = null;
++      this.refresh_();
++    }
++  }
++
++  // --- Change password ---------------------------------------------------
++
++  private onChangePasswordClick_(): void {
++    this.resetDialog_();
++    this.dialog_('passwordDialog').showModal();
++  }
++
++  private getAuthToken_(password: string): Promise<string|null> {
++    return new Promise(resolve => {
++      chrome.quickUnlockPrivate.getAuthToken(password, tokenInfo => {
++        const failed = chrome.runtime.lastError || !tokenInfo;
++        resolve(failed ? null : tokenInfo.token);
++      });
++    });
++  }
++
++  private async onPasswordSubmit_(): Promise<void> {
++    const current = this.currentPassword_;
++    const next = this.newPassword_;
++    if (!next) {
++      this.dialogError_ = this.i18n('nickelAccountsEmptyPassword');
++      return;
++    }
++    if (next !== this.confirmPassword_) {
++      this.dialogError_ = this.i18n('nickelAccountsPasswordsDontMatch');
++      return;
++    }
++    this.busy_ = true;
++    this.dialogError_ = '';
++    const token = await this.getAuthToken_(current);
++    if (!token) {
++      this.busy_ = false;
++      this.dialogError_ = this.i18n('nickelAccountsWrongPassword');
++      return;
++    }
++    const linuxError: string =
++        await sendWithPromise('nickelSetLinuxPassword', current, next);
++    if (linuxError) {
++      this.busy_ = false;
++      this.dialogError_ = this.errorText_(linuxError);
++      return;
++    }
++    const {result} =
++        await PasswordFactorEditor.getRemote().updateOrSetLocalPassword(
++            token, next);
++    if (result !== ConfigureResult.kSuccess) {
++      // Back to the old one, so sudo and signing in agree.
++      await sendWithPromise('nickelSetLinuxPassword', next, current);
++      this.busy_ = false;
++      this.dialogError_ = this.i18n('nickelAccountsFailed');
++      return;
++    }
++    this.busy_ = false;
++    this.dialog_('passwordDialog').close();
++  }
++
++  // --- Other people --------------------------------------------------------
++
++  private showConfirm_(
++      action: PendingAction, title: string, body: string, button: string,
++      needsPassword: boolean): void {
++    this.resetDialog_();
++    this.pending_ = action;
++    this.confirmTitle_ = title;
++    this.confirmBody_ = body;
++    this.confirmButton_ = button;
++    this.confirmNeedsPassword_ = needsPassword;
++    this.dialog_('confirmDialog').showModal();
++  }
++
++  private onAdminToggle_(e: Event&{model: {item: NickelAccount}}): void {
++    const account = e.model.item;
++    const admin = (e.target as CrToggleElement).checked;
++    this.showConfirm_(
++        {kind: 'admin', account, admin},
++        this.i18n(
++            admin ? 'nickelAccountsMakeAdminTitle' :
++                    'nickelAccountsRemoveAdminTitle',
++            account.name),
++        this.i18n('nickelAccountsAdminBody'),
++        this.i18n('nickelAccountsConfirm'), true);
++  }
++
++  private onRemoveClick_(e: Event&{model: {item: NickelAccount}}): void {
++    const account = e.model.item;
++    this.showConfirm_(
++        {kind: 'remove', account},
++        this.i18n('nickelAccountsRemoveTitle', account.name),
++        this.i18n('nickelAccountsRemoveBody'),
++        this.i18n('nickelAccountsRemove'), true);
++  }
++
++  private onAddPersonClick_(): void {
++    this.showConfirm_(
++        {kind: 'add-person'}, this.i18n('nickelAccountsAddPerson'),
++        this.i18n('nickelAccountsAddPersonBody'),
++        this.i18n('nickelAccountsSignOut'), false);
++  }
++
++  private async onConfirmSubmit_(): Promise<void> {
++    const action = this.pending_;
++    if (!action) {
++      return;
++    }
++    this.busy_ = true;
++    this.dialogError_ = '';
++    let error = '';
++    if (action.kind === 'add-person') {
++      await sendWithPromise('nickelAddPerson');
++      return;
++    }
++    if (action.kind === 'admin') {
++      error = await sendWithPromise(
++          'nickelSetAdmin', action.account.username, action.admin,
++          this.adminPassword_);
++    } else {
++      error = await sendWithPromise(
++          'nickelRemovePerson', action.account.username, this.adminPassword_);
++    }
++    this.busy_ = false;
++    if (error) {
++      this.dialogError_ = this.errorText_(error);
++      return;
++    }
++    this.pending_ = null;
++    this.dialog_('confirmDialog').close();
++    this.refresh_();
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    [NickelAccountsCardElement.is]: NickelAccountsCardElement;
++  }
++}
++
++customElements.define(NickelAccountsCardElement.is, NickelAccountsCardElement);
+diff --git a/chrome/browser/resources/ash/settings/os_people_page/os_people_page.html b/chrome/browser/resources/ash/settings/os_people_page/os_people_page.html
+index c47a07d4f0a7d..9b3b6f6951001 100644
+--- a/chrome/browser/resources/ash/settings/os_people_page/os_people_page.html
++++ b/chrome/browser/resources/ash/settings/os_people_page/os_people_page.html
+@@ -10,6 +10,11 @@
+ 
+ <os-settings-animated-pages id="pages" section="[[section_]]">
+   <div route-path="default">
++    <!-- NickelOS: a local account is a Linux user, not a Google account. -->
++    <template is="dom-if" if="[[isNickelLocalAccount_]]">
++      <nickel-accounts-card></nickel-accounts-card>
++    </template>
++    <template is="dom-if" if="[[!isNickelLocalAccount_]]">
+     <account-manager-settings-card
+         prefs="{{prefs}}"
+         device-account="[[deviceAccount_]]">
+@@ -26,5 +31,6 @@
+     <template is="dom-if" if="[[showGraduationApp_]]">
+       <graduation-settings-card></graduation-settings-card>
+     </template>
++    </template>
+   </div>
+ </os-settings-animated-pages>
+diff --git a/chrome/browser/resources/ash/settings/os_people_page/os_people_page.ts b/chrome/browser/resources/ash/settings/os_people_page/os_people_page.ts
+index a8e43d8bb58b8..14fc4672d8635 100644
+--- a/chrome/browser/resources/ash/settings/os_people_page/os_people_page.ts
++++ b/chrome/browser/resources/ash/settings/os_people_page/os_people_page.ts
+@@ -21,6 +21,7 @@ import '../parental_controls_page/parental_controls_settings_card.js';
+ import './account_manager_settings_card.js';
+ import './additional_accounts_settings_card.js';
+ import './graduation/graduation_settings_card.js';
++import './nickel_accounts_card.js';
+ 
+ import {WebUiListenerMixin} from 'chrome://resources/ash/common/cr_elements/web_ui_listener_mixin.js';
+ import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
+@@ -92,6 +93,11 @@ export class OsSettingsPeoplePageElement extends
+         },
+       },
+ 
++      isNickelLocalAccount_: {
++        type: Boolean,
++        value: () => loadTimeData.valueExists('isNickelLocalAccount') &&
++            loadTimeData.getBoolean('isNickelLocalAccount'),
++      },
+       showGraduationApp_: {
+         type: Boolean,
+         value: () => {
+@@ -109,6 +115,7 @@ export class OsSettingsPeoplePageElement extends
+       getGraduationHandlerProvider();
+   private graduationObserverReceiver_: GraduationObserverReceiver|null = null;
+   declare private isAccountManagerEnabled_: boolean;
++  declare private isNickelLocalAccount_: boolean;
+   declare private showGraduationApp_: boolean;
+   declare private showParentalControls_: boolean;
+   declare private section_: Section;
+diff --git a/chrome/browser/ui/ash/login/login_display_host_mojo.cc b/chrome/browser/ui/ash/login/login_display_host_mojo.cc
+index 3320938cde0f0..ce1544585a7ce 100644
+--- a/chrome/browser/ui/ash/login/login_display_host_mojo.cc
++++ b/chrome/browser/ui/ash/login/login_display_host_mojo.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "chrome/browser/ui/ash/login/login_display_host_mojo.h"
+ #include "components/user_manager/nickel_local_account.h"
++#include "components/prefs/pref_service.h"
+ 
+ #include <optional>
+ #include <utility>
+@@ -543,6 +544,14 @@ void LoginDisplayHostMojo::OnStartSignInScreen() {
+ 
+   login::SecurityTokenSessionController::MaybeDisplayLoginScreenNotification(
+       local_state_.get());
++
++  // NickelOS: "Add person" in Settings signed out to add an account.
++  if (local_state_->GetBoolean(user_manager::kNickelAddPersonAtSignIn)) {
++    local_state_->ClearPref(user_manager::kNickelAddPersonAtSignIn);
++    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
++        FROM_HERE, base::BindOnce(&LoginDisplayHostMojo::ShowGaiaDialog,
++                                  weak_factory_.GetWeakPtr(), EmptyAccountId()));
++  }
+ }
+ 
+ void LoginDisplayHostMojo::ScheduleStartAuthHubInLoginMode() {
+diff --git a/chrome/browser/ui/ash/login/login_screen_client_impl.cc b/chrome/browser/ui/ash/login/login_screen_client_impl.cc
+index 4550a0d00bbc8..e883fd687bdc6 100644
+--- a/chrome/browser/ui/ash/login/login_screen_client_impl.cc
++++ b/chrome/browser/ui/ash/login/login_screen_client_impl.cc
+@@ -43,7 +43,13 @@
+ #include "chromeos/ash/experiences/settings_ui/settings_app_manager.h"
+ #include "components/session_manager/core/session.h"
+ #include "components/session_manager/core/session_manager.h"
++#include "components/user_manager/nickel_local_account.h"
+ #include "components/user_manager/user_manager.h"
++#include "base/no_destructor.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_proxy.h"
+ #include "components/user_manager/user_names.h"
+ #include "ui/base/ime/ash/input_method_manager.h"
+ 
+@@ -261,9 +267,46 @@ void LoginScreenClientImpl::OnRemoveUserWarningShown() {
+       ProfileMetrics::DELETE_PROFILE_USER_MANAGER_SHOW_WARNING);
+ }
+ 
++namespace {
++
++// NickelOS: a local account is also a Linux user (nickel-accountsd). Once
++// ChromeOS has removed one from the sign-in screen (it may refuse, e.g. the
++// device owner), the Linux user goes too. Settings > Accounts removes the
++// Linux user itself, with the administrator's password, before ChromeOS's
++// side; this only acts with no session running, the case nickel-accountsd
++// allows without a password.
++class NickelLinuxUserRemover : public user_manager::UserManager::Observer {
++ public:
++  static void Ensure() { static base::NoDestructor<NickelLinuxUserRemover> r; }
++
++  NickelLinuxUserRemover() {
++    user_manager::UserManager::Get()->AddObserver(this);
++  }
++
++  void OnUserRemoved(const AccountId& account_id,
++                     user_manager::UserRemovalReason reason) override {
++    if (!user_manager::IsNickelLocalAccount(account_id) ||
++        session_manager::SessionManager::Get()->IsSessionStarted()) {
++      return;
++    }
++    dbus::MethodCall method_call("org.nickelos.Accounts", "DeleteUser");
++    dbus::MessageWriter writer(&method_call);
++    writer.AppendString(user_manager::NickelLocalAccountUsername(account_id));
++    ash::DBusThreadManager::Get()
++        ->GetSystemBus()
++        ->GetObjectProxy("org.nickelos.Accounts",
++                         dbus::ObjectPath("/org/nickelos/Accounts"))
++        ->CallMethod(&method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++                     base::DoNothing());
++  }
++};
++
++}  // namespace
++
+ void LoginScreenClientImpl::RemoveUser(const AccountId& account_id) {
+   ProfileMetrics::LogProfileDeleteUser(
+       ProfileMetrics::DELETE_PROFILE_USER_MANAGER);
++  NickelLinuxUserRemover::Ensure();
+   user_manager::UserManager::Get()->RemoveUser(
+       account_id, user_manager::UserRemovalReason::LOCAL_USER_INITIATED);
+   if (ash::LoginDisplayHost::default_host()) {
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/people/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/people/BUILD.gn
+index 44d4567584e09..22d8f24195e87 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/people/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/people/BUILD.gn
+@@ -12,6 +12,8 @@ static_library("people") {
+     "fingerprint_handler.h",
+     "graduation_handler.cc",
+     "graduation_handler.h",
++    "nickel_accounts_handler.cc",
++    "nickel_accounts_handler.h",
+     "os_sync_handler.cc",
+     "os_sync_handler.h",
+     "parental_controls_handler.cc",
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/people/nickel_accounts_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/people/nickel_accounts_handler.cc
+new file mode 100644
+index 0000000000000..e331600241854
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/people/nickel_accounts_handler.cc
+@@ -0,0 +1,262 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/webui/ash/settings/pages/people/nickel_accounts_handler.h"
++
++#include <cstdint>
++#include <utility>
++
++#include "base/functional/bind.h"
++#include "base/memory/ref_counted_memory.h"
++#include "base/strings/strcat.h"
++#include "base/strings/utf_string_conversions.h"
++#include "chrome/browser/ash/profiles/profile_helper.h"
++#include "chrome/browser/browser_process.h"
++#include "chrome/browser/lifetime/application_lifetime.h"
++#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/ui/webui/ash/user_image/user_image_source.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
++#include "components/prefs/pref_service.h"
++#include "components/user_manager/nickel_local_account.h"
++#include "components/user_manager/user.h"
++#include "components/user_manager/user_manager.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_proxy.h"
++#include "ui/base/webui/web_ui_util.h"
++
++namespace ash::settings {
++
++namespace {
++
++constexpr char kAccountsService[] = "org.nickelos.Accounts";
++constexpr char kAccountsPath[] = "/org/nickelos/Accounts";
++constexpr char kAccountsInterface[] = "org.nickelos.Accounts";
++constexpr char kErrorPrefix[] = "org.nickelos.Accounts.Error.";
++
++dbus::ObjectProxy* AccountsProxy() {
++  return DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++      kAccountsService, dbus::ObjectPath(kAccountsPath));
++}
++
++// nickel-accountsd's error, as the page names it.
++std::string ErrorCode(dbus::ErrorResponse* error) {
++  if (!error) {
++    return "failed";
++  }
++  const std::string name = error->GetErrorName();
++  if (name == base::StrCat({kErrorPrefix, "WrongPassword"})) {
++    return "wrong-password";
++  }
++  if (name == base::StrCat({kErrorPrefix, "LastAdmin"})) {
++    return "last-admin";
++  }
++  if (name == base::StrCat({kErrorPrefix, "NotAllowed"})) {
++    return "not-allowed";
++  }
++  return "failed";
++}
++
++// An account for the page: the Linux user (name, admin) with what ChromeOS
++// knows of it (the name it shows, its picture, whether it owns the device).
++base::DictValue AccountDict(const std::string& username,
++                            const std::string& linux_name,
++                            bool admin) {
++  const AccountId account_id = user_manager::MakeNickelLocalAccountId(username);
++  auto* manager = user_manager::UserManager::Get();
++  const user_manager::User* user = manager->FindUser(account_id);
++  std::string name = linux_name.empty() ? username : linux_name;
++  std::string pic;
++  if (user) {
++    if (!user->GetDisplayName().empty()) {
++      name = base::UTF16ToUTF8(user->GetDisplayName());
++    }
++    scoped_refptr<base::RefCountedMemory> image =
++        UserImageSource::GetUserImage(account_id);
++    if (image) {
++      pic = webui::GetPngDataUrl(*image);
++    }
++  }
++  base::DictValue dict;
++  dict.Set("username", username);
++  dict.Set("name", name);
++  dict.Set("admin", admin);
++  dict.Set("owner", manager->GetOwnerAccountId() == account_id);
++  dict.Set("pic", pic);
++  return dict;
++}
++
++}  // namespace
++
++NickelAccountsHandler::NickelAccountsHandler(Profile* profile)
++    : profile_(profile) {}
++
++NickelAccountsHandler::~NickelAccountsHandler() = default;
++
++void NickelAccountsHandler::RegisterMessages() {
++  web_ui()->RegisterMessageCallback(
++      "nickelGetAccounts",
++      base::BindRepeating(&NickelAccountsHandler::HandleGetAccounts,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "nickelSetLinuxPassword",
++      base::BindRepeating(&NickelAccountsHandler::HandleSetLinuxPassword,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "nickelSetAdmin",
++      base::BindRepeating(&NickelAccountsHandler::HandleSetAdmin,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "nickelRemovePerson",
++      base::BindRepeating(&NickelAccountsHandler::HandleRemovePerson,
++                          base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "nickelAddPerson",
++      base::BindRepeating(&NickelAccountsHandler::HandleAddPerson,
++                          base::Unretained(this)));
++}
++
++void NickelAccountsHandler::OnJavascriptDisallowed() {
++  weak_ptr_factory_.InvalidateWeakPtrs();
++}
++
++std::string NickelAccountsHandler::MyUsername() const {
++  const user_manager::User* user =
++      ProfileHelper::Get()->GetUserByProfile(profile_);
++  if (!user || !user_manager::IsNickelLocalAccount(user->GetAccountId())) {
++    return std::string();
++  }
++  return user_manager::NickelLocalAccountUsername(user->GetAccountId());
++}
++
++void NickelAccountsHandler::HandleGetAccounts(const base::ListValue& args) {
++  AllowJavascript();
++  dbus::MethodCall method_call(kAccountsInterface, "ListUsers");
++  AccountsProxy()->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&NickelAccountsHandler::OnUsersListed,
++                     weak_ptr_factory_.GetWeakPtr(), args[0].GetString()));
++}
++
++void NickelAccountsHandler::OnUsersListed(const std::string& callback_id,
++                                          dbus::Response* response,
++                                          dbus::ErrorResponse* error) {
++  const std::string me = MyUsername();
++  base::DictValue result;
++  base::ListValue others;
++  result.Set("me", AccountDict(me, std::string(), false));
++  dbus::MessageReader reader(response);
++  dbus::MessageReader array(nullptr);
++  if (response && reader.PopArray(&array)) {
++    while (array.HasMoreData()) {
++      dbus::MessageReader entry(nullptr);
++      std::string name, display_name;
++      uint32_t uid = 0;
++      bool admin = false;
++      if (!array.PopStruct(&entry) || !entry.PopString(&name) ||
++          !entry.PopUint32(&uid) || !entry.PopBool(&admin) ||
++          !entry.PopString(&display_name)) {
++        break;
++      }
++      if (name == me) {
++        result.Set("me", AccountDict(name, display_name, admin));
++      } else {
++        others.Append(AccountDict(name, display_name, admin));
++      }
++    }
++  }
++  result.Set("others", std::move(others));
++  ResolveJavascriptCallback(base::Value(callback_id), result);
++}
++
++void NickelAccountsHandler::HandleSetLinuxPassword(
++    const base::ListValue& args) {
++  AllowJavascript();
++  dbus::MethodCall method_call(kAccountsInterface, "SetPassword");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(MyUsername());
++  writer.AppendString(args[1].GetString());
++  writer.AppendString(args[2].GetString());
++  AccountsProxy()->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&NickelAccountsHandler::OnDone,
++                     weak_ptr_factory_.GetWeakPtr(), args[0].GetString()));
++}
++
++void NickelAccountsHandler::HandleSetAdmin(const base::ListValue& args) {
++  AllowJavascript();
++  dbus::MethodCall method_call(kAccountsInterface, "SetAdmin");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(args[3].GetString());
++  writer.AppendString(args[1].GetString());
++  writer.AppendBool(args[2].GetBool());
++  AccountsProxy()->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&NickelAccountsHandler::OnDone,
++                     weak_ptr_factory_.GetWeakPtr(), args[0].GetString()));
++}
++
++void NickelAccountsHandler::OnDone(const std::string& callback_id,
++                                   dbus::Response* response,
++                                   dbus::ErrorResponse* error) {
++  ResolveJavascriptCallback(
++      base::Value(callback_id),
++      base::Value(response ? std::string() : ErrorCode(error)));
++}
++
++void NickelAccountsHandler::HandleRemovePerson(const base::ListValue& args) {
++  AllowJavascript();
++  const std::string callback_id = args[0].GetString();
++  const std::string username = args[1].GetString();
++  // ChromeOS keeps the device owner and the signed-in account: never take
++  // away a Linux user whose ChromeOS account stays.
++  const AccountId account_id = user_manager::MakeNickelLocalAccountId(username);
++  if (username.empty() || username == MyUsername() ||
++      user_manager::UserManager::Get()->GetOwnerAccountId() == account_id) {
++    ResolveJavascriptCallback(base::Value(callback_id),
++                              base::Value("not-allowed"));
++    return;
++  }
++  dbus::MethodCall method_call(kAccountsInterface, "RemoveUser");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(args[2].GetString());
++  writer.AppendString(username);
++  AccountsProxy()->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&NickelAccountsHandler::OnPersonRemovedFromLinux,
++                     weak_ptr_factory_.GetWeakPtr(), callback_id, username));
++}
++
++void NickelAccountsHandler::OnPersonRemovedFromLinux(
++    const std::string& callback_id,
++    const std::string& username,
++    dbus::Response* response,
++    dbus::ErrorResponse* error) {
++  if (!response) {
++    ResolveJavascriptCallback(base::Value(callback_id),
++                              base::Value(ErrorCode(error)));
++    return;
++  }
++  // Then ChromeOS's side: its list of accounts and the encrypted home.
++  const AccountId account_id = user_manager::MakeNickelLocalAccountId(username);
++  auto* manager = user_manager::UserManager::Get();
++  if (manager->FindUser(account_id)) {
++    manager->RemoveUser(account_id,
++                        user_manager::UserRemovalReason::LOCAL_USER_INITIATED);
++  }
++  ResolveJavascriptCallback(base::Value(callback_id),
++                            base::Value(std::string()));
++}
++
++void NickelAccountsHandler::HandleAddPerson(const base::ListValue& args) {
++  AllowJavascript();
++  // The sign-in screen opens account creation when it sees this
++  // (LoginDisplayHostMojo::OnStartSignInScreen).
++  g_browser_process->local_state()->SetBoolean(
++      user_manager::kNickelAddPersonAtSignIn, true);
++  ResolveJavascriptCallback(base::Value(args[0].GetString()), base::Value());
++  chrome::AttemptUserExit();
++}
++
++}  // namespace ash::settings
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/people/nickel_accounts_handler.h b/chrome/browser/ui/webui/ash/settings/pages/people/nickel_accounts_handler.h
+new file mode 100644
+index 0000000000000..fc5259420f5b1
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/people/nickel_accounts_handler.h
+@@ -0,0 +1,79 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_PEOPLE_NICKEL_ACCOUNTS_HANDLER_H_
++#define CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_PEOPLE_NICKEL_ACCOUNTS_HANDLER_H_
++
++#include <string>
++
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/values.h"
++#include "content/public/browser/web_ui_message_handler.h"
++
++class Profile;
++
++namespace dbus {
++class ErrorResponse;
++class Response;
++}  // namespace dbus
++
++namespace ash::settings {
++
++// NickelOS: Settings > Accounts for local accounts, which are Linux users
++// (nickel-accountsd, org.nickelos.Accounts). Lists the accounts on the
++// device with the signed-in one first; changes the Linux password (the
++// page changes the encrypted home's own through PasswordFactorEditor);
++// for administrators, makes others administrators or not and removes them,
++// each with the administrator's password; and "Add person", which signs out
++// to the sign-in screen's account creation.
++//
++// Messages (all answered with a promise):
++//   nickelGetAccounts() -> {me: Account, others: Account[]}
++//     Account: {username, name, admin, owner, pic}
++//   nickelSetLinuxPassword(old, new) -> error ("" when done)
++//   nickelSetAdmin(username, admin, password) -> error
++//   nickelRemovePerson(username, password) -> error
++//   nickelAddPerson() -> (signs out)
++// Errors: "wrong-password", "last-admin", "not-allowed", "failed".
++class NickelAccountsHandler : public content::WebUIMessageHandler {
++ public:
++  explicit NickelAccountsHandler(Profile* profile);
++  NickelAccountsHandler(const NickelAccountsHandler&) = delete;
++  NickelAccountsHandler& operator=(const NickelAccountsHandler&) = delete;
++  ~NickelAccountsHandler() override;
++
++  // content::WebUIMessageHandler:
++  void RegisterMessages() override;
++  void OnJavascriptDisallowed() override;
++
++ private:
++  void HandleGetAccounts(const base::ListValue& args);
++  void HandleSetLinuxPassword(const base::ListValue& args);
++  void HandleSetAdmin(const base::ListValue& args);
++  void HandleRemovePerson(const base::ListValue& args);
++  void HandleAddPerson(const base::ListValue& args);
++
++  void OnUsersListed(const std::string& callback_id,
++                     dbus::Response* response,
++                     dbus::ErrorResponse* error);
++  // Answers |callback_id| with "" or the error's name.
++  void OnDone(const std::string& callback_id,
++              dbus::Response* response,
++              dbus::ErrorResponse* error);
++  void OnPersonRemovedFromLinux(const std::string& callback_id,
++                                const std::string& username,
++                                dbus::Response* response,
++                                dbus::ErrorResponse* error);
++
++  // The signed-in account's username.
++  std::string MyUsername() const;
++
++  raw_ptr<Profile> profile_;
++  base::WeakPtrFactory<NickelAccountsHandler> weak_ptr_factory_{this};
++};
++
++}  // namespace ash::settings
++
++#endif  // CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_PEOPLE_NICKEL_ACCOUNTS_HANDLER_H_
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/people/people_section.cc b/chrome/browser/ui/webui/ash/settings/pages/people/people_section.cc
+index 52112d73ce18a..90a38bbadb5e7 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/people/people_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/people/people_section.cc
+@@ -36,6 +36,7 @@
+ #include "chrome/browser/ui/webui/ash/settings/os_settings_features_util.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/people/account_manager_ui_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/people/fingerprint_handler.h"
++#include "chrome/browser/ui/webui/ash/settings/pages/people/nickel_accounts_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/people/parental_controls_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/people/quick_unlock_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/search/search_tag_registry.h"
+@@ -52,6 +53,7 @@
+ #include "components/omnibox/common/omnibox_features.h"
+ #include "components/prefs/pref_service.h"
+ #include "components/strings/grit/components_strings.h"
++#include "components/user_manager/nickel_local_account.h"
+ #include "components/user_manager/user.h"
+ #include "components/user_manager/user_manager.h"
+ #include "content/public/browser/web_ui.h"
+@@ -563,11 +565,42 @@ void PeopleSection::AddLoadTimeData(content::WebUIDataSource* html_source) {
+       {"lockScreenFingerprintTitle",
+        IDS_SETTINGS_PEOPLE_LOCK_SCREEN_FINGERPRINT_SUBPAGE_TITLE},
+       {"manageOtherPeople", IDS_SETTINGS_PEOPLE_MANAGE_OTHER_PEOPLE},
++      {"nickelAccountsYourAccount", IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT},
++      {"nickelAccountsOwner", IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER},
++      {"nickelAccountsAdministrator", IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR},
++      {"nickelAccountsStandard", IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD},
++      {"nickelAccountsChangePassword", IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD},
++      {"nickelAccountsOtherPeople", IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE},
++      {"nickelAccountsOtherPeopleDescription", IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION},
++      {"nickelAccountsNoOtherPeople", IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE},
++      {"nickelAccountsAddPerson", IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON},
++      {"nickelAccountsAddPersonBody", IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY},
++      {"nickelAccountsSignOut", IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT},
++      {"nickelAccountsRemove", IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE},
++      {"nickelAccountsRemoveBody", IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY},
++      {"nickelAccountsAdminBody", IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY},
++      {"nickelAccountsConfirm", IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM},
++      {"nickelAccountsYourPassword", IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD},
++      {"nickelAccountsCurrentPassword", IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD},
++      {"nickelAccountsNewPassword", IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD},
++      {"nickelAccountsConfirmPassword", IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD},
++      {"nickelAccountsPasswordsDontMatch", IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH},
++      {"nickelAccountsEmptyPassword", IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD},
++      {"nickelAccountsWrongPassword", IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD},
++      {"nickelAccountsLastAdmin", IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN},
++      {"nickelAccountsFailed", IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED},
++      {"nickelAccountsRemoveTitle", IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE},
++      {"nickelAccountsMakeAdminTitle", IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE},
++      {"nickelAccountsRemoveAdminTitle", IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE},
+   };
+   html_source->AddLocalizedStrings(kLocalizedStrings);
+ 
+   user_manager::User* user = ProfileHelper::Get()->GetUserByProfile(profile());
+   DCHECK(user);
++  // NickelOS: the Accounts page manages local accounts (Linux users).
++  html_source->AddBoolean(
++      "isNickelLocalAccount",
++      user_manager::IsNickelLocalAccount(user->GetAccountId()));
+ 
+   html_source->AddString(
+       "osProfileName", l10n_util::GetStringFUTF16(IDS_OS_SETTINGS_PROFILE_NAME,
+@@ -623,6 +656,9 @@ void PeopleSection::AddHandlers(content::WebUI* web_ui) {
+ 
+   web_ui->AddMessageHandler(std::make_unique<FingerprintHandler>(profile()));
+ 
++  web_ui->AddMessageHandler(
++      std::make_unique<NickelAccountsHandler>(profile()));
++
+   if (!profile()->IsGuestSession() &&
+       ShouldShowParentalControlSettings(profile())) {
+     web_ui->AddMessageHandler(
+diff --git a/components/user_manager/nickel_local_account.h b/components/user_manager/nickel_local_account.h
+index c71040d705c2f..6469f7f6671c4 100644
+--- a/components/user_manager/nickel_local_account.h
++++ b/components/user_manager/nickel_local_account.h
+@@ -34,6 +34,11 @@ inline AccountId MakeNickelLocalAccountId(std::string_view username) {
+ }
+ 
+ // The Linux username of a local account.
++// Local State: Settings > Accounts' "Add person" signed out, and the
++// sign-in screen opens account creation (then clears it).
++inline constexpr char kNickelAddPersonAtSignIn[] =
++    "nickel.add_person_at_sign_in";
++
+ inline std::string NickelLocalAccountUsername(const AccountId& account_id) {
+   const std::string& email = account_id.GetUserEmail();
+   return email.substr(0, email.find('@'));

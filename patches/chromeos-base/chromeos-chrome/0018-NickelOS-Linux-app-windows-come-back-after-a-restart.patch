@@ -1,0 +1,356 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux app windows come back after a restart
+
+ChromeOS's full restore brings back browser windows, Chrome apps and ARC
+apps; Crostini's windows were never saved, and neither were NickelOS's
+Linux apps on the device (NOTREACHED in AppLaunchHandler). They now take
+part as Chrome apps do:
+
+- Exo asks Chrome for a new window's properties before creating it
+  (ExoAppTypeResolver). A window of a NICKEL_HOST app gets the Linux app
+  window type, a full restore window id and the app's id; the window a
+  launch opens is saved, since crostini::LaunchNickelApp records each
+  launch with full restore (as ARC and Chrome apps record theirs).
+- Ash saves the windows' bounds, state and desk (CROSTINI_APP added to
+  the supported types; other Linux windows have no window id and are
+  still not saved).
+- After a restart, full restore starts each saved app once; each window it
+  opens takes the place of the next saved one (the Chrome apps mechanism,
+  asked of the read handler directly: app_restore::FetchRestoreWindowId
+  stops five seconds into the restore, and a Linux app can take longer).
+
+- Linux apps stop with nickel-session, which upstart stops as soon as the
+  UI starts stopping; when the stop does not come from Chrome (`restart
+  ui`, `reboot` from a shell), Chrome is told only seconds later and would
+  record their windows as closed. nickel-session calls the new
+  VmApplicationsService method NickelSessionEnding first, which stops full
+  restore saving as Chrome's own session end does
+  (FullRestoreService::OnAppTerminating).
+
+Apps started from a terminal are not saved (no launch recorded), as on
+ChromeOS. Saved desks still leave Linux windows out (DeskTemplate).
+
+diff --git a/ash/wm/window_restore/window_restore_controller.cc b/ash/wm/window_restore/window_restore_controller.cc
+index a5543b233c019..af3e0b159eed1 100644
+--- a/ash/wm/window_restore/window_restore_controller.cc
++++ b/ash/wm/window_restore/window_restore_controller.cc
+@@ -67,7 +67,11 @@ constexpr ShellWindowId kAppParentContainers[19] = {
+ // FullRestoreService.
+ constexpr chromeos::AppType kSupportedAppTypes[] = {
+     chromeos::AppType::BROWSER, chromeos::AppType::CHROME_APP,
+-    chromeos::AppType::ARC_APP, chromeos::AppType::SYSTEM_APP};
++    chromeos::AppType::ARC_APP, chromeos::AppType::SYSTEM_APP,
++    // NickelOS: Linux apps on the device. Only their windows have a full
++    // restore window id (ExoAppTypeResolver); other Linux windows have none
++    // and are not saved.
++    chromeos::AppType::CROSTINI_APP};
+ 
+ // Delay for certain app types before activation is allowed. This is because
+ // some apps' client request activation after creation, which can break user
+diff --git a/chrome/browser/ash/app_restore/app_launch_handler.cc b/chrome/browser/ash/app_restore/app_launch_handler.cc
+index 16fa4e9329534..738c0bc33defa 100644
+--- a/chrome/browser/ash/app_restore/app_launch_handler.cc
++++ b/chrome/browser/ash/app_restore/app_launch_handler.cc
+@@ -24,6 +24,8 @@
+ #include "extensions/browser/extension_registry.h"
+ #include "extensions/common/extension.h"
+ #include "ui/base/window_open_disposition.h"
++#include "ui/display/types/display_constants.h"
++#include "ui/events/event_constants.h"
+ 
+ namespace ash {
+ 
+@@ -170,6 +172,8 @@ void AppLaunchHandler::LaunchApp(apps::AppType app_type,
+         LaunchSystemWebAppOrChromeApp(app_type, app_id, it->second);
+       break;
+     case apps::AppType::kNickelHost:
++      LaunchNickelHostApp(app_id, it->second);
++      break;
+     case apps::AppType::kCrostini:
+     case apps::AppType::kPluginVm:
+     case apps::AppType::kUnknown:
+@@ -182,6 +186,22 @@ void AppLaunchHandler::LaunchApp(apps::AppType app_type,
+   restore_data_->RemoveApp(app_id);
+ }
+ 
++void AppLaunchHandler::LaunchNickelHostApp(
++    const std::string& app_id,
++    const ::app_restore::RestoreData::LaunchList& launch_list) {
++  // Started once, however many of its windows were saved. Each window it
++  // then opens takes the place of the next saved one (ExoAppTypeResolver
++  // asks for it), as Chrome apps' windows do.
++  OnExtensionLaunching(app_id);
++  RecordRestoredAppLaunch(GetHistogrameAppType(apps::AppType::kNickelHost));
++  const std::optional<int64_t>& display_id =
++      launch_list.begin()->second->display_id;
++  apps::AppServiceProxyFactory::GetForProfile(profile_)->Launch(
++      app_id, ui::EF_NONE, apps::LaunchSource::kFromFullRestore,
++      std::make_unique<apps::WindowInfo>(
++          display_id.value_or(display::kInvalidDisplayId)));
++}
++
+ void AppLaunchHandler::ObserveCache(apps::AppRegistryCache* source) {
+   CHECK(source, base::NotFatalUntil::M160);
+   if (!app_registry_cache_observer_.IsObservingSource(source)) {
+diff --git a/chrome/browser/ash/app_restore/app_launch_handler.h b/chrome/browser/ash/app_restore/app_launch_handler.h
+index b4a8c9b182736..37c2f8f5cb51f 100644
+--- a/chrome/browser/ash/app_restore/app_launch_handler.h
++++ b/chrome/browser/ash/app_restore/app_launch_handler.h
+@@ -87,6 +87,11 @@ class AppLaunchHandler : public apps::AppRegistryCache::Observer {
+  private:
+   void LaunchApp(apps::AppType app_type, const std::string& app_id);
+ 
++  // NickelOS: launches a Linux app on the device for its saved windows.
++  void LaunchNickelHostApp(
++      const std::string& app_id,
++      const ::app_restore::RestoreData::LaunchList& launch_list);
++
+   virtual void LaunchSystemWebAppOrChromeApp(
+       apps::AppType app_type,
+       const std::string& app_id,
+diff --git a/chrome/browser/ash/crostini/BUILD.gn b/chrome/browser/ash/crostini/BUILD.gn
+index 4067a2a5be9e3..788313443db4e 100644
+--- a/chrome/browser/ash/crostini/BUILD.gn
++++ b/chrome/browser/ash/crostini/BUILD.gn
+@@ -136,6 +136,7 @@ static_library("crostini") {
+     "//chromeos/constants",
+     "//chromeos/dbus/permission_broker",
+     "//chromeos/ui/base",
++    "//components/app_restore",
+     "//components/component_updater",
+     "//components/component_updater/ash",
+     "//components/guest_os",
+diff --git a/chrome/browser/ash/crostini/crostini_util.cc b/chrome/browser/ash/crostini/crostini_util.cc
+index a2f54d2d48282..65ec840a2e3cf 100644
+--- a/chrome/browser/ash/crostini/crostini_util.cc
++++ b/chrome/browser/ash/crostini/crostini_util.cc
+@@ -44,7 +44,10 @@
+ #include "chromeos/ash/components/dbus/dbus_thread_manager.h"
+ #include "chromeos/ui/base/app_types.h"
+ #include "chromeos/ui/base/window_properties.h"
++#include "components/app_restore/app_launch_info.h"
++#include "components/app_restore/full_restore_utils.h"
+ #include "components/prefs/pref_service.h"
++#include "components/services/app_service/public/cpp/app_launch_util.h"
+ #include "components/user_manager/user.h"
+ #include "dbus/bus.h"
+ #include "dbus/message.h"
+@@ -52,6 +55,7 @@
+ #include "ui/aura/client/aura_constants.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/l10n/time_format.h"
++#include "ui/base/window_open_disposition.h"
+ 
+ namespace crostini {
+ namespace {
+@@ -209,6 +213,15 @@ void LaunchNickelApp(
+     }
+   }
+ 
++  // Full restore saves the window this launch opens (ExoAppTypeResolver gives
++  // it a window id under |app_id|).
++  ::full_restore::SaveAppLaunchInfo(
++      profile->GetPath(),
++      std::make_unique<app_restore::AppLaunchInfo>(
++          app_id, apps::LaunchContainer::kLaunchContainerNone,
++          WindowOpenDisposition::NEW_WINDOW, display_id,
++          std::vector<base::FilePath>(), /*intent=*/nullptr));
++
+   // nickel-appd and its apps share Chrome's mount namespace, so files are
+   // passed as their paths.
+   std::vector<std::string> launch_args;
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index 7eccd4ccd971f..aaf99967080d5 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -56,6 +56,7 @@ static_library("vm") {
+     "//chromeos/ash/components/dbus/cicerone",
+     "//chromeos/ash/components/dbus/cicerone:cicerone_proto_lib",
+     "//chromeos/ash/experiences/settings_ui",
++    "//components/app_restore",
+     "//components/prefs",
+     "//components/session_manager/core",
+     "//components/user_manager",
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index 9bba3822ce28a..92e23eab0b087 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -36,6 +36,7 @@
+ #include "chromeos/ash/components/dbus/cicerone/cicerone_service.pb.h"
+ #include "chromeos/ash/components/dbus/dbus_thread_manager.h"
+ #include "chromeos/ash/components/dbus/vm_applications/apps.pb.h"
++#include "components/app_restore/full_restore_save_handler.h"
+ #include "components/enterprise/data_controls/core/browser/component.h"
+ #include "components/prefs/pref_service.h"
+ #include "dbus/bus.h"
+@@ -129,6 +130,9 @@ void DialogListener::MultiFilesSelected(
+   delete this;
+ }
+ 
++// NickelOS: called by nickel-session as it stops (see NickelSessionEnding).
++constexpr char kNickelSessionEndingMethod[] = "NickelSessionEnding";
++
+ }  // namespace
+ 
+ VmApplicationsServiceProvider::VmApplicationsServiceProvider() = default;
+@@ -165,6 +169,13 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelSessionEndingMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelSessionEnding,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+ }
+ 
+ void VmApplicationsServiceProvider::OnExported(
+@@ -206,6 +217,21 @@ void VmApplicationsServiceProvider::UpdateApplicationList(
+   std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
+ }
+ 
++// NickelOS: nickel-session is about to stop, and every Linux app with it,
++// because the UI is stopping (sign-out, restart, shutdown; also `restart ui`
++// or `reboot` from a shell, where session_manager tells Chrome only after the
++// Linux side has stopped). Their windows closing from now on is the session
++// ending, not the user closing them: stop saving full restore data, as Chrome
++// does when it ends the session itself (FullRestoreService::OnAppTerminating),
++// so the next sign-in brings them back. The reply tells nickel-session it may
++// go on.
++void VmApplicationsServiceProvider::NickelSessionEnding(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  ::full_restore::FullRestoreSaveHandler::GetInstance()->SetShutDown();
++  std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
++}
++
+ void VmApplicationsServiceProvider::LaunchTerminal(
+     dbus::MethodCall* method_call,
+     dbus::ExportedObject::ResponseSender response_sender) {
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index 046397993d194..56191a32b5384 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -63,6 +63,9 @@ class VmApplicationsServiceProvider
+                        dbus::ExportedObject::ResponseSender response_sender);
+   void SelectFile(dbus::MethodCall* method_call,
+                   dbus::ExportedObject::ResponseSender response_sender);
++  void NickelSessionEnding(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
+ 
+   // Exposed in the header so unit tests can call it.
+   static void ParseSelectFileDialogFileTypes(
+diff --git a/chrome/browser/ui/ash/shelf/app_service/BUILD.gn b/chrome/browser/ui/ash/shelf/app_service/BUILD.gn
+index aa9703c14b073..ac60f0bd51c4c 100644
+--- a/chrome/browser/ui/ash/shelf/app_service/BUILD.gn
++++ b/chrome/browser/ui/ash/shelf/app_service/BUILD.gn
+@@ -69,6 +69,7 @@ static_library("app_service") {
+     "//components/app_restore",
+     "//components/exo",
+     "//components/favicon/content",
++    "//components/sessions:session_id",
+     "//components/user_manager",
+     "//components/webapps/common",
+     "//extensions/browser",
+diff --git a/chrome/browser/ui/ash/shelf/app_service/exo_app_type_resolver.cc b/chrome/browser/ui/ash/shelf/app_service/exo_app_type_resolver.cc
+index 99c7956c08038..d8aa09e749fd7 100644
+--- a/chrome/browser/ui/ash/shelf/app_service/exo_app_type_resolver.cc
++++ b/chrome/browser/ui/ash/shelf/app_service/exo_app_type_resolver.cc
+@@ -5,17 +5,25 @@
+ #include "chrome/browser/ui/ash/shelf/app_service/exo_app_type_resolver.h"
+ 
+ #include <optional>
++#include <string>
+ #include <string_view>
+ 
+ #include "ash/wm/window_properties.h"
++#include "chrome/browser/ash/crostini/crostini_util.h"
++#include "chrome/browser/ash/guest_os/guest_os_registry_service.h"
++#include "chrome/browser/ash/guest_os/guest_os_registry_service_factory.h"
++#include "chrome/browser/ash/guest_os/guest_os_shelf_utils.h"
++#include "chrome/browser/profiles/profile_manager.h"
+ #include "chromeos/ash/components/borealis/borealis_util.h"
+ #include "chromeos/ash/experiences/arc/arc_util.h"
+ #include "chromeos/ui/base/app_types.h"
+ #include "chromeos/ui/base/window_properties.h"
+ #include "components/app_restore/app_restore_utils.h"
++#include "components/app_restore/full_restore_read_handler.h"
+ #include "components/app_restore/window_properties.h"
+ #include "components/exo/permission.h"
+ #include "components/exo/window_properties.h"
++#include "components/sessions/core/session_id.h"
+ #include "ui/aura/client/aura_constants.h"
+ #include "ui/base/class_property.h"
+ 
+@@ -62,6 +70,56 @@ void UpdatePropertiesForArc(std::optional<int> task_id,
+   out_properties_container.SetProperty(aura::client::kSkipImeProcessing, true);
+ }
+ 
++// NickelOS: the shelf app id of the Linux app on the device (a NICKEL_HOST
++// registration) a window with these ids belongs to, or "".
++std::string GetNickelHostAppId(
++    const exo::WMHelper::AppPropertyResolver::Params& params) {
++  Profile* profile = ProfileManager::GetPrimaryUserProfile();
++  if (!crostini::IsNickelNativeAppsAllowed(profile)) {
++    return std::string();
++  }
++  auto* registry =
++      guest_os::GuestOsRegistryServiceFactory::GetForProfile(profile);
++  if (!registry) {
++    return std::string();
++  }
++  const std::string app_id = guest_os::GetGuestOsShelfAppId(
++      profile, &params.app_id, &params.startup_id);
++  std::optional<guest_os::GuestOsRegistryService::Registration> registration =
++      registry->GetRegistration(app_id);
++  if (!registration ||
++      registration->VmType() != guest_os::VmType::NICKEL_HOST) {
++    return std::string();
++  }
++  return app_id;
++}
++
++// NickelOS: Linux apps on the device take part in full restore as Chrome
++// apps do. Each of their windows gets a window id under the app's id, so the
++// window a launch opens is saved (crostini::LaunchNickelApp records the
++// launch). After a restart, full restore starts the app once
++// (ash::AppLaunchHandler) and each window it opens takes the place, size,
++// state and desk of the next saved one.
++void UpdatePropertiesForNickelHostApp(
++    const std::string& app_id,
++    ui::PropertyHandler& out_properties_container) {
++  out_properties_container.SetProperty(chromeos::kAppTypeKey,
++                                       chromeos::AppType::CROSTINI_APP);
++  out_properties_container.SetProperty(app_restore::kWindowIdKey,
++                                       SessionID::NewUnique().id());
++  out_properties_container.SetProperty(app_restore::kAppIdKey, app_id);
++  // Asked of full restore itself: app_restore::FetchRestoreWindowId stops
++  // answering five seconds into the restore, and a Linux app can take longer
++  // to open its window.
++  const int32_t restore_window_id =
++      full_restore::FullRestoreReadHandler::GetInstance()
++          ->FetchRestoreWindowId(app_id);
++  if (restore_window_id) {
++    out_properties_container.SetProperty(app_restore::kRestoreWindowIdKey,
++                                         restore_window_id);
++  }
++}
++
+ }  // namespace
+ 
+ void ExoAppTypeResolver::PopulateProperties(
+@@ -93,4 +151,11 @@ void ExoAppTypeResolver::PopulateProperties(
+                                          false);
+     return;
+   }
++
++  if (params.for_creation && !task_id.has_value() && !session_id.has_value()) {
++    const std::string app_id = GetNickelHostAppId(params);
++    if (!app_id.empty()) {
++      UpdatePropertiesForNickelHostApp(app_id, out_properties_container);
++    }
++  }
+ }

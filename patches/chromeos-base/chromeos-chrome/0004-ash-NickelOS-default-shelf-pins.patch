@@ -1,0 +1,73 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] ash: NickelOS default shelf pins
+
+Pin Files, the Terminal app and the Bazaar app store after the browser,
+instead of Google's apps (Gmail, Calendar, Meet, Play Store, YouTube,
+Photos, Mall), which are not part of NickelOS. Bazaar is a Flatpak that
+nickel-appd registers as a host app; its pin appears once it is
+installed.
+
+diff --git a/chromeos/ash/components/default_pinned_apps/default_pinned_apps.cc b/chromeos/ash/components/default_pinned_apps/default_pinned_apps.cc
+index eaf9a4f5dc451..6b57365aea5ea 100644
+--- a/chromeos/ash/components/default_pinned_apps/default_pinned_apps.cc
++++ b/chromeos/ash/components/default_pinned_apps/default_pinned_apps.cc
+@@ -15,47 +15,24 @@
+ 
+ namespace {
+ 
++// NickelOS pins, after the browser (always first): Files, the Terminal app
++// (guest_os::kTerminalSystemAppId) and the Bazaar app store, a Flatpak that
++// nickel-appd registers as host app io.github.kolunmi.Bazaar, i.e.
++// GuestOsRegistryService::GenerateAppId("io.github.kolunmi.Bazaar",
++// "nickel", "host"). A pin shows up once its app is installed. Google's apps
++// are not part of NickelOS.
++constexpr char kNickelTerminalAppId[] = "fhicihalidkgcimdmhpohldehjmcabcf";
++constexpr char kNickelBazaarAppId[] = "nhgfgbachfmhdngmjnpllbcbjneihcij";
++
+ std::vector<StaticAppId> GetDefaultPinnedApps(
+     content::BrowserContext* browser_context) {
+-  std::vector<StaticAppId> app_ids;
+-
+-#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+-  app_ids.push_back(ash::kGeminiAppId);
+-  app_ids.push_back(ash::kNotebookLmAppId);
+-#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
+-
+-  // Pin Mall after AI offerings.
+-  app_ids.push_back(ash::kMallSystemAppId);
+-
+-  app_ids.insert(app_ids.end(), {
+-                                    ash::kGmailAppId,
+-                                    ash::kGoogleCalendarAppId,
+-                                    file_manager::kFileManagerSwaAppId,
+-                                    ash::kMessagesAppId,
+-                                    ash::kGoogleMeetAppId,
+-                                    arc::kPlayStoreAppId,
+-                                    ash::kYoutubeAppId,
+-                                    arc::kGooglePhotosAppId,
+-                                });
+-
+-  return app_ids;
++  return {file_manager::kFileManagerSwaAppId, kNickelTerminalAppId,
++          kNickelBazaarAppId};
+ }
+ 
+ std::vector<StaticAppId> GetTabletFormFactorDefaultPinnedApps(
+     content::BrowserContext* browser_context) {
+-  std::vector<StaticAppId> app_ids{
+-      arc::kGmailAppId,
+-
+-      arc::kGoogleCalendarAppId,
+-
+-      arc::kPlayStoreAppId,
+-
+-      arc::kYoutubeAppId,
+-
+-      arc::kGooglePhotosAppId,
+-  };
+-
+-  return app_ids;
++  return GetDefaultPinnedApps(browser_context);
+ }
+ 
+ }  // namespace

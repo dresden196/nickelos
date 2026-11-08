@@ -1,0 +1,6 @@
+# Your USE flags: files here are yours, named as you like, and any line in
+# them wins over the OS's defaults. Those are in /etc/portage/profile/package.use
+# (Google's flags for the OS's packages, NickelOS's exceptions, and the flags
+# each of Gentoo's packages in the OS was built with), which Portage reads
+# first, as it reads a profile. Changing an OS package's flags rebuilds it
+# for you (emerge --newuse); the OS itself is never changed.

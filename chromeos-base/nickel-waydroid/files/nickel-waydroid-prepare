@@ -1,0 +1,61 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# Before Waydroid's container manager starts (waydroid-container.conf):
+#   - cgroup v2 at /sys/fs/cgroup/unified. ChromeOS mounts only cgroup v1
+#     controllers, so LXC would leave Android in the cgroup v2 root, and
+#     Android's netd attaches its eBPF socket filters there: every host
+#     process with a uid of 10000 or more (Android's app range: ChromeOS's DNS
+#     proxy is 20167) would lose the network until a reboot. With the v2
+#     hierarchy mounted (where systemd's hybrid layout puts it), LXC gives
+#     Android a branch of its own and the filters cover only Android.
+#   - LXC's rootfs mount point (LXC is built with install-state-dirs off).
+#   - Android apps each in a window of their own (multi-window mode).
+#   - On NVIDIA, Waydroid set up for waydroid-nvidia (nickel-waydroid-nvidia).
+#   - The hwcomposer's roundtrip fix in Waydroid's overlay
+#     (nickel-waydroid-hwcfix).
+# Exits 1 when Android isn't set up (`waydroid init`, from Settings through
+# nickel-waydroidd), so the job doesn't run. Waydroid's own test: its config,
+# which `waydroid init` writes first, and the rootfs directory it makes once
+# the images are in place.
+set -e
+W=/var/lib/waydroid
+[ -f "${W}/waydroid.cfg" ] && [ -d "${W}/rootfs" ] || exit 1
+mkdir -p /sys/fs/cgroup/unified
+mountpoint -q /sys/fs/cgroup/unified ||
+  mount -t cgroup2 -o nosuid,nodev,noexec cgroup2 /sys/fs/cgroup/unified
+mkdir -p /var/lib/lxc/rootfs
+
+# Two settings Waydroid keeps in its config:
+#   - Each Android app in a window of its own (Waydroid's multi-window mode),
+#     as ChromeOS's own Android apps are: set once, for every Android user.
+#   - Waydroid's overlay over Android's images, where ARM app support goes
+#     (nickel-waydroid-arm). Waydroid turns it off for good when an overlay
+#     mount fails once, as it did before NickelOS's kernel allowed them.
+python3 - "${W}/waydroid.cfg" <<'PY'
+import configparser, subprocess, sys
+cp = configparser.ConfigParser()
+cp.optionxform = str
+cp.read(sys.argv[1])
+changed = False
+if cp.get("waydroid", "mount_overlays", fallback="True") != "True":
+    cp.set("waydroid", "mount_overlays", "True")
+    changed = True
+changed_props = False
+if not cp.has_section("properties"):
+    cp.add_section("properties")
+if cp.get("properties", "persist.waydroid.multi_windows", fallback="") != "true":
+    cp.set("properties", "persist.waydroid.multi_windows", "true")
+    changed = changed_props = True
+if changed:
+    with open(sys.argv[1], "w") as f:
+        cp.write(f)
+if changed_props:
+    # Writes Android's properties out from the config.
+    subprocess.run(["waydroid", "upgrade", "-o"], check=True)
+PY
+
+/usr/libexec/nickel-waydroid/nickel-waydroid-nvidia ||
+  echo "nickel-waydroid: NVIDIA setup failed: Android stays on software rendering" >&2
+/usr/libexec/nickel-waydroid/nickel-waydroid-hwcfix ||
+  echo "nickel-waydroid: the hwcomposer fix isn't in place" >&2

@@ -1,0 +1,11 @@
+[Unit]
+Description=NickelOS source mirror (cros)
+Wants=network-online.target
+After=network-online.target
+[Service]
+Type=oneshot
+User=nickel
+Environment=HOME=/home/nickel
+ExecStart=/usr/local/bin/nickel-mirror-cros
+TimeoutStartSec=infinity
+Nice=5

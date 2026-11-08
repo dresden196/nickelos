@@ -1,0 +1,470 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: remote control for Linux apps
+
+Remote desktop apps (AnyDesk, RustDesk) control the keyboard and pointer
+through the RemoteDesktop portal, whose NickelOS backend asks Chrome:
+
+- VmApplicationsService.NickelRemoteDesktopAsk(app name): asks the user
+  "Allow remote control?" and, if allowed, answers with a token, creates
+  the system input injector (as Chrome Remote Desktop's host does) and
+  shows "<app> is controlling this device" with Stop.
+- NickelRemoteDesktopInput(token, kind, source, x, y, code, down): one
+  event: pointer moves (absolute in a shared screen's or window's pixels,
+  or relative), buttons and keys (evdev codes, keys through
+  KeycodeConverter), scrolling (pixels or wheel steps), "end". Answers
+  false once the user has stopped it.
+
+diff --git a/chrome/app/generated_resources.grd b/chrome/app/generated_resources.grd
+index f8535695034d5..d862b3a3e01f2 100644
+--- a/chrome/app/generated_resources.grd
++++ b/chrome/app/generated_resources.grd
+@@ -13756,6 +13756,15 @@ Check your passwords anytime in <ph name="GOOGLE_PASSWORD_MANAGER">$1<ex>Google
+       <message name="IDS_MEDIA_SCREEN_AND_AUDIO_CAPTURE_CONFIRMATION_TEXT" desc="Text for the prompt shown when screen and audio capturing is requrested by an app.">
+         Do you want <ph name="APP_NAME">$1<ex>html5rocks.com</ex></ph> to share your screen and audio output?
+       </message>
++      <message name="IDS_NICKEL_REMOTE_CONTROL_TITLE" desc="NickelOS: title of the question whether a Linux app (AnyDesk, RustDesk) may control the device's keyboard and pointer.">
++        Allow remote control?
++      </message>
++      <message name="IDS_NICKEL_REMOTE_CONTROL_MESSAGE" desc="NickelOS: the question whether a Linux app may control the device's keyboard and pointer.">
++        <ph name="APP_NAME">$1<ex>AnyDesk</ex></ph> wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.
++      </message>
++      <message name="IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION" desc="NickelOS: shown while a Linux app controls the device's keyboard and pointer; its Stop button ends that.">
++        <ph name="APP_NAME">$1<ex>AnyDesk</ex></ph> is controlling this device.
++      </message>
+       <message name="IDS_MEDIA_SCREEN_CAPTURE_NOTIFICATION_TEXT" desc="label used in screen capture notification UI to show the screen sharing status when the stream is consumed by the same app initiating the window picker">
+         <ph name="APP_NAME">$1<ex>html5rocks.com</ex></ph> is sharing your screen.
+       </message>
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index e655745a6afc8..71f59d8125818 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -6,6 +6,8 @@ assert(is_chromeos)
+ 
+ static_library("vm") {
+   sources = [
++    "nickel_remote_desktop.cc",
++    "nickel_remote_desktop.h",
+     "nickel_screen_cast.cc",
+     "nickel_screen_cast.h",
+     "vm_applications_service_provider.cc",
+diff --git a/chrome/browser/ash/dbus/vm/nickel_remote_desktop.cc b/chrome/browser/ash/dbus/vm/nickel_remote_desktop.cc
+new file mode 100644
+index 0000000000000..23e56ad76bd32
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_remote_desktop.cc
+@@ -0,0 +1,219 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/dbus/vm/nickel_remote_desktop.h"
++
++#include <map>
++#include <memory>
++#include <utility>
++#include <vector>
++
++#include "base/no_destructor.h"
++#include "base/strings/strcat.h"
++#include "base/strings/utf_string_conversions.h"
++#include "base/token.h"
++#include "chrome/browser/ui/screen_capture_notification_ui.h"
++#include "chrome/browser/ui/simple_message_box.h"
++#include "chrome/grit/generated_resources.h"
++#include "content/public/browser/desktop_media_id.h"
++#include "ui/aura/env.h"
++#include "ui/aura/window.h"
++#include "ui/base/l10n/l10n_util.h"
++#include "ui/display/display.h"
++#include "ui/display/screen.h"
++#include "ui/events/event_constants.h"
++#include "ui/events/keycodes/dom/keycode_converter.h"
++#include "ui/ozone/public/ozone_platform.h"
++#include "ui/ozone/public/system_input_injector.h"
++
++namespace ash {
++
++namespace {
++
++// evdev button codes (linux/input-event-codes.h).
++constexpr uint32_t kBtnLeft = 0x110;
++constexpr uint32_t kBtnRight = 0x111;
++constexpr uint32_t kBtnMiddle = 0x112;
++// One wheel step, as ui::MouseWheelEvent counts them.
++constexpr int kWheelStep = 120;
++
++struct Control {
++  std::unique_ptr<ui::SystemInputInjector> injector;
++  std::unique_ptr<ScreenCaptureNotificationUI> notification;
++};
++
++std::map<std::string, Control>& Controls() {
++  static base::NoDestructor<std::map<std::string, Control>> controls;
++  return *controls;
++}
++
++ui::SystemInputInjector* Injector(const std::string& token) {
++  auto it = Controls().find(token);
++  return it == Controls().end() ? nullptr : it->second.injector.get();
++}
++
++std::u16string DisplayName(const std::string& app_name) {
++  return app_name.empty()
++             ? l10n_util::GetStringUTF16(
++                   IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST)
++             : base::UTF8ToUTF16(app_name);
++}
++
++void OnAnswered(const std::string& app_name,
++                base::OnceCallback<void(const std::string&)> callback,
++                chrome::MessageBoxResult result) {
++  if (result != chrome::MESSAGE_BOX_RESULT_YES) {
++    std::move(callback).Run(std::string());
++    return;
++  }
++  std::unique_ptr<ui::SystemInputInjector> injector =
++      ui::OzonePlatform::GetInstance()->CreateSystemInputInjector();
++  if (!injector) {
++    std::move(callback).Run(std::string());
++    return;
++  }
++  const std::string token = base::Token::CreateRandom().ToString();
++  Control& control = Controls()[token];
++  control.injector = std::move(injector);
++  control.notification = ScreenCaptureNotificationUI::Create(
++      l10n_util::GetStringFUTF16(IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION,
++                                 DisplayName(app_name)),
++      /*capturing_web_contents=*/nullptr);
++  control.notification->OnStarted(
++      base::BindOnce(&NickelRemoteDesktop::End, token),
++      content::MediaStreamUI::SourceCallback(),
++      std::vector<content::DesktopMediaID>{});
++  std::move(callback).Run(token);
++}
++
++}  // namespace
++
++// static
++void NickelRemoteDesktop::Ask(
++    const std::string& app_name,
++    base::OnceCallback<void(const std::string& token)> callback) {
++  const std::u16string name = DisplayName(app_name);
++  chrome::ShowQuestionMessageBoxAsync(
++      /*parent=*/nullptr,
++      l10n_util::GetStringUTF16(IDS_NICKEL_REMOTE_CONTROL_TITLE),
++      l10n_util::GetStringFUTF16(IDS_NICKEL_REMOTE_CONTROL_MESSAGE, name),
++      base::BindOnce(&OnAnswered, app_name, std::move(callback)));
++}
++
++// static
++void NickelRemoteDesktop::End(const std::string& token) {
++  Controls().erase(token);
++}
++
++// static
++bool NickelRemoteDesktop::MovePointerTo(const std::string& token,
++                                        const std::string& source_id,
++                                        double x,
++                                        double y) {
++  ui::SystemInputInjector* injector = Injector(token);
++  if (!injector) {
++    return false;
++  }
++  // The injector takes physical screen coordinates: the source's origin in
++  // pixels, plus the position in it.
++  display::Display display = display::Screen::Get()->GetPrimaryDisplay();
++  gfx::PointF origin;
++  if (!source_id.empty()) {
++    const content::DesktopMediaID id =
++        content::DesktopMediaID::Parse(source_id);
++    if (aura::Window* window =
++            content::DesktopMediaID::GetNativeWindowById(id)) {
++      display = display::Screen::Get()->GetDisplayNearestWindow(window);
++      if (id.type == content::DesktopMediaID::TYPE_WINDOW) {
++        const gfx::Point window_origin = window->GetBoundsInScreen().origin();
++        origin = gfx::PointF(
++            (window_origin.x() - display.bounds().x()) *
++                display.device_scale_factor(),
++            (window_origin.y() - display.bounds().y()) *
++                display.device_scale_factor());
++      }
++    }
++  }
++  origin += gfx::Vector2dF(display.bounds().x() * display.device_scale_factor(),
++                           display.bounds().y() * display.device_scale_factor());
++  injector->MoveCursorTo(gfx::PointF(origin.x() + x, origin.y() + y));
++  return true;
++}
++
++// static
++bool NickelRemoteDesktop::MovePointerBy(const std::string& token,
++                                        double dx,
++                                        double dy) {
++  ui::SystemInputInjector* injector = Injector(token);
++  if (!injector) {
++    return false;
++  }
++  const gfx::Point at = aura::Env::GetInstance()->last_mouse_location();
++  const display::Display display =
++      display::Screen::Get()->GetDisplayNearestPoint(at);
++  const float scale = display.device_scale_factor();
++  injector->MoveCursorTo(gfx::PointF(at.x() * scale + dx, at.y() * scale + dy));
++  return true;
++}
++
++// static
++bool NickelRemoteDesktop::Button(const std::string& token,
++                                 uint32_t button,
++                                 bool down) {
++  ui::SystemInputInjector* injector = Injector(token);
++  if (!injector) {
++    return false;
++  }
++  ui::EventFlags flag = ui::EF_NONE;
++  switch (button) {
++    case kBtnLeft:
++      flag = ui::EF_LEFT_MOUSE_BUTTON;
++      break;
++    case kBtnRight:
++      flag = ui::EF_RIGHT_MOUSE_BUTTON;
++      break;
++    case kBtnMiddle:
++      flag = ui::EF_MIDDLE_MOUSE_BUTTON;
++      break;
++    default:
++      // The injector has no other buttons.
++      return true;
++  }
++  injector->InjectMouseButton(flag, down);
++  return true;
++}
++
++// static
++bool NickelRemoteDesktop::Key(const std::string& token,
++                              uint32_t keycode,
++                              bool down) {
++  ui::SystemInputInjector* injector = Injector(token);
++  if (!injector) {
++    return false;
++  }
++  const ui::DomCode code = ui::KeycodeConverter::EvdevCodeToDomCode(keycode);
++  if (code != ui::DomCode::NONE) {
++    injector->InjectKeyEvent(code, down, /*suppress_auto_repeat=*/true);
++  }
++  return true;
++}
++
++// static
++bool NickelRemoteDesktop::Scroll(const std::string& token,
++                                 double dx,
++                                 double dy,
++                                 bool discrete) {
++  ui::SystemInputInjector* injector = Injector(token);
++  if (!injector) {
++    return false;
++  }
++  // The portal's positive values scroll down/right; ui's wheel deltas are
++  // positive up/left.
++  const double unit = discrete ? kWheelStep : 1;
++  injector->InjectMouseWheel(static_cast<int>(-dx * unit),
++                             static_cast<int>(-dy * unit));
++  return true;
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_remote_desktop.h b/chrome/browser/ash/dbus/vm/nickel_remote_desktop.h
+new file mode 100644
+index 0000000000000..1d60f52405548
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_remote_desktop.h
+@@ -0,0 +1,48 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_DBUS_VM_NICKEL_REMOTE_DESKTOP_H_
++#define CHROME_BROWSER_ASH_DBUS_VM_NICKEL_REMOTE_DESKTOP_H_
++
++#include <cstdint>
++#include <string>
++
++#include "base/functional/callback.h"
++
++namespace ash {
++
++// NickelOS: remote control for Linux apps (AnyDesk, RustDesk: the
++// RemoteDesktop portal). NickelOS's portal backend calls these through
++// VmApplicationsService. Input goes in through the system input injector,
++// as for Chrome Remote Desktop's host, and only for a session the user
++// allowed; while it lasts, a notification says so and can stop it.
++class NickelRemoteDesktop {
++ public:
++  // Asks the user whether |app_name| may control the keyboard and pointer.
++  // Answers with a token for the calls below, or "" if not allowed.
++  static void Ask(const std::string& app_name,
++                  base::OnceCallback<void(const std::string& token)> callback);
++  static void End(const std::string& token);
++
++  // Each returns false once the session has ended (the user stopped it).
++  // Pointer positions are in the pixels of |source_id| (a screen or window
++  // the app shares, DesktopMediaID); "" means the primary screen.
++  static bool MovePointerTo(const std::string& token,
++                            const std::string& source_id,
++                            double x,
++                            double y);
++  static bool MovePointerBy(const std::string& token, double dx, double dy);
++  // evdev codes (BTN_LEFT, KEY_A, ...).
++  static bool Button(const std::string& token, uint32_t button, bool down);
++  static bool Key(const std::string& token, uint32_t keycode, bool down);
++  // Scroll, in pixels (|discrete|: in wheel steps), positive down/right.
++  static bool Scroll(const std::string& token,
++                     double dx,
++                     double dy,
++                     bool discrete);
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_ASH_DBUS_VM_NICKEL_REMOTE_DESKTOP_H_
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index 221a0ed3f0ca4..36999f8da014d 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -19,6 +19,7 @@
+ #include "chrome/browser/ash/borealis/borealis_service.h"
+ #include "chrome/browser/ash/crostini/crostini_features.h"
+ #include "chrome/browser/ash/crostini/crostini_util.h"
++#include "chrome/browser/ash/dbus/vm/nickel_remote_desktop.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_screen_cast.h"
+ #include "chrome/browser/ash/exo/chrome_security_delegate.h"
+ #include "chrome/browser/ash/guest_os/guest_id.h"
+@@ -140,6 +141,9 @@ constexpr char kNickelOpenPathMethod[] = "NickelOpenPath";
+ constexpr char kNickelScreenCastChooseMethod[] = "NickelScreenCastChoose";
+ constexpr char kNickelScreenCastStartMethod[] = "NickelScreenCastStart";
+ constexpr char kNickelScreenCastStopMethod[] = "NickelScreenCastStop";
++// NickelOS: called by the RemoteDesktop portal's backend (NickelRemoteDesktop).
++constexpr char kNickelRemoteDesktopAskMethod[] = "NickelRemoteDesktopAsk";
++constexpr char kNickelRemoteDesktopInputMethod[] = "NickelRemoteDesktopInput";
+ 
+ }  // namespace
+ 
+@@ -212,6 +216,22 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelRemoteDesktopAskMethod,
++      base::BindRepeating(
++          &VmApplicationsServiceProvider::NickelRemoteDesktopAsk,
++          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelRemoteDesktopInputMethod,
++      base::BindRepeating(
++          &VmApplicationsServiceProvider::NickelRemoteDesktopInput,
++          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+ }
+ 
+ void VmApplicationsServiceProvider::OnExported(
+@@ -389,6 +409,79 @@ void VmApplicationsServiceProvider::NickelScreenCastStop(
+   std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
+ }
+ 
++// NickelOS: the RemoteDesktop portal's backend asks whether an app may
++// control the keyboard and pointer; the answer is a token ("" for no).
++void VmApplicationsServiceProvider::NickelRemoteDesktopAsk(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string app_name;
++  if (!reader.PopString(&app_name)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS, "Expected the app's name"));
++    return;
++  }
++  NickelRemoteDesktop::Ask(
++      app_name,
++      base::BindOnce(
++          [](dbus::MethodCall* method_call,
++             dbus::ExportedObject::ResponseSender response_sender,
++             const std::string& token) {
++            std::unique_ptr<dbus::Response> response =
++                dbus::Response::FromMethodCall(method_call);
++            dbus::MessageWriter(response.get()).AppendString(token);
++            std::move(response_sender).Run(std::move(response));
++          },
++          method_call, std::move(response_sender)));
++}
++
++// NickelOS: one input event of an allowed session: (token, kind, source,
++// x, y, code, down), kind one of "move-to" (x, y in the source's pixels),
++// "move-by" (x, y), "button" (code, down), "key" (code, down), "scroll"
++// (x, y in pixels), "scroll-steps" (x, y in wheel steps), "end". Answers
++// false once the session has ended.
++void VmApplicationsServiceProvider::NickelRemoteDesktopInput(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string token;
++  std::string kind;
++  std::string source_id;
++  double x = 0;
++  double y = 0;
++  uint32_t code = 0;
++  bool down = false;
++  if (!reader.PopString(&token) || !reader.PopString(&kind) ||
++      !reader.PopString(&source_id) || !reader.PopDouble(&x) ||
++      !reader.PopDouble(&y) || !reader.PopUint32(&code) ||
++      !reader.PopBool(&down)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected token, kind, source, x, y, code, down"));
++    return;
++  }
++  bool ok = false;
++  if (kind == "move-to") {
++    ok = NickelRemoteDesktop::MovePointerTo(token, source_id, x, y);
++  } else if (kind == "move-by") {
++    ok = NickelRemoteDesktop::MovePointerBy(token, x, y);
++  } else if (kind == "button") {
++    ok = NickelRemoteDesktop::Button(token, code, down);
++  } else if (kind == "key") {
++    ok = NickelRemoteDesktop::Key(token, code, down);
++  } else if (kind == "scroll" || kind == "scroll-steps") {
++    ok = NickelRemoteDesktop::Scroll(token, x, y, kind == "scroll-steps");
++  } else if (kind == "end") {
++    NickelRemoteDesktop::End(token);
++  }
++  std::unique_ptr<dbus::Response> response =
++      dbus::Response::FromMethodCall(method_call);
++  dbus::MessageWriter(response.get()).AppendBool(ok);
++  std::move(response_sender).Run(std::move(response));
++}
++
+ void VmApplicationsServiceProvider::LaunchTerminal(
+     dbus::MethodCall* method_call,
+     dbus::ExportedObject::ResponseSender response_sender) {
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index 46d74948a6fd1..3e343590a16ff 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -77,6 +77,12 @@ class VmApplicationsServiceProvider
+   void NickelScreenCastStop(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelRemoteDesktopAsk(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
++  void NickelRemoteDesktopInput(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
+ 
+   // Exposed in the header so unit tests can call it.
+   static void ParseSelectFileDialogFileTypes(

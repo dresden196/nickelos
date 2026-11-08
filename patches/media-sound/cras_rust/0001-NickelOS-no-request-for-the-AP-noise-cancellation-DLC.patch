@@ -1,0 +1,40 @@
+NickelOS: CRAS doesn't ask for the AP noise cancellation's model
+
+CRAS counts AP noise cancellation as supported on every device and asks
+dlcservice for its model (nc-ap-dlc) until it's installed, retrying with
+a back-off to every two minutes, forever. The model is Google's, served
+to Chromebooks only; no NickelOS update server has it, so on NickelOS
+every try failed and left a dlc_service_failure crash report (276 tries
+in 2.5 hours in the release check of 16852.17.4). Noise cancellation
+needs the model, so nothing is lost: CRAS no longer asks for it.
+
+CRAS's Rust code (this file) is built by media-sound/cras_rust and linked
+into adhd's cras; as an adhd patch (16852.17.5) it changed nothing.
+
+diff -ruN a/cras/server/s2/src/lib.rs b/cras/server/s2/src/lib.rs
+--- a/cras/server/s2/src/lib.rs
++++ b/cras/server/s2/src/lib.rs
+@@ -281,6 +281,8 @@
+ }
+ 
+ impl Output {
++    // NickelOS: the tests' only now (compute_dlcs_to_install).
++    #[cfg_attr(not(test), allow(dead_code))]
+     fn get_ap_nc_status(&self) -> &AudioEffectStatus {
+         self.audio_effects_status
+             .get(&CRAS_NC_PROVIDER::AP)
+@@ -366,9 +368,11 @@
+         if self.input.feature_tier.sr_bt_supported {
+             out.push(SR_BT_DLC.to_string());
+         }
+-        if self.output.get_ap_nc_status().supported {
+-            out.push(NC_AP_DLC.to_string());
+-        }
++        // NickelOS: not the AP noise cancellation's model (nc-ap-dlc), which
++        // every device counts as supported: it is Google's, served to
++        // Chromebooks only, and no NickelOS update server has it. Asked for,
++        // it was retried every two minutes forever, each failure leaving a
++        // crash report (release check of 16852.17.4).
+         if let BeamformingConfig::Supported(properties) = &self.input.beamforming_config {
+             out.extend(properties.required_dlcs.iter().cloned());
+         }

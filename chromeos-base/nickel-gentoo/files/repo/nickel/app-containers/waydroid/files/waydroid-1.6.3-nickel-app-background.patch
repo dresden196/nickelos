@@ -1,0 +1,17 @@
+NickelOS: an Android app launched while Android isn't running starts the
+session in the background, so only the app's own window opens. Waydroid
+started it in the foreground: Android's whole UI came up first in a window
+of its own with no app id or title (a nameless cube on the shelf), and the
+app opened inside it.
+
+--- a/tools/actions/app_manager.py	2026-05-28 20:02:24.000000000 +0000
++++ b/tools/actions/app_manager.py	2026-10-20 00:41:20.462130540 +0000
+@@ -69,7 +69,7 @@
+         launchNow()
+     except dbus.DBusException:
+         logging.error("Starting waydroid session")
+-        tools.actions.session_manager.start(args, launchNow, background=False)
++        tools.actions.session_manager.start(args, launchNow, background=True)
+ 
+ def launch(args):
+     def justLaunch():

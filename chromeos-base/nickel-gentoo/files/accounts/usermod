@@ -1,0 +1,6 @@
+#!/bin/sh
+# NickelOS: Portage's usermod (acct-user.eclass, a user that exists already):
+# Gentoo's system users are kept as Gentoo added them; the OS's users and
+# people's are the OS's to change. Nothing to do.
+[ -n "${EBUILD_PHASE}" ] || { echo "usermod: change people in Settings > Accounts" >&2; exit 1; }
+exit 0

@@ -1,0 +1,8 @@
+# NickelOS (nickel-gentoo keeps this file; OS updates bring its changes):
+# what a package installs gets the SELinux labels its paths have in the OS's
+# policy, as the image's own files do (ChromeOS's policy is enforcing).
+# Only on the running system: a build into another root labels its own.
+post_pkg_postinst() {
+	[[ ${ROOT:-/} == / && -x /usr/sbin/nickel-gentoo ]] || return 0
+	/usr/sbin/nickel-gentoo relabel "${CATEGORY}/${PF}" || true
+}

@@ -1,0 +1,380 @@
+#!/usr/bin/python3
+# Distributed under the terms of the GNU General Public License v2
+#
+# nickel-waydroid-apk FILE.apk: opening an Android app's APK (from Files, a
+# download, another app) installs it into the user's Android, and a
+# notification says how it went. It takes the place of Waydroid's "Install
+# in Waydroid", which hands the file to Android and never hears back.
+#   - Android not set up yet: says so, with "Set up" (Settings > Apps).
+#   - An app built only for phones' ARM processors while ARM app support is
+#     off: says so, with "Turn on" (the switch is in Settings, behind its
+#     agreement; nothing is downloaded from here).
+#   - Otherwise: starts Android if it isn't running, installs the APK
+#     through nickel-waydroidd (Android's package manager, so the result is
+#     Android's own), then "<app> is installed" with Open, or why not.
+# Runs as the user, in their session (org.nickelos.AndroidInstaller.desktop).
+#
+# nickel-waydroid-apk --uninstall PACKAGE: the launcher's Uninstall for an
+# Android app the user installed (nickel-appd runs it): starts Android if it
+# isn't running and uninstalls the app through nickel-waydroidd; exits 0
+# when Android did, else says why in a notification. Waydroid's session then
+# takes the app's launcher entry away.
+import os
+import struct
+import subprocess
+import sys
+import time
+import zipfile
+
+import gi
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib
+
+W = "/var/lib/waydroid"
+# Settings > Apps, scrolled to its Android apps card (Chrome 0072).
+SETTINGS = "chrome://os-settings/apps?nickel=android"
+APPS = os.path.join(os.environ.get("XDG_DATA_HOME") or
+                    os.path.expanduser("~/.local/share"), "applications")
+X86 = {"x86", "x86_64"}
+
+# Android's package manager's failures, in words. The rest show the code.
+REASONS = [
+    ("INSTALL_FAILED_OLDER_SDK",
+     "It needs a newer version of Android than the one here."),
+    ("INSTALL_FAILED_VERSION_DOWNGRADE",
+     "A newer version of this app is already installed."),
+    ("INSTALL_FAILED_UPDATE_INCOMPATIBLE",
+     "A copy of this app signed by someone else is installed. Uninstall "
+     "that one first."),
+    ("INSTALL_FAILED_INSUFFICIENT_STORAGE", "There isn't enough free space."),
+    ("INSTALL_FAILED_MISSING_SPLIT",
+     "This is only part of an app: it comes with other APK files that "
+     "have to be installed with it."),
+    ("INSTALL_FAILED_MISSING_SHARED_LIBRARY",
+     "It needs a library that Android here doesn't have."),
+    ("INSTALL_FAILED_INVALID_APK",
+     "The file isn't a working Android app, or it's damaged."),
+    ("INSTALL_PARSE_FAILED",
+     "The file isn't a working Android app, or it's damaged."),
+]
+
+
+def set_up():
+    return os.path.isfile(W + "/waydroid.cfg") and os.path.isdir(W + "/rootfs")
+
+
+def arm_on():
+    return os.path.exists(W + "/nickel-arm")
+
+
+# --- The APK ----------------------------------------------------------------
+
+def string_pool(data, start):
+    """The strings of a binary XML string pool chunk at |start|."""
+    count, _, flags, strings_start = struct.unpack_from("<IIII", data, start + 8)
+    utf8 = flags & 0x100
+    offsets = struct.unpack_from("<%dI" % count, data, start + 28)
+    strings = []
+    for off in offsets:
+        p = start + strings_start + off
+        if utf8:
+            # UTF-16 length, then UTF-8 length, each 1 or 2 bytes.
+            for _ in range(2):
+                n = data[p]
+                p += 1
+                if n & 0x80:
+                    n = ((n & 0x7f) << 8) | data[p]
+                    p += 1
+            strings.append(data[p:p + n].decode("utf-8", "replace"))
+        else:
+            n = struct.unpack_from("<H", data, p)[0]
+            p += 2
+            if n & 0x8000:
+                n = ((n & 0x7fff) << 16) | struct.unpack_from("<H", data, p)[0]
+                p += 2
+            strings.append(data[p:p + 2 * n].decode("utf-16-le", "replace"))
+    return strings
+
+
+def manifest_package(data):
+    """The package name in a compiled AndroidManifest.xml."""
+    strings = []
+    p = struct.unpack_from("<H", data, 2)[0]  # past the file's header
+    while p + 8 <= len(data):
+        kind, header, size = struct.unpack_from("<HHI", data, p)
+        if size < 8:
+            break
+        if kind == 0x0001:
+            strings = string_pool(data, p)
+        elif kind == 0x0102:  # an element starts
+            name = struct.unpack_from("<I", data, p + header + 4)[0]
+            first, each, count = struct.unpack_from("<HHH", data, p + header + 8)
+            if strings[name] == "manifest":
+                for i in range(count):
+                    a = p + header + first + i * each
+                    attr, raw = struct.unpack_from("<4xII", data, a)
+                    if strings[attr] == "package" and raw < len(strings):
+                        return strings[raw]
+                return None
+        p += size
+    return None
+
+
+def read_apk(path):
+    """(package, ABIs of its native code); raises on a file that isn't
+    an APK."""
+    with zipfile.ZipFile(path) as z:
+        package = manifest_package(z.read("AndroidManifest.xml"))
+        abis = {n.split("/")[1] for n in z.namelist()
+                if n.startswith("lib/") and n.endswith(".so") and n.count("/") >= 2}
+    if not package:
+        raise ValueError("no package name")
+    return package, abis
+
+
+# --- Notifications ----------------------------------------------------------
+
+class Notifier:
+    def __init__(self):
+        self.bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        self.id = 0
+        self.actions = {}
+        self.loop = GLib.MainLoop()
+        # Any sender: the server's unique name is what signals carry; the
+        # notification's id tells ours apart.
+        self.bus.signal_subscribe(
+            None, "org.freedesktop.Notifications", None,
+            "/org/freedesktop/Notifications", None, Gio.DBusSignalFlags.NONE,
+            self.on_signal)
+
+    def show(self, title, body, actions=(), icon="waydroid", fresh=False):
+        """|actions|: (key, label, callback) for its buttons. |fresh|: a new
+        notification in place of the one shown so far, which pops up again
+        (ChromeOS updates a replaced one quietly, in the tray)."""
+        if fresh and self.id:
+            try:
+                self.bus.call_sync(
+                    "org.freedesktop.Notifications",
+                    "/org/freedesktop/Notifications",
+                    "org.freedesktop.Notifications", "CloseNotification",
+                    GLib.Variant("(u)", (self.id,)), None,
+                    Gio.DBusCallFlags.NONE, 5000, None)
+            except GLib.Error:
+                pass
+            self.id = 0
+        self.actions = {key: fn for key, _, fn in actions}
+        flat = [x for key, label, _ in actions for x in (key, label)]
+        try:
+            self.id = self.bus.call_sync(
+                "org.freedesktop.Notifications", "/org/freedesktop/Notifications",
+                "org.freedesktop.Notifications", "Notify",
+                GLib.Variant("(susssasa{sv}i)", ("Android", self.id, icon, title,
+                                                 body, flat, {}, 0)),
+                GLib.VariantType("(u)"), Gio.DBusCallFlags.NONE, 5000,
+                None).unpack()[0]
+        except GLib.Error as e:
+            print("nickel-waydroid-apk: %s: %s" % (title, e.message),
+                  file=sys.stderr)
+
+    def on_signal(self, bus, sender, path, interface, signal, params):
+        args = params.unpack()
+        if args[0] != self.id:
+            return
+        if signal == "ActionInvoked" and args[1] in self.actions:
+            self.actions[args[1]]()
+            self.loop.quit()
+        elif signal == "NotificationClosed":
+            self.loop.quit()
+
+    def wait(self):
+        """Until a button is pressed or the notification closed: at most
+        an hour, then the buttons stop working."""
+        if self.actions:
+            GLib.timeout_add_seconds(3600, self.loop.quit)
+            self.loop.run()
+
+
+def open_settings():
+    try:
+        Gio.bus_get_sync(Gio.BusType.SYSTEM, None).call_sync(
+            "org.chromium.UrlHandlerService", "/org/chromium/UrlHandlerService",
+            "org.chromium.UrlHandlerServiceInterface", "OpenUrl",
+            GLib.Variant("(s)", (SETTINGS,)), None, Gio.DBusCallFlags.NONE,
+            5000, None)
+    except GLib.Error as e:
+        print("nickel-waydroid-apk: can't open Settings: " + e.message,
+              file=sys.stderr)
+
+
+# --- Android ----------------------------------------------------------------
+
+def session_running():
+    try:
+        return Gio.bus_get_sync(Gio.BusType.SESSION, None).call_sync(
+            "org.freedesktop.DBus", "/org/freedesktop/DBus",
+            "org.freedesktop.DBus", "NameHasOwner",
+            GLib.Variant("(s)", ("id.waydro.Session",)), GLib.VariantType("(b)"),
+            Gio.DBusCallFlags.NONE, 5000, None).unpack()[0]
+    except GLib.Error:
+        return False
+
+
+def start_session():
+    """Waydroid's session, as launching an Android app starts it; it lives
+    on after this."""
+    subprocess.Popen(["waydroid", "session", "start"], stdin=subprocess.DEVNULL,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     start_new_session=True)
+
+
+def install(path):
+    """Android's answer for |path|: "Success" or "Failure [...]"."""
+    fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC)
+    try:
+        fds = Gio.UnixFDList.new()
+        index = fds.append(fd)
+        reply, _ = Gio.bus_get_sync(Gio.BusType.SYSTEM, None).call_with_unix_fd_list_sync(
+            "org.nickelos.Android", "/org/nickelos/Android",
+            "org.nickelos.Android", "InstallPackage",
+            GLib.Variant("(h)", (index,)), GLib.VariantType("(s)"),
+            Gio.DBusCallFlags.NONE, 30 * 60 * 1000, fds, None)
+        return reply.unpack()[0]
+    finally:
+        os.close(fd)
+
+
+def desktop_entry(package, wait):
+    """Waydroid's launcher entry for |package| (Name, Icon), written once
+    Android reports the app; None if it has none (no launcher activity)."""
+    path = os.path.join(APPS, "waydroid.%s.desktop" % package)
+    deadline = time.monotonic() + wait
+    while True:
+        kf = GLib.KeyFile()
+        try:
+            kf.load_from_file(path, GLib.KeyFileFlags.NONE)
+            return (kf.get_string("Desktop Entry", "Name"),
+                    kf.get_string("Desktop Entry", "Icon"))
+        except GLib.Error:
+            if time.monotonic() > deadline:
+                return None
+            time.sleep(0.5)
+
+
+def uninstall(package):
+    if not session_running():
+        start_session()
+    try:
+        result = Gio.bus_get_sync(Gio.BusType.SYSTEM, None).call_sync(
+            "org.nickelos.Android", "/org/nickelos/Android",
+            "org.nickelos.Android", "UninstallPackage",
+            GLib.Variant("(s)", (package,)), GLib.VariantType("(s)"),
+            Gio.DBusCallFlags.NONE, 10 * 60 * 1000, None).unpack()[0]
+    except GLib.Error as e:
+        Gio.DBusError.strip_remote_error(e)
+        result = "Failure [%s]" % e.message
+    if result.startswith("Success"):
+        return 0
+    entry = desktop_entry(package, 0)
+    Notifier().show("Couldn't uninstall %s" % (entry[0] if entry else package),
+                    "Android said: %s" % result.replace("Failure ", "", 1),
+                    icon=entry[1] if entry else "waydroid")
+    return 1
+
+
+def launch(package):
+    subprocess.Popen(["waydroid", "app", "launch", package],
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "--uninstall":
+        sys.exit(uninstall(sys.argv[2]))
+    if len(sys.argv) != 2:
+        sys.exit("usage: nickel-waydroid-apk FILE.apk | --uninstall PACKAGE")
+    path = sys.argv[1]
+    if path.startswith("file://"):
+        path = GLib.filename_from_uri(path)[0]
+    name = os.path.basename(path)
+    n = Notifier()
+
+    if not set_up():
+        n.show("Set up Android apps to install %s" % name,
+               "Android apps aren't set up on this device yet. Set them up in "
+               "Settings, then open the file again.",
+               [("settings", "Set up", open_settings)])
+        n.wait()
+        return
+
+    try:
+        package, abis = read_apk(path)
+    except OSError as e:
+        n.show("Couldn't install %s" % name,
+               "The file can't be read: %s." % (e.strerror or e))
+        return
+    except Exception:
+        n.show("Couldn't install %s" % name,
+               "The file isn't a working Android app, or it's damaged.")
+        return
+
+    if abis and not abis & X86 and not arm_on():
+        n.show("%s needs ARM app support" % name,
+               "This app is built only for the ARM processors phones use. To "
+               "install it, turn on ARM app support in Settings.",
+               [("settings", "Turn on", open_settings)])
+        n.wait()
+        return
+
+    before = desktop_entry(package, 0)
+    starting = not session_running()
+    n.show("Installing %s" % name,
+           "Starting Android..." if starting else "This can take a minute.")
+    if starting:
+        start_session()
+    try:
+        result = install(path)
+    except GLib.Error as e:
+        error = Gio.DBusError.get_remote_error(e) or ""
+        Gio.DBusError.strip_remote_error(e)
+        n.show("Couldn't install %s" % name,
+               "Android didn't start." if error.endswith(".NotRunning")
+               else "Something went wrong: %s" % e.message, fresh=True)
+        return
+
+    if result.startswith("Success"):
+        # Waydroid writes the app's launcher entry once Android tells it.
+        entry = desktop_entry(package, 0 if before else 15)
+        if entry:
+            label, icon = entry[0], entry[1]
+            n.show("%s is %s" % (label, "updated" if before else "installed"),
+                   "Find it in the launcher.",
+                   [("open", "Open", lambda: launch(package))], icon=icon,
+                   fresh=True)
+            n.wait()
+        else:
+            n.show("%s is installed" % package,
+                   "It has no window of its own to open.", fresh=True)
+        return
+
+    reason = None
+    if "INSTALL_FAILED_NO_MATCHING_ABIS" in result:
+        if arm_on():
+            reason = ("It's built for a processor Android here can't run (%s)."
+                      % ", ".join(sorted(abis)) if abis else None)
+        else:
+            n.show("%s needs ARM app support" % name,
+                   "This app is built only for the ARM processors phones use. "
+                   "To install it, turn on ARM app support in Settings.",
+                   [("settings", "Turn on", open_settings)], fresh=True)
+            n.wait()
+            return
+    for code, words in REASONS:
+        if not reason and code in result:
+            reason = words
+    n.show("Couldn't install %s" % name,
+           reason or "Android said: %s" % result.replace("Failure ", "", 1),
+           fresh=True)
+
+
+if __name__ == "__main__":
+    main()

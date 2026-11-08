@@ -1,0 +1,100 @@
+--- a/meson.build
++++ b/meson.build
+@@ -92,8 +92,10 @@
+   '-Wno-unused-parameter',
+ 
+   # These should be kept in sync with GTK and libadwaita
+-  '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_80',
+-  '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_80',
++  # NickelOS: GLib 2.76, and src/valent-glib-compat.h for the few newer
++  # functions Valent uses.
++  '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_76',
++  '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_76',
+ 
+   # These are optional, but have minimum requirements if present
+   '-DGDK_VERSION_MIN_REQUIRED=GDK_VERSION_4_14',
+--- a/src/libvalent/messages/valent-messages-adapter.c
++++ b/src/libvalent/messages/valent-messages-adapter.c
+@@ -6,6 +6,7 @@
+ #include "config.h"
+ 
+ #include <gio/gio.h>
++#include "../../valent-glib-compat.h"
+ #include <libvalent-core.h>
+ #include <libtracker-sparql/tracker-sparql.h>
+ 
+--- a/src/plugins/gnome/valent-contact-page.c
++++ b/src/plugins/gnome/valent-contact-page.c
+@@ -8,6 +8,7 @@
+ #include <adwaita.h>
+ #include <glib/gi18n.h>
+ #include <gtk/gtk.h>
++#include "../../valent-glib-compat.h"
+ #include <libebook-contacts/libebook-contacts.h>
+ #include <valent.h>
+ 
+--- a/src/plugins/gnome/valent-ui-utils.c
++++ b/src/plugins/gnome/valent-ui-utils.c
+@@ -6,6 +6,7 @@
+ #include "config.h"
+ 
+ #include <gio/gio.h>
++#include "../../valent-glib-compat.h"
+ #include <libebook-contacts/libebook-contacts.h>
+ #include <libtracker-sparql/tracker-sparql.h>
+ 
+--- a/src/plugins/sms/valent-sms-device.c
++++ b/src/plugins/sms/valent-sms-device.c
+@@ -8,6 +8,7 @@
+ #include <inttypes.h>
+ 
+ #include <gio/gio.h>
++#include "../../valent-glib-compat.h"
+ #include <libtracker-sparql/tracker-sparql.h>
+ #include <valent.h>
+ 
+--- a/src/valent-glib-compat.h
++++ b/src/valent-glib-compat.h
+@@ -0,0 +1,42 @@
++// SPDX-License-Identifier: GPL-3.0-or-later
++// SPDX-FileCopyrightText: 2026 NickelOS Authors
++
++/* NickelOS: GLib 2.80's functions that Valent uses, for GLib 2.76.
++ */
++
++#pragma once
++
++#include <glib.h>
++
++#if !GLIB_CHECK_VERSION (2, 80, 0)
++static inline GDateTime *
++valent_compat_date_time_new_from_unix_local_usec (gint64 usecs)
++{
++  g_autoptr (GDateTime) seconds = NULL;
++
++  seconds = g_date_time_new_from_unix_local (usecs / G_USEC_PER_SEC);
++  if (seconds == NULL)
++    return NULL;
++
++  return g_date_time_add (seconds, usecs % G_USEC_PER_SEC);
++}
++#define g_date_time_new_from_unix_local_usec \
++  valent_compat_date_time_new_from_unix_local_usec
++
++static inline gint64
++valent_compat_date_time_to_unix_usec (GDateTime *datetime)
++{
++  return g_date_time_to_unix (datetime) * G_USEC_PER_SEC +
++         g_date_time_get_microsecond (datetime);
++}
++#define g_date_time_to_unix_usec valent_compat_date_time_to_unix_usec
++
++static inline void
++valent_compat_strv_builder_take (GStrvBuilder *builder,
++                                 char         *value)
++{
++  g_strv_builder_add (builder, value);
++  g_free (value);
++}
++#define g_strv_builder_take valent_compat_strv_builder_take
++#endif

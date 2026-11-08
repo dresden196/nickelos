@@ -1,0 +1,24 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] shill: ignore Waydroid's bridge, as ARC's
+
+NickelOS runs Android in Waydroid, which puts Android on a bridge of its
+own, waydroid0, with its own DHCP and DNS (dnsmasq) and NAT. shill took
+the bridge for a new network device; dns-proxy then failed on it ("Device
+/device/waydroid0 ... NetworkConfig is not ...") and the device's DNS
+stayed broken until a reboot. ARC's bridges (arc_*) and veth pairs are
+already left to their owners by name; add Waydroid's.
+
+---
+--- a/shill/device_info.cc
++++ b/shill/device_info.cc
+@@ -152,6 +152,10 @@
+     // for now.
+     "arc_",
+     "veth",
++    // NickelOS: Waydroid's bridge (waydroid0) is Android's private network,
++    // as ARC's are. Managed as a network of its own, it took the DNS proxy
++    // down with it.
++    "waydroid",
+ };
+ 
+ // As of Linux v5.4, these "kinds" are not part of a UAPI header definition, so

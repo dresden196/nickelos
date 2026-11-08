@@ -1,0 +1,190 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# Prepares the signed-in user's session for native Linux apps: the runtime
+# directory (XDG_RUNTIME_DIR), a link to the Wayland socket of Chrome's
+# built-in compositor (Exo), and the environment that apps and login shells
+# start with. Run as root by the nickel-session job when a session starts.
+#
+# The environment file lives in a root-owned directory, never inside the
+# user-writable runtime directory, so root never writes through a path the
+# user controls.
+set -e
+
+# Chrome serves Wayland at this socket and runs as the session user: a local
+# account's Linux user (CHROMEOS_USER <name>@nickel.localhost, from the
+# start-user-session event), chronos for any other session (guest). For a
+# local account Chrome is still restarting as that user at this point.
+sock=/run/chrome/wayland-0
+user=chronos
+case "${CHROMEOS_USER:-}" in
+*@nickel.localhost) user=${CHROMEOS_USER%@nickel.localhost} ;;
+esac
+uid=$(id -u "${user}")
+if [ "${user}" != chronos ] && { [ "${uid}" -lt 5000 ] || [ "${uid}" -gt 5999 ]; }; then
+  echo "nickel-session: ${user} is not a local account" >&2
+  exit 1
+fi
+gid=$(id -g "${user}")
+home=$(awk -F: -v u="${user}" '$1 == u { print $6 }' /etc/passwd)
+rt="/run/user/${uid}"
+
+install -d -m 0755 -o root -g root /run/user /run/nickel /run/nickel/session
+# Start clean. A previous session can leave mounts behind (the Flatpak
+# document portal's FUSE mount at ${rt}/doc if the portal died).
+# /run/user is root-owned, so the user cannot swap ${rt} for a symlink.
+awk -v rt="${rt}/" 'index($2, rt) == 1 { print $2 }' /proc/self/mounts |
+  sort -r | while read -r m; do umount -l "${m}" || true; done
+rm -rf "${rt}" 2>/dev/null || true
+install -d -m 0700 -o "${uid}" -g "${gid}" "${rt}"
+# elogind mounts a tmpfs at /run/user/UID for a user's first session unless
+# something is mounted there already; that would hide what is set up here
+# (and, for guest, it would not reach Chrome's mount namespace).
+mountpoint -q "${rt}" || mount --bind "${rt}" "${rt}"
+ln -sfn "${sock}" "${rt}/wayland-0"
+chown -h "${uid}:${gid}" "${rt}/wayland-0"
+
+# The session's apps run in Chrome's mount namespace, where the user's home
+# is mounted: session_manager's namespace for guest sessions (cryptohome
+# mounts the guest home there), the root namespace for a local account's
+# session (this build isolates only guest sessions).
+mntns=
+chrome_ns=/run/namespaces/mnt_chrome
+if [ -e "${chrome_ns}" ] &&
+   nsenter --mount="${chrome_ns}" -- mountpoint -q /home/chronos/user; then
+  mntns=${chrome_ns}
+fi
+
+in_mntns() {
+  if [ -n "${mntns}" ]; then
+    nsenter --mount="${mntns}" -- "$@"
+  else
+    "$@"
+  fi
+}
+
+# One home: the user's My files (the Files app's root, in their encrypted
+# vault) is their Linux home, so Files, the terminal and every app's file
+# dialog show the same folders. A local account's home is /home/<name>
+# (nickel-accountsd): My files is bind-mounted there for the session, and
+# nickel-session-cleanup unmounts it before cryptohome unmounts the vault.
+# The vault's top, Chrome's profile directory, stays out of it. A guest has
+# no home of its own: it gets My files at its path in Chrome's namespace.
+my_files=/home/chronos/user/MyFiles
+if [ "${user}" = chronos ]; then
+  home=${my_files}
+elif [ "${home}" != "/home/${user}" ]; then
+  echo "nickel-session: ${user}'s home is ${home}, not /home/${user}" >&2
+elif ! in_mntns sh -c '[ -d "$1" ] && [ ! -L "$1" ] && [ "$(stat -c %u "$1")" = "$2" ]' \
+       - "${my_files}" "${uid}"; then
+  # My files belongs to the user (Chrome runs as them): mount the vault's own
+  # directory, never where a link there would lead.
+  echo "nickel-session: ${my_files} is not ${user}'s My files" >&2
+  home=/home/chronos/user
+else
+  # A previous session's mount, if its cleanup did not run; only then is the
+  # mount point itself made root's.
+  while in_mntns mountpoint -q "${home}"; do
+    in_mntns umount -l "${home}"
+  done
+  in_mntns install -d -m 0755 -o root -g root "${home}"
+  in_mntns mount --bind "${my_files}" "${home}"
+fi
+
+# Linux apps make FIFOs in their home: Steam's steam.pipe (a second
+# `steam`, as a steam:// link starts, hands its arguments to the running
+# client through it), mkfifo in scripts. ChromiumOS blocks FIFOs on the
+# whole stateful partition, users' vaults included (chromeos_startup), and
+# then seals its LSM's policies (securityfs read-only). The user's home, My
+# files, gets an exception for the session, written as chromeos_startup
+# writes its own (the path alone, no newline) with securityfs writable for
+# that moment; the vault's top, Chrome's profile, stays blocked. The policy
+# is an fsnotify mark, dropped when the vault unmounts.
+# (Not when home fell back to the vault's top, above.)
+[ "${home}" = /home/chronos/user ] || in_mntns sh -c '
+  f=/sys/kernel/security/chromiumos/inode_security_policies/allow_fifo
+  [ -e "${f}" ] || exit 0
+  mount -o remount,rw /sys/kernel/security || exit 0
+  printf %s "$1" > "${f}" || echo "nickel-session: no FIFO exception for $1" >&2
+  mount -o remount,ro /sys/kernel/security' - "${home}" || true
+
+# ChromeOS mounts are private, so a mount made after a Flatpak sandbox starts
+# never reaches it. Flatpak system installs from a sandboxed store (Bazaar)
+# mount a FUSE filesystem under /var/tmp mid-install and use it from inside
+# the sandbox, so /var/tmp has to propagate, as it does on systemd systems.
+# In the namespace where the session's apps run.
+in_mntns sh -c 'mountpoint -q /var/tmp || mount --bind /var/tmp /var/tmp; mount --make-shared /var/tmp'
+
+# X11: the session's Xwayland (nickel-x11) serves display :0. A display a
+# previous session left behind (its lock and socket in /tmp) would make
+# Xwayland pick another number, so clear them; /tmp/.X11-unix is root's and
+# sticky, as X expects.
+install -d -m 1777 -o root -g root /tmp/.X11-unix
+rm -f /tmp/.X0-lock /tmp/.X11-unix/X0
+
+# Register the session with elogind (nickel-logind-session), so polkit and
+# the like know the active user; its programs join it (nickel-session-exec).
+rm -f /run/nickel/session/logind
+initctl start nickel-logind-session NICKEL_SESSION_USER="${user}" || true
+sid=$(sed -n 1p /run/nickel/session/logind 2>/dev/null)
+
+env=/run/nickel/session/env
+# GTK_USE_PORTAL (GTK 3, Electron) and GDK_DEBUG=portals (GTK 4): native
+# apps use the desktop portals as Flatpak apps do, for ChromeOS's file picker
+# and its dark/light mode (xdg-desktop-portal-nickel). Input methods: GTK on
+# Wayland gets gtk-im-module=wayland from the settings portal and on X11
+# Gtk/IMModule=xim from XSETTINGS (nickel-xim), not GTK_IM_MODULE, which
+# would hold on both and crash GTK 3 on X11; Qt needs nothing on Wayland
+# (text-input). XMODIFIERS=@im=nickel: X11 apps' XIM server, nickel-xim,
+# which hands them ChromeOS's input methods. The file is passed to
+# env(1) line by line: no comments in it. PATH is Gentoo's (one /usr/bin,
+# the OS's and your layer's: docs/unified.md); /usr/local (test images'
+# tools) last.
+# __EGL_VENDOR_LIBRARY_FILENAMES: native apps draw with Gentoo's Mesa, the
+# OS's one Mesa (vision decision 5), as Chrome does. Flatpak drops the
+# variable: its apps keep their runtime's. With NVIDIA's driver (nvidia-open
+# drives the GPU: no Mesa driver can), NVIDIA's EGL comes first.
+egl_vendors=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+if [ -d /proc/driver/nvidia ] && [ -e /usr/share/glvnd/egl_vendor.d/10_nvidia.json ]; then
+  egl_vendors=/usr/share/glvnd/egl_vendor.d/10_nvidia.json:${egl_vendors}
+fi
+# The account's language, as Chrome has it (nickel-session-locale): LANG
+# and LANGUAGE, the locale made the first time it's needed.
+lang_env=$(in_mntns cat /home/chronos/user/Preferences 2>/dev/null |
+  /usr/libexec/nickel-session/nickel-session-locale) || lang_env=
+case "${lang_env}" in
+LANG=*) ;;
+*) lang_env=LANG=en_US.UTF-8 ;;
+esac
+cat > "${env}.new" <<EOF
+NICKEL_SESSION_USER=${user}
+NICKEL_SESSION_MNTNS=${mntns}
+HOME=${home}
+USER=${user}
+LOGNAME=${user}
+SHELL=/bin/bash
+PATH=${home}/.local/bin:/usr/bin:/usr/sbin:/bin:/sbin:/usr/local/bin:/usr/local/sbin
+${lang_env}
+XDG_RUNTIME_DIR=${rt}
+XDG_SESSION_TYPE=wayland
+XDG_CURRENT_DESKTOP=NickelOS
+WAYLAND_DISPLAY=wayland-0
+DISPLAY=:0
+XAUTHORITY=${rt}/Xauthority
+XDG_SESSION_ID=${sid}
+XDG_SEAT=seat0
+DBUS_SESSION_BUS_ADDRESS=unix:path=${rt}/bus
+XDG_DATA_DIRS=${home}/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/share/nickel:/usr/share:/usr/local/share
+GTK_USE_PORTAL=1
+GDK_DEBUG=portals
+XMODIFIERS=@im=nickel
+__EGL_VENDOR_LIBRARY_FILENAMES=${egl_vendors}
+EOF
+chmod 0644 "${env}.new"
+mv -f "${env}.new" "${env}"
+
+# Linux apps' files from before one home move into it, once.
+if [ "${home}" = "/home/${user}" ]; then
+  /usr/sbin/nickel-session-exec /usr/libexec/nickel-session/nickel-home-move ||
+    echo "nickel-session: moving ${user}'s files home failed" >&2
+fi

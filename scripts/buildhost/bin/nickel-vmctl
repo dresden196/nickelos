@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""Drive a nickel-vmtest guest over QMP: screenshots, mouse clicks, typing.
+
+  nickel-vmctl shot OUT.png        screendump -> PNG
+  nickel-vmctl click X Y           left click at screen pixel X,Y (usb-tablet abs coords)
+  nickel-vmctl dclick X Y          double click there (a pen's double tap)
+  nickel-vmctl rclick X Y          right click there (context menus; NOT on
+                                   the desktop: ChromeOS takes the tablet for
+                                   a pen, whose right button does nothing)
+  nickel-vmctl hold X Y [SECONDS]  long press there (1.2 s): a pen's context menu
+  nickel-vmctl move X Y            move the pointer there, no click
+  nickel-vmctl drag X1 Y1 X2 Y2 [HOLD]
+                                   press at X1,Y1 (hold HOLD s, default 0.5),
+                                   move to X2,Y2 in steps, release
+  nickel-vmctl mdrag X1 Y1 X2 Y2 [SHOT.png]
+                                   a MOUSE drag (the USB mouse, not the pen):
+                                   press at X1,Y1, move to X2,Y2, screenshot
+                                   while still held if SHOT is given, release.
+                                   Placed by relative motion from the top
+                                   left corner: accurate near it only (a few
+                                   px at 100 px, a cell off at 600 px)
+  nickel-vmctl type 'text'         type ASCII text
+  nickel-vmctl key ret|tab|esc...  press a key (QEMU qcode); combos like ctrl-alt-t
+  nickel-vmctl link on|off         plug or unplug the network cable (ssh needs it)
+  nickel-vmctl usb add FILE        plug in a USB stick backed by a raw image file
+  nickel-vmctl usb del             unplug it
+  nickel-vmctl reset               hard reset (power cycle without power-off)
+
+The VM is chosen by NICKEL_VMTEST_DIR (default /srv/nickel/vmtest), whose
+qmp.sock nickel-vmtest creates. Click coordinates are in pixels of the current
+screen mode; the size is read from a fresh screendump.
+"""
+import json, os, re, socket, subprocess, sys, time
+
+D = os.environ.get("NICKEL_VMTEST_DIR", "/srv/nickel/vmtest")
+
+
+class QMP:
+    def __init__(self, path):
+        self.s = socket.socket(socket.AF_UNIX)
+        self.s.connect(path)
+        self.f = self.s.makefile("rw")
+        self.f.readline()  # greeting
+        self.cmd("qmp_capabilities")
+
+    def cmd(self, command, **args):
+        self.f.write(json.dumps({"execute": command, "arguments": args}) + "\n")
+        self.f.flush()
+        while True:
+            r = json.loads(self.f.readline())
+            if "return" in r:
+                return r["return"]
+            if "error" in r:
+                raise RuntimeError(r["error"])
+            # anything else is an async event; skip it
+
+
+def screendump(q, ppm):
+    if os.path.exists(ppm):
+        os.unlink(ppm)
+    q.cmd("screendump", filename=ppm)
+    for _ in range(50):
+        if os.path.exists(ppm) and os.path.getsize(ppm) > 0:
+            break
+        time.sleep(0.1)
+    with open(ppm, "rb") as f:
+        f.readline()
+        w, h = map(int, f.readline().split())
+    return w, h
+
+
+SHIFTED = {'!': '1', '@': '2', '#': '3', '$': '4', '%': '5', '^': '6', '&': '7',
+           '*': '8', '(': '9', ')': '0', '_': 'minus', '+': 'equal', '{': 'bracket_left',
+           '}': 'bracket_right', '|': 'backslash', ':': 'semicolon', '"': 'apostrophe',
+           '<': 'comma', '>': 'dot', '?': 'slash', '~': 'grave_accent'}
+PLAIN = {' ': 'spc', '-': 'minus', '=': 'equal', '[': 'bracket_left', ']': 'bracket_right',
+         '\\': 'backslash', ';': 'semicolon', "'": 'apostrophe', ',': 'comma', '.': 'dot',
+         '/': 'slash', '`': 'grave_accent', '\n': 'ret', '\t': 'tab'}
+
+
+def keys_for(ch):
+    if ch.isalpha():
+        return (['shift'] if ch.isupper() else []) + [ch.lower()]
+    if ch.isdigit():
+        return [ch]
+    if ch in PLAIN:
+        return [PLAIN[ch]]
+    if ch in SHIFTED:
+        return ['shift', SHIFTED[ch]]
+    raise SystemExit(f"cannot type {ch!r}")
+
+
+def use_pointer(q, kind):
+    # The VM has a USB tablet (a pen to ChromeOS) and a USB mouse; QEMU sends
+    # button presses to the active one, so choose it: "Tablet" (every op but
+    # mdrag) or "Mouse".
+    mice = q.cmd("human-monitor-command", **{"command-line": "info mice"})
+    for line in mice.splitlines():
+        m = re.match(r"\s*\*?\s*Mouse #(\d+): (.*)", line)
+        if m and kind in m.group(2):
+            q.cmd("human-monitor-command",
+                  **{"command-line": f"mouse_set {m.group(1)}"})
+            return
+
+
+def send_key(q, names):
+    q.cmd("send-key", keys=[{"type": "qcode", "data": n} for n in names])
+
+
+def main():
+    if len(sys.argv) < 2:
+        raise SystemExit(__doc__)
+    q = QMP(os.path.join(D, "qmp.sock"))
+    op = sys.argv[1]
+    use_pointer(q, "Mouse" if op == "mdrag" else "Tablet")
+    if op == "shot":
+        out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(D, "screen.png")
+        ppm = os.path.join(D, "screen.ppm")
+        screendump(q, ppm)
+        with open(out, "wb") as f:
+            subprocess.run(["pnmtopng", ppm], stdout=f, stderr=subprocess.DEVNULL, check=True)
+        print(out)
+    elif op in ("click", "rclick", "dclick", "move"):
+        x, y = int(sys.argv[2]), int(sys.argv[3])
+        w, h = screendump(q, os.path.join(D, "screen.ppm"))
+        ax, ay = x * 32767 // (w - 1), y * 32767 // (h - 1)
+        mv = [{"type": "abs", "data": {"axis": "x", "value": ax}},
+              {"type": "abs", "data": {"axis": "y", "value": ay}}]
+        q.cmd("input-send-event", events=mv)
+        time.sleep(0.15)
+        button = "right" if op == "rclick" else "left"
+        # dclick: a double click (a double tap: the tablet is a pen).
+        presses = {"move": 0, "dclick": 2}.get(op, 1)
+        for down in (True, False) * presses:
+            q.cmd("input-send-event", events=[{"type": "btn", "data": {"down": down, "button": button}}])
+            time.sleep(0.08)
+    elif op == "hold":
+        # A long press: the QEMU tablet is a pen to ChromeOS, so a held
+        # touch is how its context menus open (its right button does nothing).
+        x, y = int(sys.argv[2]), int(sys.argv[3])
+        seconds = float(sys.argv[4]) if len(sys.argv) > 4 else 1.2
+        w, h = screendump(q, os.path.join(D, "screen.ppm"))
+        q.cmd("input-send-event", events=[
+            {"type": "abs", "data": {"axis": "x", "value": x * 32767 // (w - 1)}},
+            {"type": "abs", "data": {"axis": "y", "value": y * 32767 // (h - 1)}}])
+        time.sleep(0.15)
+        q.cmd("input-send-event", events=[{"type": "btn", "data": {"down": True, "button": "left"}}])
+        time.sleep(seconds)
+        q.cmd("input-send-event", events=[{"type": "btn", "data": {"down": False, "button": "left"}}])
+    elif op == "drag":
+        x1, y1, x2, y2 = (int(v) for v in sys.argv[2:6])
+        # Seconds to hold before moving: web pages (Files) start a touch or
+        # pen drag only after a long press.
+        hold = float(sys.argv[6]) if len(sys.argv) > 6 else 0.5
+        w, h = screendump(q, os.path.join(D, "screen.ppm"))
+
+        def move_to(x, y):
+            q.cmd("input-send-event", events=[
+                {"type": "abs", "data": {"axis": "x", "value": x * 32767 // (w - 1)}},
+                {"type": "abs", "data": {"axis": "y", "value": y * 32767 // (h - 1)}}])
+
+        move_to(x1, y1)
+        time.sleep(0.3)
+        q.cmd("input-send-event", events=[{"type": "btn", "data": {"down": True, "button": "left"}}])
+        time.sleep(hold)
+        # A few small moves first: Chrome starts a drag only once the pointer
+        # has moved past its threshold while held, and drops only where the
+        # pointer has hovered.
+        for i in range(1, 6):
+            move_to(x1 + 2 * i, y1 + i)
+            time.sleep(0.1)
+        time.sleep(0.4)
+        steps = 40
+        for i in range(1, steps + 1):
+            move_to(x1 + 10 + (x2 - x1 - 10) * i // steps,
+                    y1 + 5 + (y2 - y1 - 5) * i // steps)
+            time.sleep(0.05)
+        for dx in (3, -3, 0):
+            move_to(x2 + dx, y2)
+            time.sleep(0.3)
+        time.sleep(0.5)
+        q.cmd("input-send-event", events=[{"type": "btn", "data": {"down": False, "button": "left"}}])
+    elif op == "mdrag":
+        x1, y1, x2, y2 = (int(v) for v in sys.argv[2:6])
+        shot = sys.argv[6] if len(sys.argv) > 6 else None
+        # The mouse moves relatively, and pen events do not move ChromeOS's
+        # mouse cursor: into the top left corner first, then out by
+        # ChromeOS's default mouse speed, measured: 0.64 px per count.
+        scale = 0.64
+
+        def rel(dx, dy):
+            q.cmd("input-send-event", events=[
+                {"type": "rel", "data": {"axis": "x", "value": dx}},
+                {"type": "rel", "data": {"axis": "y", "value": dy}}])
+
+        def move(dx, dy, step):
+            # Steps of the same size on each axis, as measured: ChromeOS
+            # does not scale small, uneven counts the same way.
+            ux, uy = round(dx / scale), round(dy / scale)
+            sx, sy = (step if ux > 0 else -step), (step if uy > 0 else -step)
+            for i in range(max(abs(ux), abs(uy)) // step):
+                rel(sx if i * step < abs(ux) else 0,
+                    sy if i * step < abs(uy) else 0)
+                time.sleep(0.02)
+
+        for _ in range(40):
+            rel(-100, -100)
+            time.sleep(0.01)
+        time.sleep(0.3)
+        move(x1, y1, 2)
+        time.sleep(0.3)
+        q.cmd("input-send-event", events=[{"type": "btn", "data": {"down": True, "button": "left"}}])
+        time.sleep(0.3)
+        # Slowly too: faster motion is accelerated.
+        move(x2 - x1, y2 - y1, 2)
+        time.sleep(0.6)
+        if shot:
+            ppm = os.path.join(D, "screen.ppm")
+            screendump(q, ppm)
+            with open(shot, "wb") as f:
+                subprocess.run(["pnmtopng", ppm], stdout=f,
+                               stderr=subprocess.DEVNULL, check=True)
+            print(shot)
+        q.cmd("input-send-event", events=[{"type": "btn", "data": {"down": False, "button": "left"}}])
+        use_pointer(q, "Tablet")
+    elif op == "type":
+        for ch in sys.argv[2]:
+            send_key(q, keys_for(ch))
+            time.sleep(0.04)
+    elif op == "key":
+        send_key(q, sys.argv[2].split("-"))
+    elif op == "link" and sys.argv[2:3] in (["on"], ["off"]):
+        q.cmd("set_link", name="n0", up=sys.argv[2] == "on")
+    elif op == "usb" and sys.argv[2:3] == ["add"] and len(sys.argv) == 4:
+        q.cmd("blockdev-add", **{"driver": "raw", "node-name": "usbstick",
+              "file": {"driver": "file", "filename": os.path.abspath(sys.argv[3])}})
+        q.cmd("device_add", driver="usb-storage", bus="xhci.0", drive="usbstick",
+              id="usbstick", removable=True)
+    elif op == "reset":
+        # A hard reset, as the power button would after a hang; for VMs
+        # without ssh (base images), where "reboot" can't be asked for.
+        q.cmd("system_reset")
+    elif op == "usb" and sys.argv[2:3] == ["del"]:
+        q.cmd("device_del", id="usbstick")
+        time.sleep(2)
+        q.cmd("blockdev-del", **{"node-name": "usbstick"})
+    else:
+        raise SystemExit(__doc__)
+
+
+if __name__ == "__main__":
+    main()

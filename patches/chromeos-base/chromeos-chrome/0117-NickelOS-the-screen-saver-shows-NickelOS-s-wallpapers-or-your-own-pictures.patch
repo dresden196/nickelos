@@ -1,0 +1,830 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the screen saver shows NickelOS's wallpapers, or the
+ user's own pictures
+
+The screen saver was a slideshow of the account's Pictures folder (0105),
+with the default wallpaper when it had fewer than two pictures (0114).
+It shows NickelOS's wallpapers now, the nine of Wallpaper & style's
+NickelOS collection (collection.json, 0116), in random order and in dark
+mode with the wave's dark twin (Dresden, 2026-11-05). A switch in the
+screen saver's settings, "Your own pictures" (nickel.screen_saver.own_pictures,
+off), shows the Pictures folder instead, with NickelOS's wallpapers while
+it has fewer than two pictures. Turning it on or off makes the list again
+at once, for the next screen saver. The preview card says which (NickelOS
+wallpapers, or Pictures folder) and shows the default wallpaper's
+thumbnail in place of ChromeOS's coast photo.
+
+The slideshow fills the screen as ChromeOS's own does, where the managed
+slideshow it is made from fitted every picture with bars: on an ultrawide
+screen the pictures had wide black bars beside them. A picture of the
+screen's orientation fills it, cropped at the edges; a portrait photo on a
+landscape screen still fits whole.
+
+---
+diff --git a/ash/ambient/ambient_controller.cc b/ash/ambient/ambient_controller.cc
+--- a/ash/ambient/ambient_controller.cc
++++ b/ash/ambient/ambient_controller.cc
+@@ -206,6 +206,9 @@
+   // off until turned on; Fahrenheit where the language is American English,
+   // as on Google's servers, else Celsius.
+   registry->RegisterBooleanPref(prefs::kNickelScreenSaverWeather, false);
++  // NickelOS: the screen saver's pictures, NickelOS's wallpapers unless the
++  // user turns on their own (ScreensaverImagesPolicyHandler).
++  registry->RegisterBooleanPref(prefs::kNickelScreenSaverOwnPictures, false);
+   const std::string locale = base::i18n::GetConfiguredLocale();
+   registry->RegisterBooleanPref(
+       prefs::kNickelScreenSaverCelsius,
+@@ -922,6 +925,13 @@
+       base::BindRepeating(&AmbientController::OnAmbientUiSettingsChanged,
+                           weak_ptr_factory_.GetWeakPtr()));
+ 
++  // NickelOS: own pictures or NickelOS's wallpapers, for the next screen
++  // saver already.
++  pref_change_registrar_->Add(
++      prefs::kNickelScreenSaverOwnPictures,
++      base::BindRepeating(&AmbientController::OnNickelOwnPicturesChanged,
++                          weak_ptr_factory_.GetWeakPtr()));
++
+   pref_change_registrar_->Add(
+       ambient::prefs::kAmbientModeAnimationPlaybackSpeed,
+       base::BindRepeating(&AmbientController::OnAnimationPlaybackSpeedChanged,
+@@ -1036,6 +1046,12 @@
+           ambient::prefs::kAmbientModePhotoRefreshIntervalSeconds)));
+ }
+ 
++void AmbientController::OnNickelOwnPicturesChanged() {
++  if (nickel_pictures_) {
++    nickel_pictures_->Refresh();
++  }
++}
++
+ void AmbientController::OnAmbientUiSettingsChanged() {
+   DVLOG(4) << "AmbientUiSettings changed to "
+            << GetCurrentUiSettings().ToString();
+diff --git a/ash/ambient/ambient_controller.h b/ash/ambient/ambient_controller.h
+--- a/ash/ambient/ambient_controller.h
++++ b/ash/ambient/ambient_controller.h
+@@ -266,6 +266,9 @@
+   void OnLockScreenBackgroundTimeoutPrefChanged();
+   void OnPhotoRefreshIntervalPrefChanged();
+   void OnAmbientUiSettingsChanged();
++  // NickelOS: the user switched between their own pictures and NickelOS's
++  // wallpapers.
++  void OnNickelOwnPicturesChanged();
+   void OnAnimationPlaybackSpeedChanged();
+ 
+   // Resets the resources allocated by the ambient controller.
+diff --git a/ash/ambient/ambient_managed_slideshow_ui_launcher.cc b/ash/ambient/ambient_managed_slideshow_ui_launcher.cc
+--- a/ash/ambient/ambient_managed_slideshow_ui_launcher.cc
++++ b/ash/ambient/ambient_managed_slideshow_ui_launcher.cc
+@@ -95,7 +95,12 @@
+   PhotoViewConfig config{
+       .peripheral_ui_visible =
+           !screensaver_images_policy_handler_->folder().empty(),
+-      .force_resize_to_fit = true};
++      // NickelOS: filled as ChromeOS's own slideshow fills, not fitted with
++      // bars (an ultrawide screen showed the pictures with wide black bars
++      // beside them): a picture that has the screen's orientation fills it,
++      // cropped at the edges; one that hasn't (a portrait photo on a
++      // landscape screen) fits, uncropped.
++      .force_resize_to_fit = false};
+ 
+   return std::make_unique<PhotoView>(delegate_, config);
+ }
+diff --git a/ash/ambient/managed/screensaver_images_policy_handler.cc b/ash/ambient/managed/screensaver_images_policy_handler.cc
+--- a/ash/ambient/managed/screensaver_images_policy_handler.cc
++++ b/ash/ambient/managed/screensaver_images_policy_handler.cc
+@@ -8,15 +8,18 @@
+ 
+ #include <algorithm>
+ #include <memory>
++#include <optional>
+ #include <string>
+ #include <utility>
+ #include <vector>
+ 
+ #include "ash/constants/ash_paths.h"
++#include "ash/constants/nickel_pref_names.h"
+ #include "ash/public/cpp/ambient/ambient_client.h"
+ #include "ash/public/cpp/ambient/ambient_prefs.h"
+ #include "ash/session/session_controller_impl.h"
+ #include "ash/shell.h"
++#include "ash/style/dark_light_mode_controller_impl.h"
+ #include "ash/wallpaper/wallpaper_controller_impl.h"
+ #include "base/base_paths.h"
+ #include "base/check.h"
+@@ -26,12 +29,14 @@
+ #include "base/files/file_util.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback.h"
++#include "base/json/json_reader.h"
+ #include "base/logging.h"
+ #include "base/path_service.h"
+ #include "base/rand_util.h"
+ #include "base/strings/string_util.h"
+ #include "base/task/thread_pool.h"
+ #include "base/time/time.h"
++#include "base/values.h"
+ #include "components/prefs/pref_registry_simple.h"
+ #include "components/prefs/pref_service.h"
+ #include "components/user_manager/user_type.h"
+@@ -153,14 +158,76 @@
+   return images;
+ }
+ 
+-// NickelOS: with fewer pictures in the folder than a slideshow needs (a new
+-// account's folder is empty, and then there was no screen saver at all),
+-// NickelOS's default wallpaper makes up the rest: the wave photo, in the
+-// shade of the color mode (Dresden, 2026-11-04).
+-std::vector<base::FilePath> FindImagesOrWallpaper(
++// NickelOS's wallpapers (chromeos-bsp-nickel: the pictures of
++// collection.json, Wallpaper & style's NickelOS collection), the dark twin of
++// one that has it in dark mode, in random order.
++constexpr char kNickelWallpaperDir[] =
++    "/usr/share/chromeos-assets/wallpaper/nickel";
++
++bool IsWallpaperName(const std::string& name) {
++  if (name.empty() || name.size() > 128) {
++    return false;
++  }
++  for (char c : name) {
++    if (!base::IsAsciiAlphaNumeric(c) && c != '-' && c != '_') {
++      return false;
++    }
++  }
++  return true;
++}
++
++std::vector<base::FilePath> FindNickelWallpapers(bool dark) {
++  std::vector<base::FilePath> images;
++  const base::FilePath dir(kNickelWallpaperDir);
++  std::string text;
++  if (!base::ReadFileToString(dir.Append("collection.json"), &text)) {
++    return images;
++  }
++  std::optional<base::Value> value =
++      base::JSONReader::Read(text, base::JSON_PARSE_RFC);
++  if (!value || !value->is_dict()) {
++    return images;
++  }
++  const base::ListValue* list = value->GetDict().FindList("wallpapers");
++  if (!list) {
++    return images;
++  }
++  for (const base::Value& item : *list) {
++    if (!item.is_dict()) {
++      continue;
++    }
++    const std::string* name = item.GetDict().FindString("name");
++    const std::string* dark_name = item.GetDict().FindString("dark");
++    const std::string* pick = dark && dark_name ? dark_name : name;
++    if (!pick || !IsWallpaperName(*pick)) {
++      continue;
++    }
++    const base::FilePath file = dir.Append(*pick + ".jpg");
++    if (base::PathExists(file)) {
++      images.push_back(file);
++    }
++  }
++  base::RandomShuffle(images.begin(), images.end());
++  return images;
++}
++
++// The screen saver's pictures: NickelOS's wallpapers, its default (Dresden,
++// 2026-11-05), or the user's own (kNickelScreenSaverOwnPictures), with
++// NickelOS's wallpapers while the folder has fewer than the two a slideshow
++// needs (a new account's is empty). The default wallpaper, the size and
++// shade the wallpaper itself uses, if there are no wallpapers either.
++std::vector<base::FilePath> FindScreenSaverImages(
+     const base::FilePath& folder,
++    bool own_pictures,
++    bool dark,
+     const base::FilePath& wallpaper) {
+-  std::vector<base::FilePath> images = FindImagesInFolder(folder);
++  std::vector<base::FilePath> images;
++  if (own_pictures) {
++    images = FindImagesInFolder(folder);
++  }
++  if (images.size() < 2) {
++    images = FindNickelWallpapers(dark);
++  }
+   if (images.size() < 2 && !wallpaper.empty() &&
+       base::PathExists(wallpaper)) {
+     images.resize(2, wallpaper);
+@@ -191,22 +258,49 @@
+   // The default wallpaper as the wallpaper itself shows it: the size for
+   // this screen, dark or light (Chrome 0112).
+   base::FilePath wallpaper;
+-  if (Shell::HasInstance() && Shell::Get()->wallpaper_controller()) {
+-    wallpaper = Shell::Get()->wallpaper_controller()->GetDefaultWallpaperPath(
+-        user_manager::UserType::kRegular);
++  bool own_pictures = false;
++  if (Shell::HasInstance()) {
++    if (Shell::Get()->wallpaper_controller()) {
++      wallpaper = Shell::Get()->wallpaper_controller()->GetDefaultWallpaperPath(
++          user_manager::UserType::kRegular);
++    }
++    PrefService* pref_service =
++        Shell::Get()->session_controller()->GetActivePrefService();
++    own_pictures = pref_service && pref_service->GetBoolean(
++                                       prefs::kNickelScreenSaverOwnPictures);
+   }
++  auto* dark_light = DarkLightModeControllerImpl::Get();
++  const bool dark = dark_light && dark_light->IsDarkModeEnabled();
+   base::ThreadPool::PostTaskAndReplyWithResult(
+       FROM_HERE,
+       {base::MayBlock(), base::TaskPriority::USER_VISIBLE,
+        base::TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN},
+-      base::BindOnce(&FindImagesOrWallpaper, folder_, wallpaper),
++      base::BindOnce(&FindScreenSaverImages, folder_, own_pictures, dark,
++                     wallpaper),
+       base::BindOnce(&ScreensaverImagesPolicyHandler::OnFolderImagesFound,
+                      weak_ptr_factory_.GetWeakPtr()));
+ }
+ 
++void ScreensaverImagesPolicyHandler::Refresh() {
++  folder_retry_timer_.Stop();
++  if (finding_folder_images_) {
++    refresh_pending_ = true;
++    return;
++  }
++  // An empty list, so the new one is taken at once (OnFolderImagesFound).
++  folder_images_.clear();
++  FindFolderImages();
++}
++
+ void ScreensaverImagesPolicyHandler::OnFolderImagesFound(
+     std::vector<base::FilePath> images) {
+   finding_folder_images_ = false;
++  if (refresh_pending_) {
++    refresh_pending_ = false;
++    folder_images_.clear();
++    FindFolderImages();
++    return;
++  }
+   // The new list is for the next screen saver (GetScreensaverImages), not
+   // the one showing: it would start over. Unless the last list had too few
+   // pictures to show at all, when it is what makes one possible.
+diff --git a/ash/ambient/managed/screensaver_images_policy_handler.h b/ash/ambient/managed/screensaver_images_policy_handler.h
+--- a/ash/ambient/managed/screensaver_images_policy_handler.h
++++ b/ash/ambient/managed/screensaver_images_policy_handler.h
+@@ -47,6 +47,10 @@
+ 
+   // The folder of CreateForFolder, else empty.
+   const base::FilePath& folder() const { return folder_; }
++
++  // NickelOS: makes the list again now (the user chose their own pictures or
++  // NickelOS's wallpapers), for the next screen saver.
++  void Refresh();
+   ScreensaverImagesPolicyHandler(const ScreensaverImagesPolicyHandler&) =
+       delete;
+   ScreensaverImagesPolicyHandler& operator=(
+@@ -84,6 +88,7 @@
+   base::FilePath folder_;
+   std::vector<base::FilePath> folder_images_;
+   bool finding_folder_images_ = false;
++  bool refresh_pending_ = false;
+   base::OneShotTimer folder_retry_timer_;
+   base::WeakPtrFactory<ScreensaverImagesPolicyHandler> weak_ptr_factory_{this};
+ };
+diff --git a/ash/constants/nickel_pref_names.h b/ash/constants/nickel_pref_names.h
+--- a/ash/constants/nickel_pref_names.h
++++ b/ash/constants/nickel_pref_names.h
+@@ -40,6 +40,11 @@
+     "nickel.screen_saver.weather";
+ inline constexpr char kNickelScreenSaverCelsius[] =
+     "nickel.screen_saver.celsius";
++// Profile: whether the screen saver shows the user's own pictures (My files >
++// Pictures) instead of NickelOS's wallpapers, its default (Dresden,
++// 2026-11-05).
++inline constexpr char kNickelScreenSaverOwnPictures[] =
++    "nickel.screen_saver.own_pictures";
+ 
+ }  // namespace ash::prefs
+ 
+diff --git a/ash/webui/personalization_app/mojom/personalization_app.mojom b/ash/webui/personalization_app/mojom/personalization_app.mojom
+--- a/ash/webui/personalization_app/mojom/personalization_app.mojom
++++ b/ash/webui/personalization_app/mojom/personalization_app.mojom
+@@ -691,6 +691,10 @@
+   // NickelOS: whether the screen saver shows the weather (off until the user
+   // turns it on).
+   OnNickelWeatherEnabledChanged(bool enabled);
++
++  // NickelOS: whether the screen saver shows the user's own pictures (My
++  // files > Pictures) instead of NickelOS's wallpapers, its default.
++  OnNickelOwnPicturesChanged(bool own_pictures);
+ };
+ 
+ // Provides APIs to expose Ambient mode settings.
+@@ -751,6 +755,10 @@
+ 
+   // NickelOS: shows the weather on the screen saver, or not.
+   SetNickelWeatherEnabled(bool enabled);
++
++  // NickelOS: shows the user's own pictures on the screen saver, or
++  // NickelOS's wallpapers.
++  SetNickelOwnPictures(bool own_pictures);
+ };
+ 
+ // The supported preset colors for keyboard backlight.
+diff --git a/ash/webui/personalization_app/personalization_app_ui.cc b/ash/webui/personalization_app/personalization_app_ui.cc
+--- a/ash/webui/personalization_app/personalization_app_ui.cc
++++ b/ash/webui/personalization_app/personalization_app_ui.cc
+@@ -243,6 +243,14 @@
+        IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC},
+       {"ambientModeNickelPicturesHint",
+        IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT},
++      {"ambientModeNickelOwnPicturesToggle",
++       IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE},
++      {"ambientModeNickelWallpapersHint",
++       IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT},
++      {"ambientModeNickelWallpapersTitle",
++       IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE},
++      {"ambientModeNickelWallpapersDesc",
++       IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC},
+       {"ambientModeNickelWeatherToggle",
+        IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE},
+       {"ambientModeNickelWeatherSource",
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_actions.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_actions.ts
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_actions.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_actions.ts
+@@ -28,6 +28,7 @@
+   SET_GEOLOCATION_PERMISSION_ENABLED = 'set_geolocation_permission_enabled',
+   SET_GEOLOCATION_IS_USER_MODIFIABLE = 'set_geolocation_is_user_modifiable',
+   SET_NICKEL_WEATHER_ENABLED = 'set_nickel_weather_enabled',
++  SET_NICKEL_OWN_PICTURES = 'set_nickel_own_pictures',
+ }
+ 
+ export type AmbientActions =
+@@ -36,7 +37,7 @@
+     SetScreenSaverDurationAction|SetTopicSourceAction|SetTemperatureUnitAction|
+     SetAmbientUiVisibilityAction|SetShouldShowTimeOfDayBannerAction|
+     SetGeolocationPermissionEnabledAction|SetGeolocationIsUserModifiableAction|
+-    SetNickelWeatherEnabledAction;
++    SetNickelWeatherEnabledAction|SetNickelOwnPicturesAction;
+ 
+ export interface SetAlbumsAction extends Action {
+   name: AmbientActionName.SET_ALBUMS;
+@@ -118,6 +119,13 @@
+   enabled: boolean;
+ }
+ 
++// NickelOS: whether the screen saver shows the user's own pictures instead
++// of NickelOS's wallpapers.
++export interface SetNickelOwnPicturesAction extends Action {
++  name: AmbientActionName.SET_NICKEL_OWN_PICTURES;
++  ownPictures: boolean;
++}
++
+ 
+ /**
+  * Sets the current value of the albums.
+@@ -214,6 +222,11 @@
+   return {name: AmbientActionName.SET_NICKEL_WEATHER_ENABLED, enabled};
+ }
+ 
++export function setNickelOwnPicturesAction(ownPictures: boolean):
++    SetNickelOwnPicturesAction {
++  return {name: AmbientActionName.SET_NICKEL_OWN_PICTURES, ownPictures};
++}
++
+ export function setGeolocationIsUserModifiableAction(isUserModifiable: boolean):
+     SetGeolocationIsUserModifiableAction {
+   return {
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_controller.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_controller.ts
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_controller.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_controller.ts
+@@ -7,7 +7,7 @@
+ import type {AmbientModeAlbum, AmbientProviderInterface, AmbientTheme, TemperatureUnit, TopicSource} from '../../personalization_app.mojom-webui.js';
+ import type {PersonalizationStore} from '../personalization_store.js';
+ 
+-import {setAlbumSelectedAction, setAmbientModeEnabledAction, setAmbientThemeAction, setGeolocationIsUserModifiableAction, setGeolocationPermissionEnabledAction, setNickelWeatherEnabledAction, setScreenSaverDurationAction, setShouldShowTimeOfDayBannerAction, setTemperatureUnitAction, setTopicSourceAction} from './ambient_actions.js';
++import {setAlbumSelectedAction, setAmbientModeEnabledAction, setAmbientThemeAction, setGeolocationIsUserModifiableAction, setGeolocationPermissionEnabledAction, setNickelOwnPicturesAction, setNickelWeatherEnabledAction, setScreenSaverDurationAction, setShouldShowTimeOfDayBannerAction, setTemperatureUnitAction, setTopicSourceAction} from './ambient_actions.js';
+ import {getAmbientProvider} from './ambient_interface_provider.js';
+ import {isValidTopicSourceAndTheme} from './utils.js';
+ 
+@@ -83,6 +83,15 @@
+   provider.setNickelWeatherEnabled(enabled);
+ }
+ 
++// NickelOS: the user's own pictures on the screen saver, or NickelOS's
++// wallpapers.
++export function setNickelOwnPictures(
++    ownPictures: boolean, provider: AmbientProviderInterface,
++    store: PersonalizationStore): void {
++  store.dispatch(setNickelOwnPicturesAction(ownPictures));
++  provider.setNickelOwnPictures(ownPictures);
++}
++
+ // Set ambient mode temperature unit.
+ export function setTemperatureUnit(
+     temperatureUnit: TemperatureUnit, provider: AmbientProviderInterface,
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_observer.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_observer.ts
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_observer.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_observer.ts
+@@ -13,7 +13,7 @@
+ import {PersonalizationStore} from '../personalization_store.js';
+ import {isRecentHighlightsAlbum} from '../utils.js';
+ 
+-import {setAlbumsAction, setAmbientModeEnabledAction, setAmbientThemeAction, setAmbientThemePreviewsAction, setAmbientUiVisibilityAction, setGeolocationIsUserModifiableAction, setGeolocationPermissionEnabledAction, setNickelWeatherEnabledAction, setPreviewsAction, setScreenSaverDurationAction, setTemperatureUnitAction, setTopicSourceAction} from './ambient_actions.js';
++import {setAlbumsAction, setAmbientModeEnabledAction, setAmbientThemeAction, setAmbientThemePreviewsAction, setAmbientUiVisibilityAction, setGeolocationIsUserModifiableAction, setGeolocationPermissionEnabledAction, setNickelOwnPicturesAction, setNickelWeatherEnabledAction, setPreviewsAction, setScreenSaverDurationAction, setTemperatureUnitAction, setTopicSourceAction} from './ambient_actions.js';
+ import {getAmbientProvider} from './ambient_interface_provider.js';
+ import {AmbientThemePreviewMap} from './utils.js';
+ 
+@@ -155,4 +155,9 @@
+     const store = PersonalizationStore.getInstance();
+     store.dispatch(setNickelWeatherEnabledAction(enabled));
+   }
++
++  onNickelOwnPicturesChanged(ownPictures: boolean): void {
++    const store = PersonalizationStore.getInstance();
++    store.dispatch(setNickelOwnPicturesAction(ownPictures));
++  }
+ }
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_base.ts
+@@ -48,6 +48,10 @@
+           return isNickelPicturesScreenSaver();
+         },
+       },
++      nickelOwnPictures_: {
++        type: Boolean,
++        value: false,
++      },
+       albums_: {
+         type: Array,
+         value: null,
+@@ -91,6 +95,7 @@
+   declare protected previewImages_: Url[]|null;
+   declare protected previewAlbums_: AmbientModeAlbum[]|null;
+   declare protected isNickelPictures_: boolean;
++  declare protected nickelOwnPictures_: boolean;
+   declare protected topicSource_: TopicSource|null;
+ 
+   declare private albums_: AmbientModeAlbum[]|null;
+@@ -113,6 +118,8 @@
+     this.watch('albums_', state => state.ambient.albums);
+     this.watch('previewImages_', state => state.ambient.previews);
+     this.watch('topicSource_', state => state.ambient.topicSource);
++    this.watch(
++        'nickelOwnPictures_', state => !!state.ambient.nickelOwnPictures);
+     this.updateFromStore();
+   }
+ 
+@@ -202,7 +209,9 @@
+     // NickelOS: a local account's own pictures have no album picture: the
+     // slideshow theme's.
+     if (this.isNickelPictures_) {
+-      return 'chrome://personalization/images/slideshow.png';
++      // NickelOS's default wallpaper's thumbnail (chromeos-bsp-nickel,
++      // served by the app's request filter), not ChromeOS's coast photo.
++      return 'chrome://personalization/nickel-wallpaper/preview.jpg';
+     }
+     // Replace the resolution suffix appended at the end of the images
+     // with a new resolution suffix of 512px so that we do not download very
+@@ -218,14 +227,18 @@
+ 
+   private getAlbumTitle_(): string {
+     if (this.isNickelPictures_) {
+-      return this.i18n('ambientModeNickelPicturesTitle');
++      return this.i18n(
++          this.nickelOwnPictures_ ? 'ambientModeNickelPicturesTitle' :
++                                    'ambientModeNickelWallpapersTitle');
+     }
+     return this.firstPreviewAlbum_ ? this.firstPreviewAlbum_.title : '';
+   }
+ 
+   private getAlbumDescription_(): string {
+     if (this.isNickelPictures_) {
+-      return this.i18n('ambientModeNickelPicturesDesc');
++      return this.i18n(
++          this.nickelOwnPictures_ ? 'ambientModeNickelPicturesDesc' :
++                                    'ambientModeNickelWallpapersDesc');
+     }
+     if (!isNonEmptyArray(this.previewAlbums_) || this.topicSource_ === null) {
+       return '';
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.html b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.html
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.html
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_large_element.html
+@@ -293,7 +293,7 @@
+         <template is="dom-if" if="[[previewAlbums_]]">
+           <div id="imageContainer" class="preview-image-container">
+             <div class="preview-image-border"></div>
+-            <img alt$="[[getAlbumTitle_(firstPreviewAlbum_)]]"
++            <img alt$="[[getAlbumTitle_(firstPreviewAlbum_, nickelOwnPictures_)]]"
+                 auto-src="[[getPreviewImage_(firstPreviewAlbum_)]]"
+                 class="preview-image clickable"
+                 is-google-photos is="cr-auto-img"
+@@ -318,11 +318,11 @@
+               id="textContainer">
+             <span aria-hidden="true"
+                 id="albumTitle"
+-                title="[[getAlbumTitle_(firstPreviewAlbum_)]]">
+-              [[getAlbumTitle_(firstPreviewAlbum_)]]
++                title="[[getAlbumTitle_(firstPreviewAlbum_, nickelOwnPictures_)]]">
++              [[getAlbumTitle_(firstPreviewAlbum_, nickelOwnPictures_)]]
+             </span>
+             <span aria-hidden="true" id="albumDescription">
+-              [[getAlbumDescription_(topicSource_, previewAlbums_)]]
++              [[getAlbumDescription_(topicSource_, previewAlbums_, nickelOwnPictures_)]]
+             </span>
+           </div>
+         </template>
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_small_element.html b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_small_element.html
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_preview_small_element.html
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_preview_small_element.html
+@@ -98,7 +98,7 @@
+           <div class="preview-image-border"></div>
+           <img class="preview-image" is="cr-auto-img"
+               auto-src="[[getPreviewImage_(firstPreviewAlbum_)]]"
+-              alt$="[[getAlbumTitle_(firstPreviewAlbum_)]]"
++              alt$="[[getAlbumTitle_(firstPreviewAlbum_, nickelOwnPictures_)]]"
+               is-google-photos>
+         </div>
+         <h2 aria-label$="[[getPreviewTextAriaLabel_(firstPreviewAlbum_, topicSource_, previewAlbums_)]]"
+@@ -109,11 +109,11 @@
+             $i18n{currentlySet}
+           </span>
+           <span id="albumTitle" aria-hidden="true"
+-              title="[[getAlbumTitle_(firstPreviewAlbum_)]]">
+-            [[getAlbumTitle_(firstPreviewAlbum_)]]
++              title="[[getAlbumTitle_(firstPreviewAlbum_, nickelOwnPictures_)]]">
++            [[getAlbumTitle_(firstPreviewAlbum_, nickelOwnPictures_)]]
+           </span>
+           <span id="albumDescription" aria-hidden="true">
+-            [[getAlbumDescription_(topicSource_, previewAlbums_)]]
++            [[getAlbumDescription_(topicSource_, previewAlbums_, nickelOwnPictures_)]]
+           </span>
+         </h2>
+         <div id="buttonContainer">
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_reducers.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_reducers.ts
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_reducers.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_reducers.ts
+@@ -149,6 +149,17 @@
+ }
+ 
+ 
++export function nickelOwnPicturesReducer(
++    state: AmbientState['nickelOwnPictures'], action: Actions,
++    _: PersonalizationState): AmbientState['nickelOwnPictures'] {
++  switch (action.name) {
++    case AmbientActionName.SET_NICKEL_OWN_PICTURES:
++      return action.ownPictures;
++    default:
++      return state;
++  }
++}
++
+ export function nickelWeatherEnabledReducer(
+     state: AmbientState['nickelWeatherEnabled'], action: Actions,
+     _: PersonalizationState): AmbientState['nickelWeatherEnabled'] {
+@@ -175,4 +186,5 @@
+       geolocationPermissionEnabled: geolocationPermissionEnabledReducer,
+       geolocationIsUserModifiable: geolocationIsUserModifiableReducer,
+       nickelWeatherEnabled: nickelWeatherEnabledReducer,
++      nickelOwnPictures: nickelOwnPicturesReducer,
+     };
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_state.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_state.ts
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_state.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_state.ts
+@@ -27,6 +27,9 @@
+   geolocationIsUserModifiable: boolean|null;
+   // NickelOS: whether the screen saver shows the weather.
+   nickelWeatherEnabled: boolean|null;
++  // NickelOS: whether the screen saver shows the user's own pictures instead
++  // of NickelOS's wallpapers.
++  nickelOwnPictures: boolean|null;
+ }
+ 
+ export function emptyState(): AmbientState {
+@@ -44,5 +47,6 @@
+     geolocationPermissionEnabled: null,
+     geolocationIsUserModifiable: null,
+     nickelWeatherEnabled: null,
++    nickelOwnPictures: null,
+   };
+ }
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html b/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html
+@@ -24,11 +24,18 @@
+     margin: 0 10px;
+   }
+ 
+-  #nickelPicturesText {
++  #nickelPicturesRow {
++    align-items: center;
++    display: flex;
+     margin: 0 10px;
+     padding: 12px 0;
+   }
+ 
++  #nickelPicturesText {
++    flex: 1;
++    margin-inline-end: 16px;
++  }
++
+   #nickelPicturesText .primary-text {
+     color: var(--cros-text-color-primary);
+     font: var(--cros-body-2-font);
+@@ -196,20 +203,29 @@
+           <ambient-theme-list
+               selected-ambient-theme="[[ambientTheme_]]">
+           </ambient-theme-list>
+-          <!-- NickelOS: the account's pictures, the one image source; the
+-               weather (in ambient-weather-unit) off until turned on. -->
++          <!-- NickelOS: NickelOS's wallpapers, or the user's own pictures
++               when this is on; the weather (in ambient-weather-unit) off
++               until turned on. -->
+           <template is="dom-if" if="[[isNickelPictures_]]">
+             <div id="nickelPictures">
+               <h3 id="nickelPicturesTitle" class="ambient-subpage-element-title">
+                 $i18n{ambientModeTopicSourceTitle}
+               </h3>
+-              <div id="nickelPicturesText">
+-                <div class="primary-text">
+-                  $i18n{ambientModeNickelPicturesTitle}
+-                </div>
+-                <div class="cr-secondary-text">
+-                  $i18n{ambientModeNickelPicturesHint}
++              <div id="nickelPicturesRow">
++                <div id="nickelPicturesText" aria-hidden="true">
++                  <div class="primary-text">
++                    $i18n{ambientModeNickelOwnPicturesToggle}
++                  </div>
++                  <div class="cr-secondary-text">
++                    [[nickelPicturesHint_(nickelOwnPictures_)]]
++                  </div>
+                 </div>
++                <cr-toggle id="nickelOwnPicturesToggle" class="clickable"
++                    checked="[[nickelOwnPictures_]]"
++                    aria-label="$i18n{ambientModeNickelOwnPicturesToggle}"
++                    aria-description="[[nickelPicturesHint_(nickelOwnPictures_)]]"
++                    on-change="onNickelOwnPicturesToggled_">
++                </cr-toggle>
+               </div>
+             </div>
+           </template>
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.ts
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.ts
+@@ -7,6 +7,7 @@
+  * the ambient mode settings.
+  */
+ 
++import 'chrome://resources/ash/common/cr_elements/cr_toggle/cr_toggle.js';
+ import 'chrome://resources/ash/common/personalization/common.css.js';
+ import './albums_subpage_element.js';
+ import './ambient_preview_small_element.js';
+@@ -15,6 +16,7 @@
+ import './toggle_row_element.js';
+ import './topic_source_list_element.js';
+ 
++import type {CrToggleElement} from 'chrome://resources/ash/common/cr_elements/cr_toggle/cr_toggle.js';
+ import {assert} from 'chrome://resources/js/assert.js';
+ import {afterNextRender} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
+ 
+@@ -24,7 +26,7 @@
+ import {Paths, ScrollableTarget} from '../personalization_router_element.js';
+ import {WithPersonalizationStore} from '../personalization_store.js';
+ 
+-import {dismissTimeOfDayBanner, setAmbientModeEnabled} from './ambient_controller.js';
++import {dismissTimeOfDayBanner, setAmbientModeEnabled, setNickelOwnPictures} from './ambient_controller.js';
+ import {getAmbientProvider} from './ambient_interface_provider.js';
+ import {AmbientObserver} from './ambient_observer.js';
+ import {getTemplate} from './ambient_subpage_element.html.js';
+@@ -90,6 +92,10 @@
+           return isNickelPicturesScreenSaver();
+         },
+       },
++      nickelOwnPictures_: {
++        type: Boolean,
++        value: false,
++      },
+     };
+   }
+ 
+@@ -105,6 +111,7 @@
+   declare private loading_: boolean;
+   declare private isOnline_: boolean;
+   declare private isNickelPictures_: boolean;
++  declare private nickelOwnPictures_: boolean;
+ 
+   // Refetch albums if the user is currently viewing ambient subpage, focuses
+   // another window, and then re-focuses personalization app.
+@@ -152,11 +159,27 @@
+         'topicSource_', state => state.ambient.topicSource);
+     this.watch<AmbientSubpageElement['duration_']>(
+         'duration_', state => state.ambient.duration);
++    this.watch<AmbientSubpageElement['nickelOwnPictures_']>(
++        'nickelOwnPictures_', state => !!state.ambient.nickelOwnPictures);
+     this.updateFromStore();
+ 
+     window.addEventListener('focus', this.onFocus_);
+   }
+ 
++  // NickelOS: the screen saver's pictures, NickelOS's wallpapers or the
++  // user's own.
++  private onNickelOwnPicturesToggled_(e: Event) {
++    setNickelOwnPictures(
++        (e.target as CrToggleElement).checked, getAmbientProvider(),
++        this.getStore());
++  }
++
++  private nickelPicturesHint_(ownPictures: boolean): string {
++    return this.i18n(
++        ownPictures ? 'ambientModeNickelPicturesHint' :
++                      'ambientModeNickelWallpapersHint');
++  }
++
+   override disconnectedCallback() {
+     super.disconnectedCallback();
+     window.removeEventListener('focus', this.onFocus_);
+diff --git a/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.cc b/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.cc
+--- a/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.cc
++++ b/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.cc
+@@ -94,6 +94,11 @@
+                               OnNickelWeatherEnabledChanged,
+                           base::Unretained(this)));
+   pref_change_registrar_.Add(
++      ash::prefs::kNickelScreenSaverOwnPictures,
++      base::BindRepeating(&PersonalizationAppAmbientProviderImpl::
++                              OnNickelOwnPicturesChanged,
++                          base::Unretained(this)));
++  pref_change_registrar_.Add(
+       ash::prefs::kUserGeolocationAccessLevel,
+       base::BindRepeating(&PersonalizationAppAmbientProviderImpl::
+                               NotifyGeolocationPermissionChanged,
+@@ -179,6 +184,8 @@
+ 
+   // NickelOS: and whether the screen saver shows the weather.
+   OnNickelWeatherEnabledChanged();
++  // NickelOS: and whether it shows the user's own pictures.
++  OnNickelOwnPicturesChanged();
+ 
+   ResetLocalSettings();
+ }
+@@ -266,6 +273,21 @@
+                                    enabled);
+ }
+ 
++void PersonalizationAppAmbientProviderImpl::SetNickelOwnPictures(
++    bool own_pictures) {
++  profile_->GetPrefs()->SetBoolean(ash::prefs::kNickelScreenSaverOwnPictures,
++                                   own_pictures);
++}
++
++void PersonalizationAppAmbientProviderImpl::OnNickelOwnPicturesChanged() {
++  if (!ambient_observer_remote_.is_bound()) {
++    return;
++  }
++  ambient_observer_remote_->OnNickelOwnPicturesChanged(
++      profile_->GetPrefs()->GetBoolean(
++          ash::prefs::kNickelScreenSaverOwnPictures));
++}
++
+ void PersonalizationAppAmbientProviderImpl::OnNickelWeatherEnabledChanged() {
+   if (!ambient_observer_remote_.is_bound()) {
+     return;
+diff --git a/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.h b/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.h
+--- a/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.h
++++ b/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.h
+@@ -57,6 +57,7 @@
+   void SetScreenSaverDuration(int minutes) override;
+   void SetTopicSource(mojom::TopicSource topic_source) override;
+   void SetNickelWeatherEnabled(bool enabled) override;
++  void SetNickelOwnPictures(bool own_pictures) override;
+   void SetTemperatureUnit(
+       ash::AmbientModeTemperatureUnit temperature_unit) override;
+   void SetAlbumSelected(const std::string& id,
+@@ -79,6 +80,7 @@
+   void OnScreenSaverDurationChanged();
+   void OnTemperatureUnitChanged();
+   void OnNickelWeatherEnabledChanged();
++  void OnNickelOwnPicturesChanged();
+   void OnTopicSourceChanged();
+   void OnAlbumsChanged();
+   void OnRecentHighlightsPreviewsChanged();
+diff --git a/chromeos/chromeos_strings.grd b/chromeos/chromeos_strings.grd
+--- a/chromeos/chromeos_strings.grd
++++ b/chromeos/chromeos_strings.grd
+@@ -2794,6 +2794,18 @@
+         <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT" desc="NickelOS: explains, under the image source in the screen saver settings, what a local account's screen saver shows.">
+           The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.
+         </message>
++        <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE" desc="NickelOS: the switch in the screen saver settings that makes the screen saver show the user's own pictures instead of the wallpapers that come with NickelOS.">
++          Your own pictures
++        </message>
++        <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT" desc="NickelOS: under the Your own pictures switch in the screen saver settings, while it is off: the screen saver shows the wallpapers that come with NickelOS. My files and Pictures are folder names as Files shows them.">
++          The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files &gt; Pictures instead.
++        </message>
++        <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE" desc="NickelOS: on the screen saver's preview card, where its pictures come from: the wallpapers that come with NickelOS.">
++          NickelOS wallpapers
++        </message>
++        <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC" desc="NickelOS: on the screen saver's preview card, under NickelOS wallpapers.">
++          Pictures that come with NickelOS
++        </message>
+         <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_TOPIC_SOURCE_GOOGLE_PHOTOS" desc="Label for the radio button to choose the topic source from Google Photos. The radio button allows the user to set Google Photos for ambient mode, which shows photos to the user when their device is idle.">
+           Google Photos
+         </message>

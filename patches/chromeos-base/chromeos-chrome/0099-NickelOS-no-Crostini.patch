@@ -1,0 +1,154 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: no Crostini
+
+NickelOS's Linux apps run on the device itself (host apps, 0012), and the
+image has no VM tools (USE=-kvm_host: no concierge, cicerone, crosvm or
+termina). Nothing should offer to set up Linux in a VM:
+
+- CrostiniFeatures::CouldBeAllowed is false whatever the feature list
+  says, which closes every Crostini gate in Chrome. Host apps don't go
+  through it (IsNickelNativeAppsAllowed, 0002).
+- Settings' About page draws its Developers card ("Linux development
+  environment") only when Crostini or Bruschetta can be; the card is drawn
+  always and would say "not supported".
+- Settings' search adds no "set up Linux" results where Crostini can't be.
+- Files offers "Install with Linux" for .deb and the Crostini backup
+  import for .tini only where Crostini can be.
+
+---
+diff --git a/chrome/browser/ash/crostini/crostini_features.cc b/chrome/browser/ash/crostini/crostini_features.cc
+index b230872..96dc87b 100644
+--- a/chrome/browser/ash/crostini/crostini_features.cc
++++ b/chrome/browser/ash/crostini/crostini_features.cc
+@@ -57,40 +57,11 @@ CrostiniFeatures::~CrostiniFeatures() = default;
+ 
+ bool CrostiniFeatures::CouldBeAllowed(Profile* profile,
+                                       std::string* reason) const {
+-  if (!base::FeatureList::IsEnabled(ash::features::kCrostini)) {
+-    VLOG(1) << "Crostini is not enabled in feature list.";
+-    // Prior to M105, the /dev/kvm check used the same reason string.
+-    *reason = "Crostini is not supported on this device";
+-    return false;
+-  }
+-
+-  if (!crostini::CrostiniManager::IsDevKvmPresent()) {
+-    // Hardware is physically incapable, no matter what the user wants.
+-    VLOG(1) << "Cannot run crostini because /dev/kvm is not present.";
+-    *reason = "Virtualization is not supported on this device";
+-    return false;
+-  }
+-
+-  if (!crostini::CrostiniManager::IsVmLaunchAllowed()) {
+-    VLOG(1) << "Concierge does not allow VM to be launched.";
+-    *reason = "Virtualization is not supported on this device";
+-    return false;
+-  }
+-
+-  if (!ash::ProfileHelper::IsPrimaryProfile(profile)) {
+-    VLOG(1) << "Crostini UI is not allowed on non-primary profiles.";
+-    *reason = "Crostini is only allowed in primary user sessions";
+-    return false;
+-  }
+-
+-  if (!profile || profile->IsChild() || profile->IsOffTheRecord() ||
+-      ash::ProfileHelper::IsEphemeralUserProfile(profile)) {
+-    VLOG(1) << "Profile is not allowed to run crostini.";
+-    *reason = "This user session is not allowed to run crostini";
+-    return false;
+-  }
+-
+-  return true;
++  // NickelOS has no Crostini: Linux apps run on the device itself, and the
++  // image has no VM tools. This holds whatever the feature list says.
++  VLOG(1) << "NickelOS has no Crostini.";
++  *reason = "Crostini is not supported on this device";
++  return false;
+ }
+ 
+ bool CrostiniFeatures::CouldBeAllowed(Profile* profile) const {
+diff --git a/chrome/browser/ash/file_manager/app_service_file_tasks.cc b/chrome/browser/ash/file_manager/app_service_file_tasks.cc
+index c24181b..293fc33 100644
+--- a/chrome/browser/ash/file_manager/app_service_file_tasks.cc
++++ b/chrome/browser/ash/file_manager/app_service_file_tasks.cc
+@@ -115,12 +115,15 @@ bool FileHandlerIsEnabled(Profile* profile,
+   if (app_id != kFileManagerSwaAppId) {
+     return true;
+   }
+-  // Crostini deb files and backup files can be disabled by policy.
++  // Crostini deb files and backup files can be disabled by policy, and
++  // need Crostini (NickelOS has none).
+   if (file_handler_id == kInstallLinuxPackageHandlerId) {
+-    return crostini::CrostiniFeatures::Get()->IsRootAccessAllowed(profile);
++    return crostini::CrostiniFeatures::Get()->CouldBeAllowed(profile) &&
++           crostini::CrostiniFeatures::Get()->IsRootAccessAllowed(profile);
+   }
+   if (file_handler_id == kImportCrostiniImageHandlerId) {
+-    return crostini::CrostiniFeatures::Get()->IsExportImportUIAllowed(profile);
++    return crostini::CrostiniFeatures::Get()->CouldBeAllowed(profile) &&
++           crostini::CrostiniFeatures::Get()->IsExportImportUIAllowed(profile);
+   }
+   return true;
+ }
+diff --git a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
+index 5cd99c1..365791c 100644
+--- a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
++++ b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
+@@ -319,7 +319,9 @@
+         </cr-link-row>
+       </settings-card>
+ 
+-      <crostini-settings-card prefs="{{prefs}}"></crostini-settings-card>
++      <template is="dom-if" if="[[showDevelopersCard_]]" restamp>
++        <crostini-settings-card prefs="{{prefs}}"></crostini-settings-card>
++      </template>
+ 
+       <settings-card id="copyrightCard">
+         <div class="settings-box padded block first">
+diff --git a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts
+index f377aa6..1ada440 100644
+--- a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts
++++ b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts
+@@ -182,6 +182,19 @@ export class OsAboutPageElement extends OsAboutPageBase {
+         value: false,
+       },
+ 
++      /**
++       * The Developers card ("Linux development environment") is about Linux
++       * in a VM; on NickelOS, which has none, it would only say "not
++       * supported".
++       */
++      showDevelopersCard_: {
++        type: Boolean,
++        value() {
++          return isCrostiniSupported() ||
++              loadTimeData.getBoolean('showBruschetta');
++        },
++      },
++
+       showUpdateStatus_: {
+         type: Boolean,
+         value: false,
+@@ -306,6 +319,7 @@ export class OsAboutPageElement extends OsAboutPageBase {
+   declare private hasInternetConnection_: boolean;
+   declare private firmwareUpdateCount_: number;
+   declare private showCrostiniLicense_: boolean;
++  declare private showDevelopersCard_: boolean;
+   declare private showUpdateStatus_: boolean;
+   declare private showButtonContainer_: boolean;
+   declare private showRelaunch_: boolean;
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/crostini/crostini_section.cc b/chrome/browser/ui/webui/ash/settings/pages/crostini/crostini_section.cc
+index f78193c..3b0cbe8 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/crostini/crostini_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/crostini/crostini_section.cc
+@@ -638,6 +638,11 @@ void CrostiniSection::UpdateSearchTags() {
+   updater.RemoveSearchTags(GetCrostiniPortForwardingSearchConcepts());
+   updater.RemoveSearchTags(GetCrostiniDiskResizingSearchConcepts());
+ 
++  // NickelOS: nothing to set up where Crostini can't be.
++  if (!crostini::CrostiniFeatures::Get()->CouldBeAllowed(profile_)) {
++    return;
++  }
++
+   if (!crostini::CrostiniFeatures::Get()->IsAllowedNow(profile_) ||
+       !pref_service_->GetBoolean(crostini::prefs::kCrostiniEnabled)) {
+     updater.AddSearchTags(GetCrostiniOptedOutSearchConcepts());

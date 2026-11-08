@@ -1,0 +1,15 @@
+[Unit]
+Description=NickelOS binary package server (development; localhost only)
+After=network.target
+
+[Service]
+User=nickel
+# Layout matches dev_install: <binhost>/<board>/<version>/packages/<cat>/<pkg>.tbz2
+# Test VMs reach it as http://10.0.2.2:8090 (QEMU user-net maps that to the
+# host's loopback). Not exposed on the network.
+ExecStartPre=/usr/local/bin/nickel-binhost-sync
+ExecStart=/usr/bin/python3 -m http.server 8090 --bind 127.0.0.1 --directory /srv/nickel/binhost
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

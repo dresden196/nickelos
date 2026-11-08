@@ -1,0 +1,6 @@
+Google's security patches to util-linux, carried onto Gentoo's (Portage
+applies this directory when it builds util-linux, in the Unified root and on
+the device): mount/umount don't canonicalize paths (b/194944898,
+b/226186168), nsenter won't follow a symlinked target (b/226186172; ported
+to 2.42). Google's losetup-autoclear isn't carried: it doesn't apply to 2.42
+and nothing in ChromeOS uses it.

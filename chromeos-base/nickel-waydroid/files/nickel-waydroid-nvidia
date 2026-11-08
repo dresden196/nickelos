@@ -1,0 +1,106 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# NVIDIA: Android draws through waydroid-nvidia (app-containers/
+# waydroid-nvidia), as its waydroid-nvidia-setup sets it up by hand: Android's
+# NVIDIA files unpacked into Waydroid's directory and bind-mounted over the
+# image (Waydroid's patch does the mounts), Waydroid told about the NVIDIA
+# render node and the render server's socket (nickel-waydroid-venus runs the
+# server in the session), and Android's graphics properties. Redone when the
+# package, the render node or the vendor image changes. Elsewhere, nothing.
+#
+# Run by nickel-waydroid-prepare; a failure here leaves Android on software
+# rendering and the container manager starting as usual.
+set -e
+W=/var/lib/waydroid
+payload=/usr/share/waydroid-nvidia
+[ -e "${payload}/version" ] || exit 0
+node=
+for u in /sys/class/drm/renderD*/device/uevent; do
+  if grep -qx DRIVER=nvidia "${u}" 2>/dev/null; then
+    node=${u%/device/uevent}
+    node=/dev/dri/${node##*/}
+    break
+  fi
+done
+[ -n "${node}" ] || exit 0
+if [ "$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null)" != Y ]; then
+  echo "nickel-waydroid: nvidia-drm modeset is off: Android stays on software rendering" >&2
+  exit 0
+fi
+# Android loads code from these files (bind-mounted into it), and /var is
+# noexec ("couldn't map segment: Operation not permitted"): they live on the
+# data partition, mounted at nv/ with exec, as Flatpak's apps are.
+NVDATA=/mnt/stateful_partition/nickel/waydroid-nv
+mkdir -p "${NVDATA}" "${W}/nv"
+if ! mountpoint -q "${W}/nv"; then
+  mount --bind "${NVDATA}" "${W}/nv"
+  mount -o remount,bind,exec,nosuid,nodev "${W}/nv"
+fi
+mkdir -p /run/waydroid-venus
+chmod 1777 /run/waydroid-venus
+stamp=${W}/nv/.nickel-setup
+# SETUP_REV: raise it when what this script writes changes, so devices
+# already set up get it too.
+SETUP_REV=2
+want="r${SETUP_REV} $(cat "${payload}/version") ${node} $(stat -c %Y "${W}/images/vendor.img")"
+[ "$(cat "${stamp}" 2>/dev/null)" = "${want}" ] && exit 0
+
+# Android's side needs the vendor image's minigbm gralloc (current images).
+m=$(mktemp -d)
+mount -o loop,ro "${W}/images/vendor.img" "${m}"
+gralloc=no
+[ -f "${m}/lib64/hw/gralloc.minigbm_gbm_mesa.so" ] && gralloc=yes
+umount "${m}"
+rmdir "${m}"
+if [ "${gralloc}" != yes ]; then
+  echo "nickel-waydroid: the vendor image has no minigbm gralloc: Android stays on software rendering (waydroid init -f)" >&2
+  exit 0
+fi
+
+rm -rf "${W}/nv/guest"
+mkdir -p "${W}/nv/guest"
+for t in "${payload}"/*.tar.zst; do
+  tar --zstd --no-same-owner -C "${W}/nv/guest" -xf "${t}"
+done
+NVNODE=${node} python3 - "${W}/waydroid.cfg" <<'PY'
+import configparser, os, sys
+path = sys.argv[1]
+cp = configparser.ConfigParser()
+cp.optionxform = str  # Android properties are case-sensitive
+cp.read(path)
+if not cp.has_section("properties"):
+  cp.add_section("properties")
+for k in list(cp["properties"]):
+  if k == "ro.hardware.gralloc" or k.startswith("gralloc."):
+      cp.remove_option("properties", k)
+for k, v in {
+  "ro.hardware.egl": "angle",
+  "ro.hardware.vulkan": "virtio",
+  "mesa.vn.debug": "vtest",
+  "mesa.vtest.socket.name": "/dev/venus/venus.sock",
+  # Apps' UI through GL on ANGLE, not Vulkan (waydroid-nvidia's default).
+  # The host first refused the Vulkan device Android's UI asks for (every
+  # extension, ray tracing's too, which needs libnvidia-rtcore: shipped by
+  # nvidia-open since r6). With that, the device is made, but frames then
+  # wait on buffers (dequeueBuffer timeouts) until Android's watchdog
+  # restarts it, here on a 6.12 kernel; ANGLE's GL path works.
+  "debug.hwui.renderer": "skiagl",
+  "debug.renderengine.backend": "skiaglthreaded",
+  "debug.sf.nobootanimation": "1",
+  "persist.waydroid.use_subsurface": "true",
+  "ro.surface_flinger.vsync_event_phase_offset_ns": "0",
+  "ro.surface_flinger.vsync_sf_event_phase_offset_ns": "0",
+  "ro.surface_flinger.max_frame_buffer_acquired_buffers": "3",
+}.items():
+  cp.set("properties", k, v)
+cp.set("waydroid", "suspend_action", "none")
+cp.set("waydroid", "drm_device", os.environ["NVNODE"])
+cp.set("waydroid", "nvidia_venus_socket", "/run/waydroid-venus/venus.sock")
+cp.set("waydroid", "nvidia_guest_layout", "2")
+with open(path, "w") as f:
+  cp.write(f)
+PY
+# The container's configuration and Android's properties, from the above.
+waydroid upgrade -o
+echo "${want}" > "${stamp}"

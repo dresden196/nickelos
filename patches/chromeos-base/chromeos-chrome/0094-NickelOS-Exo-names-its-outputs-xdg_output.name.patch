@@ -1,0 +1,46 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Exo names its outputs (xdg_output.name)
+
+Exo offers zxdg_output_manager_v1 version 3 but never sent an output's
+name, which the protocol has required since version 2, once and before the
+first done. Qt 6 counts an output only once its name has come
+(QWaylandScreen::requiredEvents), so every Qt 6 Wayland app found no
+screens and ran on a placeholder ("There are no outputs - creating
+placeholder screen"): Flameshot and ksnip could not take a screenshot
+(found on the NVIDIA test PC, 2026-10-23, with WAYLAND_DEBUG: geometry, mode,
+scale, done, logical position and size, description, no name).
+
+The name is DISPLAY-<display id>, which stays the same for a monitor.
+
+diff --git a/components/exo/wayland/wayland_display_observer.cc b/components/exo/wayland/wayland_display_observer.cc
+index e26b833ac24d5..977603fd2599c 100644
+--- a/components/exo/wayland/wayland_display_observer.cc
++++ b/components/exo/wayland/wayland_display_observer.cc
+@@ -8,6 +8,8 @@
+ #include <wayland-server-protocol-core.h>
+ #include <xdg-output-unstable-v1-server-protocol.h>
+ 
++#include "base/strings/strcat.h"
++#include "base/strings/string_number_conversions.h"
+ #include "components/exo/wayland/output_metrics.h"
+ #include "components/exo/wayland/server_util.h"
+ #include "components/exo/wayland/wayland_display_output.h"
+@@ -125,6 +127,18 @@ void WaylandDisplayHandler::OnXdgOutputCreated(
+ 
+   xdg_output_resource_ = xdg_output_resource;
+ 
++  // NickelOS: the output's name, which xdg_output version 2 and later send
++  // once, before the first done. Qt 6 counts an output only once it has its
++  // name: without one, a Qt app found no screens at all (a placeholder
++  // instead; Flameshot and ksnip could not capture). Named by the display's
++  // id, which stays the same for a monitor.
++  if (wl_resource_get_version(xdg_output_resource_) >=
++      ZXDG_OUTPUT_V1_NAME_SINCE_VERSION) {
++    zxdg_output_v1_send_name(
++        xdg_output_resource_,
++        base::StrCat({"DISPLAY-", base::NumberToString(id())}).c_str());
++  }
++
+   display::Display display;
+   if (!display::Screen::Get()->GetDisplayWithDisplayId(id(), &display)) {
+     return;

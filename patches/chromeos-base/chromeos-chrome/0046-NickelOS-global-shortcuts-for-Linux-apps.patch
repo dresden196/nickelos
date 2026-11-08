@@ -1,0 +1,997 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: global shortcuts for Linux apps
+
+Linux apps get keyboard shortcuts that work while another window has the
+focus (push-to-talk in voice chat, OBS's hotkeys) through the
+GlobalShortcuts portal, whose NickelOS backend asks Chrome:
+
+- VmApplicationsService.NickelShortcutsBind(app id, app name, a(ssuu)
+  shortcuts, h socket): each shortcut's id, description and preferred
+  keys (modifiers, evdev code). Unless the user allowed the same
+  shortcuts for this app before, a ChromeOS system dialog asks, listing
+  them with their keys; selecting a shortcut's keys takes new ones, as
+  ChromeOS's own shortcuts may be (with Ctrl, Alt or Search, or a
+  function key), never keys ChromeOS or another app has. Answers (b
+  allowed, as each shortcut's keys as ChromeOS writes them). The choice
+  is remembered per app (guest_os prefs, nickel.global_shortcuts).
+- NickelGlobalShortcuts, a pre-target handler after ChromeOS's
+  accelerators, takes a bound shortcut's press and release from the
+  focused window and writes them into the socket ("a INDEX MS", "d INDEX
+  MS"); auto-repeat is swallowed. Not while the session is locked. The
+  bindings end when the socket closes; a dialog still open closes then.
+
+The dialog's strings are in ui_chromeos_strings.grd, which few files
+include.
+
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index 50c4e721f46cf..0c52ff93c4003 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -6,6 +6,8 @@ assert(is_chromeos)
+ 
+ static_library("vm") {
+   sources = [
++    "nickel_global_shortcuts.cc",
++    "nickel_global_shortcuts.h",
+     "nickel_notifications.cc",
+     "nickel_notifications.h",
+     "nickel_remote_desktop.cc",
+@@ -71,6 +73,7 @@ static_library("vm") {
+     "//media/capture:capture_lib",
+     "//ui/base/clipboard:file_info",
+     "//ui/base/data_transfer_policy",
++    "//ui/chromeos/strings:strings_grit",
+     "//ui/display/types",
+     "//ui/message_center",
+   ]
+diff --git a/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.cc b/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.cc
+new file mode 100644
+index 0000000000000..86bcb2650312e
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.cc
+@@ -0,0 +1,663 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h"
++
++#include <errno.h>
++#include <sys/socket.h>
++
++#include <optional>
++#include <utility>
++
++#include "ash/public/cpp/accelerators.h"
++#include "ash/session/session_controller_impl.h"
++#include "ash/shell.h"
++#include "ash/style/pill_button.h"
++#include "ash/style/system_dialog_delegate_view.h"
++#include "base/functional/bind.h"
++#include "base/no_destructor.h"
++#include "base/posix/eintr_wrapper.h"
++#include "base/strings/strcat.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/strings/utf_string_conversions.h"
++#include "base/values.h"
++#include "chrome/browser/ash/guest_os/guest_os_pref_names.h"
++#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/profiles/profile_manager.h"
++#include "chrome/grit/generated_resources.h"
++#include "components/prefs/pref_service.h"
++#include "components/prefs/scoped_user_pref_update.h"
++#include "ui/base/l10n/l10n_util.h"
++#include "ui/base/metadata/metadata_header_macros.h"
++#include "ui/base/metadata/metadata_impl_macros.h"
++#include "ui/chromeos/strings/grit/ui_chromeos_strings.h"
++#include "ui/events/event.h"
++#include "ui/events/keycodes/dom/keycode_converter.h"
++#include "ui/events/keycodes/keyboard_code_conversion.h"
++#include "ui/views/controls/label.h"
++#include "ui/views/layout/box_layout_view.h"
++#include "ui/views/metadata/view_factory.h"
++#include "ui/views/widget/widget.h"
++
++namespace ash {
++
++namespace {
++
++constexpr const char* kPref = guest_os::prefs::kNickelGlobalShortcuts;
++constexpr int kModifiers = ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN |
++                           ui::EF_ALT_DOWN | ui::EF_COMMAND_DOWN;
++
++PrefService* Prefs() {
++  Profile* profile = ProfileManager::GetPrimaryUserProfile();
++  return profile ? profile->GetPrefs() : nullptr;
++}
++
++bool IsNone(const ui::Accelerator& accelerator) {
++  return accelerator.key_code() == ui::VKEY_UNKNOWN;
++}
++
++// Keys only held with others.
++bool IsModifierKey(ui::KeyboardCode key) {
++  switch (key) {
++    case ui::VKEY_SHIFT:
++    case ui::VKEY_LSHIFT:
++    case ui::VKEY_RSHIFT:
++    case ui::VKEY_CONTROL:
++    case ui::VKEY_LCONTROL:
++    case ui::VKEY_RCONTROL:
++    case ui::VKEY_MENU:
++    case ui::VKEY_LMENU:
++    case ui::VKEY_RMENU:
++    case ui::VKEY_LWIN:
++    case ui::VKEY_RWIN:
++    case ui::VKEY_ALTGR:
++    case ui::VKEY_CAPITAL:
++    case ui::VKEY_NUMLOCK:
++      return true;
++    default:
++      return false;
++  }
++}
++
++// As ChromeOS's own shortcuts may be: with Ctrl, Alt or Search, or on a
++// function key; keys that type stay with the window that has the focus.
++bool IsValid(const ui::Accelerator& accelerator) {
++  if (IsNone(accelerator) || IsModifierKey(accelerator.key_code())) {
++    return false;
++  }
++  if (accelerator.modifiers() &
++      (ui::EF_CONTROL_DOWN | ui::EF_ALT_DOWN | ui::EF_COMMAND_DOWN)) {
++    return true;
++  }
++  return accelerator.key_code() >= ui::VKEY_F1 &&
++         accelerator.key_code() <= ui::VKEY_F24;
++}
++
++// The keys the app would like, as the portal backend sends them.
++ui::Accelerator Preferred(const NickelGlobalShortcuts::Shortcut& shortcut) {
++  if (!shortcut.evdev) {
++    return ui::Accelerator();
++  }
++  const ui::KeyboardCode key = ui::DomCodeToUsLayoutKeyboardCode(
++      ui::KeycodeConverter::EvdevCodeToDomCode(shortcut.evdev));
++  int flags = 0;
++  if (shortcut.modifiers & NickelGlobalShortcuts::kShift) {
++    flags |= ui::EF_SHIFT_DOWN;
++  }
++  if (shortcut.modifiers & NickelGlobalShortcuts::kCtrl) {
++    flags |= ui::EF_CONTROL_DOWN;
++  }
++  if (shortcut.modifiers & NickelGlobalShortcuts::kAlt) {
++    flags |= ui::EF_ALT_DOWN;
++  }
++  if (shortcut.modifiers & NickelGlobalShortcuts::kLogo) {
++    flags |= ui::EF_COMMAND_DOWN;
++  }
++  return ui::Accelerator(key, flags);
++}
++
++std::vector<std::string> Triggers(const std::vector<ui::Accelerator>& keys) {
++  std::vector<std::string> triggers;
++  for (const ui::Accelerator& key : keys) {
++    triggers.push_back(IsNone(key) ? std::string()
++                                   : base::UTF16ToUTF8(key.GetShortcutText()));
++  }
++  return triggers;
++}
++
++std::u16string ButtonText(const ui::Accelerator& accelerator) {
++  return IsNone(accelerator)
++             ? l10n_util::GetStringUTF16(IDS_NICKEL_GLOBAL_SHORTCUTS_NONE)
++             : accelerator.GetShortcutText();
++}
++
++std::u16string DisplayName(const std::string& app_name) {
++  return app_name.empty()
++             ? l10n_util::GetStringUTF16(
++                   IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST)
++             : base::UTF8ToUTF16(app_name);
++}
++
++}  // namespace
++
++class NickelKeyButton;
++
++// The dialog's list: each shortcut's description and a button with its
++// keys; selecting the button takes the next keys pressed.
++class NickelShortcutList : public views::BoxLayoutView {
++  METADATA_HEADER(NickelShortcutList, views::BoxLayoutView)
++
++ public:
++  NickelShortcutList(
++      const std::string& app_id,
++      const std::vector<NickelGlobalShortcuts::Shortcut>& shortcuts,
++      std::vector<ui::Accelerator> keys);
++  NickelShortcutList(const NickelShortcutList&) = delete;
++  NickelShortcutList& operator=(const NickelShortcutList&) = delete;
++  ~NickelShortcutList() override;
++
++  const std::vector<ui::Accelerator>& keys() const { return keys_; }
++
++  bool Capturing(size_t index) const { return capturing_ == index; }
++  void StartCapture(size_t index);
++  void StopCapture();
++  // A key pressed while |index| takes keys.
++  void OnCapturedKey(size_t index, const ui::KeyEvent& event);
++
++ private:
++  void UpdateButton(size_t index);
++
++  std::string app_id_;
++  std::vector<ui::Accelerator> keys_;
++  std::vector<raw_ptr<NickelKeyButton>> buttons_;
++  raw_ptr<views::Label> hint_ = nullptr;
++  std::optional<size_t> capturing_;
++};
++
++class NickelKeyButton : public PillButton {
++  METADATA_HEADER(NickelKeyButton, PillButton)
++
++ public:
++  NickelKeyButton(NickelShortcutList* list, size_t index)
++      : PillButton(PressedCallback(),
++                   std::u16string(),
++                   PillButton::Type::kSecondaryWithoutIcon),
++        list_(list),
++        index_(index) {
++    SetCallback(base::BindRepeating(&NickelKeyButton::OnPressed,
++                                    base::Unretained(this)));
++  }
++  NickelKeyButton(const NickelKeyButton&) = delete;
++  NickelKeyButton& operator=(const NickelKeyButton&) = delete;
++  ~NickelKeyButton() override = default;
++
++  // views::View: while taking keys, every key comes here, Tab and Escape
++  // too.
++  bool SkipDefaultKeyEventProcessing(const ui::KeyEvent& event) override {
++    return list_->Capturing(index_) ||
++           PillButton::SkipDefaultKeyEventProcessing(event);
++  }
++  bool OnKeyPressed(const ui::KeyEvent& event) override {
++    if (list_->Capturing(index_)) {
++      list_->OnCapturedKey(index_, event);
++      return true;
++    }
++    return PillButton::OnKeyPressed(event);
++  }
++  bool OnKeyReleased(const ui::KeyEvent& event) override {
++    return list_->Capturing(index_) || PillButton::OnKeyReleased(event);
++  }
++  void OnBlur() override {
++    if (list_->Capturing(index_)) {
++      list_->StopCapture();
++    }
++    PillButton::OnBlur();
++  }
++
++ private:
++  void OnPressed() {
++    if (!list_->Capturing(index_)) {
++      list_->StartCapture(index_);
++      RequestFocus();
++    }
++  }
++
++  raw_ptr<NickelShortcutList> list_;
++  size_t index_;
++};
++
++BEGIN_METADATA(NickelKeyButton)
++END_METADATA
++
++NickelShortcutList::NickelShortcutList(
++    const std::string& app_id,
++    const std::vector<NickelGlobalShortcuts::Shortcut>& shortcuts,
++    std::vector<ui::Accelerator> keys)
++    : app_id_(app_id), keys_(std::move(keys)) {
++  SetOrientation(views::BoxLayout::Orientation::kVertical);
++  SetBetweenChildSpacing(8);
++  SetCrossAxisAlignment(views::BoxLayout::CrossAxisAlignment::kStretch);
++  for (size_t i = 0; i < shortcuts.size(); ++i) {
++    auto* row = AddChildView(std::make_unique<views::BoxLayoutView>());
++    row->SetOrientation(views::BoxLayout::Orientation::kHorizontal);
++    row->SetBetweenChildSpacing(16);
++    row->SetCrossAxisAlignment(views::BoxLayout::CrossAxisAlignment::kCenter);
++    const std::string& text = shortcuts[i].description.empty()
++                                  ? shortcuts[i].id
++                                  : shortcuts[i].description;
++    auto* label = row->AddChildView(
++        std::make_unique<views::Label>(base::UTF8ToUTF16(text)));
++    label->SetHorizontalAlignment(gfx::ALIGN_LEFT);
++    label->SetElideBehavior(gfx::ELIDE_TAIL);
++    row->SetFlexForView(label, 1);
++    buttons_.push_back(
++        row->AddChildView(std::make_unique<NickelKeyButton>(this, i)));
++    UpdateButton(i);
++  }
++  hint_ = AddChildView(std::make_unique<views::Label>(
++      l10n_util::GetStringUTF16(IDS_NICKEL_GLOBAL_SHORTCUTS_HINT)));
++  hint_->SetHorizontalAlignment(gfx::ALIGN_LEFT);
++  hint_->SetMultiLine(true);
++  hint_->SetTextStyle(views::style::STYLE_SECONDARY);
++}
++
++NickelShortcutList::~NickelShortcutList() {
++  // The buttons may lose the focus as they go: nothing to stop by then.
++  if (capturing_) {
++    capturing_.reset();
++    NickelGlobalShortcuts::Get()->SetCapturing(false);
++  }
++  buttons_.clear();
++  hint_ = nullptr;
++  RemoveAllChildViews();
++}
++
++void NickelShortcutList::StartCapture(size_t index) {
++  StopCapture();
++  capturing_ = index;
++  NickelGlobalShortcuts::Get()->SetCapturing(true);
++  buttons_[index]->SetText(
++      l10n_util::GetStringUTF16(IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS));
++}
++
++void NickelShortcutList::StopCapture() {
++  if (!capturing_) {
++    return;
++  }
++  const size_t index = *capturing_;
++  capturing_.reset();
++  NickelGlobalShortcuts::Get()->SetCapturing(false);
++  UpdateButton(index);
++  hint_->SetText(l10n_util::GetStringUTF16(IDS_NICKEL_GLOBAL_SHORTCUTS_HINT));
++}
++
++void NickelShortcutList::OnCapturedKey(size_t index, const ui::KeyEvent& event) {
++  const ui::KeyboardCode key = event.key_code();
++  const int flags = event.flags() & kModifiers;
++  if (IsModifierKey(key)) {
++    // The rest of the keys are still to come.
++    return;
++  }
++  if (!flags && key == ui::VKEY_ESCAPE) {
++    StopCapture();
++    return;
++  }
++  if (!flags && (key == ui::VKEY_BACK || key == ui::VKEY_DELETE)) {
++    keys_[index] = ui::Accelerator();
++    StopCapture();
++    return;
++  }
++  const ui::Accelerator accelerator(key, flags);
++  if (!IsValid(accelerator)) {
++    hint_->SetText(
++        l10n_util::GetStringUTF16(IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER));
++    return;
++  }
++  if (!NickelGlobalShortcuts::Get()->IsAvailable(accelerator, app_id_)) {
++    hint_->SetText(l10n_util::GetStringUTF16(IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN));
++    return;
++  }
++  // Keys go to one shortcut: another that had them has none now.
++  for (size_t i = 0; i < keys_.size(); ++i) {
++    if (i != index && keys_[i] == accelerator) {
++      keys_[i] = ui::Accelerator();
++      UpdateButton(i);
++    }
++  }
++  keys_[index] = accelerator;
++  StopCapture();
++}
++
++void NickelShortcutList::UpdateButton(size_t index) {
++  buttons_[index]->SetText(ButtonText(keys_[index]));
++}
++
++BEGIN_METADATA(NickelShortcutList)
++END_METADATA
++
++struct NickelGlobalShortcuts::Binding {
++  int serial = 0;
++  std::string app_id;
++  std::vector<ui::Accelerator> keys;
++  base::ScopedFD socket;
++  std::unique_ptr<base::FileDescriptorWatcher::Controller> watch;
++};
++
++struct NickelGlobalShortcuts::Pending {
++  int serial = 0;
++  std::string app_id;
++  std::string app_name;
++  std::vector<Shortcut> shortcuts;
++  // Proposed, then as the user chose.
++  std::vector<ui::Accelerator> keys;
++  base::ScopedFD socket;
++  std::unique_ptr<base::FileDescriptorWatcher::Controller> watch;
++  BindCallback callback;
++  // The dialog, while it shows.
++  raw_ptr<views::Widget> widget = nullptr;
++  raw_ptr<NickelShortcutList> list = nullptr;
++};
++
++// static
++NickelGlobalShortcuts* NickelGlobalShortcuts::Get() {
++  static base::NoDestructor<NickelGlobalShortcuts> shortcuts;
++  return shortcuts.get();
++}
++
++NickelGlobalShortcuts::NickelGlobalShortcuts() = default;
++
++NickelGlobalShortcuts::~NickelGlobalShortcuts() = default;
++
++void NickelGlobalShortcuts::Bind(const std::string& app_id,
++                                 const std::string& app_name,
++                                 std::vector<Shortcut> shortcuts,
++                                 base::ScopedFD socket,
++                                 BindCallback callback) {
++  if (!socket.is_valid() || shortcuts.empty() || !Shell::HasInstance()) {
++    std::move(callback).Run(false, {});
++    return;
++  }
++  auto pending = std::make_unique<Pending>();
++  pending->serial = next_serial_++;
++  pending->app_id = app_id;
++  pending->app_name = app_name;
++  pending->socket = std::move(socket);
++  pending->callback = std::move(callback);
++  // What the user chose for this app before, if anything.
++  const base::DictValue* remembered = nullptr;
++  PrefService* prefs = Prefs();
++  if (prefs && !app_id.empty()) {
++    remembered = prefs->GetDict(kPref).FindDict(app_id);
++  }
++  bool ask = !remembered;
++  for (const Shortcut& shortcut : shortcuts) {
++    const base::DictValue* entry =
++        remembered ? remembered->FindDict(shortcut.id) : nullptr;
++    ui::Accelerator key;
++    if (entry) {
++      key = ui::Accelerator(
++          static_cast<ui::KeyboardCode>(entry->FindInt("key").value_or(0)),
++          entry->FindInt("flags").value_or(0) & kModifiers);
++    } else {
++      ask = true;
++      key = Preferred(shortcut);
++    }
++    if (!IsNone(key) && (!IsValid(key) || !IsAvailable(key, app_id))) {
++      // Taken since, or keys ChromeOS keeps: the user chooses again.
++      ask = ask || entry;
++      key = ui::Accelerator();
++    }
++    for (const ui::Accelerator& earlier : pending->keys) {
++      if (!IsNone(key) && earlier == key) {
++        key = ui::Accelerator();
++      }
++    }
++    pending->keys.push_back(key);
++  }
++  pending->shortcuts = std::move(shortcuts);
++  if (ask) {
++    Ask(std::move(pending));
++    return;
++  }
++  // Allowed before, as they are: bound without asking.
++  auto binding = std::make_unique<Binding>();
++  binding->serial = pending->serial;
++  binding->app_id = pending->app_id;
++  binding->keys = pending->keys;
++  binding->socket = std::move(pending->socket);
++  std::move(pending->callback).Run(true, Triggers(binding->keys));
++  Add(std::move(binding));
++}
++
++bool NickelGlobalShortcuts::IsAvailable(const ui::Accelerator& accelerator,
++                                        const std::string& app_id) const {
++  // ChromeOS's own shortcuts.
++  AcceleratorController* controller = AcceleratorController::Get();
++  if (controller && controller->IsRegistered(accelerator)) {
++    return false;
++  }
++  // Other apps'. An app bound twice (started twice) shares its keys.
++  for (const auto& [serial, binding] : bindings_) {
++    if (!app_id.empty() && binding->app_id == app_id) {
++      continue;
++    }
++    for (const ui::Accelerator& key : binding->keys) {
++      if (key == accelerator) {
++        return false;
++      }
++    }
++  }
++  return true;
++}
++
++void NickelGlobalShortcuts::SetCapturing(bool capturing) {
++  capturing_ += capturing ? 1 : -1;
++}
++
++void NickelGlobalShortcuts::Ask(std::unique_ptr<Pending> pending) {
++  const int serial = pending->serial;
++  Pending* p = pending.get();
++  pending_[serial] = std::move(pending);
++  // The portal backend closes its end when the app's session ends.
++  p->watch = base::FileDescriptorWatcher::WatchReadable(
++      p->socket.get(),
++      base::BindRepeating(&NickelGlobalShortcuts::OnPendingSocket,
++                          base::Unretained(this), serial));
++  auto list =
++      std::make_unique<NickelShortcutList>(p->app_id, p->shortcuts, p->keys);
++  p->list = list.get();
++  auto dialog =
++      views::Builder<SystemDialogDelegateView>()
++          .SetTitleText(
++              l10n_util::GetStringUTF16(IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE))
++          .SetDescription(l10n_util::GetStringFUTF16(
++              IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE, DisplayName(p->app_name)))
++          .SetAcceptButtonText(
++              l10n_util::GetStringUTF16(IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW))
++          .SetCancelButtonText(
++              l10n_util::GetStringUTF16(IDS_NICKEL_GLOBAL_SHORTCUTS_DENY))
++          .SetAcceptCallback(base::BindOnce(
++              &NickelGlobalShortcuts::OnDialogDone, base::Unretained(this),
++              serial, true))
++          .SetCancelCallback(base::BindOnce(
++              &NickelGlobalShortcuts::OnDialogDone, base::Unretained(this),
++              serial, false))
++          .SetCloseCallback(base::BindOnce(&NickelGlobalShortcuts::OnDialogDone,
++                                           base::Unretained(this), serial,
++                                           false))
++          .SetModalType(ui::mojom::ModalType::kSystem)
++          .Build();
++  dialog->SetMiddleContentView(std::move(list));
++  dialog->SetMiddleContentAlignment(views::LayoutAlignment::kStretch);
++  views::Widget::InitParams params(
++      views::Widget::InitParams::NATIVE_WIDGET_OWNS_WIDGET,
++      views::Widget::InitParams::TYPE_WINDOW_FRAMELESS);
++  params.context = Shell::GetPrimaryRootWindow();
++  params.delegate = dialog.release();
++  params.name = "NickelGlobalShortcuts";
++  p->widget = new views::Widget();
++  p->widget->Init(std::move(params));
++  p->widget->Show();
++}
++
++void NickelGlobalShortcuts::OnDialogDone(int serial, bool allowed) {
++  auto it = pending_.find(serial);
++  if (it == pending_.end()) {
++    return;
++  }
++  std::unique_ptr<Pending> p = std::move(it->second);
++  pending_.erase(it);
++  if (allowed && p->list) {
++    p->keys = p->list->keys();
++  }
++  p->list = nullptr;
++  p->widget = nullptr;
++  p->watch.reset();
++  if (!allowed || !p->socket.is_valid()) {
++    std::move(p->callback).Run(false, {});
++    return;
++  }
++  // Bound while the dialog showed: taken.
++  for (ui::Accelerator& key : p->keys) {
++    if (!IsNone(key) && !IsAvailable(key, p->app_id)) {
++      key = ui::Accelerator();
++    }
++  }
++  PrefService* prefs = Prefs();
++  if (prefs && !p->app_id.empty()) {
++    base::DictValue chosen;
++    for (size_t i = 0; i < p->shortcuts.size(); ++i) {
++      chosen.Set(p->shortcuts[i].id,
++                 base::DictValue()
++                     .Set("key", static_cast<int>(p->keys[i].key_code()))
++                     .Set("flags", p->keys[i].modifiers()));
++    }
++    ScopedDictPrefUpdate update(prefs, kPref);
++    update->Set(p->app_id, std::move(chosen));
++  }
++  auto binding = std::make_unique<Binding>();
++  binding->serial = p->serial;
++  binding->app_id = p->app_id;
++  binding->keys = p->keys;
++  binding->socket = std::move(p->socket);
++  std::move(p->callback).Run(true, Triggers(binding->keys));
++  Add(std::move(binding));
++}
++
++void NickelGlobalShortcuts::OnPendingSocket(int serial) {
++  auto it = pending_.find(serial);
++  if (it == pending_.end()) {
++    return;
++  }
++  Pending* p = it->second.get();
++  p->watch.reset();
++  p->socket.reset();
++  // Its close callback answers.
++  if (p->widget) {
++    p->widget->Close();
++  }
++}
++
++void NickelGlobalShortcuts::Add(std::unique_ptr<Binding> binding) {
++  binding->watch = base::FileDescriptorWatcher::WatchReadable(
++      binding->socket.get(),
++      base::BindRepeating(&NickelGlobalShortcuts::OnSocket,
++                          base::Unretained(this), binding->serial));
++  bindings_[binding->serial] = std::move(binding);
++  if (!observing_ && Shell::HasInstance()) {
++    // After ChromeOS's own shortcuts (AcceleratorFilter), before the window
++    // with the focus.
++    Shell::Get()->AddPreTargetHandler(this);
++    observing_ = true;
++  }
++}
++
++void NickelGlobalShortcuts::OnSocket(int serial) {
++  auto it = bindings_.find(serial);
++  if (it == bindings_.end()) {
++    return;
++  }
++  // The backend only ever closes its end.
++  char buffer[16];
++  ssize_t n = HANDLE_EINTR(
++      recv(it->second->socket.get(), buffer, sizeof(buffer), MSG_DONTWAIT));
++  if (n < 0 && errno == EAGAIN) {
++    return;
++  }
++  Remove(serial);
++}
++
++void NickelGlobalShortcuts::Remove(int serial) {
++  std::erase_if(held_, [serial](const Held& held) {
++    return held.serial == serial;
++  });
++  bindings_.erase(serial);
++  if (bindings_.empty() && observing_ && Shell::HasInstance()) {
++    Shell::Get()->RemovePreTargetHandler(this);
++    observing_ = false;
++  }
++}
++
++void NickelGlobalShortcuts::Send(Binding* binding,
++                                 char kind,
++                                 size_t index,
++                                 base::TimeTicks time) {
++  const std::string message = base::StrCat(
++      {std::string(1, kind), " ", base::NumberToString(index), " ",
++       base::NumberToString((time - base::TimeTicks()).InMilliseconds())});
++  HANDLE_EINTR(send(binding->socket.get(), message.data(), message.size(),
++                    MSG_DONTWAIT | MSG_NOSIGNAL));
++}
++
++void NickelGlobalShortcuts::OnKeyEvent(ui::KeyEvent* event) {
++  if (event->type() == ui::EventType::kKeyReleased) {
++    bool held = false;
++    for (auto it = held_.begin(); it != held_.end();) {
++      if (it->key != event->key_code()) {
++        ++it;
++        continue;
++      }
++      auto binding = bindings_.find(it->serial);
++      if (binding != bindings_.end()) {
++        Send(binding->second.get(), 'd', it->index, event->time_stamp());
++      }
++      it = held_.erase(it);
++      held = true;
++    }
++    if (held) {
++      event->StopPropagation();
++    }
++    return;
++  }
++  if (event->type() != ui::EventType::kKeyPressed) {
++    return;
++  }
++  // Held down: the key repeats.
++  for (const Held& held : held_) {
++    if (held.key == event->key_code()) {
++      event->StopPropagation();
++      return;
++    }
++  }
++  if (capturing_ || Shell::Get()->session_controller()->IsUserSessionBlocked()) {
++    return;
++  }
++  const ui::Accelerator pressed(event->key_code(),
++                                event->flags() & kModifiers);
++  bool matched = false;
++  for (auto& [serial, binding] : bindings_) {
++    for (size_t i = 0; i < binding->keys.size(); ++i) {
++      if (!IsNone(binding->keys[i]) && binding->keys[i] == pressed) {
++        Send(binding.get(), 'a', i, event->time_stamp());
++        held_.push_back({event->key_code(), serial, i});
++        matched = true;
++      }
++    }
++  }
++  if (matched) {
++    event->StopPropagation();
++  }
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h b/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h
+new file mode 100644
+index 0000000000000..db3ea97e38809
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h
+@@ -0,0 +1,105 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_DBUS_VM_NICKEL_GLOBAL_SHORTCUTS_H_
++#define CHROME_BROWSER_ASH_DBUS_VM_NICKEL_GLOBAL_SHORTCUTS_H_
++
++#include <cstdint>
++#include <map>
++#include <memory>
++#include <string>
++#include <vector>
++
++#include "base/files/file_descriptor_watcher_posix.h"
++#include "base/files/scoped_file.h"
++#include "base/functional/callback.h"
++#include "ui/base/accelerators/accelerator.h"
++#include "ui/events/event_handler.h"
++
++namespace ash {
++
++// NickelOS: global shortcuts for Linux apps (the GlobalShortcuts portal:
++// push-to-talk in voice chat, OBS's hotkeys), shortcuts that work while
++// another window has the focus. NickelOS's portal backend binds an app's
++// shortcuts through VmApplicationsService; the user allows them in a
++// ChromeOS dialog, where each one's keys can be changed, and the answer is
++// remembered for the app (guest_os::prefs::kNickelGlobalShortcuts).
++// ChromeOS's own shortcuts come first: their keys are never given to an
++// app. A bound shortcut's key press and release go to the backend through
++// the socket that came with the call, never to the window with the focus;
++// the bindings last until that socket closes.
++class NickelGlobalShortcuts : public ui::EventHandler {
++ public:
++  // One shortcut the app asks for, with the keys it would like: modifiers
++  // (kShift, kCtrl, kAlt, kLogo) and an evdev key code, 0 for none.
++  struct Shortcut {
++    std::string id;
++    std::string description;
++    uint32_t modifiers = 0;
++    uint32_t evdev = 0;
++  };
++  static constexpr uint32_t kShift = 1;
++  static constexpr uint32_t kCtrl = 2;
++  static constexpr uint32_t kAlt = 4;
++  static constexpr uint32_t kLogo = 8;
++
++  // Answers whether the user allowed the shortcuts and, if so, each one's
++  // keys as ChromeOS writes them ("Ctrl+Alt+A"), "" for none.
++  using BindCallback =
++      base::OnceCallback<void(bool allowed,
++                              const std::vector<std::string>& triggers)>;
++
++  static NickelGlobalShortcuts* Get();
++
++  NickelGlobalShortcuts();
++  NickelGlobalShortcuts(const NickelGlobalShortcuts&) = delete;
++  NickelGlobalShortcuts& operator=(const NickelGlobalShortcuts&) = delete;
++  ~NickelGlobalShortcuts() override;
++
++  // |app_id| (Flatpak's, "" if not known) is what the answer is remembered
++  // by; |app_name| is what the dialog calls the app.
++  void Bind(const std::string& app_id,
++            const std::string& app_name,
++            std::vector<Shortcut> shortcuts,
++            base::ScopedFD socket,
++            BindCallback callback);
++
++  // For the dialog: whether |accelerator| may be bound for |app_id|, and
++  // pausing the bindings while it takes keys.
++  bool IsAvailable(const ui::Accelerator& accelerator,
++                   const std::string& app_id) const;
++  void SetCapturing(bool capturing);
++
++  // ui::EventHandler:
++  void OnKeyEvent(ui::KeyEvent* event) override;
++
++ private:
++  struct Binding;
++  struct Pending;
++
++  void Ask(std::unique_ptr<Pending> pending);
++  void OnDialogDone(int serial, bool allowed);
++  void OnPendingSocket(int serial);
++  void Add(std::unique_ptr<Binding> binding);
++  void OnSocket(int serial);
++  void Remove(int serial);
++  void Send(Binding* binding, char kind, size_t index, base::TimeTicks time);
++
++  int next_serial_ = 1;
++  std::map<int, std::unique_ptr<Binding>> bindings_;
++  std::map<int, std::unique_ptr<Pending>> pending_;
++  // Shortcuts held down: their key, binding and place in it.
++  struct Held {
++    ui::KeyboardCode key;
++    int serial;
++    size_t index;
++  };
++  std::vector<Held> held_;
++  int capturing_ = 0;
++  bool observing_ = false;
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_ASH_DBUS_VM_NICKEL_GLOBAL_SHORTCUTS_H_
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index d9b08150f691b..eb768c493b836 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -21,6 +21,7 @@
+ #include "chrome/browser/ash/borealis/borealis_service.h"
+ #include "chrome/browser/ash/crostini/crostini_features.h"
+ #include "chrome/browser/ash/crostini/crostini_util.h"
++#include "chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_notifications.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_tray.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_remote_desktop.h"
+@@ -159,6 +160,9 @@ constexpr char kNickelNotifyCloseMethod[] = "NickelNotifyClose";
+ // (NickelTray).
+ constexpr char kNickelTrayItemMethod[] = "NickelTrayItem";
+ constexpr char kNickelTrayItemRemovedMethod[] = "NickelTrayItemRemoved";
++// NickelOS: called by the GlobalShortcuts portal's backend
++// (NickelGlobalShortcuts).
++constexpr char kNickelShortcutsBindMethod[] = "NickelShortcutsBind";
+ 
+ }  // namespace
+ 
+@@ -273,6 +277,13 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelShortcutsBindMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelShortcutsBind,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+ }
+ 
+ void VmApplicationsServiceProvider::OnExported(
+@@ -594,6 +605,53 @@ void VmApplicationsServiceProvider::NickelTrayItemRemoved(
+   std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
+ }
+ 
++// NickelOS: the GlobalShortcuts portal's backend binds an app's shortcuts:
++// (app id, app name, a(ssuu) shortcuts: id, description, modifiers, evdev
++// code of the preferred key, h socket the key events go into). Answers once
++// the user decides: (b allowed, as each shortcut's keys, "" for none).
++void VmApplicationsServiceProvider::NickelShortcutsBind(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string app_id;
++  std::string app_name;
++  dbus::MessageReader array(nullptr);
++  base::ScopedFD socket;
++  std::vector<NickelGlobalShortcuts::Shortcut> shortcuts;
++  bool ok = reader.PopString(&app_id) && reader.PopString(&app_name) &&
++            reader.PopArray(&array);
++  while (ok && array.HasMoreData()) {
++    dbus::MessageReader entry(nullptr);
++    NickelGlobalShortcuts::Shortcut shortcut;
++    ok = array.PopStruct(&entry) && entry.PopString(&shortcut.id) &&
++         entry.PopString(&shortcut.description) &&
++         entry.PopUint32(&shortcut.modifiers) &&
++         entry.PopUint32(&shortcut.evdev);
++    shortcuts.push_back(std::move(shortcut));
++  }
++  if (!ok || !reader.PopFileDescriptor(&socket)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected app id, app name, shortcuts, socket"));
++    return;
++  }
++  NickelGlobalShortcuts::Get()->Bind(
++      app_id, app_name, std::move(shortcuts), std::move(socket),
++      base::BindOnce(
++          [](dbus::MethodCall* method_call,
++             dbus::ExportedObject::ResponseSender response_sender,
++             bool allowed, const std::vector<std::string>& triggers) {
++            std::unique_ptr<dbus::Response> response =
++                dbus::Response::FromMethodCall(method_call);
++            dbus::MessageWriter writer(response.get());
++            writer.AppendBool(allowed);
++            writer.AppendArrayOfStrings(triggers);
++            std::move(response_sender).Run(std::move(response));
++          },
++          method_call, std::move(response_sender)));
++}
++
+ void VmApplicationsServiceProvider::LaunchTerminal(
+     dbus::MethodCall* method_call,
+     dbus::ExportedObject::ResponseSender response_sender) {
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index c5a316efcb799..31aa9e3b6f7d5 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -92,6 +92,9 @@ class VmApplicationsServiceProvider
+   void NickelTrayItemRemoved(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelShortcutsBind(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
+ 
+   // Exposed in the header so unit tests can call it.
+   static void ParseSelectFileDialogFileTypes(
+diff --git a/chrome/browser/ash/guest_os/guest_os_pref_names.cc b/chrome/browser/ash/guest_os/guest_os_pref_names.cc
+index 80048d530c34d..018f3920835a1 100644
+--- a/chrome/browser/ash/guest_os/guest_os_pref_names.cc
++++ b/chrome/browser/ash/guest_os/guest_os_pref_names.cc
+@@ -13,6 +13,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+   registry->RegisterDictionaryPref(kGuestOSPathsSharedToVms);
+   registry->RegisterDictionaryPref(kGuestOsMimeTypes);
+   registry->RegisterDictionaryPref(kGuestOsRegistry);
++  registry->RegisterDictionaryPref(kNickelGlobalShortcuts);
+   registry->RegisterListPref(kGuestOsContainers);
+   registry->RegisterDictionaryPref(
+       kGuestOsTerminalSettings,
+diff --git a/chrome/browser/ash/guest_os/guest_os_pref_names.h b/chrome/browser/ash/guest_os/guest_os_pref_names.h
+index f88e570285b71..4caabe6de8d58 100644
+--- a/chrome/browser/ash/guest_os/guest_os_pref_names.h
++++ b/chrome/browser/ash/guest_os/guest_os_pref_names.h
+@@ -26,6 +26,11 @@ inline constexpr char kContainerNameKey[] = "container_name";
+ // Registry of installed app for each VM/container.
+ inline constexpr char kGuestOsRegistry[] = "crostini.registry";
+ 
++// NickelOS: the global shortcuts the user allowed Linux apps
++// (NickelGlobalShortcuts), per app id: each shortcut's id, with its keys
++// ({"key": KeyboardCode, "flags": modifiers}; key 0 for none).
++inline constexpr char kNickelGlobalShortcuts[] = "nickel.global_shortcuts";
++
+ // Keys for the |kGuestOsRegistry| Dictionary stored in prefs for each app.
+ inline constexpr char kAppDesktopFileIdKey[] = "desktop_file_id";
+ inline constexpr char kAppExtensionsKey[] = "extensions";
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index 97e6317fb2c5c..13cdd4a75c80a 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -1969,6 +1969,34 @@
+       <message name="IDS_FROZEN_UPDATE_DISMISS_BUTTON" desc="A button label shown in the notification for frozen update status change to dismiss the notification.">
+         Don't remind me again
+       </message>
++      <!-- NickelOS: global shortcuts for Linux apps (NickelGlobalShortcuts). -->
++      <message name="IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE" desc="NickelOS: title of the question whether a Linux app may have keyboard shortcuts that work while other apps are in use (push-to-talk in voice chat).">
++        Allow keyboard shortcuts?
++      </message>
++      <message name="IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE" desc="NickelOS: the question whether a Linux app may have keyboard shortcuts that work while other apps are in use; the shortcuts and their keys follow.">
++        <ph name="APP_NAME">$1<ex>Discord</ex></ph> wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.
++      </message>
++      <message name="IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW" desc="NickelOS: button that gives a Linux app the keyboard shortcuts it asked for.">
++        Allow
++      </message>
++      <message name="IDS_NICKEL_GLOBAL_SHORTCUTS_DENY" desc="NickelOS: button that refuses a Linux app the keyboard shortcuts it asked for.">
++        Don't allow
++      </message>
++      <message name="IDS_NICKEL_GLOBAL_SHORTCUTS_NONE" desc="NickelOS: in the list of a Linux app's keyboard shortcuts, a shortcut that has no keys.">
++        Not set
++      </message>
++      <message name="IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS" desc="NickelOS: in the list of a Linux app's keyboard shortcuts, the shortcut waiting for the user to press its new keys.">
++        Press keys…
++      </message>
++      <message name="IDS_NICKEL_GLOBAL_SHORTCUTS_HINT" desc="NickelOS: under the list of a Linux app's keyboard shortcuts: how to change a shortcut's keys.">
++        To change a shortcut, select its keys and press new ones. Backspace removes it.
++      </message>
++      <message name="IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER" desc="NickelOS: the keys the user pressed for a Linux app's shortcut would type text; a shortcut needs Ctrl, Alt or Search, or a function key.">
++        Use Ctrl, Alt or Search with the key, or a function key.
++      </message>
++      <message name="IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN" desc="NickelOS: the keys the user pressed for a Linux app's shortcut already belong to ChromeOS or another app.">
++        Those keys are already in use. Try others.
++      </message>
+     </messages>
+   </release>
+ </grit>

@@ -1,0 +1,240 @@
+--- a/src/plugins/findmyphone/meson.build
++++ b/src/plugins/findmyphone/meson.build
+@@ -1,18 +1,9 @@
+ # SPDX-License-Identifier: GPL-3.0-or-later
+ # SPDX-FileCopyrightText: Andy Holmes <andrew.g.r.holmes@gmail.com>
+ 
+-# Require GStreamer for ringing
+-gstreamer_dep = dependency('gstreamer-1.0', version: '>= 1.16', required: false)
+-
+-if not gstreamer_dep.found()
+-  error('GStreamer required for FindMyPhone plugin')
+-endif
+-
+-# Dependencies
++# Dependencies (NickelOS: it rings with paplay, not GStreamer)
+ plugin_findmyphone_deps = [
+   libvalent_dep,
+-
+-  gstreamer_dep
+ ]
+ 
+ # Sources
+--- a/src/plugins/findmyphone/valent-findmyphone-ringer.c
++++ b/src/plugins/findmyphone/valent-findmyphone-ringer.c
+@@ -7,52 +7,76 @@
+ 
+ #include <gio/gio.h>
+ #include <glib/gi18n.h>
+-#include <gst/gst.h>
+ 
+ #include "valent-findmyphone-ringer.h"
+ 
+ 
++/* NickelOS: the alert plays over and over through paplay, PulseAudio being
++ * how Linux apps' sound reaches ChromeOS, instead of GStreamer, which
++ * ChromiumOS doesn't have.
++ */
+ struct _ValentFindmyphoneRinger
+ {
+   GActionGroup  *actions;
+   GNotification *notification;
+-  GstElement    *playbin;
+-  unsigned int   source_id;
++  char          *sound;
++  GSubprocess   *player;
++  GCancellable  *cancellable;
++  gboolean       ringing;
+   gpointer       owner;
+ };
+ 
+ static ValentFindmyphoneRinger *default_ringer = NULL;
+ 
++static void ringer_play (ValentFindmyphoneRinger *ringer);
++
+ 
+-static gboolean
+-ringer_source_func (GstBus     *bus,
+-                    GstMessage *message,
+-                    gpointer    user_data)
++static void
++ringer_played (GObject      *object,
++               GAsyncResult *result,
++               gpointer      user_data)
+ {
+   ValentFindmyphoneRinger *ringer = user_data;
++  GSubprocess *player = G_SUBPROCESS (object);
++  g_autoptr (GError) error = NULL;
++
++  /* Stopped: the ringer may be gone */
++  if (!g_subprocess_wait_finish (player, result, &error) &&
++      g_error_matches (error, G_IO_ERROR, G_IO_ERROR_CANCELLED))
++    return;
+ 
+-  if (message->type == GST_MESSAGE_ERROR)
++  /* Once more from the beginning, unless it can't play */
++  if (!g_subprocess_get_successful (player))
+     {
+-      g_autoptr (GError) error = NULL;
+-      g_autofree char *debug = NULL;
++      g_warning ("%s(): paplay failed to play the alert", G_STRFUNC);
++      g_clear_object (&ringer->player);
++      return;
++    }
+ 
+-      gst_message_parse_error (message, &error, &debug);
+-      g_warning ("%s(): %s", G_STRFUNC, error->message);
+-      g_debug ("%s: %s", G_STRFUNC, (debug) ? debug : "none");
++  g_clear_object (&ringer->player);
++  if (ringer->ringing)
++    ringer_play (ringer);
++}
+ 
+-      return G_SOURCE_REMOVE;
+-    }
++static void
++ringer_play (ValentFindmyphoneRinger *ringer)
++{
++  g_autoptr (GError) error = NULL;
+ 
+-  /* Rewind to beginning */
+-  if (message->type == GST_MESSAGE_EOS)
++  ringer->player = g_subprocess_new (G_SUBPROCESS_FLAGS_STDOUT_SILENCE |
++                                     G_SUBPROCESS_FLAGS_STDERR_SILENCE,
++                                     &error,
++                                     "paplay", ringer->sound, NULL);
++  if (ringer->player == NULL)
+     {
+-      return gst_element_seek_simple (ringer->playbin,
+-                                      GST_FORMAT_TIME,
+-                                      GST_SEEK_FLAG_FLUSH,
+-                                      0);
++      g_warning ("%s(): %s", G_STRFUNC, error->message);
++      return;
+     }
+ 
+-  return G_SOURCE_CONTINUE;
++  g_subprocess_wait_async (ringer->player,
++                           ringer->cancellable,
++                           ringer_played,
++                           ringer);
+ }
+ 
+ static inline void
+@@ -85,11 +109,9 @@
+       g_clear_object (&ringer->notification);
+     }
+ 
+-  if (ringer->playbin != NULL)
+-    {
+-      gst_element_set_state (ringer->playbin, GST_STATE_NULL);
+-      gst_clear_object (&ringer->playbin);
+-    }
++  valent_findmyphone_ringer_stop (ringer);
++  g_clear_object (&ringer->cancellable);
++  g_clear_pointer (&ringer->sound, g_free);
+ 
+   default_ringer = NULL;
+ }
+@@ -106,9 +128,12 @@
+ {
+   GApplication *application = g_application_get_default ();
+   ValentFindmyphoneRinger *ringer;
++  g_autoptr (GBytes) alert = NULL;
++  g_autofree char *sound = NULL;
+   g_autoptr (GError) error = NULL;
+ 
+   ringer = g_rc_box_new0 (ValentFindmyphoneRinger);
++  ringer->cancellable = g_cancellable_new ();
+ 
+   /* Notification
+    */
+@@ -129,22 +154,25 @@
+       g_notification_set_default_action (ringer->notification, "app.ringer");
+     }
+ 
+-  /* Playbin
++  /* The alert, as a file for paplay
+    */
+-  if (!gst_init_check (NULL, NULL, &error))
++  alert = g_resources_lookup_data ("/plugins/findmyphone/alert.oga",
++                                   G_RESOURCE_LOOKUP_FLAGS_NONE,
++                                   &error);
++  sound = g_build_filename (g_get_user_runtime_dir (),
++                            "valent-findmyphone-alert.oga",
++                            NULL);
++  if (alert == NULL ||
++      !g_file_set_contents (sound,
++                            g_bytes_get_data (alert, NULL),
++                            g_bytes_get_size (alert),
++                            &error))
+     {
+       g_warning ("%s(): %s", G_STRFUNC, error->message);
+       return ringer;
+     }
+ 
+-  ringer->playbin = gst_element_factory_make ("playbin", "findmyphone-ringer");
+-  if (ringer->playbin != NULL)
+-    {
+-      gst_object_ref_sink (ringer->playbin);
+-      g_object_set (ringer->playbin,
+-                    "uri", "resource:///plugins/findmyphone/alert.oga",
+-                    NULL);
+-    }
++  ringer->sound = g_steal_pointer (&sound);
+ 
+   return ringer;
+ }
+@@ -158,18 +186,13 @@
+ void
+ valent_findmyphone_ringer_start (ValentFindmyphoneRinger *ringer)
+ {
+-  g_autoptr (GstBus) playbus = NULL;
+-
+   g_return_if_fail (ringer != NULL);
+ 
+-  if (ringer->playbin == NULL || ringer->source_id > 0)
++  if (ringer->sound == NULL || ringer->ringing)
+     return;
+ 
+-  playbus = gst_element_get_bus (ringer->playbin);
+-  ringer->source_id = gst_bus_add_watch (playbus, ringer_source_func, ringer);
+-
+-  if (gst_element_set_state (ringer->playbin, GST_STATE_PLAYING) == 0)
+-    g_clear_handle_id (&ringer->source_id, g_source_remove);
++  ringer->ringing = TRUE;
++  ringer_play (ringer);
+ }
+ 
+ /**
+@@ -183,11 +206,18 @@
+ {
+   g_return_if_fail (ringer != NULL);
+ 
+-  if (ringer->playbin == NULL || ringer->source_id == 0)
++  if (!ringer->ringing)
+     return;
+ 
+-  gst_element_set_state (ringer->playbin, GST_STATE_NULL);
+-  g_clear_handle_id (&ringer->source_id, g_source_remove);
++  ringer->ringing = FALSE;
++  g_cancellable_cancel (ringer->cancellable);
++  g_clear_object (&ringer->cancellable);
++  ringer->cancellable = g_cancellable_new ();
++  if (ringer->player != NULL)
++    {
++      g_subprocess_force_exit (ringer->player);
++      g_clear_object (&ringer->player);
++    }
+   ringer->owner = NULL;
+ }
+ 
+@@ -280,7 +310,7 @@
+ {
+   g_return_if_fail (ringer != NULL);
+ 
+-  if (ringer->source_id > 0)
++  if (ringer->ringing)
+     {
+       valent_findmyphone_ringer_hide (ringer);
+       ringer->owner = NULL;

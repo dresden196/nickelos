@@ -1,0 +1,586 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] login_manager: a NickelOS local account's session runs Chrome
+ as its Linux user
+
+A local account (<name>@nickel.localhost, created by nickel-accountsd) is
+the Linux user <name> (uid 5000-5999). Once its session has started,
+Chrome restarts itself (Chrome patch), and session_manager runs the next
+Chrome, and every restart until the session ends, as that user, with USER
+and LOGNAME to match. The login screen's Chrome stays chronos.
+
+Chrome creates most of its state outside the vault 0600/0700, so before
+each Chrome start the state is handed to the user about to run it: the
+contents of /home/chronos (except vault mounts and per-user dirs; the dir
+itself stays chronos's, group-writable, as cryptohome requires),
+/run/chrome, /var/log/chrome and the other dirs ChromeSetup creates for
+Chrome. Only entries owned by chronos or a local account change hands.
+
+ui-pre-start gives group chronos the write access to Chrome's cgroups and
+/var/spool/support that chronos has; ui-post-stop ends a local account's
+leftover processes the way it ends chronos's.
+
+---
+diff -ruN a/login_manager/browser_job.cc b/login_manager/browser_job.cc
+--- a/login_manager/browser_job.cc
++++ b/login_manager/browser_job.cc
+@@ -31,6 +31,7 @@
+ #include <brillo/process/process_reaper.h>
+ #include <chromeos/switches/chrome_switches.h>
+ 
++#include "login_manager/chrome_state_owner.h"
+ #include "login_manager/login_metrics.h"
+ #include "login_manager/subprocess.h"
+ #include "login_manager/system_utils.h"
+@@ -206,6 +207,7 @@
+     removed_login_manager_flag_ = true;
+     login_arguments_.push_back(kLoginManagerFlag);
+   }
++  default_uid_ = subprocess_->GetDesiredUid();
+ }
+ 
+ BrowserJob::~BrowserJob() {}
+@@ -262,9 +264,25 @@
+     extra_one_time_arguments_.push_back(crash_loop_before_arg);
+   }
+ 
++  // NickelOS: in a local account's session Chrome runs as the account's
++  // Linux user, otherwise as chronos. Chrome's state outside the vault goes
++  // to whichever of them is about to run it.
++  const std::optional<uid_t> uid =
++      session_user_ ? std::optional<uid_t>(session_user_->uid) : default_uid_;
++  if (uid && uid != state_owner_uid_) {
++    gid_t gid = 0;
++    std::vector<gid_t> groups;
++    if (system_utils_->GetGidAndGroups(*uid, &gid, &groups)) {
++      GiveChromeStateTo(*uid, gid);
++      state_owner_uid_ = uid;
++    }
++  }
++  subprocess_->SetDesiredUid(uid);
++
+   const std::vector<std::string> argv(ExportArgv());
+   const std::vector<std::string> env_vars(ExportEnvironmentVariables());
+-  LOG(INFO) << "Running browser " << base::JoinString(argv, " ");
++  LOG(INFO) << "Running browser " << base::JoinString(argv, " ")
++            << (uid ? " as uid " + base::NumberToString(*uid) : "");
+ 
+   bool enter_existing_mount_ns = false;
+   if (IsGuestSession()) {
+@@ -383,11 +401,15 @@
+     login_arguments_.clear();
+     login_arguments_.push_back(kLoginUserFlag + account_id);
+     login_arguments_.push_back(kLoginProfileFlag + userhash);
++    // NickelOS: Chrome restarts itself into a local account's session, and
++    // from then on runs as the account's user.
++    session_user_ = ResolveNickelSessionUser(account_id);
+   }
+   session_already_started_ = true;
+ }
+ 
+ void BrowserJob::StopSession() {
++  session_user_.reset();
+   login_arguments_.clear();
+   if (removed_login_manager_flag_) {
+     login_arguments_.push_back(kLoginManagerFlag);
+@@ -547,6 +569,15 @@
+   std::vector<std::string> vars = environment_variables_;
+   vars.insert(vars.end(), additional_environment_variables_.begin(),
+               additional_environment_variables_.end());
++  if (session_user_) {
++    for (std::string& var : vars) {
++      if (base::StartsWith(var, "USER=")) {
++        var = "USER=" + session_user_->name;
++      } else if (base::StartsWith(var, "LOGNAME=")) {
++        var = "LOGNAME=" + session_user_->name;
++      }
++    }
++  }
+   return vars;
+ }
+ 
+diff -ruN a/login_manager/browser_job.h b/login_manager/browser_job.h
+--- a/login_manager/browser_job.h
++++ b/login_manager/browser_job.h
+@@ -23,6 +23,7 @@
+ #include <gtest/gtest_prod.h>
+ 
+ #include "login_manager/chrome_setup.h"
++#include "login_manager/nickel_session_user.h"
+ 
+ namespace brillo {
+ class ProcessReaper;
+@@ -261,6 +262,14 @@
+   // There is no issue filed to address this.
+   bool session_already_started_ = false;
+ 
++  // NickelOS: the Linux user of the session's local account, if the session
++  // is one. Chrome runs as that user during the session, as |default_uid_|
++  // (chronos) otherwise.
++  std::optional<NickelSessionUser> session_user_;
++  std::optional<uid_t> default_uid_;
++  // The uid Chrome's shared state was last handed to.
++  std::optional<uid_t> state_owner_uid_;
++
+   Config config_;
+ 
+   // The subprocess tracked by this job.
+diff -ruN a/login_manager/BUILD.gn b/login_manager/BUILD.gn
+--- a/login_manager/BUILD.gn
++++ b/login_manager/BUILD.gn
+@@ -107,6 +107,7 @@
+     "browser_job.cc",
+     "chrome_features_service_client.cc",
+     "chrome_setup.cc",
++    "chrome_state_owner.cc",
+     "chromium_command_builder.cc",
+     "container_manager_interface.cc",
+     "cumulative_use_time_metric.cc",
+@@ -120,6 +121,7 @@
+     "liveness_checker_impl.cc",
+     "login_metrics.cc",
+     "login_screen_storage.cc",
++    "nickel_session_user.cc",
+     "nss_util.cc",
+     "policy_key.cc",
+     "policy_service.cc",
+diff -ruN a/login_manager/chrome_setup.cc b/login_manager/chrome_setup.cc
+--- a/login_manager/chrome_setup.cc
++++ b/login_manager/chrome_setup.cc
+@@ -577,7 +577,9 @@
+ 
+   const base::FilePath data_dir("/home/chronos");
+   builder->AddEnvVar("DATA_DIR", data_dir.value());
+-  CHECK(EnsureDirectoryExists(data_dir, uid, gid, 0755));
++  // NickelOS: stays chronos's (cryptohome checks it), but a local account's
++  // session runs Chrome as the account's user, a member of group chronos.
++  CHECK(EnsureDirectoryExists(data_dir, uid, gid, 0775));
+   builder->AddArg("--user-data-dir=" + data_dir.value());
+ 
+   const base::FilePath user_dir = data_dir.Append("user");
+diff -ruN a/login_manager/chrome_state_owner.cc b/login_manager/chrome_state_owner.cc
+--- a/login_manager/chrome_state_owner.cc
++++ b/login_manager/chrome_state_owner.cc
+@@ -0,0 +1,182 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "login_manager/chrome_state_owner.h"
++
++#include <dirent.h>
++#include <errno.h>
++#include <fcntl.h>
++#include <sys/stat.h>
++#include <unistd.h>
++
++#include <string_view>
++
++#include <base/files/scoped_file.h>
++#include <base/logging.h>
++#include <base/strings/string_util.h>
++
++namespace login_manager {
++
++namespace {
++
++constexpr uid_t kChronosUid = 1000;
++constexpr uid_t kFirstLocalUid = 5000;
++constexpr uid_t kLastLocalUid = 5999;
++
++// Deep enough for Chrome's state; a guard against runaway recursion.
++constexpr int kMaxDepth = 32;
++
++// Chrome's user data dir: its contents change hands, the dir does not.
++constexpr char kDataDir[] = "/home/chronos";
++
++// Dirs Chrome owns outside its user data dir (see ChromeSetup's
++// CreateDirectories and SetUpTimezoneSymlink): they and their contents
++// change hands.
++constexpr const char* kChromeDirs[] = {
++    "/run/chrome",
++    "/run/crd",
++    "/run/libassistant",
++    "/var/cache/app_pack",
++    "/var/cache/device_local_account_component_policy",
++    "/var/cache/device_local_account_extensions",
++    "/var/cache/device_local_account_external_policy_data",
++    "/var/cache/device_local_account_iwa",
++    "/var/cache/device_policy_external_data",
++    "/var/cache/display_profiles",
++    "/var/cache/managed_screensaver",
++    "/var/cache/shared_extensions",
++    "/var/cache/signin_profile_component_policy",
++    "/var/cache/signin_profile_extensions",
++    "/var/lib/timezone",
++    "/var/log/chrome",
++};
++
++bool IsChromeUid(uid_t uid) {
++  return uid == kChronosUid || (uid >= kFirstLocalUid && uid <= kLastLocalUid);
++}
++
++// chronos's group is chronos (1000); a local account's is its own (gid ==
++// uid, see nickel-accountsd).
++bool IsOwnGroup(uid_t uid, gid_t gid) {
++  return gid == uid;
++}
++
++// In /home/chronos: vault mount points and per-user dirs.
++bool SkipInDataDir(std::string_view name) {
++  return name == "user" || name == "crash" ||
++         base::StartsWith(name, "u-");
++}
++
++class Walker {
++ public:
++  Walker(uid_t uid, gid_t gid) : uid_(uid), gid_(gid) {}
++
++  // Hands |name| in |dir_fd| (described by |st|) to the new owner, if it
++  // belongs to Chrome.
++  void Chown(int dir_fd, const char* name, const struct stat& st) {
++    if (!IsChromeUid(st.st_uid)) {
++      return;
++    }
++    const gid_t gid = IsOwnGroup(st.st_uid, st.st_gid) ? gid_ : st.st_gid;
++    if (st.st_uid == uid_ && st.st_gid == gid) {
++      return;
++    }
++    if (fchownat(dir_fd, name, uid_, gid, AT_SYMLINK_NOFOLLOW) != 0) {
++      PLOG(WARNING) << "Can't hand " << name << " to " << uid_;
++      return;
++    }
++    ++changed_;
++  }
++
++  // Walks the contents of the dir open as |dir_fd| on device |dev|.
++  void WalkContents(int dir_fd, dev_t dev, bool data_dir, int depth) {
++    if (depth > kMaxDepth) {
++      LOG(WARNING) << "Chrome state nested deeper than " << kMaxDepth;
++      return;
++    }
++    int list_fd = dup(dir_fd);
++    if (list_fd < 0) {
++      PLOG(WARNING) << "dup";
++      return;
++    }
++    DIR* dir = fdopendir(list_fd);
++    if (!dir) {
++      PLOG(WARNING) << "fdopendir";
++      close(list_fd);
++      return;
++    }
++    while (const struct dirent* entry = readdir(dir)) {
++      const std::string_view name = entry->d_name;
++      if (name == "." || name == ".." || (data_dir && SkipInDataDir(name))) {
++        continue;
++      }
++      struct stat st;
++      if (fstatat(dir_fd, entry->d_name, &st, AT_SYMLINK_NOFOLLOW) != 0 ||
++          st.st_dev != dev) {
++        continue;
++      }
++      if (S_ISDIR(st.st_mode)) {
++        Chown(dir_fd, entry->d_name, st);
++        base::ScopedFD sub(openat(dir_fd, entry->d_name,
++                                  O_RDONLY | O_DIRECTORY | O_NOFOLLOW |
++                                      O_CLOEXEC));
++        if (sub.is_valid()) {
++          WalkContents(sub.get(), dev, /*data_dir=*/false, depth + 1);
++        }
++      } else if (!S_ISREG(st.st_mode) || st.st_nlink == 1) {
++        Chown(dir_fd, entry->d_name, st);
++      }
++    }
++    closedir(dir);
++  }
++
++  // Hands over |path| and everything under it; only the contents (minus
++  // the per-user entries) for Chrome's user data dir.
++  void Walk(const char* path, bool data_dir) {
++    base::ScopedFD fd(
++        open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC));
++    if (!fd.is_valid()) {
++      if (errno != ENOENT) {
++        PLOG(WARNING) << "Can't open " << path;
++      }
++      return;
++    }
++    struct stat st;
++    if (fstat(fd.get(), &st) != 0) {
++      PLOG(WARNING) << "Can't stat " << path;
++      return;
++    }
++    if (!data_dir) {
++      if (IsChromeUid(st.st_uid)) {
++        const gid_t gid = IsOwnGroup(st.st_uid, st.st_gid) ? gid_ : st.st_gid;
++        if ((st.st_uid != uid_ || st.st_gid != gid) &&
++            fchown(fd.get(), uid_, gid) == 0) {
++          ++changed_;
++        }
++      }
++    }
++    WalkContents(fd.get(), st.st_dev, data_dir, 0);
++  }
++
++  int changed() const { return changed_; }
++
++ private:
++  const uid_t uid_;
++  const gid_t gid_;
++  int changed_ = 0;
++};
++
++}  // namespace
++
++void GiveChromeStateTo(uid_t uid, gid_t gid) {
++  Walker walker(uid, gid);
++  walker.Walk(kDataDir, /*data_dir=*/true);
++  for (const char* dir : kChromeDirs) {
++    walker.Walk(dir, /*data_dir=*/false);
++  }
++  LOG(INFO) << "Chrome state handed to uid " << uid << " (" << walker.changed()
++            << " entries)";
++}
++
++}  // namespace login_manager
+diff -ruN a/login_manager/chrome_state_owner.h b/login_manager/chrome_state_owner.h
+--- a/login_manager/chrome_state_owner.h
++++ b/login_manager/chrome_state_owner.h
+@@ -0,0 +1,29 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef LOGIN_MANAGER_CHROME_STATE_OWNER_H_
++#define LOGIN_MANAGER_CHROME_STATE_OWNER_H_
++
++#include <sys/types.h>
++
++namespace login_manager {
++
++// NickelOS: Chrome runs as chronos at the login screen and as the account's
++// Linux user in a local account's session (see nickel_session_user.h). Its
++// state outside the user's vault (the contents of its user data dir
++// /home/chronos, /run/chrome, /var/log/chrome and a few more) is mostly
++// created 0600/0700, so before each Chrome start that state is handed to the
++// user Chrome is about to run as.
++//
++// Only entries owned by chronos or a local account change hands; their group
++// follows only if it is the old owner's own group (so e.g. chronos-access and
++// wayland stay). Symlinks are not followed, mount points and files with more
++// than one link are skipped, and so are the vault mounts and per-user dirs
++// in /home/chronos (user, u-*, crash). /home/chronos itself stays chronos's
++// (cryptohome checks it); chrome_setup makes it group-writable for Chrome.
++void GiveChromeStateTo(uid_t uid, gid_t gid);
++
++}  // namespace login_manager
++
++#endif  // LOGIN_MANAGER_CHROME_STATE_OWNER_H_
+diff -ruN a/login_manager/init/scripts/ui-post-stop b/login_manager/init/scripts/ui-post-stop
+--- a/login_manager/init/scripts/ui-post-stop
++++ b/login_manager/init/scripts/ui-post-stop
+@@ -40,6 +40,18 @@
+   sleep .1
+ done
+ 
++# NickelOS: a local account's session runs Chrome, and so everything it
++# started, as the account's Linux user (uid 5000-5999). End those processes
++# the same way; left running they would keep group chronos's access to the
++# next session.
++for uid in $(ps -e --no-headers -o uid= | sort -un); do
++  if [ "${uid}" -ge 5000 ] && [ "${uid}" -le 5999 ]; then
++    while ! minijail0 -u "${uid}" -g "${uid}" /bin/kill -9 -- -1 ; do
++      sleep .1
++    done
++  fi
++done
++
+ # Check for still-living chronos processes and log their status.
+ ps -u chronos --no-headers -o pid,stat,args |
+   logger -i -t "${JOB}-unkillable" -p crit
+diff -ruN a/login_manager/init/scripts/ui-pre-start b/login_manager/init/scripts/ui-pre-start
+--- a/login_manager/init/scripts/ui-pre-start
++++ b/login_manager/init/scripts/ui-pre-start
+@@ -184,6 +184,20 @@
+   chown -R chronos "${CHROME_FREEZER_CGROUP_DIR}"
+ fi
+ 
++# NickelOS: in a local account's session Chrome runs as the account's Linux
++# user, a member of group chronos; give the group what chronos gets above.
++for dir in "${SUPPORT_DIR}" "${UI_CPU_CGROUP_DIR:-}" "${CHROME_CPU_CGROUP_DIR}" \
++    "${CHROME_CPU_CGROUP_DIR}_background" "${UI_FREEZER_CGROUP_DIR:-}" \
++    "${CHROME_FREEZER_CGROUP_DIR:-}"; do
++  if [ -n "${dir}" ] && [ -d "${dir}" ]; then
++    chgrp -R chronos "${dir}"
++    chmod -R g+w "${dir}"
++  fi
++done
++if [ -e "${UI_FREEZER_CGROUP_DIR:-}/freezer.state" ]; then
++  chown power:power "${UI_FREEZER_CGROUP_DIR}"/freezer.state
++fi
++
+ # Set up a cgroup for containers(Android) started by session manager.  To
+ # start, limit the cpu shares of Android.  This will be reset to the default
+ # once the user clicks on an Android app.  Keeping the usage low prevents
+diff -ruN a/login_manager/nickel_session_user.cc b/login_manager/nickel_session_user.cc
+--- a/login_manager/nickel_session_user.cc
++++ b/login_manager/nickel_session_user.cc
+@@ -0,0 +1,74 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "login_manager/nickel_session_user.h"
++
++#include <errno.h>
++#include <pwd.h>
++#include <string.h>
++
++#include <string_view>
++#include <vector>
++
++#include <base/logging.h>
++#include <base/strings/string_util.h>
++
++namespace login_manager {
++
++namespace {
++
++constexpr std::string_view kLocalAccountSuffix = "@nickel.localhost";
++
++// nickel-accountsd's uid range for local accounts.
++constexpr uid_t kFirstLocalUid = 5000;
++constexpr uid_t kLastLocalUid = 5999;
++
++// nickel-accountsd's rule for user names: ^[a-z_][a-z0-9_-]{0,31}$.
++bool IsValidUserName(std::string_view name) {
++  if (name.empty() || name.size() > 32) {
++    return false;
++  }
++  for (size_t i = 0; i < name.size(); ++i) {
++    const char c = name[i];
++    const bool ok = (c >= 'a' && c <= 'z') || c == '_' ||
++                    (i > 0 && ((c >= '0' && c <= '9') || c == '-'));
++    if (!ok) {
++      return false;
++    }
++  }
++  return true;
++}
++
++}  // namespace
++
++std::optional<NickelSessionUser> ResolveNickelSessionUser(
++    const std::string& account_id) {
++  if (!base::EndsWith(account_id, kLocalAccountSuffix)) {
++    return std::nullopt;
++  }
++  const std::string name =
++      account_id.substr(0, account_id.size() - kLocalAccountSuffix.size());
++  if (!IsValidUserName(name)) {
++    LOG(ERROR) << "Not a local account user name: " << account_id;
++    return std::nullopt;
++  }
++
++  std::vector<char> buf(16384);
++  passwd pwd = {};
++  passwd* result = nullptr;
++  int err = getpwnam_r(name.c_str(), &pwd, buf.data(), buf.size(), &result);
++  if (err != 0 || !result) {
++    LOG(ERROR) << "No Linux user for local account " << account_id << ": "
++               << (err ? strerror(err) : "not found");
++    return std::nullopt;
++  }
++  if (result->pw_uid < kFirstLocalUid || result->pw_uid > kLastLocalUid) {
++    LOG(ERROR) << "User " << name << " (uid " << result->pw_uid
++               << ") is not a local account";
++    return std::nullopt;
++  }
++  return NickelSessionUser{name, result->pw_uid, result->pw_gid};
++}
++
++}  // namespace login_manager
+diff -ruN a/login_manager/nickel_session_user.h b/login_manager/nickel_session_user.h
+--- a/login_manager/nickel_session_user.h
++++ b/login_manager/nickel_session_user.h
+@@ -0,0 +1,31 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef LOGIN_MANAGER_NICKEL_SESSION_USER_H_
++#define LOGIN_MANAGER_NICKEL_SESSION_USER_H_
++
++#include <sys/types.h>
++
++#include <optional>
++#include <string>
++
++namespace login_manager {
++
++// NickelOS local accounts are Linux users created by nickel-accountsd; Chrome
++// knows them as "<name>@nickel.localhost". In such an account's session
++// Chrome runs as the account's user instead of chronos.
++struct NickelSessionUser {
++  std::string name;
++  uid_t uid;
++  gid_t gid;
++};
++
++// Returns the Linux user of a local account id, or nullopt for any other
++// account. Only users in nickel-accountsd's uid range qualify.
++std::optional<NickelSessionUser> ResolveNickelSessionUser(
++    const std::string& account_id);
++
++}  // namespace login_manager
++
++#endif  // LOGIN_MANAGER_NICKEL_SESSION_USER_H_
+diff -ruN a/login_manager/subprocess.cc b/login_manager/subprocess.cc
+--- a/login_manager/subprocess.cc
++++ b/login_manager/subprocess.cc
+@@ -185,4 +185,12 @@
+   pid_.reset();
+ }
+ 
++void Subprocess::SetDesiredUid(std::optional<uid_t> uid) {
++  desired_uid_ = uid;
++}
++
++std::optional<uid_t> Subprocess::GetDesiredUid() const {
++  return desired_uid_;
++}
++
+ };  // namespace login_manager
+diff -ruN a/login_manager/subprocess.h b/login_manager/subprocess.h
+--- a/login_manager/subprocess.h
++++ b/login_manager/subprocess.h
+@@ -43,6 +43,11 @@
+ 
+   virtual pid_t GetPid() const = 0;
+   virtual void ClearPid() = 0;
++
++  // NickelOS: the uid the next ForkAndExec() runs as. Only to be changed
++  // while no subprocess runs (Kill() signals as this uid).
++  virtual void SetDesiredUid(std::optional<uid_t> uid) {}
++  virtual std::optional<uid_t> GetDesiredUid() const { return std::nullopt; }
+ };
+ 
+ // A class that provides functionality for creating/destroying a subprocess.
+@@ -64,6 +69,8 @@
+   void KillEverything(int signal) override;
+   pid_t GetPid() const override;
+   void ClearPid() override;
++  void SetDesiredUid(std::optional<uid_t> uid) override;
++  std::optional<uid_t> GetDesiredUid() const override;
+ 
+  private:
+   // The pid of the managed subprocess, when running.
+@@ -71,7 +78,7 @@
+ 
+   // Run-time options for the subprocess.
+   // The UID the subprocess should be run as.
+-  const std::optional<uid_t> desired_uid_;
++  std::optional<uid_t> desired_uid_;
+   // Whether to enter a new mount namespace before execve(2)-ing the subprocess.
+   bool new_mount_namespace_ = false;
+   // Capabilities for the subprocess.

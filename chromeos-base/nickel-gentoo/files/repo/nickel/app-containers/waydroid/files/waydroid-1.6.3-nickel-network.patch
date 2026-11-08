@@ -1,0 +1,44 @@
+NickelOS: Waydroid's network next to ChromeOS's.
+
+- The CHECKSUM rule is optional: ChromeOS's iptables has no CHECKSUM
+  target (NETFILTER_XT_TARGET_CHECKSUM is off).
+- dnsmasq forwards to the servers shill lists (/run/shill/resolv.conf):
+  the system resolv.conf names ChromeOS's DNS proxy, which doesn't answer
+  Waydroid's dnsmasq.
+
+--- a/data/scripts/waydroid-net.sh
++++ b/data/scripts/waydroid-net.sh
+@@ -95,7 +95,9 @@
+     $IPTABLES_BIN $use_iptables_lock -I FORWARD -i ${LXC_BRIDGE} -j ACCEPT
+     $IPTABLES_BIN $use_iptables_lock -I FORWARD -o ${LXC_BRIDGE} -j ACCEPT
+     $IPTABLES_BIN $use_iptables_lock -t nat -A POSTROUTING -s ${LXC_NETWORK} ! -d ${LXC_NETWORK} -j MASQUERADE
+-    $IPTABLES_BIN $use_iptables_lock -t mangle -A POSTROUTING -o ${LXC_BRIDGE} -p udp -m udp --dport 68 -j CHECKSUM --checksum-fill
++    # NickelOS: optional. It fills in checksums for old DHCP clients; ChromeOS's
++    # iptables and kernel have no CHECKSUM target, and Android doesn't need it.
++    $IPTABLES_BIN $use_iptables_lock -t mangle -A POSTROUTING -o ${LXC_BRIDGE} -p udp -m udp --dport 68 -j CHECKSUM --checksum-fill 2>/dev/null || true
+ }
+ 
+ start_nftables() {
+@@ -197,7 +199,10 @@
+         mkdir "${varlib}"/misc
+     fi
+ 
+-    dnsmasq $LXC_DHCP_CONFILE_ARG $LXC_DOMAIN_ARG $LXC_DHCP_PING_ARG -u ${DNSMASQ_USER} \
++    # NickelOS: Android's DNS goes to the network's servers, which shill lists.
++    # The system's resolv.conf names ChromeOS's DNS proxy (127.0.0.2), which
++    # answers ChromeOS's own clients, not this dnsmasq.
++    dnsmasq --resolv-file=/run/shill/resolv.conf $LXC_DHCP_CONFILE_ARG $LXC_DOMAIN_ARG $LXC_DHCP_PING_ARG -u ${DNSMASQ_USER} \
+             --strict-order --bind-interfaces --pid-file="${varrun}"/dnsmasq.pid \
+             --listen-address ${LXC_ADDR} --dhcp-range ${LXC_DHCP_RANGE} \
+             --dhcp-lease-max=${LXC_DHCP_MAX} --dhcp-no-override \
+@@ -217,7 +222,9 @@
+     $IPTABLES_BIN $use_iptables_lock -D FORWARD -i ${LXC_BRIDGE} -j ACCEPT
+     $IPTABLES_BIN $use_iptables_lock -D FORWARD -o ${LXC_BRIDGE} -j ACCEPT
+     $IPTABLES_BIN $use_iptables_lock -t nat -D POSTROUTING -s ${LXC_NETWORK} ! -d ${LXC_NETWORK} -j MASQUERADE
+-    $IPTABLES_BIN $use_iptables_lock -t mangle -D POSTROUTING -o ${LXC_BRIDGE} -p udp -m udp --dport 68 -j CHECKSUM --checksum-fill
++    # NickelOS: optional. It fills in checksums for old DHCP clients; ChromeOS's
++    # iptables and kernel have no CHECKSUM target, and Android doesn't need it.
++    $IPTABLES_BIN $use_iptables_lock -t mangle -D POSTROUTING -o ${LXC_BRIDGE} -p udp -m udp --dport 68 -j CHECKSUM --checksum-fill 2>/dev/null || true
+     if [ "$LXC_IPV6_NAT" = "true" ]; then
+         $IP6TABLES_BIN $use_iptables_lock -t nat -D POSTROUTING -s ${LXC_IPV6_NETWORK} ! -d ${LXC_IPV6_NETWORK} -j MASQUERADE
+     fi

@@ -1,0 +1,75 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the default wallpaper follows dark and light mode
+
+ChromeOS has a light and a dark version of its online wallpapers and swaps
+them with the color mode; the default wallpaper is one picture. NickelOS's
+has a dark twin (Dresden's darker grade of the wave, chromeos-bsp-nickel
+installs it beside the default as default_dark_large.jpg and
+default_dark_small.jpg, and guest_dark_* beside guest_*). In dark mode the
+default wallpaper is the dark one, and an account on the default wallpaper
+switches when the mode changes, by hand or at sunset and sunrise. A
+wallpaper you chose yourself stays as it is.
+
+---
+diff --git a/ash/wallpaper/wallpaper_controller_impl.cc b/ash/wallpaper/wallpaper_controller_impl.cc
+--- a/ash/wallpaper/wallpaper_controller_impl.cc
++++ b/ash/wallpaper/wallpaper_controller_impl.cc
+@@ -231,6 +231,23 @@
+   return std::make_unique<WallpaperInfo>(params, *selected_variant);
+ }
+ 
++// NickelOS: in dark mode, a default wallpaper's dark twin, which
++// chromeos-bsp-nickel installs beside it (default_large.jpg ->
++// default_dark_large.jpg, guest_small.jpg -> guest_dark_small.jpg).
++base::FilePath NickelColorModeWallpaper(const base::FilePath& path) {
++  auto* dark_light = DarkLightModeControllerImpl::Get();
++  if (path.empty() || !dark_light || !dark_light->IsDarkModeEnabled()) {
++    return path;
++  }
++  const std::string name = path.BaseName().value();
++  const size_t underscore = name.find('_');
++  if (underscore == std::string::npos) {
++    return path;
++  }
++  return path.DirName().Append(name.substr(0, underscore + 1) + "dark_" +
++                               name.substr(underscore + 1));
++}
++
+ }  // namespace
+ 
+ // static
+@@ -869,7 +886,8 @@
+     const std::string_view switch_string = use_small
+                                                ? switches::kGuestWallpaperSmall
+                                                : switches::kGuestWallpaperLarge;
+-    return command_line->GetSwitchValuePath(switch_string);
++    return NickelColorModeWallpaper(
++        command_line->GetSwitchValuePath(switch_string));
+   } else if (user_type == user_manager::UserType::kChild) {
+     const std::string_view switch_string = use_small
+                                                ? switches::kChildWallpaperSmall
+@@ -883,7 +901,8 @@
+     const std::string_view switch_string =
+         use_small ? switches::kDefaultWallpaperSmall
+                   : switches::kDefaultWallpaperLarge;
+-    return command_line->GetSwitchValuePath(switch_string);
++    return NickelColorModeWallpaper(
++        command_line->GetSwitchValuePath(switch_string));
+   }
+ }
+ 
+@@ -1555,6 +1574,14 @@
+     return;
+   }
+ 
++  // NickelOS: the default wallpaper follows dark and light mode too.
++  if (info.type == WallpaperType::kDefault &&
++      src == DarkLightModeControllerImpl::Get()) {
++    SetDefaultWallpaperImpl(GetUserType(account_id), /*show_wallpaper=*/true,
++                            base::DoNothing());
++    return;
++  }
++
+   if (!IsOnlineWallpaper(info.type) ||
+       src != &GetScheduleForOnlineWallpaper(info.collection_id)) {
+     return;

@@ -1,0 +1,75 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Exo region rectangles reaching INT32_MAX aren't
+ empty
+
+Exo built wl_region rectangles with SkIRect::MakeXYWH, which saturates
+x + width at INT32_MAX, and SkRegion takes a rectangle whose right or
+bottom edge is INT32_MAX (its run sentinel) as empty. Clients use such
+rectangles to mean "everything": Waydroid's hwcomposer clears a window's
+input region each frame with wl_region_subtract(r, 0, 0, INT32_MAX,
+INT32_MAX), which did nothing, so every Android window's input region
+kept every area the window had ever covered. After a window was
+maximized and restored, or moved and animated, it took the clicks meant
+for the windows behind it: nothing behind an Android window could be
+clicked. Region rectangles are now clamped just below the sentinel.
+
+diff --git a/components/exo/wayland/wl_compositor.cc b/components/exo/wayland/wl_compositor.cc
+index a23ae5eb2e038..d4cf84284dfbf 100644
+--- a/components/exo/wayland/wl_compositor.cc
++++ b/components/exo/wayland/wl_compositor.cc
+@@ -4,6 +4,9 @@
+ 
+ #include "components/exo/wayland/wl_compositor.h"
+ 
++#include <algorithm>
++#include <cstdint>
++#include <limits>
+ #include <memory>
+ 
+ #include "base/functional/bind.h"
+@@ -28,13 +31,35 @@ void region_destroy(wl_client* client, wl_resource* resource) {
+   wl_resource_destroy(resource);
+ }
+ 
++// NickelOS: a client's rectangle as SkRegion takes it. Clients clear or fill
++// a region with rectangles reaching INT32_MAX (Waydroid's hwcomposer clears a
++// window's input region with wl_region_subtract(r, 0, 0, INT32_MAX,
++// INT32_MAX) each frame), but SkRegion takes a rectangle whose right or
++// bottom edge is INT32_MAX, its run sentinel, as empty: the subtract did
++// nothing, and the input region kept every area the window ever covered.
++// Android windows then took clicks meant for the windows behind them. The
++// edges are kept just below the sentinel.
++SkIRect RegionRect(int32_t x, int32_t y, int32_t width, int32_t height) {
++  constexpr int64_t kMax = std::numeric_limits<int32_t>::max() - 1;
++  constexpr int64_t kMin = std::numeric_limits<int32_t>::min() + 1;
++  const int64_t left = std::clamp<int64_t>(x, kMin, kMax);
++  const int64_t top = std::clamp<int64_t>(y, kMin, kMax);
++  const int64_t right =
++      std::clamp<int64_t>(int64_t{x} + std::max(width, 0), kMin, kMax);
++  const int64_t bottom =
++      std::clamp<int64_t>(int64_t{y} + std::max(height, 0), kMin, kMax);
++  return SkIRect::MakeLTRB(static_cast<int32_t>(left), static_cast<int32_t>(top),
++                           static_cast<int32_t>(right),
++                           static_cast<int32_t>(bottom));
++}
++
+ void region_add(wl_client* client,
+                 wl_resource* resource,
+                 int32_t x,
+                 int32_t y,
+                 int32_t width,
+                 int32_t height) {
+-  GetUserDataAs<SkRegion>(resource)->op(SkIRect::MakeXYWH(x, y, width, height),
++  GetUserDataAs<SkRegion>(resource)->op(RegionRect(x, y, width, height),
+                                         SkRegion::kUnion_Op);
+ }
+ 
+@@ -44,7 +69,7 @@ static void region_subtract(wl_client* client,
+                             int32_t y,
+                             int32_t width,
+                             int32_t height) {
+-  GetUserDataAs<SkRegion>(resource)->op(SkIRect::MakeXYWH(x, y, width, height),
++  GetUserDataAs<SkRegion>(resource)->op(RegionRect(x, y, width, height),
+                                         SkRegion::kDifference_Op);
+ }
+ 

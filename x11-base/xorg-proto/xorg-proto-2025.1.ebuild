@@ -1,0 +1,46 @@
+# Copyright 1999-2026 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+EAPI=7
+
+# NickelOS: ported from Gentoo xorg-proto-2025.1 (EAPI 8 -> 7): KEYWORDS="*", python_has_version -> has_version -b (the EAPI 7 form portage-stable's 2022.2 uses). Upgrades portage-stable's 2022.2 for the board only: xwayland 24.1 needs presentproto 1.4 and dri3proto 1.4. Headers only, never in the image.
+
+PYTHON_COMPAT=( python3_{11..14} )
+
+MY_PN="${PN/xorg-/xorg}"
+MY_P="${MY_PN}-${PV}"
+
+inherit meson python-any-r1
+
+DESCRIPTION="X.Org combined protocol headers"
+HOMEPAGE="https://gitlab.freedesktop.org/xorg/proto/xorgproto"
+SRC_URI="https://xorg.freedesktop.org/archive/individual/proto/${MY_P}.tar.xz"
+S="${WORKDIR}/${MY_P}"
+KEYWORDS="*"
+
+LICENSE="MIT"
+SLOT="0"
+IUSE="test"
+RESTRICT="!test? ( test )"
+
+BDEPEND="
+	test? (
+		$(python_gen_any_dep '
+			dev-python/libevdev[${PYTHON_USEDEP}]
+		')
+	)
+"
+
+python_check_deps() {
+	has_version -b "dev-python/libevdev[${PYTHON_USEDEP}]"
+}
+
+pkg_setup() {
+	use test && python-any-r1_pkg_setup
+}
+
+src_install() {
+	meson_src_install
+
+	mv "${ED}"/usr/share/doc/{xorgproto,${P}} || die
+}

@@ -1,0 +1,74 @@
+diff -ruN a/meson.build b/meson.build
+--- a/meson.build
++++ b/meson.build
+@@ -24,7 +24,16 @@
+ libva_deps = dependency('libva', version: '>= 1.8.0').partial_dependency(compile_args: true)
+ deps += [libva_deps]
+ 
+-gst_codecs_deps = dependency('gstreamer-codecparsers-1.0', required: false)
++# NickelOS: VP9 needs GStreamer's VP9 frame header parser. Built in from
++# gst-plugins-bad's source (nickel-gst/, glib only) instead of linking the
++# whole of GStreamer, which the system does not have. nickel-vp9-state.c is
++# gstvp9parser.c plus an accessor for the state it carries between frames.
++gst_codecs_deps = declare_dependency(
++    sources: ['nickel-gst/nickel-vp9-state.c', 'nickel-gst/vp9utils.c'],
++    include_directories: include_directories('nickel-gst'),
++    compile_args: ['-DGST_USE_UNSTABLE_API='],
++    dependencies: dependency('glib-2.0'),
++)
+ 
+ if cc.get_argument_syntax() == 'gcc'
+     add_project_arguments(
+diff -ruN a/src/vp9.c b/src/vp9.c
+--- a/src/vp9.c
++++ b/src/vp9.c
+@@ -3,6 +3,7 @@
+ //squash a compile warning, we know this is an unstable API
+ #define GST_USE_UNSTABLE_API
+ #include <gst/codecparsers/gstvp9parser.h>
++#include "nickel-vp9-state.h"
+ 
+ static void copyVP9PicParam(NVContext *ctx, NVBuffer* buffer, CUVIDPICPARAMS *picParams)
+ {
+@@ -101,26 +102,30 @@
+     GstVp9ParserResult res = gst_vp9_parser_parse_frame_header(parser, &hdr, buf, size);
+ 
+     if (res == GST_VP9_PARSER_OK) {
++        //NickelOS: the loop filter deltas and segment features in effect, carried
++        //over from earlier frames; the header has only what this frame updates
++        NickelVp9State state;
++        nickel_vp9_parser_get_state(parser, &state);
+         for (int i = 0; i < 8; i++) {
+-            picParams->CodecSpecific.vp9.segmentFeatureEnable[i][0] = hdr.segmentation.data[i].alternate_quantizer_enabled;
+-            picParams->CodecSpecific.vp9.segmentFeatureEnable[i][1] = hdr.segmentation.data[i].alternate_loop_filter_enabled;
+-            picParams->CodecSpecific.vp9.segmentFeatureEnable[i][2] = hdr.segmentation.data[i].reference_frame_enabled;
+-            picParams->CodecSpecific.vp9.segmentFeatureEnable[i][3] = hdr.segmentation.data[i].reference_skip;
+-
+-            picParams->CodecSpecific.vp9.segmentFeatureData[i][0] = hdr.segmentation.data[i].alternate_quantizer;
+-            picParams->CodecSpecific.vp9.segmentFeatureData[i][1] = hdr.segmentation.data[i].alternate_loop_filter;
+-            picParams->CodecSpecific.vp9.segmentFeatureData[i][2] = hdr.segmentation.data[i].reference_frame;
++            picParams->CodecSpecific.vp9.segmentFeatureEnable[i][0] = state.segmentation[i].alternate_quantizer_enabled;
++            picParams->CodecSpecific.vp9.segmentFeatureEnable[i][1] = state.segmentation[i].alternate_loop_filter_enabled;
++            picParams->CodecSpecific.vp9.segmentFeatureEnable[i][2] = state.segmentation[i].reference_frame_enabled;
++            picParams->CodecSpecific.vp9.segmentFeatureEnable[i][3] = state.segmentation[i].reference_skip;
++
++            picParams->CodecSpecific.vp9.segmentFeatureData[i][0] = state.segmentation[i].alternate_quantizer;
++            picParams->CodecSpecific.vp9.segmentFeatureData[i][1] = state.segmentation[i].alternate_loop_filter;
++            picParams->CodecSpecific.vp9.segmentFeatureData[i][2] = state.segmentation[i].reference_frame;
+             picParams->CodecSpecific.vp9.segmentFeatureData[i][3] = 0;
+         }
+ 
+-        picParams->CodecSpecific.vp9.segmentFeatureMode = hdr.segmentation.abs_delta;
++        picParams->CodecSpecific.vp9.segmentFeatureMode = state.segmentation_abs_delta;
+ 
+         picParams->CodecSpecific.vp9.modeRefLfEnabled = hdr.loopfilter.mode_ref_delta_enabled;
+         for (int i = 0; i < 2; i++)
+-            picParams->CodecSpecific.vp9.mbModeLfDelta[i] = hdr.loopfilter.mode_deltas[i];
++            picParams->CodecSpecific.vp9.mbModeLfDelta[i] = state.mode_deltas[i];
+ 
+         for (int i = 0; i < 4; i++)
+-            picParams->CodecSpecific.vp9.mbRefLfDelta[i] = hdr.loopfilter.ref_deltas[i];
++            picParams->CodecSpecific.vp9.mbRefLfDelta[i] = state.ref_deltas[i];
+ 
+         picParams->CodecSpecific.vp9.qpYAc = hdr.quant_indices.y_ac_qi;
+         picParams->CodecSpecific.vp9.qpYDc = hdr.quant_indices.y_dc_delta;

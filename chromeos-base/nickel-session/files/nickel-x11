@@ -1,0 +1,79 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# X11 apps in the session: sommelier runs Xwayland and is its window
+# manager, turning each X11 window into a window of Chrome's built-in
+# compositor (Exo), as Crostini does in its container. Run by the nickel-x11
+# job as the session user, with the session environment (nickel-session-exec).
+#
+# X11 windows get app ids org.chromium.guest_os.nickel.wmclass.<WM_CLASS>,
+# which Chrome matches to installed apps by their StartupWMClass, desktop file
+# id or name, so they group under the app's shelf item.
+set -e
+
+: "${XDG_RUNTIME_DIR:?}" "${XAUTHORITY:?}"
+
+# A fresh cookie per session; X11 clients find it through XAUTHORITY.
+# `xauth add` files it under the computer's name, and clients look it up by
+# the name the computer has when they start: after the name changes
+# (Settings > About), every new X11 app would be refused. A copy for any
+# name (family Wild, ffff) keeps them working, as GNOME's session does.
+rm -f "${XAUTHORITY}"
+touch "${XAUTHORITY}"
+chmod 0600 "${XAUTHORITY}"
+xauth -q -f "${XAUTHORITY}" add "${DISPLAY}" . \
+	"$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+xauth -q -f "${XAUTHORITY}" nlist "${DISPLAY}" | sed 's/^..../ffff/' |
+	xauth -q -f "${XAUTHORITY}" nmerge -
+
+# --noop-driver: no virtio-wl device on the host, sommelier talks to Exo
+# directly, on its own socket: the default one (wayland-0, Linux apps') shows
+# only the standard protocols, and sommelier needs Exo's own (aura shell and
+# the like) to place and decorate X11 windows (Chrome patch 0029). Xwayland
+# takes the display number nickel-session-setup freed; sommelier runs the
+# trailing command once the display is up and keeps serving after it exits.
+# If Chrome restarts, sommelier loses Exo and exits,
+# and the job starts it again; a quick failure (Exo not back yet) waits a few
+# seconds first, so the job's respawn limit outlasts a Chrome restart.
+
+# X11 on the GPU (glamor): Xwayland draws on the GPU and shares GPU buffers
+# with apps (DRI3: GLX, EGL and Vulkan on X11, Wine/Proton) and with Exo
+# (linux-dmabuf), on the render node of the GPU that drives the display
+# (boot_vga), else of the first one with a driver for it: Mesa's (Gentoo's,
+# through its GBM) or NVIDIA's (its EGL and GBM backend, nvidia-open).
+# NVIDIA has no implicit sync: sommelier gives Xwayland explicit sync
+# (linux-drm-syncobj) and sends each frame on to Exo once the GPU has drawn
+# it; NICKEL_SOMMELIER_EXPLICIT_SYNC=0 in sommelier's environment turns that
+# off (Xwayland then copies apps' frames and waits for the GPU before
+# presenting them). Without a GPU, software.
+gpu=
+for pass in boot_vga any; do
+	for node in /sys/class/drm/renderD*; do
+		[ -e "${node}" ] || continue
+		[ "${pass}" = any ] || [ "$(cat "${node}/device/boot_vga" 2>/dev/null)" = 1 ] ||
+			continue
+		case "$(basename "$(readlink -f "${node}/device/driver")")" in
+		i915|xe|amdgpu|radeon|nouveau|nvidia)
+			gpu=/dev/dri/${node##*/}
+			break 2 ;;
+		esac
+	done
+done
+set --
+[ -n "${gpu}" ] && set -- --force-drm-device="${gpu}" --glamor --enable-linux-dmabuf
+
+started=$(date +%s)
+status=0
+sommelier -X --noop-driver "$@" \
+	--display=/run/chrome/wayland-sommelier --x-display="${DISPLAY#:}" \
+	--xwayland-path=/usr/bin/Xwayland \
+	--xwayland-gl-driver-path=/usr/lib64/dri \
+	--vm-identifier=nickel \
+	--x-auth="${XAUTHORITY}" \
+	--no-exit-with-child \
+	/bin/sh -c 'echo "${DISPLAY}" > "${XDG_RUNTIME_DIR}/x11-display"' ||
+	status=$?
+if [ $(($(date +%s) - started)) -lt 10 ]; then
+	sleep 5
+fi
+exit "${status}"

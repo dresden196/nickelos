@@ -1,0 +1,481 @@
+diff -ruN a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -44,6 +44,8 @@
+ 
+ CPPFLAGS += $(PC_CFLAGS)
+ LDLIBS += $(PC_LIBS)
++# NickelOS: nvidia.c loads NVIDIA's allocator.
++LDLIBS += -ldl
+ 
+ DESTDIR ?= $(OUT)/install
+ LIBDIR ?= /usr/lib
+diff -ruN a/drv.c b/drv.c
+--- a/drv.c
++++ b/drv.c
+@@ -54,6 +54,7 @@
+ extern const struct backend backend_mediatek;
+ extern const struct backend backend_meson;
+ extern const struct backend backend_nouveau;
++extern const struct backend backend_nvidia_drm;
+ extern const struct backend backend_komeda;
+ extern const struct backend backend_radeon;
+ extern const struct backend backend_rockchip;
+@@ -83,6 +84,7 @@
+ #endif
+ 	&backend_evdi,	    &backend_komeda,	&backend_marvell, &backend_mediatek,
+ 	&backend_meson,	    &backend_nouveau,	&backend_radeon,  &backend_rockchip,
++	&backend_nvidia_drm,
+ 	&backend_sun4i_drm, &backend_synaptics, &backend_udl,	  &backend_virtgpu,
+ 	&backend_vkms,	    &backend_mock
+ };
+diff -ruN a/nvidia.c b/nvidia.c
+--- /dev/null
++++ b/nvidia.c
+@@ -0,0 +1,446 @@
++/*
++ * Copyright 2026 The NickelOS Authors. All rights reserved.
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file.
++ */
++
++/*
++ * NickelOS: NVIDIA's open kernel modules (nvidia-drm, modeset=1). NVIDIA's
++ * GPUs render only into memory laid out by NVIDIA's own allocator, which ships
++ * as a backend for Mesa's GBM loader (libnvidia-allocator.so.1, installed as
++ * gbm/nvidia-drm_gbm.so). This backend loads it as Mesa's loader does, gives
++ * it a device on the render node, and imports what it allocates into
++ * minigbm's DRM file as dma-bufs. Buffers the CPU maps, cursors and video and
++ * camera buffers stay linear dumb buffers. Without NVIDIA's library, every
++ * buffer is a dumb buffer.
++ */
++
++#include <dlfcn.h>
++#include <errno.h>
++#include <fcntl.h>
++#include <pthread.h>
++#include <stdbool.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/mman.h>
++#include <sys/stat.h>
++#include <sys/sysmacros.h>
++#include <unistd.h>
++#include <xf86drm.h>
++
++#include "drv_array_helpers.h"
++#include "drv_helpers.h"
++#include "drv_priv.h"
++#include "util.h"
++
++/*
++ * Mesa's GBM backend ABI, version 1 (src/gbm/main/gbm_backend_abi.h; MIT,
++ * Copyright 2011 Intel Corporation, 2021 NVIDIA Corporation), renamed:
++ * minigbm has its own struct gbm_device and struct gbm_bo. Layouts must stay
++ * those of Mesa's header.
++ */
++#define NV_GBM_BACKEND_ABI_VERSION 1
++
++union nv_gbm_bo_handle {
++	void *ptr;
++	int32_t s32;
++	uint32_t u32;
++	int64_t s64;
++	uint64_t u64;
++};
++
++struct nv_gbm_bo;
++struct nv_gbm_device;
++
++struct nv_gbm_device_v0 {
++	const void *backend_desc;
++	uint32_t backend_version;
++	int fd;
++	const char *name;
++	void (*destroy)(struct nv_gbm_device *gbm);
++	int (*is_format_supported)(struct nv_gbm_device *gbm, uint32_t format, uint32_t usage);
++	int (*get_format_modifier_plane_count)(struct nv_gbm_device *device, uint32_t format,
++					       uint64_t modifier);
++	struct nv_gbm_bo *(*bo_create)(struct nv_gbm_device *gbm, uint32_t width, uint32_t height,
++				       uint32_t format, uint32_t usage, const uint64_t *modifiers,
++				       const unsigned int count);
++	struct nv_gbm_bo *(*bo_import)(struct nv_gbm_device *gbm, uint32_t type, void *buffer,
++				       uint32_t usage);
++	void *(*bo_map)(struct nv_gbm_bo *bo, uint32_t x, uint32_t y, uint32_t width,
++			uint32_t height, uint32_t flags, uint32_t *stride, void **map_data);
++	void (*bo_unmap)(struct nv_gbm_bo *bo, void *map_data);
++	int (*bo_write)(struct nv_gbm_bo *bo, const void *buf, size_t data);
++	int (*bo_get_fd)(struct nv_gbm_bo *bo);
++	int (*bo_get_planes)(struct nv_gbm_bo *bo);
++	union nv_gbm_bo_handle (*bo_get_handle)(struct nv_gbm_bo *bo, int plane);
++	int (*bo_get_plane_fd)(struct nv_gbm_bo *bo, int plane);
++	uint32_t (*bo_get_stride)(struct nv_gbm_bo *bo, int plane);
++	uint32_t (*bo_get_offset)(struct nv_gbm_bo *bo, int plane);
++	uint64_t (*bo_get_modifier)(struct nv_gbm_bo *bo);
++	void (*bo_destroy)(struct nv_gbm_bo *bo);
++	/* Surfaces follow (surface_create and four more); not used here. */
++};
++
++struct nv_gbm_device {
++	struct nv_gbm_device *(*dummy)(int);
++	struct nv_gbm_device_v0 v0;
++};
++
++struct nv_gbm_backend_v0 {
++	uint32_t backend_version;
++	const char *backend_name;
++	struct nv_gbm_device *(*create_device)(int fd, uint32_t gbm_backend_version);
++};
++
++struct nv_gbm_core_v0 {
++	uint32_t core_version;
++	uint32_t (*format_canonicalize)(uint32_t gbm_format);
++};
++
++/* Mesa's GBM usage bits; minigbm's BO_USE_* bits do not all match them. */
++#define NV_GBM_BO_USE_SCANOUT (1 << 0)
++#define NV_GBM_BO_USE_RENDERING (1 << 2)
++
++#define NV_GBM_LIBRARY "libnvidia-allocator.so.1"
++
++/* A buffer from NVIDIA's allocator, by its handle in minigbm's DRM file. */
++struct nvidia_bo {
++	uint32_t handle;
++	struct nv_gbm_bo *nv_bo;
++};
++
++struct nvidia_priv {
++	void *library;
++	int fd; /* the render node NVIDIA's device lives on */
++	struct nv_gbm_device *dev;
++	pthread_mutex_t lock;
++	struct drv_array *bos; /* struct nvidia_bo */
++};
++
++static const uint32_t scanout_render_formats[] = {
++	DRM_FORMAT_ARGB8888,	DRM_FORMAT_XRGB8888,	DRM_FORMAT_ABGR8888,
++	DRM_FORMAT_XBGR8888,	DRM_FORMAT_ARGB2101010, DRM_FORMAT_XRGB2101010,
++	DRM_FORMAT_ABGR2101010, DRM_FORMAT_XBGR2101010, DRM_FORMAT_RGB565,
++};
++
++static const uint32_t texture_only_formats[] = { DRM_FORMAT_R8, DRM_FORMAT_NV12, DRM_FORMAT_NV21,
++						 DRM_FORMAT_P010, DRM_FORMAT_YVU420,
++						 DRM_FORMAT_YVU420_ANDROID };
++
++/* What the CPU, the cursor plane or video and camera hardware touch. */
++#define NVIDIA_LINEAR_USES                                                                         \
++	(BO_USE_SW_MASK | BO_USE_LINEAR | BO_USE_CURSOR | BO_USE_CAMERA_READ |                     \
++	 BO_USE_CAMERA_WRITE | BO_USE_HW_VIDEO_DECODER | BO_USE_HW_VIDEO_ENCODER |                 \
++	 BO_USE_SENSOR_DIRECT_DATA | BO_USE_GPU_DATA_BUFFER | BO_USE_RENDERSCRIPT |                \
++	 BO_USE_PROTECTED)
++
++static uint32_t nvidia_format_canonicalize(uint32_t format)
++{
++	/* GBM_BO_FORMAT_XRGB8888 and GBM_BO_FORMAT_ARGB8888 of the old enum. */
++	if (format == 0)
++		return DRM_FORMAT_XRGB8888;
++	if (format == 1)
++		return DRM_FORMAT_ARGB8888;
++	return format;
++}
++
++static const struct nv_gbm_core_v0 nvidia_core = {
++	.core_version = NV_GBM_BACKEND_ABI_VERSION,
++	.format_canonicalize = nvidia_format_canonicalize,
++};
++
++static bool nvidia_allocates(struct nvidia_priv *priv, uint32_t format)
++{
++	if (!priv->dev)
++		return false;
++	for (size_t i = 0; i < ARRAY_SIZE(scanout_render_formats); i++) {
++		if (scanout_render_formats[i] == format)
++			return true;
++	}
++	return false;
++}
++
++/*
++ * A second file on the render node: NVIDIA's buffers get their own handles
++ * there. libdrm finds the node through sysfs, which Chrome's GPU sandbox
++ * hides; then it is renderD<128 + N> for cardN or renderDN itself.
++ */
++static int nvidia_open_render_node(int fd)
++{
++	char *node = drmGetRenderDeviceNameFromFd(fd);
++	char path[32];
++	struct stat st;
++	int ret;
++
++	if (node) {
++		ret = open(node, O_RDWR | O_CLOEXEC);
++		free(node);
++		return ret;
++	}
++	if (fstat(fd, &st) || !S_ISCHR(st.st_mode))
++		return -1;
++	snprintf(path, sizeof(path), "/dev/dri/renderD%u", 128 + (minor(st.st_rdev) & 63));
++	return open(path, O_RDWR | O_CLOEXEC);
++}
++
++static void nvidia_load(struct driver *drv, struct nvidia_priv *priv)
++{
++	const struct nv_gbm_backend_v0 *(*get_backend)(const struct nv_gbm_core_v0 *);
++	const struct nv_gbm_backend_v0 *backend;
++	uint32_t version;
++
++	priv->library = dlopen(NV_GBM_LIBRARY, RTLD_NOW | RTLD_LOCAL);
++	if (!priv->library) {
++		drv_loge("nvidia: no NVIDIA allocator, dumb buffers only: %s\n", dlerror());
++		return;
++	}
++	get_backend = dlsym(priv->library, "gbmint_get_backend");
++	backend = get_backend ? get_backend(&nvidia_core) : NULL;
++	if (!backend || !backend->create_device) {
++		drv_loge("nvidia: %s is not a GBM backend\n", NV_GBM_LIBRARY);
++		return;
++	}
++
++	priv->fd = nvidia_open_render_node(drv->fd);
++	if (priv->fd < 0) {
++		drv_loge("nvidia: opening the render node failed (%d)\n", errno);
++		return;
++	}
++
++	version = backend->backend_version < NV_GBM_BACKEND_ABI_VERSION ? backend->backend_version
++									  : NV_GBM_BACKEND_ABI_VERSION;
++	priv->dev = backend->create_device(priv->fd, version);
++	if (!priv->dev) {
++		drv_loge("nvidia: %s made no device\n", backend->backend_name);
++		close(priv->fd);
++		priv->fd = -1;
++		return;
++	}
++	drv_logi("nvidia: allocating with %s, GBM backend ABI %u\n", backend->backend_name,
++		 priv->dev->v0.backend_version);
++}
++
++static int nvidia_init(struct driver *drv)
++{
++	struct nvidia_priv *priv = calloc(1, sizeof(*priv));
++	if (!priv)
++		return -ENOMEM;
++	priv->fd = -1;
++	pthread_mutex_init(&priv->lock, NULL);
++	priv->bos = drv_array_init(sizeof(struct nvidia_bo));
++	if (!priv->bos) {
++		free(priv);
++		return -ENOMEM;
++	}
++	drv->priv = priv;
++
++	drv_add_combinations(drv, scanout_render_formats, ARRAY_SIZE(scanout_render_formats),
++			     &LINEAR_METADATA, BO_USE_RENDER_MASK | BO_USE_SCANOUT);
++	drv_add_combinations(drv, texture_only_formats, ARRAY_SIZE(texture_only_formats),
++			     &LINEAR_METADATA, BO_USE_TEXTURE_MASK);
++	drv_modify_combination(drv, DRM_FORMAT_R8, &LINEAR_METADATA,
++			       BO_USE_HW_VIDEO_ENCODER | BO_USE_HW_VIDEO_DECODER |
++				   BO_USE_CAMERA_READ | BO_USE_CAMERA_WRITE |
++				   BO_USE_GPU_DATA_BUFFER | BO_USE_SENSOR_DIRECT_DATA);
++	drv_modify_combination(drv, DRM_FORMAT_NV12, &LINEAR_METADATA,
++			       BO_USE_HW_VIDEO_ENCODER | BO_USE_HW_VIDEO_DECODER |
++				   BO_USE_CAMERA_READ | BO_USE_CAMERA_WRITE);
++	drv_modify_combination(drv, DRM_FORMAT_NV21, &LINEAR_METADATA, BO_USE_HW_VIDEO_ENCODER);
++	/* 10-bit video (HEVC Main10, VP9 profile 2) decodes into P010. */
++	drv_modify_combination(drv, DRM_FORMAT_P010, &LINEAR_METADATA, BO_USE_HW_VIDEO_DECODER);
++	drv_modify_linear_combinations(drv);
++
++	nvidia_load(drv, priv);
++	return 0;
++}
++
++static void nvidia_close(struct driver *drv)
++{
++	struct nvidia_priv *priv = drv->priv;
++
++	for (uint32_t i = 0; i < drv_array_size(priv->bos); i++) {
++		struct nvidia_bo *entry = drv_array_at_idx(priv->bos, i);
++		priv->dev->v0.bo_destroy(entry->nv_bo);
++	}
++	drv_array_destroy(priv->bos);
++	if (priv->dev)
++		priv->dev->v0.destroy(priv->dev);
++	if (priv->fd >= 0)
++		close(priv->fd);
++	/* NVIDIA's library stays loaded: its driver libraries do not unload. */
++	pthread_mutex_destroy(&priv->lock);
++	free(priv);
++	drv->priv = NULL;
++}
++
++/* Allocates with NVIDIA's allocator and imports the result as bo's handle. */
++static int nvidia_bo_create_nv(struct bo *bo, uint32_t width, uint32_t height, uint32_t format,
++			       uint32_t usage, const uint64_t *modifiers, uint32_t count)
++{
++	struct nvidia_priv *priv = bo->drv->priv;
++	struct nv_gbm_device_v0 *dev = &priv->dev->v0;
++	struct nvidia_bo entry;
++	struct nv_gbm_bo *nv_bo;
++	int fd, planes, ret;
++	uint32_t handle;
++	off_t size;
++
++	nv_bo = dev->bo_create(priv->dev, width, height, format, usage, modifiers, count);
++	if (!nv_bo) {
++		drv_loge("nvidia: allocating %ux%u %.4s failed\n", width, height,
++			 (const char *)&format);
++		return -EINVAL;
++	}
++
++	planes = dev->bo_get_planes(nv_bo);
++	fd = dev->bo_get_fd(nv_bo);
++	if (planes < 1 || planes > DRV_MAX_PLANES || fd < 0) {
++		drv_loge("nvidia: unusable buffer (%d planes, fd %d)\n", planes, fd);
++		ret = -EINVAL;
++		goto fail;
++	}
++	size = lseek(fd, 0, SEEK_END);
++	ret = drmPrimeFDToHandle(bo->drv->fd, fd, &handle);
++	close(fd);
++	fd = -1;
++	if (ret || size <= 0) {
++		drv_loge("nvidia: importing NVIDIA's buffer failed (%d)\n", errno);
++		ret = -EINVAL;
++		goto fail;
++	}
++
++	bo->handle.u32 = handle;
++	bo->meta.num_planes = planes;
++	for (int i = 0; i < planes; i++) {
++		bo->meta.strides[i] = dev->bo_get_stride(nv_bo, i);
++		bo->meta.offsets[i] = dev->bo_get_offset(nv_bo, i);
++	}
++	for (int i = 0; i < planes; i++) {
++		uint32_t end = i + 1 < planes ? bo->meta.offsets[i + 1] : (uint32_t)size;
++		bo->meta.sizes[i] = end - bo->meta.offsets[i];
++	}
++	bo->meta.format_modifier = dev->bo_get_modifier(nv_bo);
++	bo->meta.total_size = size;
++
++	entry.handle = handle;
++	entry.nv_bo = nv_bo;
++	pthread_mutex_lock(&priv->lock);
++	drv_array_append(priv->bos, &entry);
++	pthread_mutex_unlock(&priv->lock);
++	return 0;
++
++fail:
++	if (fd >= 0)
++		close(fd);
++	dev->bo_destroy(nv_bo);
++	return ret;
++}
++
++static int nvidia_bo_create(struct bo *bo, uint32_t width, uint32_t height, uint32_t format,
++			    uint64_t use_flags)
++{
++	struct nvidia_priv *priv = bo->drv->priv;
++
++	if (nvidia_allocates(priv, format) && !(use_flags & NVIDIA_LINEAR_USES)) {
++		uint32_t usage = NV_GBM_BO_USE_RENDERING;
++		if (use_flags & BO_USE_SCANOUT)
++			usage |= NV_GBM_BO_USE_SCANOUT;
++		if (!nvidia_bo_create_nv(bo, width, height, format, usage, NULL, 0))
++			return 0;
++	}
++	return drv_dumb_bo_create(bo, width, height, format, use_flags);
++}
++
++/* For display buffers (Ozone asks with the plane's modifiers, no use flags). */
++static int nvidia_bo_create_with_modifiers(struct bo *bo, uint32_t width, uint32_t height,
++					   uint32_t format, const uint64_t *modifiers,
++					   uint32_t count)
++{
++	struct nvidia_priv *priv = bo->drv->priv;
++	uint64_t tiled[32];
++	uint32_t n = 0;
++
++	/* NVIDIA renders into its own layouts: leave linear to the dumb path. */
++	for (uint32_t i = 0; i < count && n < ARRAY_SIZE(tiled); i++) {
++		if (modifiers[i] != DRM_FORMAT_MOD_LINEAR && modifiers[i] != DRM_FORMAT_MOD_INVALID)
++			tiled[n++] = modifiers[i];
++	}
++	if (n && nvidia_allocates(priv, format) &&
++	    !nvidia_bo_create_nv(bo, width, height, format,
++				 NV_GBM_BO_USE_RENDERING | NV_GBM_BO_USE_SCANOUT, tiled, n))
++		return 0;
++
++	if (!drv_has_modifier(modifiers, count, DRM_FORMAT_MOD_LINEAR))
++		return -EINVAL;
++	return drv_dumb_bo_create(bo, width, height, format, BO_USE_SCANOUT);
++}
++
++static struct nv_gbm_bo *nvidia_take(struct nvidia_priv *priv, uint32_t handle)
++{
++	struct nv_gbm_bo *nv_bo = NULL;
++
++	pthread_mutex_lock(&priv->lock);
++	for (uint32_t i = 0; i < drv_array_size(priv->bos); i++) {
++		struct nvidia_bo *entry = drv_array_at_idx(priv->bos, i);
++		if (entry->handle == handle) {
++			nv_bo = entry->nv_bo;
++			drv_array_remove(priv->bos, i);
++			break;
++		}
++	}
++	pthread_mutex_unlock(&priv->lock);
++	return nv_bo;
++}
++
++static bool nvidia_owns(struct nvidia_priv *priv, uint32_t handle)
++{
++	bool owns = false;
++
++	pthread_mutex_lock(&priv->lock);
++	for (uint32_t i = 0; i < drv_array_size(priv->bos); i++) {
++		struct nvidia_bo *entry = drv_array_at_idx(priv->bos, i);
++		if (entry->handle == handle) {
++			owns = true;
++			break;
++		}
++	}
++	pthread_mutex_unlock(&priv->lock);
++	return owns;
++}
++
++/* The last reference to the handle is gone. */
++static int nvidia_bo_destroy(struct bo *bo)
++{
++	struct nvidia_priv *priv = bo->drv->priv;
++	/* Out of the table first: once closed, the handle number can come back. */
++	struct nv_gbm_bo *nv_bo = nvidia_take(priv, bo->handle.u32);
++	int ret = drv_gem_close(bo->drv, bo->handle.u32);
++
++	if (nv_bo)
++		priv->dev->v0.bo_destroy(nv_bo);
++	return ret;
++}
++
++static void *nvidia_bo_map(struct bo *bo, struct vma *vma, uint32_t map_flags)
++{
++	if (nvidia_owns(bo->drv->priv, bo->handle.u32)) {
++		drv_loge("nvidia: NVIDIA-allocated buffers are not CPU-mapped\n");
++		return MAP_FAILED;
++	}
++	return drv_dumb_bo_map(bo, vma, map_flags);
++}
++
++const struct backend backend_nvidia_drm = {
++	.name = "nvidia-drm",
++	.init = nvidia_init,
++	.close = nvidia_close,
++	.bo_create = nvidia_bo_create,
++	.bo_create_with_modifiers = nvidia_bo_create_with_modifiers,
++	.bo_destroy = nvidia_bo_destroy,
++	.bo_import = drv_prime_bo_import,
++	.bo_export = drv_prime_bo_export,
++	.bo_map = nvidia_bo_map,
++	.bo_unmap = drv_bo_munmap,
++	.resolve_format_and_use_flags = drv_resolve_format_and_use_flags_helper,
++};

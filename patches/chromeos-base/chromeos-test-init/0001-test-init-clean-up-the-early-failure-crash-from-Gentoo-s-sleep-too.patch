@@ -1,0 +1,27 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] test-init: clean up the early-failure crash from Gentoo's sleep too
+
+Test images crash 'sleep 10000' on purpose at early boot
+(early-failure.conf) and remove the report once no crash test needs it.
+The cleanup looked for reports named "coreutils", Google's coreutils
+being one multicall program; NickelOS Unified runs Gentoo's coreutils, one
+program per command, so the report is named "sleep" and stayed.
+
+---
+--- a/upstart/test-init/early-failure-cleanup.conf
++++ b/upstart/test-init/early-failure-cleanup.conf
+@@ -31,11 +31,12 @@
+   # coreutils crash.
+ 
+   # Find crashes:
+-  #  * from 'coreutils'
++  #  * from 'coreutils' (NickelOS: or 'sleep', Gentoo's coreutils having one
++  #    program per command)
+   #  * during early boot
+   #  * invoked as 'sleep 10000'
+   # And remove them
+-  find /var/spool/crash/ -maxdepth 1 -name "coreutils.*.meta" \
++  find /var/spool/crash/ -maxdepth 1 \( -name "coreutils.*.meta" -o -name "sleep.*.meta" \) \
+       -exec grep -l upload_var_is_early_boot=true {} + | \
+   while IFS= read -r file; do
+     proclog="${file%.meta}.proclog"

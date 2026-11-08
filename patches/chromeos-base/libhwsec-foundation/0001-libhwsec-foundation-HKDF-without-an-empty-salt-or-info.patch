@@ -1,0 +1,33 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] libhwsec-foundation: HKDF without an empty salt or info
+
+An empty brillo::Blob gives a null data() pointer, which OpenSSL 3.5
+refuses ("passed a null parameter"): every new account failed to derive
+its credential secret on NickelOS Unified, which runs on Gentoo's OpenSSL.
+An empty salt or info is the same as none (RFC 5869).
+---
+--- a/libhwsec-foundation/crypto/hkdf.cc
++++ b/libhwsec-foundation/crypto/hkdf.cc
+@@ -68,13 +68,18 @@
+     LOG(ERROR) << "Failed to set HKDF key: " << GetOpenSSLErrors();
+     return false;
+   }
+-  if (salt && EVP_PKEY_CTX_set1_hkdf_salt(context.get(), salt->data(),
+-                                          salt->size()) <= 0) {
++  // An empty salt or info is none (RFC 5869: no salt means HashLen zero
++  // bytes, no info a zero-length one); OpenSSL 3.5 refuses the null pointer
++  // an empty Blob gives.
++  if (salt && !salt->empty() &&
++      EVP_PKEY_CTX_set1_hkdf_salt(context.get(), salt->data(),
++                                  salt->size()) <= 0) {
+     LOG(ERROR) << "Failed to set HKDF salt: " << GetOpenSSLErrors();
+     return false;
+   }
+-  if (info && EVP_PKEY_CTX_add1_hkdf_info(context.get(), info->data(),
+-                                          info->size()) <= 0) {
++  if (info && !info->empty() &&
++      EVP_PKEY_CTX_add1_hkdf_info(context.get(), info->data(),
++                                  info->size()) <= 0) {
+     LOG(ERROR) << "Failed to set HKDF info: " << GetOpenSSLErrors();
+     return false;
+   }

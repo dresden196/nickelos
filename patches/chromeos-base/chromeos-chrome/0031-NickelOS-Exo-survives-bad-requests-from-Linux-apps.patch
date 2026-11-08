@@ -1,0 +1,242 @@
+diff --git a/components/exo/buffer.cc b/components/exo/buffer.cc
+index e6a134fe12765..c3cb59d660d28 100644
+--- a/components/exo/buffer.cc
++++ b/components/exo/buffer.cc
+@@ -99,9 +99,10 @@ gpu::SharedImageInterface* GetSharedImageInterface() {
+   // Note : This can fail if GPU acceleration has been disabled.
+   scoped_refptr<viz::RasterContextProvider> context_provider =
+       context_factory->SharedMainThreadRasterContextProvider();
++  // NickelOS: no context (the GPU process lost or restarting) fails the
++  // buffer; both callers handle nullptr.
+   if (!context_provider) {
+-    DLOG(ERROR) << "Failed to acquire a context provider";
+-    CHECK(context_provider);
++    LOG(ERROR) << "Failed to acquire a context provider";
+     return nullptr;
+   }
+   return context_provider->SharedImageInterface();
+diff --git a/components/exo/data_source.cc b/components/exo/data_source.cc
+index 0d47d4c1226ee..da14fbbca33e3 100644
+--- a/components/exo/data_source.cc
++++ b/components/exo/data_source.cc
+@@ -261,7 +261,13 @@ void DataSource::ReadData(const std::string& mime_type,
+ 
+   base::ScopedFD read_fd;
+   base::ScopedFD write_fd;
+-  PCHECK(base::CreatePipe(&read_fd, &write_fd));
++  // NickelOS: the browser out of descriptors (a client can hold many) fails
++  // this transfer, not the session.
++  if (!base::CreatePipe(&read_fd, &write_fd)) {
++    PLOG(ERROR) << "Failed to create a pipe for a data transfer";
++    std::move(failure_callback).Run();
++    return;
++  }
+   delegate_->OnSend(mime_type, std::move(write_fd));
+ 
+   base::ThreadPool::PostTaskAndReplyWithResult(
+diff --git a/components/exo/drag_drop_operation.cc b/components/exo/drag_drop_operation.cc
+index 9564d93d71f57..642461bd8e3d5 100644
+--- a/components/exo/drag_drop_operation.cc
++++ b/components/exo/drag_drop_operation.cc
+@@ -361,6 +361,15 @@ void DragDropOperation::ScheduleStartDragDropOperation() {
+ }
+ 
+ void DragDropOperation::StartDragDropOperation() {
++  // NickelOS: StartDrag() checked the root window, but the drag starts only
++  // once the client has sent its data, and the client may have taken the
++  // origin off the screen since. The destructor cancels the source.
++  if (!origin_->get()->window()->GetRootWindow()) {
++    LOG(ERROR) << "Origin surface left the screen before the drag started.";
++    delete this;
++    return;
++  }
++
+   uint32_t dnd_operations =
+       DndActionsToDragOperations(source_->get()->GetActions());
+ 
+diff --git a/components/exo/shared_memory.cc b/components/exo/shared_memory.cc
+index 67f734e15a576..0902cb1bd0ccf 100644
+--- a/components/exo/shared_memory.cc
++++ b/components/exo/shared_memory.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <GLES2/gl2extchromium.h>
+ #include <stddef.h>
++#include <sys/stat.h>
+ 
+ #include <utility>
+ 
+@@ -96,15 +97,21 @@ bool SharedMemory::Resize(const size_t new_size) {
+       base::UnsafeSharedMemoryRegion::TakeHandleForSerialization(
+           std::move(shared_memory_region_));
+   base::UnguessableToken guid = platform_region.GetGUID();
++  // NickelOS: as at creation (wl_shm.cc), the pool must stay within its file;
++  // if the client has not grown the file, keep the old size and fail.
++  struct stat st;
++  const bool fits = fstat(platform_region.GetPlatformHandle().fd, &st) == 0 &&
++                    st.st_size >= 0 &&
++                    static_cast<size_t>(st.st_size) >= new_size;
++  const size_t size = fits ? new_size : platform_region.GetSize();
+   base::subtle::PlatformSharedMemoryRegion updated_platform_region =
+       base::subtle::PlatformSharedMemoryRegion::Take(
+           platform_region.PassPlatformHandle(),
+-          base::subtle::PlatformSharedMemoryRegion::Mode::kUnsafe, new_size,
+-          guid);
++          base::subtle::PlatformSharedMemoryRegion::Mode::kUnsafe, size, guid);
+   shared_memory_region_ = base::UnsafeSharedMemoryRegion::Deserialize(
+       std::move(updated_platform_region));
+ 
+-  return shared_memory_region_.IsValid();
++  return fits && shared_memory_region_.IsValid();
+ }
+ 
+ }  // namespace exo
+diff --git a/components/exo/wayland/wl_compositor.cc b/components/exo/wayland/wl_compositor.cc
+index 2fa9819b6c2f7..08fb30b32d250 100644
+--- a/components/exo/wayland/wl_compositor.cc
++++ b/components/exo/wayland/wl_compositor.cc
+@@ -178,6 +178,15 @@ void surface_set_buffer_scale(wl_client* client,
+                            scale);
+     return;
+   }
++  // NickelOS: a cursor's scale divides the display's; past a few million the
++  // quotient falls under wm::ScaleAndRotateCursorBitmapAndHotpoint()'s
++  // NOTREACHED() floor. No display needs more than a few.
++  if (scale > 64) {
++    wl_resource_post_error(resource, WL_SURFACE_ERROR_INVALID_SCALE,
++                           "buffer scale must be at most 64 ('%d' specified)",
++                           scale);
++    return;
++  }
+ 
+   GetUserDataAs<Surface>(resource)->SetBufferScale(scale);
+ }
+diff --git a/components/exo/wayland/wl_data_device_manager.cc b/components/exo/wayland/wl_data_device_manager.cc
+index cc4f19a6b0913..618a6f0acb730 100644
+--- a/components/exo/wayland/wl_data_device_manager.cc
++++ b/components/exo/wayland/wl_data_device_manager.cc
+@@ -267,6 +267,16 @@ void data_offer_set_actions(wl_client* client,
+                             wl_resource* resource,
+                             uint32_t dnd_actions,
+                             uint32_t preferred_action) {
++  // NickelOS: libwayland does not check enum values; anything but a single
++  // action would reach DataDeviceManagerDndAction()'s NOTREACHED().
++  if (preferred_action != WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE &&
++      preferred_action != WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY &&
++      preferred_action != WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE &&
++      preferred_action != WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK) {
++    wl_resource_post_error(resource, WL_DATA_OFFER_ERROR_INVALID_ACTION,
++                           "invalid preferred action %u", preferred_action);
++    return;
++  }
+   GetUserDataAs<DataOffer>(resource)->SetActions(
+       DataDeviceManagerDndActions(dnd_actions),
+       DataDeviceManagerDndAction(preferred_action));
+@@ -358,6 +368,13 @@ class WaylandDataDeviceDelegate : public DataDeviceDelegate {
+                              "origin surface is null");
+       return;
+     }
++    // NickelOS: the protocol allows a drag with no source (data kept within
++    // the client); Exo has no such drag, and the code below and
++    // DragDropOperation use the source unchecked.
++    if (!source) {
++      LOG(ERROR) << "Drags without a data source are not supported.";
++      return;
++    }
+     if (!origin->window()->GetRootWindow()) {
+       LOG(ERROR) << "Origin surface has no root window.";
+       if (source) {
+diff --git a/components/exo/wayland/wl_shm.cc b/components/exo/wayland/wl_shm.cc
+index 0a517f4f9e538..70f211eb813ff 100644
+--- a/components/exo/wayland/wl_shm.cc
++++ b/components/exo/wayland/wl_shm.cc
+@@ -4,6 +4,8 @@
+ 
+ #include "components/exo/wayland/wl_shm.h"
+ 
++#include <fcntl.h>
++#include <sys/stat.h>
+ #include <wayland-server-protocol-core.h>
+ 
+ #include <algorithm>
+@@ -88,6 +90,7 @@ void shm_pool_resize(wl_client* client, wl_resource* resource, int32_t size) {
+   if (size < 0 || static_cast<size_t>(size) < shm->GetSize()) {
+     wl_resource_post_error(resource, WL_SHM_ERROR_INVALID_FD,
+                            "Can't shrink a shm pool.");
++    return;
+   }
+ 
+   if (!shm->Resize(size))
+@@ -104,7 +107,20 @@ void shm_create_pool(wl_client* client,
+                      int32_t size) {
+   static const auto kMode =
+       base::subtle::PlatformSharedMemoryRegion::Mode::kUnsafe;
+-  auto fd_pair = base::subtle::ScopedFDPair(base::ScopedFD(fd),
++  base::ScopedFD scoped_fd(fd);
++  // NickelOS: a pool larger than its file is read past the file's end, which
++  // kills the reader (the GPU process, the browser for a cursor) with SIGBUS.
++  struct stat st;
++  if (size <= 0 || fstat(scoped_fd.get(), &st) != 0 || st.st_size < size) {
++    wl_resource_post_error(resource, WL_SHM_ERROR_INVALID_FD,
++                           "pool size %d is not within the file", size);
++    return;
++  }
++  // A file that shrinks later does the same. Seal it against shrinking where
++  // the client allows seals (memfds made with MFD_ALLOW_SEALING, as toolkits
++  // make them); the client may still grow it for wl_shm_pool.resize.
++  fcntl(scoped_fd.get(), F_ADD_SEALS, F_SEAL_SHRINK);
++  auto fd_pair = base::subtle::ScopedFDPair(std::move(scoped_fd),
+                                             base::ScopedFD() /* readonly_fd */);
+   auto guid = base::UnguessableToken::Create();
+   auto platform_shared_memory = base::subtle::PlatformSharedMemoryRegion::Take(
+diff --git a/components/exo/wayland/xdg_shell.cc b/components/exo/wayland/xdg_shell.cc
+index bee066afee350..96288384b045f 100644
+--- a/components/exo/wayland/xdg_shell.cc
++++ b/components/exo/wayland/xdg_shell.cc
+@@ -208,6 +208,12 @@ class WaylandToplevel : public aura::WindowObserver {
+     shell_surface_data_ = nullptr;
+   }
+ 
++  // NickelOS: for the xdg-decoration object, which a client may keep after
++  // destroying the toplevel.
++  base::WeakPtr<WaylandToplevel> GetWeakPtr() {
++    return weak_ptr_factory_.GetWeakPtr();
++  }
++
+   void SetParent(WaylandToplevel* parent) {
+     if (!shell_surface_data_)
+       return;
+@@ -447,7 +453,8 @@ class WaylandXdgToplevelDecoration {
+   WaylandXdgToplevelDecoration(wl_resource* resource,
+                                wl_resource* toplevel_resource)
+       : resource_(resource),
+-        top_level_(GetUserDataAs<WaylandToplevel>(toplevel_resource)) {}
++        top_level_(
++            GetUserDataAs<WaylandToplevel>(toplevel_resource)->GetWeakPtr()) {}
+ 
+   WaylandXdgToplevelDecoration(const WaylandXdgToplevelDecoration&) = delete;
+   WaylandXdgToplevelDecoration& operator=(const WaylandXdgToplevelDecoration&) =
+@@ -455,6 +462,14 @@ class WaylandXdgToplevelDecoration {
+ 
+   uint32_t decoration_mode() const { return default_mode_; }
+   void SetDecorationMode(uint32_t mode) {
++    // NickelOS: a toplevel destroyed before its decoration is the client's
++    // protocol error; this used to call into the freed toplevel.
++    if (!top_level_) {
++      wl_resource_post_error(resource_,
++                             ZXDG_TOPLEVEL_DECORATION_V1_ERROR_ORPHANED,
++                             "the toplevel was destroyed before its decoration");
++      return;
++    }
+     if (default_mode_ != mode) {
+       default_mode_ = mode;
+       OnConfigure(mode);
+@@ -475,7 +490,7 @@ class WaylandXdgToplevelDecoration {
+   }
+ 
+   const raw_ptr<wl_resource> resource_;
+-  raw_ptr<WaylandToplevel, DanglingUntriaged> top_level_;
++  base::WeakPtr<WaylandToplevel> top_level_;
+   // Keeps track of the xdg-decoration mode on server side.
+   uint32_t default_mode_ = ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE;
+ };

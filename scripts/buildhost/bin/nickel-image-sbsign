@@ -1,0 +1,94 @@
+#!/bin/bash
+# On the build host, as root: signs an image for Secure Boot after
+# nickel-image-grub (NICKEL_SECUREBOOT=1) put shim, MokManager and the
+# Secure Boot GRUB in it (scripts/secureboot/README.md):
+#  - GRUB (efi/boot/grubx64.efi) on the EFI system partition (12) and in
+#    the system partition's /boot/efi/boot (3), which an update's
+#    postinstall copies to the EFI system partition;
+#  - the kernels: syslinux/vmlinuz.A and .B on the EFI system partition,
+#    and the system partition's /boot/vmlinuz, which postinstall copies
+#    there;
+#  - the key's certificate on the EFI system partition
+#    (nickelos-secureboot.der), for MokManager's Enroll key from disk.
+# Outside the SDK, so the key never goes into it.
+#
+#   nickel-image-sbsign IMAGE KEY CERT
+#       sign here (a key on the build host: the test key)
+#   nickel-image-sbsign --export IMAGE DIR
+#       the production key stays on Dresden's laptop (scripts/release):
+#       copy what needs signing to DIR, grubx64.efi and vmlinuz (each the
+#       same file wherever it sits in the image), for nickel-release-sign
+#   nickel-image-sbsign --attach IMAGE DIR CERT
+#       put the detached signatures nickel-release-sign made
+#       (DIR/grubx64.efi.p7, DIR/vmlinuz.p7) on every copy, after checking
+#       each copy is still the file that was signed, and verify each
+set -euo pipefail
+mode=sign
+case ${1:-} in
+--export) mode=export; shift;;
+--attach) mode=attach; shift;;
+esac
+img=${1:?image}
+case $mode in
+sign) key=${2:?key} cert=${3:?certificate};;
+export) dir=${2:?directory};;
+attach) dir=${2:?directory} cert=${3:?certificate};;
+esac
+die() { echo "nickel-image-sbsign: $*" >&2; exit 1; }
+ro=
+[ "$mode" = export ] && ro=-r
+l=$(losetup -fP $ro --show "$img")
+m=$(mktemp -d)
+trap 'umount "$m" 2>/dev/null || true; losetup -d "$l"; rmdir "$m"' EXIT
+
+# One file to sign, by its name in DIR (grubx64.efi or vmlinuz).
+one() {
+	local name=$1 f=$2
+	[ -f "$f" ] || die "no $f"
+	case $mode in
+	sign)
+		sbsign --key "$key" --cert "$cert" --output "$f.signed" "$f" 2>&1 | grep -v "^warning: \|^Signing Unsigned" || true
+		mv "$f.signed" "$f"
+		;;
+	export)
+		if [ -f "$dir/$name" ]; then
+			cmp -s "$f" "$dir/$name" || die "${f#"$m"} differs from the other copy of $name"
+		else
+			sbverify --list "$f" 2>/dev/null | grep -q '^signature 1' && die "${f#"$m"} is signed already"
+			cp "$f" "$dir/$name"
+		fi
+		return
+		;;
+	attach)
+		[ -f "$dir/$name.p7" ] || die "no signature $dir/$name.p7"
+		cmp -s "$f" "$dir/$name" || die "${f#"$m"} isn't the $name that was exported for signing"
+		sbattach --attach "$dir/$name.p7" "$f" 2>&1 | grep -v "^Signing Unsigned" || true
+		;;
+	esac
+	sbverify --cert "$cert" "$f" >/dev/null || die "$f does not verify"
+}
+
+opts=
+[ "$mode" = export ] && opts=-oro
+[ "$mode" = export ] && mkdir -p "$dir"
+mount $opts "${l}p12" "$m"
+[ -f "$m/efi/boot/mmx64.efi" ] || die "no shim layout on the EFI system partition (nickel-image-grub NICKEL_SECUREBOOT=1 first)"
+one grubx64.efi "$m/efi/boot/grubx64.efi"
+one vmlinuz "$m/syslinux/vmlinuz.A"
+one vmlinuz "$m/syslinux/vmlinuz.B"
+[ "$mode" = export ] || openssl x509 -in "$cert" -outform DER -out "$m/nickelos-secureboot.der"
+umount "$m"
+mount $opts "${l}p3" "$m"
+one grubx64.efi "$m/boot/efi/boot/grubx64.efi"
+# /boot/vmlinuz is a link to the versioned kernel (relative today).
+k=$m/boot/vmlinuz
+if [ -L "$k" ]; then
+	t=$(readlink "$k")
+	case $t in /*) k=$m$t ;; *) k=$m/boot/$t ;; esac
+fi
+one vmlinuz "$k"
+umount "$m"
+case $mode in
+export) echo "nickel-image-sbsign: $(basename "$img"): to sign in $dir: grubx64.efi, vmlinuz";;
+*) echo "nickel-image-sbsign: $(basename "$img"): GRUB and kernels signed ($(openssl x509 -in "$cert" -noout -subject))";;
+esac

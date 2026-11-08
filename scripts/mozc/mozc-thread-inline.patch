@@ -1,0 +1,55 @@
+# NickelOS: Mozc single-threaded in WebAssembly without pthreads (scripts/mozc).
+--- a/src/base/thread.h
++++ b/src/base/thread.h
+@@ -43,11 +43,14 @@
+ #include "absl/synchronization/mutex.h"
+ #include "absl/synchronization/notification.h"
+ 
++// NickelOS: WebAssembly without pthreads (they need SharedArrayBuffer, a
++// cross-origin isolated page) has no threads: a Thread runs its function at
++// once, before its constructor returns, and BackgroundFuture with it.
+ #if defined(__wasm__) && !defined(__EMSCRIPTEN_PTHREADS__)
+-#error "Please build with -pthreads for thread."
+-#endif  // defined(__wasm__) && !defined(__EMSCRIPTEN_PTHREADS__)
+-
++#define MOZC_INLINE_THREAD 1
++#else
+ #include <thread>  // NOLINT(build/c++11): this is external environment only.
++#endif
+ 
+ namespace mozc {
+ 
+@@ -60,6 +63,25 @@
+ //
+ // NOTE: This serves as a compatibility layer for Google, where we use a
+ // different threading implementation internally.
++#ifdef MOZC_INLINE_THREAD
++class Thread {
++ public:
++  Thread() noexcept = default;
++
++  template <class Function, class... Args>
++  explicit Thread(Function&& f, Args&&... args) {
++    std::invoke(std::forward<Function>(f), std::forward<Args>(args)...);
++  }
++
++  Thread(const Thread&) = delete;
++  Thread& operator=(const Thread&) = delete;
++  Thread(Thread&&) noexcept = default;
++  Thread& operator=(Thread&&) noexcept = default;
++
++  bool Joinable() const noexcept { return false; }
++  void Join() {}
++};
++#else
+ class Thread {
+  public:
+   Thread() noexcept = default;
+@@ -95,6 +117,7 @@
+   // for now.
+   std::thread thread_;
+ };
++#endif  // MOZC_INLINE_THREAD
+ 
+ // Represents a value that will be available in the future. This class spawns
+ // a dedicated background thread to execute the provider function.

@@ -1,0 +1,442 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Settings > Help, the guide on the device
+
+ChromeOS's help is Google's Help app and support site, which NickelOS
+doesn't have, so Settings had no help at all (0056 took About's "Get help"
+out). Settings now has Help at the bottom of its menu (Dresden,
+2026-11-04): a page of the About section, chrome://os-settings/help/guide,
+with its own menu entry, which the menu marks when it's open. Its rows open
+the NickelOS guide as it came with this version of the OS (the guide's
+pages, the Learning Gentoo page and Troubleshooting, from
+chromeos-base/nickel-guide in /usr/share/chromeos-assets/nickel-guide,
+where Chrome may open local files) in a browser tab, so they work offline;
+and the community page and the guide on nickelos.dev. NickelHelpHandler
+opens the local pages (a page name, checked; the website's page if the OS
+has no copy of it).
+
+---
+diff --git a/chrome/browser/resources/ash/settings/BUILD.gn b/chrome/browser/resources/ash/settings/BUILD.gn
+--- a/chrome/browser/resources/ash/settings/BUILD.gn
++++ b/chrome/browser/resources/ash/settings/BUILD.gn
+@@ -203,6 +203,7 @@
+     "os_about_page/consumer_auto_update_toggle_dialog.ts",
+     "os_about_page/detailed_build_info_subpage.ts",
+     "os_about_page/nickel_computer_name.ts",
++    "os_about_page/nickel_help_subpage.ts",
+     "os_about_page/os_about_page.ts",
+     "os_about_page/update_warning_dialog.ts",
+     "os_apps_page/android_apps_subpage.ts",
+diff --git a/chrome/browser/resources/ash/settings/os_about_page/nickel_help_subpage.html b/chrome/browser/resources/ash/settings/os_about_page/nickel_help_subpage.html
+new file mode 100644
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_about_page/nickel_help_subpage.html
+@@ -0,0 +1,26 @@
++<style include="settings-shared"></style>
++<cr-link-row id="nickelHelpGuide" class="first"
++    label="$i18n{nickelHelpGuide}"
++    sub-label="$i18n{nickelHelpGuideDescription}"
++    on-click="onGuideClick_" external>
++</cr-link-row>
++<cr-link-row id="nickelHelpGentoo" class="hr"
++    label="$i18n{nickelHelpGentoo}"
++    sub-label="$i18n{nickelHelpGentooDescription}"
++    on-click="onGentooClick_" external>
++</cr-link-row>
++<cr-link-row id="nickelHelpTroubleshooting" class="hr"
++    label="$i18n{nickelHelpTroubleshooting}"
++    sub-label="$i18n{nickelHelpTroubleshootingDescription}"
++    on-click="onTroubleshootingClick_" external>
++</cr-link-row>
++<cr-link-row id="nickelHelpCommunity" class="hr"
++    label="$i18n{nickelHelpCommunity}"
++    sub-label="$i18n{nickelHelpCommunityDescription}"
++    on-click="onCommunityClick_" external>
++</cr-link-row>
++<cr-link-row id="nickelHelpOnline" class="hr"
++    label="$i18n{nickelHelpOnline}"
++    sub-label="$i18n{nickelHelpOnlineDescription}"
++    on-click="onOnlineClick_" external>
++</cr-link-row>
+diff --git a/chrome/browser/resources/ash/settings/os_about_page/nickel_help_subpage.ts b/chrome/browser/resources/ash/settings/os_about_page/nickel_help_subpage.ts
+new file mode 100644
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_about_page/nickel_help_subpage.ts
+@@ -0,0 +1,65 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++/**
++ * @fileoverview NickelOS: Settings > Help. The NickelOS guide as it came with
++ * this version of the OS (chromeos-base/nickel-guide), which works offline,
++ * opened in the browser by NickelHelpHandler; and the guide and the
++ * community pages on nickelos.dev.
++ */
++
++import 'chrome://resources/ash/common/cr_elements/cr_link_row/cr_link_row.js';
++import '../settings_shared.css.js';
++
++import {I18nMixin} from 'chrome://resources/ash/common/cr_elements/i18n_mixin.js';
++import {OpenWindowProxyImpl} from 'chrome://resources/js/open_window_proxy.js';
++import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++
++import {getTemplate} from './nickel_help_subpage.html.js';
++
++const NickelHelpSubpageElementBase = I18nMixin(PolymerElement);
++
++export class NickelHelpSubpageElement extends NickelHelpSubpageElementBase {
++  static get is() {
++    return 'nickel-help-subpage' as const;
++  }
++
++  static get template() {
++    return getTemplate();
++  }
++
++  // A page of the guide on the device: index, learning-gentoo, ...
++  private openGuide_(page: string): void {
++    chrome.send('openNickelGuide', [page]);
++  }
++
++  private onGuideClick_(): void {
++    this.openGuide_('index');
++  }
++
++  private onGentooClick_(): void {
++    this.openGuide_('learning-gentoo');
++  }
++
++  private onTroubleshootingClick_(): void {
++    this.openGuide_('troubleshooting');
++  }
++
++  private onCommunityClick_(): void {
++    OpenWindowProxyImpl.getInstance().openUrl(
++        'https://nickelos.dev/help/community/');
++  }
++
++  private onOnlineClick_(): void {
++    OpenWindowProxyImpl.getInstance().openUrl('https://nickelos.dev/help/');
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    [NickelHelpSubpageElement.is]: NickelHelpSubpageElement;
++  }
++}
++
++customElements.define(NickelHelpSubpageElement.is, NickelHelpSubpageElement);
+diff --git a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
+--- a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
++++ b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.html
+@@ -368,6 +368,13 @@
+       </settings-card>
+     </div>
+ 
++    <!-- NickelOS: Settings > Help. -->
++    <template is="dom-if" route-path="/help/guide">
++      <os-settings-subpage page-title="$i18n{nickelHelpTitle}">
++        <nickel-help-subpage></nickel-help-subpage>
++      </os-settings-subpage>
++    </template>
++
+     <template is="dom-if" route-path="/help/details">
+       <os-settings-subpage page-title="$i18n{aboutDetailedBuildInfo}">
+         <settings-detailed-build-info-subpage
+diff --git a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts
+--- a/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts
++++ b/chrome/browser/resources/ash/settings/os_about_page/os_about_page.ts
+@@ -22,6 +22,7 @@
+ import '../os_reset_page/os_powerwash_dialog.js';
+ import './update_warning_dialog.js';
+ import './nickel_computer_name.js';
++import './nickel_help_subpage.js';
+ import '../crostini_page/crostini_settings_card.js';
+ import 'chrome://resources/ash/common/cr_elements/policy/cr_policy_indicator.js';
+ 
+diff --git a/chrome/browser/resources/ash/settings/os_settings_menu/os_settings_menu.ts b/chrome/browser/resources/ash/settings/os_settings_menu/os_settings_menu.ts
+--- a/chrome/browser/resources/ash/settings/os_settings_menu/os_settings_menu.ts
++++ b/chrome/browser/resources/ash/settings/os_settings_menu/os_settings_menu.ts
+@@ -54,6 +54,9 @@
+ 
+ import {getTemplate} from './os_settings_menu.html.js';
+ 
++// NickelOS: Settings > Help's path (os_settings_routes.ts, NICKEL_HELP).
++const NICKEL_HELP_PATH = '/help/guide';
++
+ const {Section} = routesMojom;
+ 
+ interface MenuItemData {
+@@ -326,6 +329,11 @@
+    * whose path matches the bluetooth menu item path.
+    */
+   private setSelectedItemPathForRoute_(route: Route): void {
++    // NickelOS: Help is a page of About with its own menu entry.
++    if (route.path === NICKEL_HELP_PATH) {
++      this.setSelectedItemPath_(NICKEL_HELP_PATH);
++      return;
++    }
+     const sectionAncestorRoute = route.getSectionAncestor();
+     if (sectionAncestorRoute) {
+       const menuItems =
+@@ -430,6 +438,14 @@
+         label: this.i18n('aboutOsPageTitle'),
+         sublabel: this.i18n('aboutChromeOsMenuItemDescription'),
+       },
++      // NickelOS: Help, the guide that came with the OS (a page of About).
++      {
++        section: Section.kAboutChromeOs,
++        path: NICKEL_HELP_PATH,
++        icon: 'cr:help-outline',
++        label: this.i18n('nickelHelpTitle'),
++        sublabel: this.i18n('nickelHelpMenuItemDescription'),
++      },
+     ];
+ 
+     return menuItems.filter(({section}) => this.pageAvailability[section]);
+diff --git a/chrome/browser/resources/ash/settings/os_settings_routes.ts b/chrome/browser/resources/ash/settings/os_settings_routes.ts
+--- a/chrome/browser/resources/ash/settings/os_settings_routes.ts
++++ b/chrome/browser/resources/ash/settings/os_settings_routes.ts
+@@ -197,6 +197,8 @@
+   MULTIDEVICE_FEATURES: Route;
+   NEARBY_SHARE: Route;
+   NETWORK_DETAIL: Route;
++  // NickelOS: Settings > Help (os_about_page/nickel_help_subpage.ts).
++  NICKEL_HELP: Route;
+   OFFICE: Route;
+   ONE_DRIVE: Route;
+   OS_ACCESSIBILITY: Route;
+@@ -505,6 +507,9 @@
+   r.ABOUT_DETAILED_BUILD_INFO = createSubpage(
+       r.ABOUT, routesMojom.DETAILED_BUILD_INFO_SUBPAGE_PATH,
+       Subpage.kDetailedBuildInfo);
++  // NickelOS: Settings > Help, a page of the About section with its own
++  // entry in the menu.
++  r.NICKEL_HELP = r.ABOUT.createChild('/help/guide');
+ 
+   // Internal pages (under About section).
+   r.INTERNAL_STORYBOOK = createSubpage(
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc b/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc
+--- a/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/about/about_section.cc
+@@ -28,6 +28,7 @@
+ #include "chrome/browser/enterprise/browser_management/management_service_factory.h"
+ #include "chrome/browser/obsolete_system/obsolete_system.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/about/nickel_computer_name_handler.h"
++#include "chrome/browser/ui/webui/ash/settings/pages/about/nickel_help_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/search/search_tag_registry.h"
+ #include "chrome/browser/ui/webui/management/management_ui.h"
+ #include "chrome/browser/ui/webui/settings/about_handler.h"
+@@ -380,6 +381,22 @@
+        IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY},
+       {"nickelComputerNameInvalid", IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID},
+       {"nickelComputerNameFailed", IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED},
++      {"nickelHelpTitle", IDS_SETTINGS_NICKEL_HELP_TITLE},
++      {"nickelHelpMenuItemDescription",
++       IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION},
++      {"nickelHelpGuide", IDS_SETTINGS_NICKEL_HELP_GUIDE},
++      {"nickelHelpGuideDescription", IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION},
++      {"nickelHelpGentoo", IDS_SETTINGS_NICKEL_HELP_GENTOO},
++      {"nickelHelpGentooDescription",
++       IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION},
++      {"nickelHelpTroubleshooting", IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING},
++      {"nickelHelpTroubleshootingDescription",
++       IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION},
++      {"nickelHelpCommunity", IDS_SETTINGS_NICKEL_HELP_COMMUNITY},
++      {"nickelHelpCommunityDescription",
++       IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION},
++      {"nickelHelpOnline", IDS_SETTINGS_NICKEL_HELP_ONLINE},
++      {"nickelHelpOnlineDescription", IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION},
+   };
+   html_source->AddLocalizedStrings(kLocalizedStrings);
+ 
+@@ -502,6 +519,7 @@
+   web_ui->AddMessageHandler(
+       std::make_unique<::settings::AboutHandler>(profile()));
+   web_ui->AddMessageHandler(std::make_unique<NickelComputerNameHandler>());
++  web_ui->AddMessageHandler(std::make_unique<NickelHelpHandler>());
+ 
+   crostini_subsection_.AddHandlers(web_ui);
+ }
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn
+--- a/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/about/BUILD.gn
+@@ -10,6 +10,8 @@
+     "about_section.h",
+     "nickel_computer_name_handler.cc",
+     "nickel_computer_name_handler.h",
++    "nickel_help_handler.cc",
++    "nickel_help_handler.h",
+   ]
+ 
+   public_deps = [
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/about/nickel_help_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/about/nickel_help_handler.cc
+new file mode 100644
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/about/nickel_help_handler.cc
+@@ -0,0 +1,79 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/webui/ash/settings/pages/about/nickel_help_handler.h"
++
++#include <string>
++
++#include "ash/public/cpp/new_window_delegate.h"
++#include "base/files/file_path.h"
++#include "base/files/file_util.h"
++#include "base/functional/bind.h"
++#include "base/strings/string_util.h"
++#include "base/task/thread_pool.h"
++#include "content/public/browser/web_ui.h"
++#include "url/gurl.h"
++
++namespace ash::settings {
++
++namespace {
++
++constexpr char kGuideDir[] = "/usr/share/chromeos-assets/nickel-guide";
++constexpr char kGuideOnline[] = "https://nickelos.dev/help/";
++
++// The guide's page names: "index", "learning-gentoo" and the like.
++bool IsPageName(const std::string& page) {
++  if (page.empty() || page.size() > 64) {
++    return false;
++  }
++  for (char c : page) {
++    if (!base::IsAsciiLower(c) && c != '-') {
++      return false;
++    }
++  }
++  return true;
++}
++
++// The copy on the device when it has the page, else the website's.
++GURL GuideUrl(const std::string& page) {
++  const base::FilePath file = base::FilePath(kGuideDir).Append(page + ".html");
++  if (base::PathExists(file)) {
++    return GURL("file://" + file.value());
++  }
++  return GURL(std::string(kGuideOnline) +
++              (page == "index" ? std::string() : page + "/"));
++}
++
++void OpenInBrowser(const GURL& url) {
++  NewWindowDelegate::GetInstance()->OpenUrl(
++      url, NewWindowDelegate::OpenUrlFrom::kUserInteraction,
++      NewWindowDelegate::Disposition::kNewForegroundTab);
++}
++
++}  // namespace
++
++NickelHelpHandler::NickelHelpHandler() = default;
++NickelHelpHandler::~NickelHelpHandler() = default;
++
++void NickelHelpHandler::RegisterMessages() {
++  web_ui()->RegisterMessageCallback(
++      "openNickelGuide",
++      base::BindRepeating(&NickelHelpHandler::HandleOpenGuide,
++                          base::Unretained(this)));
++}
++
++void NickelHelpHandler::HandleOpenGuide(const base::ListValue& args) {
++  if (args.size() != 1 || !args[0].is_string()) {
++    return;
++  }
++  const std::string page = args[0].GetString();
++  if (!IsPageName(page)) {
++    return;
++  }
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
++      base::BindOnce(&GuideUrl, page), base::BindOnce(&OpenInBrowser));
++}
++
++}  // namespace ash::settings
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/about/nickel_help_handler.h b/chrome/browser/ui/webui/ash/settings/pages/about/nickel_help_handler.h
+new file mode 100644
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/about/nickel_help_handler.h
+@@ -0,0 +1,33 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_ABOUT_NICKEL_HELP_HANDLER_H_
++#define CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_ABOUT_NICKEL_HELP_HANDLER_H_
++
++#include "base/values.h"
++#include "content/public/browser/web_ui_message_handler.h"
++
++namespace ash::settings {
++
++// NickelOS: Settings > Help opens a page of the guide that came with the OS
++// (/usr/share/chromeos-assets/nickel-guide, where Chrome may open local
++// files), in a browser tab; the page on nickelos.dev if this OS has no copy
++// of it.
++class NickelHelpHandler : public content::WebUIMessageHandler {
++ public:
++  NickelHelpHandler();
++  NickelHelpHandler(const NickelHelpHandler&) = delete;
++  NickelHelpHandler& operator=(const NickelHelpHandler&) = delete;
++  ~NickelHelpHandler() override;
++
++  // content::WebUIMessageHandler:
++  void RegisterMessages() override;
++
++ private:
++  void HandleOpenGuide(const base::ListValue& args);
++};
++
++}  // namespace ash::settings
++
++#endif  // CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_ABOUT_NICKEL_HELP_HANDLER_H_
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -2117,6 +2117,43 @@
+       <message name="IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED" desc="NickelOS: in the dialog that changes the computer's name, when the name could not be changed and no reason is known.">
+         The name couldn't be changed. Try again.
+       </message>
++      <!-- NickelOS: Settings > Help, the guide that came with the OS. -->
++      <message name="IDS_SETTINGS_NICKEL_HELP_TITLE" desc="NickelOS: the title of the Help page in Settings, and its entry in the Settings menu.">
++        Help
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION" desc="NickelOS: under Help in the Settings menu, what the Help page has.">
++        Guide, learning Gentoo, troubleshooting
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_HELP_GUIDE" desc="NickelOS: on the Help page, the row that opens the NickelOS guide in the browser.">
++        NickelOS guide
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION" desc="NickelOS: under the NickelOS guide row on the Help page. The guide is a copy stored on the device.">
++        How NickelOS works. This copy came with your version of NickelOS and works offline.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_HELP_GENTOO" desc="NickelOS: on the Help page, the row that opens the guide's page about learning Gentoo, the Linux distribution NickelOS is built on.">
++        Learning Gentoo
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION" desc="NickelOS: under Learning Gentoo on the Help page. Portage and emerge are Gentoo's package manager and its command; pacman and apt are other Linux distributions' package managers.">
++        Portage and emerge from the start, with pacman and apt commands side by side
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING" desc="NickelOS: on the Help page, the row that opens the guide's troubleshooting page.">
++        Troubleshooting
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION" desc="NickelOS: under Troubleshooting on the Help page.">
++        Logs, crash reports, and the usual problems and their fixes
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_HELP_COMMUNITY" desc="NickelOS: on the Help page, the row that opens the website's page about asking other people for help.">
++        Get help from people
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION" desc="NickelOS: under Get help from people on the Help page. nickelos.dev is the project's website; do not translate it.">
++        The forum, Discord and GitHub, on nickelos.dev
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_HELP_ONLINE" desc="NickelOS: on the Help page, the row that opens the guide on the website.">
++        The guide online
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION" desc="NickelOS: under The guide online on the Help page. nickelos.dev is the project's website; do not translate it.">
++        The newest version, on nickelos.dev
++      </message>
+       <!-- NickelOS: Settings > Device > Storage management, the device's other drives. -->
+       <message name="IDS_SETTINGS_NICKEL_DRIVES_TITLE" desc="NickelOS: in Settings > Device > Storage management, the heading over the device's other internal drives (such as a disk that holds Windows).">
+         Other drives

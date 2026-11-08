@@ -1,0 +1,284 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] cryptohome: a NickelOS local account owns its vault
+
+A local account (<name>@nickel.localhost) is the Linux user <name>, and
+its session runs Chrome as that user, so the user owns the vault's
+directories (user home, MyFiles, Downloads, caches, skeleton files) where
+chronos did. The group stays chronos-access where it was; other accounts'
+vaults, the root home and /home/chronos itself are unchanged. The owner is
+looked up per mount from the account id the mount is for.
+
+---
+diff -ruN a/cryptohome/namespace_mounter/mounter.cc b/cryptohome/namespace_mounter/mounter.cc
+--- a/cryptohome/namespace_mounter/mounter.cc
++++ b/cryptohome/namespace_mounter/mounter.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "cryptohome/namespace_mounter/mounter.h"
+ 
++#include <pwd.h>
+ #include <sys/mount.h>
+ #include <sys/stat.h>
+ 
+@@ -99,16 +100,48 @@
+   gid_t gid;
+ };
+ 
+-std::vector<DirectoryACL> GetCacheSubdirectories(const FilePath& dir) {
++// NickelOS: a local account (<name>@nickel.localhost, see nickel-accountsd)
++// is the Linux user <name>, and its session runs Chrome as that user, so the
++// user owns the vault. Every other account's vault is chronos's.
++// /home/chronos itself stays chronos's (EnsurePathComponent checks it).
++constexpr std::string_view kNickelLocalAccountSuffix = "@nickel.localhost";
++constexpr uid_t kNickelFirstLocalUid = 5000;
++constexpr uid_t kNickelLastLocalUid = 5999;
++
++VaultOwner ResolveVaultOwner(const Username& username) {
++  VaultOwner owner{libstorage::kChronosUid, libstorage::kChronosGid};
++  const std::string& account_id = *username;
++  if (!base::EndsWith(account_id, kNickelLocalAccountSuffix)) {
++    return owner;
++  }
++  const std::string name = account_id.substr(
++      0, account_id.size() - kNickelLocalAccountSuffix.size());
++  std::vector<char> buf(16384);
++  struct passwd pwd = {};
++  struct passwd* result = nullptr;
++  if (getpwnam_r(name.c_str(), &pwd, buf.data(), buf.size(), &result) != 0 ||
++      !result || result->pw_uid < kNickelFirstLocalUid ||
++      result->pw_uid > kNickelLastLocalUid) {
++    LOG(ERROR) << "No local account user for " << account_id
++               << "; the vault stays chronos's";
++    return owner;
++  }
++  owner.uid = result->pw_uid;
++  owner.gid = result->pw_gid;
++  return owner;
++}
++
++std::vector<DirectoryACL> GetCacheSubdirectories(const FilePath& dir,
++                                                 const VaultOwner& owner) {
+   return std::vector<DirectoryACL>{
+-      {dir.Append(kUserHomeSuffix).Append(kGCacheDir), kAccessMode,
+-       libstorage::kChronosUid, libstorage::kChronosAccessGid},
++      {dir.Append(kUserHomeSuffix).Append(kGCacheDir), kAccessMode, owner.uid,
++       libstorage::kChronosAccessGid},
+       {dir.Append(kUserHomeSuffix).Append(kCacheDir), kTrackedDirMode,
+-       libstorage::kChronosUid, libstorage::kChronosGid},
++       owner.uid, owner.gid},
+       {dir.Append(kUserHomeSuffix)
+            .Append(kGCacheDir)
+            .Append(kGCacheVersion2Dir),
+-       kAccessMode | kGroupWriteAccess, libstorage::kChronosUid,
++       kAccessMode | kGroupWriteAccess, owner.uid,
+        libstorage::kChronosAccessGid},
+       {dir.Append(kRootHomeSuffix).Append(kDaemonStoreCacheDir),
+        kAccessMode | kGroupWriteAccess, libstorage::kRootUid,
+@@ -117,33 +150,34 @@
+ }
+ 
+ std::vector<DirectoryACL> GetCommonSubdirectories(const FilePath& dir,
+-                                                  bool bind_mount_downloads) {
++                                                  bool bind_mount_downloads,
++                                                  const VaultOwner& owner) {
+   auto result = std::vector<DirectoryACL>{
+       {dir.Append(kRootHomeSuffix), kRootDirMode, libstorage::kRootUid,
+        libstorage::kDaemonStoreGid},
+-      {dir.Append(kUserHomeSuffix), kAccessMode, libstorage::kChronosUid,
++      {dir.Append(kUserHomeSuffix), kAccessMode, owner.uid,
++       libstorage::kChronosAccessGid},
++      {dir.Append(kUserHomeSuffix).Append(kMyFilesDir), kAccessMode, owner.uid,
+        libstorage::kChronosAccessGid},
+-      {dir.Append(kUserHomeSuffix).Append(kMyFilesDir), kAccessMode,
+-       libstorage::kChronosUid, libstorage::kChronosAccessGid},
+       {dir.Append(kUserHomeSuffix).Append(kMyFilesDir).Append(kDownloadsDir),
+-       kAccessMode, libstorage::kChronosUid, libstorage::kChronosAccessGid},
++       kAccessMode, owner.uid, libstorage::kChronosAccessGid},
+   };
+   if (bind_mount_downloads) {
+     result.push_back({dir.Append(kUserHomeSuffix).Append(kDownloadsDir),
+-                      kAccessMode, libstorage::kChronosUid,
+-                      libstorage::kChronosAccessGid});
++                      kAccessMode, owner.uid, libstorage::kChronosAccessGid});
+   }
+-  auto cache_subdirs = GetCacheSubdirectories(dir);
++  auto cache_subdirs = GetCacheSubdirectories(dir, owner);
+   result.insert(result.end(), cache_subdirs.begin(), cache_subdirs.end());
+   return result;
+ }
+ 
+ std::vector<DirectoryACL> GetDmcryptSubdirectories(const FilePath& dir,
+-                                                   bool bind_mount_downloads) {
+-  auto data_volume_subdirs =
+-      GetCommonSubdirectories(dir.Append(kMountDir), bind_mount_downloads);
++                                                   bool bind_mount_downloads,
++                                                   const VaultOwner& owner) {
++  auto data_volume_subdirs = GetCommonSubdirectories(
++      dir.Append(kMountDir), bind_mount_downloads, owner);
+   auto cache_volume_subdirs =
+-      GetCacheSubdirectories(dir.Append(kDmcryptCacheDir));
++      GetCacheSubdirectories(dir.Append(kDmcryptCacheDir), owner);
+ 
+   auto result = cache_volume_subdirs;
+   result.insert(result.end(), data_volume_subdirs.begin(),
+@@ -418,7 +452,8 @@
+                  libstorage::Platform* platform)
+     : legacy_mount_(legacy_mount),
+       bind_mount_downloads_(bind_mount_downloads),
+-      platform_(platform) {}
++      platform_(platform),
++      vault_owner_{libstorage::kChronosUid, libstorage::kChronosGid} {}
+ 
+ // static
+ FilePath Mounter::GetNewUserPath(const Username& username) {
+@@ -490,6 +525,7 @@
+ }
+ 
+ bool Mounter::EnsureUserMountPoints(const Username& username) const {
++  const VaultOwner owner = ResolveVaultOwner(username);
+   FilePath multi_home_user = GetUserPath(username);
+   FilePath multi_home_root = GetRootPath(username);
+   FilePath new_user_path = GetNewUserPath(username);
+@@ -525,14 +561,14 @@
+   }
+ 
+   if (!platform_->SafeCreateDirAndSetOwnershipAndPermissions(
+-          multi_home_user, kUserMountPointMode, libstorage::kChronosUid,
++          multi_home_user, kUserMountPointMode, owner.uid,
+           libstorage::kChronosAccessGid)) {
+     PLOG(ERROR) << "Can't create: " << multi_home_user;
+     return false;
+   }
+ 
+   if (!platform_->SafeCreateDirAndSetOwnershipAndPermissions(
+-          new_user_path, kUserMountPointMode, libstorage::kChronosUid,
++          new_user_path, kUserMountPointMode, owner.uid,
+           libstorage::kChronosAccessGid)) {
+     PLOG(ERROR) << "Can't create: " << new_user_path;
+     return false;
+@@ -563,10 +599,10 @@
+     FilePath destination_file = destination.Append(file_name);
+ 
+     if (!platform_->Copy(next_path, destination_file) ||
+-        !platform_->SetOwnership(destination_file, libstorage::kChronosUid,
+-                                 libstorage::kChronosGid, false)) {
+-      LOG(ERROR) << "Couldn't change owner (" << libstorage::kChronosUid << ":"
+-                 << libstorage::kChronosGid
++        !platform_->SetOwnership(destination_file, vault_owner_.uid,
++                                 vault_owner_.gid, false)) {
++      LOG(ERROR) << "Couldn't change owner (" << vault_owner_.uid << ":"
++                 << vault_owner_.gid
+                  << ") of destination path: " << destination_file.value();
+     }
+   }
+@@ -582,8 +618,8 @@
+     VLOG(1) << "RecursiveCopy: " << destination_dir.value();
+ 
+     if (!platform_->SafeCreateDirAndSetOwnershipAndPermissions(
+-            destination_dir, kSkeletonSubDirMode, libstorage::kChronosUid,
+-            libstorage::kChronosGid)) {
++            destination_dir, kSkeletonSubDirMode, vault_owner_.uid,
++            vault_owner_.gid)) {
+       LOG(ERROR) << "SafeCreateDirAndSetOwnership() failed: "
+                  << destination_dir.value();
+     }
+@@ -606,8 +642,8 @@
+ 
+   // Generate the set of the top level nodes that a mount creates.
+   absl::flat_hash_set<FilePath> initial_nodes;
+-  for (const auto& dir :
+-       GetCommonSubdirectories(mount_point, bind_mount_downloads_)) {
++  for (const auto& dir : GetCommonSubdirectories(
++           mount_point, bind_mount_downloads_, vault_owner_)) {
+     initial_nodes.insert(dir.path);
+   }
+   std::unique_ptr<libstorage::FileEnumerator> skel_enumerator(
+@@ -1161,7 +1197,8 @@
+ 
+   // Create <vault_path>/user and <vault_path>/root.
+   std::ignore = CreateVaultDirectoryStructure(
+-      platform_, GetCommonSubdirectories(vault_path, bind_mount_downloads_));
++      platform_, GetCommonSubdirectories(vault_path, bind_mount_downloads_,
++                                          vault_owner_));
+ 
+   // b/115997660: Mount eCryptfs after creating the tracked subdirectories.
+   if (!MountAndPush(vault_path, mount_point, "ecryptfs", ecryptfs_options)) {
+@@ -1181,10 +1218,12 @@
+ 
+   LOG(INFO) << "Creating vault directory structure";
+   std::ignore = CreateVaultDirectoryStructure(
+-      platform_, GetCommonSubdirectories(mount_point, bind_mount_downloads_));
++      platform_, GetCommonSubdirectories(mount_point, bind_mount_downloads_,
++                                         vault_owner_));
+   LOG(INFO) << "Setting tracking xattr";
+   std::ignore = SetTrackingXattr(
+-      platform_, GetCommonSubdirectories(mount_point, bind_mount_downloads_));
++      platform_, GetCommonSubdirectories(mount_point, bind_mount_downloads_,
++                                         vault_owner_));
+   LOG(INFO) << "Finished setting up dircrypto mount";
+ }
+ 
+@@ -1216,7 +1255,7 @@
+ 
+   std::ignore = CreateVaultDirectoryStructure(
+       platform_, GetDmcryptSubdirectories(UserPath(obfuscated_username),
+-                                          bind_mount_downloads_));
++                                          bind_mount_downloads_, vault_owner_));
+ 
+   return true;
+ }
+@@ -1228,6 +1267,7 @@
+   LOG(INFO) << "Performing mount of type " << MountTypeToString(mount_type);
+ 
+   const ObfuscatedUsername obfuscated_username = SanitizeUserName(username);
++  vault_owner_ = ResolveVaultOwner(username);
+ 
+   if (!EnsureUserMountPoints(username)) {
+     return StorageStatus::Make(FROM_HERE, "Error creating mountpoints",
+@@ -1373,6 +1413,7 @@
+ StorageStatus Mounter::PerformEphemeralMount(
+     const Username& username, const FilePath& ephemeral_loop_device) {
+   const ObfuscatedUsername obfuscated_username = SanitizeUserName(username);
++  vault_owner_ = ResolveVaultOwner(username);
+   const FilePath mount_point =
+       GetUserEphemeralMountDirectory(obfuscated_username);
+   LOG(ERROR) << "Directory is" << mount_point.value();
+@@ -1408,8 +1449,9 @@
+       GetMountedEphemeralRootHomePath(obfuscated_username);
+ 
+   if (!CreateVaultDirectoryStructure(
+-          platform_,
+-          GetCommonSubdirectories(mount_point, bind_mount_downloads_))) {
++          platform_, GetCommonSubdirectories(mount_point,
++                                             bind_mount_downloads_,
++                                             vault_owner_))) {
+     return StorageStatus::Make(FROM_HERE,
+                                "Can't create vault structure for ephemeral",
+                                MOUNT_ERROR_FATAL);
+diff -ruN a/cryptohome/namespace_mounter/mounter.h b/cryptohome/namespace_mounter/mounter.h
+--- a/cryptohome/namespace_mounter/mounter.h
++++ b/cryptohome/namespace_mounter/mounter.h
+@@ -33,6 +33,12 @@
+ extern const char kMigrating[];
+ extern const char kMigrated[];
+ 
++// NickelOS: who owns a vault's user directories (see ResolveVaultOwner()).
++struct VaultOwner {
++  uid_t uid;
++  gid_t gid;
++};
++
+ class Mounter {
+  public:
+   Mounter(bool legacy_mount,
+@@ -264,6 +270,10 @@
+   const bool bind_mount_downloads_;
+   libstorage::Platform* const platform_;  // Un-owned.
+ 
++  // Owner of the vault being mounted; set by PerformMount() and
++  // PerformEphemeralMount().
++  VaultOwner vault_owner_;
++
+   // Stack of mounts (in the mount(2) sense) that have been made.
+   MountStack stack_;
+ 

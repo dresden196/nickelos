@@ -1,0 +1,36 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# nickel-session-exec COMMAND [ARG...]
+#
+# Runs COMMAND as the session user with the session environment, in Chrome's
+# mount namespace (NICKEL_SESSION_MNTNS, empty for the root namespace), where
+# the user's home is mounted. The session jobs start the session D-Bus bus and
+# nickel-appd through this, so every app they start sees the same files
+# Chrome does.
+set -e
+
+env=/run/nickel/session/env
+user=$(sed -n 's/^NICKEL_SESSION_USER=//p' "${env}")
+[ -n "${user}" ] || { echo "nickel-session-exec: no session" >&2; exit 1; }
+mntns=$(sed -n 's/^NICKEL_SESSION_MNTNS=//p' "${env}")
+
+# Join the session's elogind session (its cgroup, see nickel-logind-session),
+# so polkit and the like count this program as the active user's.
+cgroup=$(sed -n 2p /run/nickel/session/logind 2>/dev/null)
+if [ -n "${cgroup}" ]; then
+	echo $$ > "/sys/fs/cgroup/elogind${cgroup}/cgroup.procs" || true
+fi
+
+# Session programs must behave like on any Linux desktop:
+# -T static drops privileges before exec. minijail's default (preload) mode
+#   changes the uid after exec, which leaves the process non-dumpable and
+#   /proc/self/uid_map unwritable, so bubblewrap could not set up its sandbox.
+# --no-default-runtime-environment: no no_new_privs (it would disable setuid
+#   helpers: sudo, fusermount3 for Flatpak system installs and AppImages) and
+#   no default seccomp filter.
+# shellcheck disable=SC2046 # one VAR=value word per line, no spaces in values
+exec /sbin/minijail0 -T static --no-default-runtime-environment \
+	-u "${user}" -g "${user}" -G \
+	${mntns:+-V "${mntns}"} -- \
+	/usr/bin/env -i $(grep -v '^NICKEL_SESSION_' "${env}") "$@"

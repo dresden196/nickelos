@@ -1,0 +1,215 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the GPU process runs unsandboxed when its sandbox
+ kept it from starting
+
+NickelOS keeps Chrome's GPU sandbox on (ChromeOS's protection for the
+process that handles web content's graphics). Its rules name what drivers
+may do; a driver update, or a Mesa its user rebuilt, can need one more
+system call or file, and then every sandboxed GPU process dies before it
+has initialized. ChromeOS can't draw without a GPU (no software
+compositing): the browser ended and started again, and the machine sat at
+the boot screen (Gentoo's Mesa on Intel and AMD, NVIDIA's driver threads:
+0078, 0080, 0081, 2026-10-20 and 21).
+
+The browser can't relaunch the GPU process unsandboxed itself: its
+compositor waits for the GPU channel on the main thread and gives up after
+the second GPU process died, before the crash is handled. So when GPU
+compositing is lost for good with the sandbox on and no sandboxed GPU
+process ever initialized, the browser writes /run/nickel/gpu/sandbox-off
+as it ends (the directory: nickel-userland's nickel-gpu-dir), and while
+that file is there, GPU processes start without the sandbox, logged. /run
+clears it at the next boot, and the sandbox is tried again. The sandbox's
+own log line before names what it refused. NICKEL_TEST_GPU_SANDBOX_GAP in
+the environment makes the sandboxed GPU process trip its sandbox, to test
+this.
+
+diff --git a/content/browser/compositor/viz_process_transport_factory.cc b/content/browser/compositor/viz_process_transport_factory.cc
+index 53219f0aaeb84..333802380bf16 100644
+--- a/content/browser/compositor/viz_process_transport_factory.cc
++++ b/content/browser/compositor/viz_process_transport_factory.cc
+@@ -269,6 +269,9 @@ void VizProcessTransportFactory::DisableGpuCompositing(
+   // A fatal error has occurred and we can't fall back to software compositing
+   // on CrOS. These can be unrecoverable hardware errors, or bugs that should
+   // not happen. Crash the browser process to reset everything.
++  // NickelOS: unless the GPU sandbox kept the GPU process from starting; then
++  // the next browser runs it unsandboxed (GpuProcessHost).
++  GpuProcessHost::NickelOnGpuCompositingLost();
+   LOG(FATAL) << "Software compositing fallback is unavailable. Goodbye.";
+ #else
+   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+diff --git a/content/browser/gpu/gpu_process_host.cc b/content/browser/gpu/gpu_process_host.cc
+index 1b29f20028bf2..9b8f605ea53ca 100644
+--- a/content/browser/gpu/gpu_process_host.cc
++++ b/content/browser/gpu/gpu_process_host.cc
+@@ -33,6 +33,14 @@
+ #include "base/time/time.h"
+ #include "base/trace_event/trace_event.h"
+ #include "build/build_config.h"
++#if BUILDFLAG(IS_CHROMEOS)
++#include <fcntl.h>
++#include <unistd.h>
++
++#include <tuple>
++
++#include "base/posix/eintr_wrapper.h"
++#endif
+ #include "cc/base/switches.h"
+ #include "components/discardable_memory/service/discardable_shared_memory_manager.h"
+ #include "components/tracing/common/tracing_switches.h"
+@@ -144,6 +152,17 @@ base::subtle::Atomic32 GpuProcessHost::gpu_crash_count_ = 0;
+ bool GpuProcessHost::crashed_before_ = false;
+ int GpuProcessHost::recent_crash_count_ = 0;
+ gpu::GpuMode GpuProcessHost::last_crash_mode_ = gpu::GpuMode::UNKNOWN;
++bool GpuProcessHost::nickel_sandboxed_initialized_ = false;
++bool GpuProcessHost::nickel_unsandboxed_ = false;
++
++namespace {
++// NickelOS: written when sandboxed GPU processes never initialized and GPU
++// compositing was lost for it; while it is there, the GPU process runs
++// unsandboxed. Its directory (chronos's, group chronos, 0770, so the Linux
++// users' Chrome writes it too) is made before each ui start
++// (nickel-gpu-dir); /run clears it at the next boot.
++constexpr char kNickelGpuSandboxOff[] = "/run/nickel/gpu/sandbox-off";
++}  // namespace
+ // RESULT_CODE_HUNG is expected to be the same in both
+ // content/public/common/result_codes.h and gpu/ipc/common/result_codes.h
+ static_assert(RESULT_CODE_HUNG == static_cast<int>(gpu::RESULT_CODE_HUNG),
+@@ -740,6 +759,46 @@ GpuProcessHost* GpuProcessHost::FromID(int host_id) {
+ }
+ 
+ // static
++// NickelOS keeps Chrome's GPU sandbox on. Its rules name what drivers may
++// do, and a driver update, or a Mesa its user rebuilt, can need one more
++// system call or file: then the sandboxed GPU process dies before it has
++// initialized, every time. ChromeOS can't draw without a GPU (no software
++// compositing), so the browser ends, starts again, and the machine sat at
++// the boot screen (Gentoo's Mesa on Intel and AMD, NVIDIA's driver threads,
++// 2026-10-20 and 21). The browser can't relaunch it unsandboxed itself:
++// its compositor waits for the GPU channel on the main thread, and gives up
++// after the second GPU process died, before the crash is even handled. So
++// it notes here, as it ends, that the next browser runs the GPU process
++// unsandboxed; the sandbox's own log line before this names what it refused.
++// The machine's next restart tries the sandbox again.
++// static
++void GpuProcessHost::NickelOnGpuCompositingLost() {
++#if BUILDFLAG(IS_CHROMEOS)
++  if (nickel_unsandboxed_ || nickel_sandboxed_initialized_ ||
++      base::CommandLine::ForCurrentProcess()->HasSwitch(
++          sandbox::policy::switches::kDisableGpuSandbox)) {
++    return;
++  }
++  // Plain POSIX: the browser is about to end, on its main thread.
++  int fd = HANDLE_EINTR(open(kNickelGpuSandboxOff,
++                             O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0640));
++  if (fd < 0) {
++    PLOG(ERROR) << "NickelOS: can't note the GPU sandbox fallback in "
++                << kNickelGpuSandboxOff;
++    return;
++  }
++  static const char kWhy[] =
++      "sandboxed GPU processes never initialized: the GPU process runs "
++      "without its sandbox until this machine restarts\n";
++  std::ignore = HANDLE_EINTR(write(fd, kWhy, sizeof(kWhy) - 1));
++  close(fd);
++  LOG(ERROR) << "NickelOS: no sandboxed GPU process initialized; the next "
++                "browser runs its GPU process without the sandbox until this "
++                "machine restarts. What the sandbox refused is logged above "
++                "(seccomp-bpf failure, or the broker's denial).";
++#endif  // BUILDFLAG(IS_CHROMEOS)
++}
++
+ int GpuProcessHost::GetGpuCrashCount() {
+   return static_cast<int>(base::subtle::NoBarrier_Load(&gpu_crash_count_));
+ }
+@@ -1060,6 +1119,9 @@ void GpuProcessHost::DidInitialize(
+     const std::optional<gpu::GPUInfo>& gpu_info_for_hardware_gpu,
+     const std::optional<gpu::GpuFeatureInfo>& gpu_feature_info_for_hardware_gpu,
+     const gfx::GpuExtraInfo& gpu_extra_info) {
++  if (kind_ == GPU_PROCESS_KIND_SANDBOXED && !nickel_unsandboxed_) {
++    nickel_sandboxed_initialized_ = true;
++  }
+   if (GetGpuCrashCount() > 0) {
+     LOG(WARNING) << "Reinitialized the GPU process after a crash. The reported "
+                     "initialization time was "
+@@ -1341,6 +1403,20 @@ bool GpuProcessHost::LaunchGpuProcess() {
+ #endif
+ 
+   cmd_line->AppendSwitchASCII(switches::kProcessType, switches::kGpuProcess);
++  // NickelOS: after sandboxed GPU processes never initialized
++  // (NickelOnGpuCompositingLost), the GPU process runs without the sandbox.
++#if BUILDFLAG(IS_CHROMEOS)
++  if (kind_ == GPU_PROCESS_KIND_SANDBOXED && !nickel_unsandboxed_ &&
++      access(kNickelGpuSandboxOff, F_OK) == 0) {
++    nickel_unsandboxed_ = true;
++    LOG(ERROR) << "NickelOS: the GPU process runs without its sandbox until "
++                  "this machine restarts: sandboxed GPU processes never "
++                  "initialized before (" << kNickelGpuSandboxOff << ")";
++  }
++#endif  // BUILDFLAG(IS_CHROMEOS)
++  if (kind_ == GPU_PROCESS_KIND_SANDBOXED && nickel_unsandboxed_) {
++    cmd_line->AppendSwitch(sandbox::policy::switches::kDisableGpuSandbox);
++  }
+ 
+ #if BUILDFLAG(IS_WIN)
+   if (kind_ == GPU_PROCESS_KIND_INFO_COLLECTION) {
+diff --git a/content/browser/gpu/gpu_process_host.h b/content/browser/gpu/gpu_process_host.h
+index 7e1e15d87a205..302f1260181fc 100644
+--- a/content/browser/gpu/gpu_process_host.h
++++ b/content/browser/gpu/gpu_process_host.h
+@@ -57,6 +57,13 @@ class GpuProcessHost final : public BrowserChildProcessHostDelegate,
+  public:
+   static int GetGpuCrashCount();
+ 
++  // NickelOS: GPU compositing failed for good (ChromeOS's software
++  // compositing fallback is unavailable, and the browser ends next). If the
++  // sandbox was on and no sandboxed GPU process initialized, notes that the
++  // next browser runs its GPU process unsandboxed (until the machine
++  // restarts).
++  static void NickelOnGpuCompositingLost();
++
+   // Creates a new GpuProcessHost (if |force_create| is turned on) or gets an
+   // existing one, resulting in the launching of a GPU process if required.
+   // Returns null on failure. It is not safe to store the pointer once control
+@@ -245,6 +252,11 @@ class GpuProcessHost final : public BrowserChildProcessHostDelegate,
+   // The GPU process reported failure to initialize.
+   bool did_fail_initialize_ = false;
+ 
++  // NickelOS: whether a sandboxed GPU process initialized in this browser,
++  // and whether this browser runs its GPU process unsandboxed.
++  static bool nickel_sandboxed_initialized_;
++  static bool nickel_unsandboxed_;
++
+   // The total number of GPU process crashes.
+   static base::subtle::Atomic32 gpu_crash_count_;
+   static bool crashed_before_;
+diff --git a/content/gpu/gpu_main.cc b/content/gpu/gpu_main.cc
+index 543e347e14cf2..65d0ced4fc4a0 100644
+--- a/content/gpu/gpu_main.cc
++++ b/content/gpu/gpu_main.cc
+@@ -5,6 +5,10 @@
+ #include <fcntl.h>
+ #include <stddef.h>
+ #include <stdlib.h>
++#if defined(__linux__)
++#include <sys/syscall.h>
++#include <unistd.h>
++#endif
+ 
+ #include <memory>
+ #include <tuple>
+@@ -570,6 +574,15 @@ bool StartSandboxLinux(gpu::GpuWatchdogThread* watchdog_thread,
+           *base::CommandLine::ForCurrentProcess()),
+       base::BindOnce(GpuPreSandboxHook), sandbox_options);
+ 
++  // NickelOS: for testing the browser's fallback when the sandbox refuses a
++  // driver's call (GpuProcessHost::NickelOnGpuCompositingLost): with this in
++  // the environment (an env line in /etc/chrome_dev.conf), the sandboxed GPU
++  // process makes a call no GPU policy allows, acct(2), and dies as on a real
++  // gap. Unsandboxed, this function doesn't run.
++  if (res && getenv("NICKEL_TEST_GPU_SANDBOX_GAP")) {
++    syscall(__NR_acct, nullptr);
++  }
++
+   if (watchdog_thread) {
+     watchdog_thread->Start();
+   }

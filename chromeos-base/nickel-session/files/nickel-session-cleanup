@@ -1,0 +1,29 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# Removes what nickel-session-setup created once the session has ended.
+
+env=/run/nickel/session/env
+uid=$(sed -n 's/^XDG_RUNTIME_DIR=\/run\/user\///p' "${env}" 2>/dev/null)
+case "${uid}" in
+''|*[!0-9]*) ;;
+*)
+  # nickel-session-setup bind-mounts the runtime dir onto itself (elogind
+  # may have removed it already).
+  umount -l "/run/user/${uid}" 2>/dev/null
+  rm -rf "/run/user/${uid}"
+  ;;
+esac
+# The user's My files, mounted at their home (one home): before the vault
+# is unmounted, which this job's stop precedes (it stops with ui).
+user=$(sed -n 's/^NICKEL_SESSION_USER=//p' "${env}" 2>/dev/null)
+mntns=$(sed -n 's/^NICKEL_SESSION_MNTNS=//p' "${env}" 2>/dev/null)
+case "${user}" in
+''|chronos|*/*) ;;
+*)
+  while ${mntns:+nsenter --mount="${mntns}" --} mountpoint -q "/home/${user}"; do
+    ${mntns:+nsenter --mount="${mntns}" --} umount -l "/home/${user}" || break
+  done
+  ;;
+esac
+rm -f "${env}"

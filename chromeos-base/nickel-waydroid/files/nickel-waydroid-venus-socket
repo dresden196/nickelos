@@ -1,0 +1,10 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# Run as root by nickel-waydroid-venus before its render server starts and
+# after it stops: the server's socket goes with the server. One left by an
+# earlier session's server (another user's) can't be replaced by the next
+# user's server in the sticky /run/waydroid-venus, so that server failed
+# until upstart stopped respawning it, and the user's Android wouldn't start
+# ("Venus render server socket ... is not accepting connections").
+rm -f /run/waydroid-venus/venus.sock

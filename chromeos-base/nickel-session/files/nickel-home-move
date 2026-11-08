@@ -1,0 +1,81 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# One home, once: until it, Linux apps' home was the top of the user's vault
+# (/home/chronos/user), which is also Chrome's profile directory. What they
+# kept there (dotfiles, ~/Desktop, Gear Lever's ~/Applications) moves into
+# the new home, My files; each leaves a link behind, so paths that apps
+# stored keep working. Chrome's own files stay. Then Files' old trash joins
+# the home's (below). Run as the session user when the session starts
+# (nickel-session-setup), with HOME the new home.
+old=/home/chronos/user
+mark="${old}/.nickel-one-home"
+[ "${HOME}" != "${old}" ] && [ -d "${old}/MyFiles" ] || exit 1
+
+move_home() {
+  for path in "${old}"/.[!.]* "${old}"/..?* "${old}/Desktop" "${old}/Applications"; do
+    [ -e "${path}" ] || [ -L "${path}" ] || continue
+    name=${path##*/}
+    case "${name}" in
+    # Chrome's: its certificate database, startup state and temporary files.
+    .pki|.early_prefs|.variations-list.txt|.org.chromium.*|.com.google.*) continue ;;
+    .nickel-one-home) continue ;;
+    esac
+    # Moved by an earlier, interrupted run.
+    [ "$(readlink "${path}")" = "MyFiles/${name}" ] && continue
+    if [ -e "${old}/MyFiles/${name}" ] || [ -L "${old}/MyFiles/${name}" ]; then
+      echo "nickel-home-move: ${name} is in both homes, kept apart" >&2
+      continue
+    fi
+    # Through ${old}/MyFiles, not ${HOME}: rename(2) works only within one
+    # mount, and the home is a mount of its own. Same filesystem: no copying.
+    mv -T "${path}" "${old}/MyFiles/${name}" &&
+      ln -s "MyFiles/${name}" "${path}"
+  done
+
+  # Desktop files that AppImage integration wrote, and GTK's bookmarks, name
+  # the files by their old paths: give them the new ones.
+  for f in "${HOME}"/.local/share/applications/*.desktop \
+           "${HOME}"/.config/gtk-3.0/bookmarks; do
+    [ -f "${f}" ] && [ ! -L "${f}" ] && grep -q "${old}/" "${f}" || continue
+    sed -i -e "s#${old}/MyFiles/#${HOME}/#g" -e "s#${old}/#${HOME}/#g" "${f}"
+  done
+}
+
+# Files' trash from before it shared the Linux home's (Chrome 0039): My
+# files/.Trash and Downloads/.Trash, whose Path= lines are relative to My
+# files. Into $XDG_DATA_HOME/Trash, the one Files and Linux apps now share,
+# with the paths in the home. Every session, a no-op once they are gone.
+move_trash() {
+  trash="${old}/MyFiles/.local/share/Trash"
+  for t in "${old}/MyFiles/.Trash" "${old}/MyFiles/Downloads/.Trash"; do
+    [ -d "${t}/info" ] || continue
+    mkdir -p "${trash}/files" "${trash}/info"
+    for info in "${t}"/info/*.trashinfo; do
+      [ -f "${info}" ] || continue
+      name=${info##*/}
+      name=${name%.trashinfo}
+      if [ ! -e "${t}/files/${name}" ] && [ ! -L "${t}/files/${name}" ]; then
+        rm -f "${info}"
+        continue
+      fi
+      new=${name}
+      n=1
+      while [ -e "${trash}/files/${new}" ] || [ -L "${trash}/files/${new}" ] ||
+            [ -e "${trash}/info/${new}.trashinfo" ]; do
+        new="${name}.${n}"
+        n=$((n + 1))
+      done
+      sed "s#^Path=/#Path=${HOME}/#" "${info}" > "${trash}/info/${new}.trashinfo" &&
+        mv -T "${t}/files/${name}" "${trash}/files/${new}" &&
+        rm -f "${info}"
+    done
+    rmdir "${t}/files" "${t}/info" "${t}" 2>/dev/null
+  done
+}
+
+if [ ! -e "${mark}" ]; then
+  move_home
+  : > "${mark}"
+fi
+move_trash

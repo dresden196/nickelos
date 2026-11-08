@@ -1,0 +1,128 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: no Privacy Sandbox or AI components
+
+Chrome's component updater (update.googleapis.com) keeps data packages
+current. Dresden, 2026-10-22: keep the security ones (certificate
+revocation, PKI metadata with the Certificate Transparency logs, file type
+policies, safety tips, the SSL error assistant, Crowd Deny, the subresource
+filter) and drop Google's Privacy Sandbox and AI ones:
+
+- Privacy Sandbox: Trust Token key commitments, Private Verification
+  Tokens, Related Website Sets, the attestations. Without the attestations
+  its ad APIs stay denied (kDefaultAllowPrivacySandboxAttestations is off).
+  Related Website Sets get an empty list at once instead of the component:
+  Chrome holds the queries that need them until a list has come.
+- AI and Google features: the omnibox's on-device suggestion model,
+  Optimization Hints, the actor's safety lists, history search strings,
+  payment amount heuristics, captcha providers, the AI embeddings model and
+  AI Mode eligibility.
+
+What they had downloaded is deleted at startup with Chrome's other
+obsolete components.
+
+diff --git a/chrome/browser/component_updater/registration.cc b/chrome/browser/component_updater/registration.cc
+index 9cf5a226c7f74..b0ed668006622 100644
+--- a/chrome/browser/component_updater/registration.cc
++++ b/chrome/browser/component_updater/registration.cc
+@@ -5,6 +5,7 @@
+ #include "chrome/browser/component_updater/registration.h"
+ 
+ #include "base/feature_list.h"
++#include "base/files/file.h"
+ #include "base/files/file_path.h"
+ #include "base/files/file_util.h"
+ #include "base/functional/bind.h"
+@@ -12,6 +13,7 @@
+ #include "base/metrics/histogram_functions.h"
+ #include "base/path_service.h"
+ #include "base/task/thread_pool.h"
++#include "base/version.h"
+ #include "build/build_config.h"
+ #include "chrome/browser/browser_process.h"
+ #include "chrome/browser/buildflags.h"
+@@ -49,6 +51,7 @@
+ #include "components/optimization_guide/core/model_execution/model_execution_util.h"
+ #include "components/prefs/pref_service.h"
+ #include "components/safe_browsing/core/common/features.h"
++#include "content/public/browser/first_party_sets_handler.h"
+ #include "device/vr/buildflags/buildflags.h"
+ #include "extensions/buildflags/buildflags.h"
+ #include "third_party/widevine/cdm/buildflags.h"
+@@ -126,6 +129,16 @@ void DeleteOldComponents(const base::FilePath& user_data_dir) {
+            FILE_PATH_LITERAL(
+                "Fingerprinting Protection Filter"),    // Remove in M156+
+            FILE_PATH_LITERAL("PlusAddressBlocklist"),  // Remove in M158+
++           // NickelOS: the components it no longer registers (0088).
++           FILE_PATH_LITERAL("OnDeviceHeadSuggestModel"),
++           FILE_PATH_LITERAL("OptimizationHints"),
++           FILE_PATH_LITERAL("TrustTokenKeyCommitments"),
++           FILE_PATH_LITERAL("PrivateVerificationTokens"),
++           FILE_PATH_LITERAL("FirstPartySetsPreloaded"),
++           FILE_PATH_LITERAL("PrivacySandboxAttestationsPreloaded"),
++           FILE_PATH_LITERAL("ActorSafetyLists"),
++           FILE_PATH_LITERAL("AmountExtractionHeuristicRegexes"),
++           FILE_PATH_LITERAL("CaptchaProviders"),
+ #if BUILDFLAG(IS_CHROMEOS)
+            FILE_PATH_LITERAL("AppProvisioning"),
+            // TODO(crbug.com/380780352): Remove these after the stepping stone.
+@@ -153,16 +166,18 @@ void RegisterComponentsForUpdate() {
+ #endif  // BUILDFLAG(ENABLE_WIDEVINE_CDM_COMPONENT)
+ 
+   RegisterSubresourceFilterComponent(cus);
+-  RegisterOnDeviceHeadSuggestComponent(
+-      cus, g_browser_process->GetApplicationLocale());
+-  RegisterOptimizationHintsComponent(cus);
+-  RegisterTrustTokenKeyCommitmentsComponentIfTrustTokensEnabled(cus);
+-  RegisterPrivateVerificationTokensComponentIfEnabled(cus);
+-  RegisterFirstPartySetsComponent(cus);
+-  RegisterPrivacySandboxAttestationsComponent(cus);
+-  RegisterActorSafetyListsComponent(cus, base::OnceClosure());
+-  if (history_embeddings::IsHistoryEmbeddingsFeatureEnabled()) {
+-    RegisterHistorySearchStringsComponent(cus);
++  // NickelOS: none of Google's Privacy Sandbox or AI components. Privacy
++  // Sandbox: Trust Token key commitments, Private Verification Tokens,
++  // Related Website Sets and the attestations (without them its ad APIs
++  // stay denied). AI and Google features: the omnibox's on-device
++  // suggestion model, Optimization Hints, the actor's safety lists,
++  // history search strings, payment amount heuristics, captcha providers,
++  // the AI embeddings model and AI Mode eligibility (below). Related
++  // Website Sets get an empty list at once instead: Chrome holds the
++  // queries that need them until some list has come.
++  if (content::FirstPartySetsHandler::GetInstance()->IsEnabled()) {
++    content::FirstPartySetsHandler::GetInstance()->SetPublicFirstPartySets(
++        base::Version(), base::File());
+   }
+   RegisterSSLErrorAssistantComponent(cus);
+ 
+@@ -224,31 +239,18 @@ void RegisterComponentsForUpdate() {
+       cus, g_browser_process->local_state());
+ #endif  // BUILDFLAG(ENABLE_ON_DEVICE_TRANSLATION)
+ 
+-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || \
+-    BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_ANDROID)
+-  RegisterAmountExtractionHeuristicRegexesComponent(cus);
+-#endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) ||
+-        // BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_ANDROID)
+ 
+ #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+   RegisterWasmTtsEngineComponent(cus, g_browser_process->local_state());
+ #endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+ 
+-  RegisterCaptchaProviderComponent(cus);
+-
+   MaybeRegisterPlatformRuntimeComponent(cus);
+ 
+   base::FilePath path;
+   if (base::PathService::Get(chrome::DIR_USER_DATA, &path)) {
+-    ManageAIEmbeddingsComponentRegistration(cus,
+-                                            g_browser_process->local_state());
+-
+     if (!history_embeddings::IsHistoryEmbeddingsFeatureEnabled()) {
+       DeleteHistorySearchStringsComponent(path);
+     }
+-#if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+-    ManageAimEligibilityComponentRegistration(cus);
+-#endif  // BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+     base::ThreadPool::PostTask(
+         FROM_HERE, {base::TaskPriority::BEST_EFFORT, base::MayBlock()},
+         base::BindOnce(&DeleteOldComponents, path));

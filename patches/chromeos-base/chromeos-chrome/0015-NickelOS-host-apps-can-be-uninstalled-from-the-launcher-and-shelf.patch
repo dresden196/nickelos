@@ -1,0 +1,149 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS host apps can be uninstalled from the launcher and
+ the shelf
+
+Like any ChromeOS app: right-click (or long-press) > Uninstall, a
+confirmation dialog, done. nickel-appd marks the apps it can remove with
+a package id (a Flatpak, a Portage package in /usr/local, an AppImage;
+not the OS image's own apps); for those, NickelHostApps sets
+allow_uninstall, puts Uninstall first in the app's menu, and hands the
+uninstall to nickel-appd (org.nickelos.Apps.UninstallApplication), which
+removes the app through what installed it and asks for a password where
+that needs one (polkit). The app leaves the launcher when its desktop
+file is gone.
+
+The uninstall dialog showed host apps the Crostini case, which is no
+longer supported (NOTREACHED); they get the plain dialog (title and
+Uninstall button), and their icon is resized like Crostini's.
+
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc b/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
+index 2a85cb75cff5d..fda68f4d0af87 100644
+--- a/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
++++ b/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
+@@ -15,7 +15,12 @@
+ #include "chrome/browser/ash/crostini/crostini_util.h"
+ #include "chrome/grit/chrome_unscaled_resources.h"
+ #include "chrome/grit/generated_resources.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
+ #include "components/services/app_service/public/cpp/intent.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_path.h"
++#include "dbus/object_proxy.h"
+ #include "ui/display/types/display_constants.h"
+ 
+ namespace apps {
+@@ -79,12 +84,50 @@ void NickelHostApps::LaunchAppWithIntent(const std::string& app_id,
+       }).Then(std::move(callback)));
+ }
+ 
++bool NickelHostApps::IsUninstallable(const std::string& app_id) const {
++  std::optional<guest_os::GuestOsRegistryService::Registration> registration =
++      registry()->GetRegistration(app_id);
++  return registration && !registration->PackageId().empty();
++}
++
++// nickel-appd removes the app through what installed it, asking for a
++// password where that needs one (polkit), and answers at once; the app
++// leaves the launcher when its desktop file is gone.
++void NickelHostApps::Uninstall(const std::string& app_id,
++                               UninstallSource uninstall_source,
++                               bool clear_site_data,
++                               bool report_abuse) {
++  std::optional<guest_os::GuestOsRegistryService::Registration> registration =
++      registry()->GetRegistration(app_id);
++  if (!registration) {
++    return;
++  }
++  dbus::ObjectProxy* proxy =
++      ash::DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++          crostini::kNickelAppsServiceName,
++          dbus::ObjectPath(crostini::kNickelAppsServicePath));
++  dbus::MethodCall method_call(crostini::kNickelAppsServiceInterface,
++                               "UninstallApplication");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(registration->DesktopFileId());
++  proxy->CallMethodWithErrorResponse(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce([](dbus::Response* response, dbus::ErrorResponse* error) {
++        LOG_IF(WARNING, !response)
++            << "nickel-appd did not uninstall the app"
++            << (error ? ": " + error->GetErrorName() : std::string());
++      }));
++}
++
+ void NickelHostApps::GetMenuModel(
+     const std::string& app_id,
+     MenuType menu_type,
+     int64_t display_id,
+     base::OnceCallback<void(MenuItems)> callback) {
+   MenuItems menu_items;
++  if (IsUninstallable(app_id)) {
++    AddCommandItem(ash::UNINSTALL, IDS_APP_LIST_UNINSTALL_ITEM, menu_items);
++  }
+   if (menu_type == MenuType::kShelf) {
+     AddCommandItem(ash::APP_CONTEXT_MENU_NEW_WINDOW, IDS_APP_LIST_NEW_WINDOW,
+                    menu_items);
+@@ -102,9 +145,9 @@ void NickelHostApps::GetMenuModel(
+ void NickelHostApps::CreateAppOverrides(
+     const guest_os::GuestOsRegistryService::Registration& registration,
+     App* app) {
+-  // App Management and uninstalling come with nickel-appd's uninstall
+-  // support (docs/host-apps.md, step 3).
++  // App Management for host apps: docs/host-apps.md, step 2.
+   app->show_in_management = false;
++  app->allow_uninstall = !registration.PackageId().empty();
+ }
+ 
+ }  // namespace apps
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_host_apps.h b/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
+index 92a4b01a569d6..31bbb4d26ba48 100644
+--- a/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
++++ b/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
+@@ -50,11 +50,19 @@ class NickelHostApps : public GuestOSApps {
+                            LaunchSource launch_source,
+                            WindowInfoPtr window_info,
+                            LaunchCallback callback) override;
++  void Uninstall(const std::string& app_id,
++                 UninstallSource uninstall_source,
++                 bool clear_site_data,
++                 bool report_abuse) override;
+   void GetMenuModel(const std::string& app_id,
+                     MenuType menu_type,
+                     int64_t display_id,
+                     base::OnceCallback<void(MenuItems)> callback) override;
+ 
++  // Whether nickel-appd can remove the app (it gave a package id: a
++  // Flatpak, a Portage package, an AppImage; not the OS image's own).
++  bool IsUninstallable(const std::string& app_id) const;
++
+   void CreateAppOverrides(
+       const guest_os::GuestOsRegistryService::Registration& registration,
+       App* app) override;
+diff --git a/chrome/browser/apps/app_service/uninstall_dialog.cc b/chrome/browser/apps/app_service/uninstall_dialog.cc
+index 645dc2d314018..1fceba7a74444 100644
+--- a/chrome/browser/apps/app_service/uninstall_dialog.cc
++++ b/chrome/browser/apps/app_service/uninstall_dialog.cc
+@@ -37,7 +37,8 @@ UninstallDialog::~UninstallDialog() = default;
+ void UninstallDialog::PrepareToShow(IconKey icon_key,
+                                     apps::IconLoader* icon_loader,
+                                     int32_t icon_size) {
+-  if (app_type_ == AppType::kCrostini) {
++  if (app_type_ == AppType::kCrostini ||
++      app_type_ == AppType::kNickelHost) {
+     // Crostini icons might be a big image, and not fit the size, so add the
+     // resize icon effect, to resize the image.
+     icon_key.icon_effects = static_cast<apps::IconEffects>(
+diff --git a/chrome/browser/ui/views/apps/app_dialog/app_uninstall_dialog_view.cc b/chrome/browser/ui/views/apps/app_dialog/app_uninstall_dialog_view.cc
+index 1b66151593875..900b7dd146231 100644
+--- a/chrome/browser/ui/views/apps/app_dialog/app_uninstall_dialog_view.cc
++++ b/chrome/browser/ui/views/apps/app_dialog/app_uninstall_dialog_view.cc
+@@ -289,6 +289,8 @@ void AppUninstallDialogView::InitializeView(Profile* profile,
+       NOTREACHED();
+ #endif
+     case apps::AppType::kNickelHost:
++      // NickelOS host apps: the title and the Uninstall button say it all.
++      break;
+     case apps::AppType::kCrostini:
+       // No longer supported
+       NOTREACHED();

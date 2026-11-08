@@ -1,0 +1,6 @@
+# Distributed under the terms of the GNU General Public License v2
+#
+# NickelOS: an Xbox Wireless Adapter bound to xonedo's xone-dongle gets its
+# firmware from nickel-xone-firmware (the driver waits for it).
+ACTION=="bind", SUBSYSTEM=="usb", DRIVER=="xone-dongle", \
+  RUN+="/sbin/initctl emit --no-wait nickel-xone-dongle-bound DONGLE=%p PRODUCT=$env{PRODUCT}"

@@ -1,0 +1,34 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux apps may lock the pointer
+
+Exo grants pointer lock (zwp_pointer_constraints_v1) only where the
+window's security delegate allows it, and ChromeSecurityDelegate, which
+NickelOS's Linux apps get, allows it for ARC windows only. Xwayland locks
+the pointer to carry out X11 games' pointer warps (mouse look re-centres
+the pointer every frame) and takes relative motion while it is locked;
+refused, the real pointer went on to the screen's edge: in Left 4 Dead 2 a
+turn stopped short (Dresden also noticed the view lagging).
+
+Linux apps lock it as on a Linux desktop. Exo's own limits stay: only the
+active window, ended when the focus moves, back with the focus.
+
+diff --git a/chrome/browser/ash/exo/chrome_security_delegate.cc b/chrome/browser/ash/exo/chrome_security_delegate.cc
+index 02ffe6b5d0ab7..5a24e51596b3b 100644
+--- a/chrome/browser/ash/exo/chrome_security_delegate.cc
++++ b/chrome/browser/ash/exo/chrome_security_delegate.cc
+@@ -360,7 +360,14 @@ bool ChromeSecurityDelegate::CanSelfActivate(aura::Window* window) const {
+ bool ChromeSecurityDelegate::CanLockPointer(aura::Window* window) const {
+   // TODO(b/200896773): Move this out from exo's default security delegate
+   // define in client's security delegates.
+-  return ash::IsArcWindow(window);
++  // NickelOS: this server's other clients are the user's Linux apps on the
++  // device (VMs have their own delegates), which lock the pointer as on a
++  // Linux desktop: games, and Xwayland for X11 games, whose mouse look
++  // warps the pointer (refused, the turn stopped at the screen's edge). Exo
++  // still grants it only to the active window, ends it when the focus
++  // moves (Alt+Tab, the launcher, Overview) and gives it back when the
++  // window has the focus again.
++  return true;
+ }
+ 
+ ChromeSecurityDelegate::SetBoundsPolicy ChromeSecurityDelegate::CanSetBounds(

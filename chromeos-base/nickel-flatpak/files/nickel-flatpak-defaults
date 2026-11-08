@@ -1,0 +1,106 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# First boot: install NickelOS's default Flatpak apps system-wide once Flathub
+# is reachable: the Bazaar app store, and GNOME's apps that open pictures
+# (Loupe), videos (Showtime), PDFs (Papers) and music (Amberol) from Files.
+# On a device whose setup chose the Full experience (Chrome's local state,
+# nickel.setup.pending_experience: "full"; "default" and "privacy" from
+# earlier builds), also a set of free, open-source apps. Setup asks after
+# the first boot's run, so this runs again when a session starts (the job's
+# start-user-session), and installs what the choice adds.
+# Each app is installed once: the marker lists the apps already installed, so
+# apps the user removes later stay removed, and an app added to the list in a
+# later NickelOS is installed on the next boot. Waits up to ~30 minutes for
+# the network, then gives up quietly until the next boot. A download that
+# breaks off (a slow or dropped connection) is tried again a few times;
+# flatpak resumes it.
+#
+# Its progress goes to ${state} for the session (nickel-apps-progress tells
+# the user): waiting (for the network), installing, done or failed.
+marker=/var/lib/nickel/flatpak-defaults
+log=/var/log/nickel-flatpak-defaults.log
+state=/run/nickel/flatpak-defaults
+all_apps="io.github.kolunmi.Bazaar org.gnome.Loupe org.gnome.Showtime
+org.gnome.Papers io.bassi.Amberol"
+# Full experience (Dresden, 2026-10-23): office, screen recording and
+# streaming, photo, video and audio editing, YouTube without tracking,
+# sending files to phones and other computers, a system monitor, and app
+# permissions. All on Flathub with 2026 releases.
+full_apps="org.libreoffice.LibreOffice com.obsproject.Studio org.gimp.GIMP
+org.kde.kdenlive org.audacityteam.Audacity io.freetubeapp.FreeTube
+org.localsend.localsend_app io.missioncenter.MissionCenter
+com.github.tchx84.Flatseal"
+experience=$(python3 -c '
+import json
+try:
+    s = json.load(open("/home/chronos/Local State"))
+    print(s.get("nickel", {}).get("setup", {}).get("pending_experience", ""))
+except Exception:
+    pass' 2>/dev/null)
+case "${experience}" in
+full|default|privacy) all_apps="${all_apps} ${full_apps}" ;;
+esac
+# The marker of NickelOS before 2026-10-10 held only a date: Bazaar was in.
+if [ -e "${marker}" ] && ! grep -q '^[a-z]' "${marker}"; then
+  echo io.github.kolunmi.Bazaar > "${marker}"
+fi
+apps=
+for app in ${all_apps}; do
+  grep -qx "${app}" "${marker}" 2>/dev/null || apps="${apps} ${app}"
+done
+[ -z "${apps}" ] && exit 0
+# Not on the live/installer USB stick: its small stateful partition is not
+# where software belongs, and the work would be lost when NickelOS is installed.
+[ "$(/usr/sbin/is_running_from_installer 2>/dev/null)" = yes ] && exit 0
+
+mkdir -p "${state%/*}"
+set_state() {
+  echo "$1" > "${state}.new" && mv "${state}.new" "${state}"
+}
+
+# flatpak runs as root, whose home is read-only: GLib's settings and caches
+# would otherwise fill the log with dconf errors.
+export GSETTINGS_BACKEND=memory
+export XDG_CACHE_HOME=/var/cache/nickel-flatpak-defaults
+mkdir -p "${XDG_CACHE_HOME}"
+
+set_state waiting
+tries=0
+until curl -sf --max-time 10 -o /dev/null https://dl.flathub.org/repo/config; do
+  tries=$((tries + 1))
+  if [ "${tries}" -ge 60 ]; then
+    set_state failed
+    exit 0
+  fi
+  sleep 30
+done
+
+set_state installing
+mkdir -p "${marker%/*}"
+failed=
+# One app at a time, so one that will not install does not hold back the
+# others; --or-update, so an app already there (installed by hand) counts.
+# The flathub remote comes from /usr/share/flatpak/remotes.d.
+for app in ${apps}; do
+  attempt=1
+  ok=1
+  until flatpak install --system -y --noninteractive --or-update flathub \
+      "${app}" >> "${log}" 2>&1; do
+    if [ "${attempt}" -ge 5 ]; then
+      ok=
+      failed=1
+      break
+    fi
+    echo "nickel-flatpak-defaults: ${app}: attempt ${attempt} failed, retrying" \
+      >> "${log}"
+    sleep $((attempt * 60))
+    attempt=$((attempt + 1))
+  done
+  [ -n "${ok}" ] && echo "${app}" >> "${marker}"
+done
+if [ -n "${failed}" ]; then
+  set_state failed
+else
+  set_state done
+fi

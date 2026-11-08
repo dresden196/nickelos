@@ -1,0 +1,83 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: creating a local account waits for a slow disk
+
+Setup's CreateUser call to nickel-accountsd (0005) waited D-Bus's default
+25 seconds. The service writes and syncs the user databases, which on a
+slow or busy disk takes longer: on a test VM under load the screen said
+"Could not create the account: Did not receive a reply", the service then
+created the Linux user anyway, and that user was left without its account,
+so the username stayed taken and nothing could sign in.
+
+- CreateUser and DeleteUser wait up to two minutes.
+- If CreateUser still gets no answer, the Linux user is removed again
+  (DeleteUser queues behind the creation in nickel-accountsd) and the
+  screen asks to try again.
+---
+--- a/chrome/browser/ash/login/screens/local_account_creation_screen.cc
++++ b/chrome/browser/ash/login/screens/local_account_creation_screen.cc
+@@ -38,6 +38,11 @@
+ constexpr char kAccountsService[] = "org.nickelos.Accounts";
+ constexpr char kAccountsPath[] = "/org/nickelos/Accounts";
+ constexpr char kAccountsInterface[] = "org.nickelos.Accounts";
++// nickel-accountsd writes and syncs the user databases: a second or two, but
++// on a slow or busy disk more than D-Bus's default 25 seconds (a test VM
++// under load, 2026-10-25: no reply, and the Linux user it then created was
++// left without its account, so the username stayed taken).
++constexpr int kAccountsTimeoutMs = 2 * 60 * 1000;
+ 
+ // Same rule as nickel-accountsd: ^[a-z_][a-z0-9_-]{0,31}$.
+ bool IsValidUsername(const std::string& name) {
+@@ -59,6 +64,17 @@
+       kAccountsService, dbus::ObjectPath(kAccountsPath));
+ }
+ 
++// The Linux user behind an account that was not set up goes again.
++// nickel-accountsd answers one call at a time, so this comes after a
++// CreateUser still under way.
++void DeleteLinuxUser(const std::string& username) {
++  dbus::MethodCall method_call(kAccountsInterface, "DeleteUser");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(username);
++  AccountsProxy()->CallMethodWithErrorResponse(
++      &method_call, kAccountsTimeoutMs, base::DoNothing());
++}
++
+ }  // namespace
+ 
+ // static
+@@ -146,7 +162,7 @@
+   // Before signing in, which gives the account its first picture.
+   SetPendingAvatar(username, avatar_index);
+   AccountsProxy()->CallMethodWithErrorResponse(
+-      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      &method_call, kAccountsTimeoutMs,
+       base::BindOnce(&LocalAccountCreationScreen::OnUserCreated,
+                      weak_ptr_factory_.GetWeakPtr(), username, password));
+ }
+@@ -157,6 +173,12 @@
+                                                dbus::ErrorResponse* error) {
+   if (!response) {
+     SetPendingAvatar(username, -1);
++    if (error &&
++        error->GetErrorName() == "org.freedesktop.DBus.Error.NoReply") {
++      // No answer in time: the user may still be made after all.
++      DeleteLinuxUser(username);
++      return ShowError("Creating the account took too long. Try again.");
++    }
+     std::string message = "Could not create the account.";
+     if (error) {
+       std::string detail;
+@@ -194,12 +215,7 @@
+              << error.GetErrorString();
+   if (!pending_username_.empty()) {
+     // Don't leave a Linux user behind without its account.
+-    dbus::MethodCall method_call(kAccountsInterface, "DeleteUser");
+-    dbus::MessageWriter writer(&method_call);
+-    writer.AppendString(pending_username_);
+-    AccountsProxy()->CallMethodWithErrorResponse(
+-        &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
+-        base::DoNothing());
++    DeleteLinuxUser(pending_username_);
+     SetPendingAvatar(pending_username_, -1);
+     pending_username_.clear();
+   }

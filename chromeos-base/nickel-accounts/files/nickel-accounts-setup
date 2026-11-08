@@ -1,0 +1,55 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# Puts NickelOS local accounts into /etc/passwd, /etc/group and /etc/shadow.
+# The root filesystem is read-only, so those become copies of the image's
+# files plus the users kept in /var/lib/nickel/accounts, bind-mounted over the
+# originals. nickel-accountsd rewrites the copies whenever accounts change.
+# Gentoo's world's system accounts (portage, its daemons' users and groups:
+# /var/lib/nickel-gentoo/accounts, nickel-gentoo) count as the system's: the
+# image's files plus those (names the image has stay the image's) are the
+# base. --gentoo: the same while running, after Gentoo added one.
+set -e
+run=/run/nickel/accounts
+gentoo=/var/lib/nickel-gentoo/accounts
+# Whether a file is mounted on: the mount table, not mountpoint(1), which
+# compares device numbers, and through Gentoo's overlay on /etc a file of the
+# image's has the image's while /etc has the overlay's (it took all three for
+# mounted and bound none: no account could sign in).
+bound() {
+  awk -v p="$1" '$5 == p { found = 1 } END { exit !found }' /proc/self/mountinfo
+}
+base() {
+  for f in passwd group shadow; do
+    cp -p "${run}/${f}.image" "${run}/${f}.base"
+    [ -r "${gentoo}/${f}" ] || continue
+    awk -F: 'NR == FNR { seen[$1] = 1; next } !($1 in seen)' \
+      "${run}/${f}.image" "${gentoo}/${f}" >> "${run}/${f}.base"
+  done
+}
+if [ "${1:-}" = --gentoo ]; then
+  base
+  exec /usr/sbin/nickel-accountsd --remerge
+fi
+install -d -m 0755 /run/nickel
+install -d -m 0700 "${run}"
+for f in passwd group shadow; do
+  bound "/etc/${f}" && continue
+  cp -p "/etc/${f}" "${run}/${f}.image"
+done
+base
+/usr/sbin/nickel-accountsd --merge
+for f in passwd group shadow; do
+  bound "/etc/${f}" && continue
+  chown --reference="/etc/${f}" "${run}/${f}"
+  if [ "${f}" = shadow ]; then
+    # Never the image's mode: the image's shadow (0644) holds no password,
+    # this one holds the accounts' hashes (it was readable by everyone until
+    # 2026-10-27).
+    chmod 0600 "${run}/${f}"
+  else
+    chmod --reference="/etc/${f}" "${run}/${f}"
+  fi
+  chcon --reference="/etc/${f}" "${run}/${f}" 2>/dev/null || true
+  mount --bind "${run}/${f}" "/etc/${f}"
+done

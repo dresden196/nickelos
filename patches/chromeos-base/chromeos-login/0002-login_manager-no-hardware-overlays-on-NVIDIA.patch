@@ -1,0 +1,31 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] login_manager: no hardware overlays on NVIDIA's display
+ driver
+
+With nvidia-drm, Chrome's hardware overlays make page flips time out
+("Flip event timeout" in the kernel log) once a Linux app's window is up,
+such as Steam's: the display stops updating while the system keeps
+running. It is the freeze the set_hw_overlay_strategy_none USE flag works
+around on some boards, and the same flag (--enable-hardware-overlays="")
+fixes it: with it, Steam opens and runs on the NVIDIA test PC (RTX 20 series, nvidia-open)
+without a timeout. A NickelOS image serves any GPU, so the flag follows the
+driver that is loaded (/sys/module/nvidia_drm; it loads seconds before ui
+starts) instead of a board USE flag.
+
+--- a/login_manager/chrome_setup.cc
++++ b/login_manager/chrome_setup.cc
+@@ -450,7 +450,13 @@
+ 
+   // TODO(b/180138001): Remove the following flag when a proper fix for
+   // the freeze issue is found.
+-  if (builder->UseFlagIsSet("set_hw_overlay_strategy_none")) {
++  // NickelOS: NVIDIA's display driver (nvidia-drm) freezes the screen the
++  // same way: with overlays, page flips time out ("Flip event timeout") as
++  // soon as a Linux app's window is up, and the display stops updating. A
++  // NickelOS image serves any GPU, so this follows the driver that is loaded
++  // rather than the board's USE flags.
++  if (builder->UseFlagIsSet("set_hw_overlay_strategy_none") ||
++      base::PathExists(base::FilePath("/sys/module/nvidia_drm"))) {
+     builder->AddArg("--enable-hardware-overlays=\"\"");
+   }
+ 

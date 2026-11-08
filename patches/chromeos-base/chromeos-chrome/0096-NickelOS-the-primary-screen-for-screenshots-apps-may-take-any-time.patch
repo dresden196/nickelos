@@ -1,0 +1,139 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the primary screen for screenshots apps may take
+ any time
+
+The Screenshot portal's backend showed ChromeOS's picker for every
+screenshot, interactive or not. For a non-interactive one, xdg-desktop-
+portal itself asks once whether the app may take screenshots any time
+("Allow Flameshot to Take Screenshots?", Chrome's dialog through the Access
+backend) and remembers the answer, so the picker asked a second time, every
+time; and screenshot tools gave up waiting for it (Flameshot: "Screenshot
+portal timed out after 30 seconds", the NVIDIA test PC, 2026-10-24). GNOME's and
+KDE's portals take such a screenshot without asking.
+
+VmApplicationsService.NickelScreenCastPrimary answers the primary screen as
+a source (its DesktopMediaID, as the picker's screen list names it, and its
+size in pixels) without the picker; the backend (nickel-portal) uses it for
+non-interactive screenshots and keeps the picker for interactive ones.
+
+diff --git a/chrome/browser/ash/dbus/vm/nickel_screen_cast.cc b/chrome/browser/ash/dbus/vm/nickel_screen_cast.cc
+index 336b5c317dfb8..e86bdbd1533fb 100644
+--- a/chrome/browser/ash/dbus/vm/nickel_screen_cast.cc
++++ b/chrome/browser/ash/dbus/vm/nickel_screen_cast.cc
+@@ -340,6 +340,29 @@ void OnChosen(std::unique_ptr<DesktopMediaPicker> picker,
+ 
+ }  // namespace
+ 
++// static
++bool NickelScreenCast::PrimaryScreen(std::string* source_id,
++                                     int* width,
++                                     int* height) {
++  aura::Window* root = Shell::GetRootWindowForDisplayId(
++      display::Screen::Get()->GetPrimaryDisplay().id());
++  if (!root) {
++    return false;
++  }
++  // As the picker's screen list names a screen (DesktopMediaListAsh).
++  const content::DesktopMediaID id =
++      content::DesktopMediaID::RegisterNativeWindow(
++          content::DesktopMediaID::TYPE_SCREEN, root);
++  gfx::Size size;
++  if (!SourceWindow(id, &size) || size.IsEmpty()) {
++    return false;
++  }
++  *source_id = id.ToString();
++  *width = size.width();
++  *height = size.height();
++  return true;
++}
++
+ // static
+ void NickelScreenCast::Choose(const std::string& app_name,
+                               bool windows,
+diff --git a/chrome/browser/ash/dbus/vm/nickel_screen_cast.h b/chrome/browser/ash/dbus/vm/nickel_screen_cast.h
+index c44c20ba92002..e7ca93d8ef23a 100644
+--- a/chrome/browser/ash/dbus/vm/nickel_screen_cast.h
++++ b/chrome/browser/ash/dbus/vm/nickel_screen_cast.h
+@@ -28,6 +28,12 @@ class NickelScreenCast {
+                      bool windows,
+                      ChooseCallback callback);
+ 
++  // The primary screen as a source, without the picker: for a screenshot
++  // the user has let the app take any time (the Screenshot portal asked,
++  // once, and remembers). Its DesktopMediaID string and size in pixels;
++  // false if there is no screen.
++  static bool PrimaryScreen(std::string* source_id, int* width, int* height);
++
+   // Starts copying |source_id|, at most 30 times a second, into |ring|
+   // (|slots| frames of |width| x |height|, BGRx), writing each frame's slot
+   // (uint32) to |notify|, and shows the "sharing your screen" notification;
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index f71676d733af4..6280a4ab82dbb 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -155,6 +155,7 @@ constexpr char kNickelSessionEndingMethod[] = "NickelSessionEnding";
+ constexpr char kNickelOpenPathMethod[] = "NickelOpenPath";
+ // NickelOS: called by the ScreenCast portal's backend (NickelScreenCast).
+ constexpr char kNickelScreenCastChooseMethod[] = "NickelScreenCastChoose";
++constexpr char kNickelScreenCastPrimaryMethod[] = "NickelScreenCastPrimary";
+ constexpr char kNickelScreenCastStartMethod[] = "NickelScreenCastStart";
+ constexpr char kNickelScreenCastStopMethod[] = "NickelScreenCastStop";
+ // NickelOS: called by the Screenshot portal's backend (NickelScreenCast).
+@@ -250,6 +251,14 @@ void VmApplicationsServiceProvider::Start(
+           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelScreenCastPrimaryMethod,
++      base::BindRepeating(
++          &VmApplicationsServiceProvider::NickelScreenCastPrimary,
++          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+   exported_object->ExportMethod(
+       vm_tools::apps::kVmApplicationsServiceInterface,
+       kNickelScreenCastStartMethod,
+@@ -518,6 +527,28 @@ void VmApplicationsServiceProvider::NickelScreenCastChoose(
+           method_call, std::move(response_sender)));
+ }
+ 
++// NickelOS: the Screenshot portal's backend asks for the primary screen
++// without the picker, for a screenshot the app may take any time (the
++// portal's permission): (source id, width, height; "" if there is none).
++void VmApplicationsServiceProvider::NickelScreenCastPrimary(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  std::string source_id;
++  int width = 0;
++  int height = 0;
++  if (!NickelScreenCast::PrimaryScreen(&source_id, &width, &height)) {
++    source_id.clear();
++    width = height = 0;
++  }
++  std::unique_ptr<dbus::Response> response =
++      dbus::Response::FromMethodCall(method_call);
++  dbus::MessageWriter writer(response.get());
++  writer.AppendString(source_id);
++  writer.AppendInt32(width);
++  writer.AppendInt32(height);
++  std::move(response_sender).Run(std::move(response));
++}
++
+ // NickelOS: starts copying the chosen source into the backend's frame
+ // buffer (see NickelScreenCast::Start).
+ void VmApplicationsServiceProvider::NickelScreenCastStart(
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index e06a0c327b39b..31c3f78a34791 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -71,6 +71,9 @@ class VmApplicationsServiceProvider
+   void NickelScreenCastChoose(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelScreenCastPrimary(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
+   void NickelScreenCastStart(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);

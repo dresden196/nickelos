@@ -1,0 +1,59 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] crash-reporter: keep crashes of NickelOS local accounts
+
+On NickelOS, Chrome and the session's apps run as the signed-in local
+account (uid 5000-5999), not chronos. crash_reporter treated that uid like
+a system daemon and chose /var/spool/crash, which the account cannot write;
+when Chrome's crashpad called it, Chrome's sandbox (Landlock) blocked it
+too. Every Chrome crash of a local account was lost, minidump and all.
+
+A local account's crashes now go where chronos's go on a release image: the
+account's own cryptohome, through daemon-store (/run/daemon-store/crash/
+<hash>), also on test images. The directory is crash:crash-user-access,
+sticky; local accounts are in crash-user-access like chronos, and can ask
+session_manager for the active session like chronos.
+
+---
+diff -ruN a/crash-reporter/crash_collector.cc b/crash-reporter/crash_collector.cc
+--- a/crash-reporter/crash_collector.cc
++++ b/crash-reporter/crash_collector.cc
+@@ -132,6 +132,15 @@
+ // Directory mode of the user crash spool directory.
+ // This is SGID so that files created in it are also accessible to the group.
+ const mode_t kUserCrashPathMode = 02770;
++
++// NickelOS local accounts (nickel-accounts) have uids in this range. Chrome
++// and the session's apps run as the signed-in account instead of chronos.
++constexpr uid_t kNickelFirstLocalUid = 5000;
++constexpr uid_t kNickelLastLocalUid = 5999;
++
++bool IsNickelLocalAccount(uid_t uid) {
++  return uid >= kNickelFirstLocalUid && uid <= kNickelLastLocalUid;
++}
+ #endif
+ 
+ // Directory mode of the system crash spool directory.
+@@ -1138,7 +1147,22 @@
+       return base::unexpected(
+           CrashCollectionStatus::kFailedCrashUserGroupNameGroupInfo);
+     }
+-    std::optional<base::FilePath> maybe_path = GetUserCrashDirectoryNew();
++    std::optional<base::FilePath> maybe_path;
++    if (IsNickelLocalAccount(process_euid)) {
++      // NickelOS: a local account's crashes go to its own cryptohome
++      // (daemon-store), on test images too. The fallback directories belong
++      // to chronos or root, so the account could neither write nor fix them,
++      // and Chrome's crashes would be lost.
++      std::vector<FilePath> directories;
++      SetUpDBus();
++      if (util::GetDaemonStoreCrashDirectories(session_manager_proxy_.get(),
++                                                &directories) &&
++          !directories.empty()) {
++        maybe_path = directories[0];
++      }
++    } else {
++      maybe_path = GetUserCrashDirectoryNew();
++    }
+     if (maybe_path) {
+       // We *cannot* create or fix /run/daemon-store/crash/..., so don't try.
+       // Only cryptohome's namespace mounter is capable of mounting it

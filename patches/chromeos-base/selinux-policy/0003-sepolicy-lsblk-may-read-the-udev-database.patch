@@ -1,0 +1,23 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] sepolicy: lsblk may read the udev database
+
+On NickelOS Unified, lsblk is Gentoo's util-linux 2.42, which reads a
+device's properties from udev's database (/run/udev/data) as distributions
+expect; cros_lsblk could not, and every call was denied (os_install_service
+lists disks with it). cros_chromeos_install, cryptohomed and spaced already
+read it.
+
+---
+diff -ruN a/sepolicy/policy/chromeos/cros_lsblk.te b/sepolicy/policy/chromeos/cros_lsblk.te
+--- a/sepolicy/policy/chromeos/cros_lsblk.te
++++ b/sepolicy/policy/chromeos/cros_lsblk.te
+@@ -23,4 +23,9 @@
+ allow cros_lsblk sysfs_zram:dir { open read search };
+ allow cros_lsblk sysfs_zram:file { getattr open read };
+ 
++# NickelOS: util-linux's lsblk reads a device's properties from udev's
++# database.
++allow cros_lsblk cros_run_udev:dir r_dir_perms;
++allow cros_lsblk cros_run_udev:file r_file_perms;
++
+ allowxperm cros_lsblk cros_os_install_service:fifo_file ioctl TIOCGWINSZ;

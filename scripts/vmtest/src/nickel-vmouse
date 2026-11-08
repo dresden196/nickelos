@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""A relative uinput mouse in the test VM, for what QEMU's tablet can't do:
+Chrome takes the tablet for a touchscreen, which has no middle or right
+button. nickel-vmouse OP... with OP one of
+  home              park the cursor in the top-left corner
+  rel DX DY         move by DX, DY in steps of at most 4 counts
+  left|middle|right click that button
+  sleep S"""
+import fcntl, os, struct, sys, time
+
+UI_SET_EVBIT, UI_SET_KEYBIT, UI_SET_RELBIT = 0x40045564, 0x40045565, 0x40045566
+UI_DEV_CREATE, UI_DEV_DESTROY = 0x5501, 0x5502
+EV_SYN, EV_KEY, EV_REL = 0, 1, 2
+REL_X, REL_Y = 0, 1
+BUTTONS = {"left": 0x110, "right": 0x111, "middle": 0x112}
+
+fd = os.open("/dev/uinput", os.O_WRONLY | os.O_NONBLOCK)
+fcntl.ioctl(fd, UI_SET_EVBIT, EV_KEY)
+fcntl.ioctl(fd, UI_SET_EVBIT, EV_REL)
+fcntl.ioctl(fd, UI_SET_EVBIT, EV_SYN)
+for code in BUTTONS.values():
+    fcntl.ioctl(fd, UI_SET_KEYBIT, code)
+fcntl.ioctl(fd, UI_SET_RELBIT, REL_X)
+fcntl.ioctl(fd, UI_SET_RELBIT, REL_Y)
+dev = struct.pack("80sHHHHi", b"nickel-test-mouse", 3, 0x1234, 0x567a, 1, 0)
+dev += struct.pack("64i", *([0] * 64)) * 4
+os.write(fd, dev)
+fcntl.ioctl(fd, UI_DEV_CREATE)
+time.sleep(2)  # udev and Chrome find the device
+
+
+def ev(t, c, v):
+    os.write(fd, struct.pack("llHHi", 0, 0, t, c, v))
+
+
+def move(dx, dy):
+    ev(EV_REL, REL_X, dx)
+    ev(EV_REL, REL_Y, dy)
+    ev(EV_SYN, 0, 0)
+    time.sleep(0.01)
+
+
+args = sys.argv[1:]
+while args:
+    op = args.pop(0)
+    if op == "home":
+        for _ in range(60):
+            move(-100, -100)
+    elif op == "rel":
+        dx, dy = int(args.pop(0)), int(args.pop(0))
+        while dx or dy:
+            sx = max(-4, min(4, dx))
+            sy = max(-4, min(4, dy))
+            move(sx, sy)
+            dx -= sx
+            dy -= sy
+    elif op in BUTTONS:
+        time.sleep(0.2)
+        ev(EV_KEY, BUTTONS[op], 1); ev(EV_SYN, 0, 0); time.sleep(0.08)
+        ev(EV_KEY, BUTTONS[op], 0); ev(EV_SYN, 0, 0)
+    elif op == "sleep":
+        time.sleep(float(args.pop(0)))
+time.sleep(0.5)
+fcntl.ioctl(fd, UI_DEV_DESTROY)
+os.close(fd)

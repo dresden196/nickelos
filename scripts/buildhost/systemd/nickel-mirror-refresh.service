@@ -1,0 +1,13 @@
+[Unit]
+Description=NickelOS: refresh the ChromiumOS and Chromium source mirrors
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=nickel
+Environment=HOME=/home/nickel
+ExecStart=/usr/local/bin/nickel-mirror-refresh
+TimeoutStartSec=6h
+Nice=10
+IOSchedulingClass=idle

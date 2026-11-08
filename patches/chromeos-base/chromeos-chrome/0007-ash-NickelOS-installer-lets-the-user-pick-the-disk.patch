@@ -1,0 +1,720 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] ash: NickelOS installer lets the user pick the disk
+
+The installer chose the destination disk by itself. NickelOS's
+os_install_service can list the disks it would install to
+(GetInstallDestinations, a JSON array, best first) and install to a given
+one (StartOsInstallTo). OsInstallClient gets both calls, and the install
+screen a "Choose where to install" step after the intro: one radio button
+per disk (model, size, device path, marked recommended or removable), the
+recommended disk preselected. The confirmation dialog names the chosen
+disk, and confirming installs to it. No disks leads to the existing
+no-destination step; an installer that cannot list disks falls back to
+confirming its own choice, as before.
+
+diff --git a/chrome/browser/ash/login/screens/os_install_screen.cc b/chrome/browser/ash/login/screens/os_install_screen.cc
+index bac70480de9fc..f84ced8b98820 100644
+--- a/chrome/browser/ash/login/screens/os_install_screen.cc
++++ b/chrome/browser/ash/login/screens/os_install_screen.cc
+@@ -4,7 +4,10 @@
+ 
+ #include "chrome/browser/ash/login/screens/os_install_screen.h"
+ 
++#include <utility>
++
+ #include "ash/public/cpp/login_accelerators.h"
++#include "base/functional/bind.h"
+ #include "base/time/default_tick_clock.h"
+ #include "chrome/browser/ui/ash/login/login_display_host.h"
+ #include "chrome/browser/ui/webui/ash/login/os_install_screen_handler.h"
+@@ -13,6 +16,8 @@
+ namespace ash {
+ namespace {
+ constexpr const char kUserActionExitClicked[] = "os-install-exit";
++// NickelOS: the intro's Next lists the disks to choose from.
++constexpr const char kUserActionIntroNextClicked[] = "os-install-intro-next";
+ constexpr const char kUserActionConfirmNextClicked[] =
+     "os-install-confirm-next";
+ constexpr const char kUserActionErrorSendFeedbackClicked[] =
+@@ -48,8 +53,16 @@ void OsInstallScreen::OnUserAction(const base::ListValue& args) {
+   const std::string& action_id = args[0].GetString();
+   if (action_id == kUserActionExitClicked) {
+     exit_callback_.Run();
++  } else if (action_id == kUserActionIntroNextClicked) {
++    ListDestinations();
+   } else if (action_id == kUserActionConfirmNextClicked) {
+-    StartInstall();
++    // NickelOS: the chosen disk comes with the action. Without one the
++    // service chooses.
++    std::string device_path;
++    if (args.size() > 1 && args[1].is_string()) {
++      device_path = args[1].GetString();
++    }
++    StartInstall(device_path);
+   } else if (action_id == kUserActionErrorSendFeedbackClicked) {
+     LoginDisplayHost::default_host()->HandleAccelerator(
+         LoginAcceleratorAction::kShowFeedback);
+@@ -70,7 +83,34 @@ void OsInstallScreen::StatusChanged(OsInstallClient::Status status,
+   view_->SetServiceLogs(service_log);
+ }
+ 
+-void OsInstallScreen::StartInstall() {
++void OsInstallScreen::ListDestinations() {
++  if (listing_destinations_) {
++    return;
++  }
++  listing_destinations_ = true;
++  OsInstallClient::Get()->GetInstallDestinations(
++      base::BindOnce(&OsInstallScreen::OnDestinationsListed,
++                     weak_ptr_factory_.GetWeakPtr()));
++}
++
++void OsInstallScreen::OnDestinationsListed(
++    std::optional<std::vector<OsInstallClient::Destination>> destinations) {
++  listing_destinations_ = false;
++  if (!view_) {
++    return;
++  }
++  if (destinations && destinations->empty()) {
++    view_->SetStatus(OsInstallClient::Status::NoDestinationDeviceFound);
++    return;
++  }
++  // If the service could not list disks, the view gets none and asks to
++  // confirm an install to the disk the service chooses, as before.
++  view_->ShowDestinations(
++      destinations ? std::move(*destinations)
++                   : std::vector<OsInstallClient::Destination>());
++}
++
++void OsInstallScreen::StartInstall(const std::string& device_path) {
+   if (!view_)
+     return;
+   view_->SetStatus(OsInstallClient::Status::InProgress);
+@@ -78,7 +118,11 @@ void OsInstallScreen::StartInstall() {
+   OsInstallClient* const os_install_client = OsInstallClient::Get();
+ 
+   scoped_observation_.Observe(os_install_client);
+-  os_install_client->StartOsInstall();
++  if (device_path.empty()) {
++    os_install_client->StartOsInstall();
++  } else {
++    os_install_client->StartOsInstallTo(device_path);
++  }
+ }
+ 
+ void OsInstallScreen::RunAutoShutdownCountdown() {
+diff --git a/chrome/browser/ash/login/screens/os_install_screen.h b/chrome/browser/ash/login/screens/os_install_screen.h
+index 3ddc872728b79..fe502a2920fd0 100644
+--- a/chrome/browser/ash/login/screens/os_install_screen.h
++++ b/chrome/browser/ash/login/screens/os_install_screen.h
+@@ -5,9 +5,12 @@
+ #ifndef CHROME_BROWSER_ASH_LOGIN_SCREENS_OS_INSTALL_SCREEN_H_
+ #define CHROME_BROWSER_ASH_LOGIN_SCREENS_OS_INSTALL_SCREEN_H_
+ 
++#include <optional>
+ #include <string>
++#include <vector>
+ 
+ #include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
+ #include "base/scoped_observation.h"
+ #include "base/time/tick_clock.h"
+ #include "base/time/time.h"
+@@ -43,7 +46,14 @@ class OsInstallScreen : public BaseScreen, public OsInstallClient::Observer {
+   void StatusChanged(OsInstallClient::Status status,
+                      const std::string& service_log) override;
+ 
+-  void StartInstall();
++  // NickelOS: asks the service which disks it can install to, then lets the
++  // user choose one.
++  void ListDestinations();
++  void OnDestinationsListed(
++      std::optional<std::vector<OsInstallClient::Destination>> destinations);
++
++  // Installs to |device_path|; an empty path lets the service choose.
++  void StartInstall(const std::string& device_path);
+   void RunAutoShutdownCountdown();
+   void UpdateCountdownString();
+   void Shutdown();
+@@ -62,6 +72,10 @@ class OsInstallScreen : public BaseScreen, public OsInstallClient::Observer {
+       scoped_observation_{this};
+ 
+   const base::RepeatingClosure exit_callback_;
++
++  bool listing_destinations_ = false;
++
++  base::WeakPtrFactory<OsInstallScreen> weak_ptr_factory_{this};
+ };
+ 
+ }  // namespace ash
+diff --git a/chrome/browser/resources/chromeos/login/screens/common/os_install.html b/chrome/browser/resources/chromeos/login/screens/common/os_install.html
+index 3c8bf6d3f25cd..d2b3df975dd43 100644
+--- a/chrome/browser/resources/chromeos/login/screens/common/os_install.html
++++ b/chrome/browser/resources/chromeos/login/screens/common/os_install.html
+@@ -42,6 +42,12 @@ found in the LICENSE file.
+   :host-context(.jelly-enabled) .intro-footer {
+     color: var(--oobe-header-text-color);
+   }
++  cr-radio-button.disk {
++    padding-block: 8px;
++  }
++  .disk-detail {
++    color: var(--oobe-subheader-text-color);
++  }
+ </style>
+ 
+ <oobe-adaptive-dialog id="osInstallDialogIntro"
+@@ -79,10 +85,43 @@ found in the LICENSE file.
+   </div>
+ </oobe-adaptive-dialog>
+ 
++<oobe-adaptive-dialog id="osInstallDialogChooseDisk"
++    role="dialog" for-step="choose-disk"
++    aria-label$="[[i18nDynamic(locale, 'osInstallDialogChooseDiskTitle')]]">
++  <iron-icon slot="icon" icon="oobe-32:googleg"></iron-icon>
++  <h1 slot="title">
++    [[i18nDynamic(locale, 'osInstallDialogChooseDiskTitle')]]</h1>
++  <div slot="subtitle">
++    [[i18nDynamic(locale, 'osInstallDialogChooseDiskSubtitle')]]
++  </div>
++  <div slot="content" class="flex layout vertical">
++    <cr-radio-group id="chooseDiskGroup" selected="{{selectedPath}}">
++      <template is="dom-repeat" items="[[destinations]]">
++        <cr-radio-button class="disk" name="[[item.path]]">
++          <div>[[item.label]]</div>
++          <div class="disk-detail">[[getDiskDetail(locale, item)]]</div>
++        </cr-radio-button>
++      </template>
++    </cr-radio-group>
++  </div>
++  <div slot="back-navigation">
++    <oobe-back-button id="chooseDiskBackButton" on-click="onChooseDiskBack">
++    </oobe-back-button>
++  </div>
++  <div slot="bottom-buttons">
++    <oobe-next-button id="chooseDiskNextButton" class="focus-on-show"
++        inverse disabled="[[!selectedPath]]" on-click="openConfirmDialog">
++    </oobe-next-button>
++  </div>
++</oobe-adaptive-dialog>
++
+ <oobe-modal-dialog id="osInstallDialogConfirm" ignore-popstate>
+   <div slot="title" id="osInstallDialogConfirmTitleId">
+     [[i18nDynamic(locale, 'osInstallDialogConfirmTitle')]]
+   </div>
++  <div slot="content" id="osInstallConfirmDisk" hidden="[[!selectedLabel]]">
++    [[i18nDynamic(locale, 'osInstallDialogConfirmDisk', selectedLabel)]]
++  </div>
+   <span slot="content"
+       inner-h-t-m-l="[[i18nAdvancedDynamic(
+         locale, 'osInstallDialogConfirmBody')]]">
+diff --git a/chrome/browser/resources/chromeos/login/screens/common/os_install.ts b/chrome/browser/resources/chromeos/login/screens/common/os_install.ts
+index cb06cb5406eb7..1957f9e0d978f 100644
+--- a/chrome/browser/resources/chromeos/login/screens/common/os_install.ts
++++ b/chrome/browser/resources/chromeos/login/screens/common/os_install.ts
+@@ -6,10 +6,13 @@
+  * @fileoverview Polymer element for OS install screen.
+  */
+ 
++import '//resources/ash/common/cr_elements/cr_radio_button/cr_radio_button.js';
++import '//resources/ash/common/cr_elements/cr_radio_group/cr_radio_group.js';
+ import '//resources/ash/common/cr_elements/cr_shared_vars.css.js';
+ import '//resources/polymer/v3_0/iron-icon/iron-icon.js';
+ import '../../components/oobe_icons.html.js';
+ import '../../components/buttons/oobe_back_button.js';
++import '../../components/buttons/oobe_next_button.js';
+ import '../../components/buttons/oobe_text_button.js';
+ import '../../components/common_styles/oobe_common_styles.css.js';
+ import '../../components/common_styles/oobe_dialog_host_styles.css.js';
+@@ -32,12 +35,23 @@ import {getTemplate} from './os_install.html.js';
+ 
+ enum OsInstallScreenSteps {
+   INTRO = 'intro',
++  CHOOSE_DISK = 'choose-disk',
+   IN_PROGRESS = 'in-progress',
+   FAILED = 'failed',
+   NO_DESTINATION_DEVICE_FOUND = 'no-destination-device-found',
+   SUCCESS = 'success',
+ }
+ 
++/**
++ * NickelOS: a disk the OS can be installed to, as sent by
++ * OsInstallScreenHandler::ShowDestinations.
++ */
++interface OsInstallDestination {
++  path: string;
++  label: string;
++  recommended: boolean;
++  removable: boolean;
++}
+ 
+ const OsInstallScreenElementBase = OobeDialogHostMixin(
+     LoginScreenMixin(MultiStepMixin(OobeI18nMixin(PolymerElement))));
+@@ -60,17 +74,47 @@ export class OsInstall extends OsInstallScreenElementBase {
+         type: String,
+         value: '',
+       },
++
++      /**
++       * NickelOS: the disks to choose from.
++       */
++      destinations: {
++        type: Array,
++        value: () => [],
++      },
++
++      /**
++       * NickelOS: device path of the chosen disk; empty lets the installer
++       * choose.
++       */
++      selectedPath: {
++        type: String,
++        value: '',
++      },
++
++      selectedLabel: {
++        type: String,
++        computed: 'computeSelectedLabel(destinations, selectedPath)',
++      },
+     };
+   }
+ 
+   declare private osInstallDialogSuccessSubtitile: string;
++  declare private destinations: OsInstallDestination[];
++  declare private selectedPath: string;
++  declare private selectedLabel: string;
+ 
+   constructor() {
+     super();
+   }
+ 
+   override get EXTERNAL_API(): string[] {
+-    return ['showStep', 'setServiceLogs', 'updateCountdownString'];
++    return [
++      'showStep',
++      'showDestinations',
++      'setServiceLogs',
++      'updateCountdownString',
++    ];
+   }
+ 
+   // eslint-disable-next-line @typescript-eslint/naming-convention
+@@ -101,7 +145,50 @@ export class OsInstall extends OsInstallScreenElementBase {
+     this.userActed('os-install-exit');
+   }
+ 
++  /**
++   * NickelOS: the disks to choose from, the recommended one preselected. With
++   * none (the installer cannot list them), asks to confirm an install to the
++   * disk the installer chooses.
++   */
++  showDestinations(destinations: OsInstallDestination[]): void {
++    this.destinations = destinations;
++    if (destinations.length === 0) {
++      this.selectedPath = '';
++      this.openConfirmDialog();
++      return;
++    }
++    const recommended =
++        destinations.find(d => d.recommended) || destinations[0];
++    this.selectedPath = recommended.path;
++    this.setUIStep(OsInstallScreenSteps.CHOOSE_DISK);
++  }
++
++  private computeSelectedLabel(
++      destinations: OsInstallDestination[], selectedPath: string): string {
++    const selected = destinations.find(d => d.path === selectedPath);
++    return selected ? selected.label : '';
++  }
++
++  private getDiskDetail(_locale: string, item: OsInstallDestination): string {
++    const notes = [item.path];
++    if (item.recommended) {
++      notes.push(this.i18n('osInstallDialogChooseDiskRecommended'));
++    }
++    if (item.removable) {
++      notes.push(this.i18n('osInstallDialogChooseDiskRemovable'));
++    }
++    return notes.join(' · ');
++  }
++
+   private onIntroNextButtonPressed(): void {
++    this.userActed('os-install-intro-next');
++  }
++
++  private onChooseDiskBack(): void {
++    this.setUIStep(OsInstallScreenSteps.INTRO);
++  }
++
++  private openConfirmDialog(): void {
+     const confirmationDialog = this.shadowRoot?.querySelector<OobeModalDialog>(
+         '#osInstallDialogConfirm');
+     if (confirmationDialog instanceof OobeModalDialog) {
+@@ -121,7 +208,7 @@ export class OsInstall extends OsInstallScreenElementBase {
+     if (confirmationDialog instanceof OobeModalDialog) {
+       confirmationDialog.hideDialog();
+     }
+-    this.userActed('os-install-confirm-next');
++    this.userActed(['os-install-confirm-next', this.selectedPath]);
+   }
+ 
+   private onErrorSendFeedbackButtonPressed(): void {
+@@ -138,12 +225,11 @@ export class OsInstall extends OsInstallScreenElementBase {
+     if (confirmationDialog instanceof OobeModalDialog) {
+       confirmationDialog.hideDialog();
+     }
+-    const osInstallIntroNextButton =
+-        this.shadowRoot?.querySelector<OobeTextButton>(
++    const nextButton = this.shadowRoot?.querySelector<HTMLElement>(
++        this.uiStep === OsInstallScreenSteps.CHOOSE_DISK ?
++            '#chooseDiskNextButton' :
+             '#osInstallIntroNextButton');
+-    if (osInstallIntroNextButton instanceof OobeTextButton) {
+-      osInstallIntroNextButton.focus();
+-    }
++    nextButton?.focus();
+   }
+ 
+   private getErrorNoDestContentHtml(locale: string): TrustedHTML {
+diff --git a/chrome/browser/ui/webui/ash/login/os_install_screen_handler.cc b/chrome/browser/ui/webui/ash/login/os_install_screen_handler.cc
+index 0180e7b89c285..4e80dc5623971 100644
+--- a/chrome/browser/ui/webui/ash/login/os_install_screen_handler.cc
++++ b/chrome/browser/ui/webui/ash/login/os_install_screen_handler.cc
+@@ -5,15 +5,21 @@
+ #include "chrome/browser/ui/webui/ash/login/os_install_screen_handler.h"
+ 
+ #include <string>
++#include <utility>
+ 
+ #include "ash/login/resources/grit/ash_login_strings.h"
++#include "base/byte_size.h"
+ #include "base/notreached.h"
++#include "base/strings/strcat.h"
++#include "base/strings/utf_string_conversions.h"
+ #include "base/time/time.h"
++#include "base/values.h"
+ #include "chrome/browser/ash/login/screens/os_install_screen.h"
+ #include "chrome/grit/branded_strings.h"
+ #include "components/login/localized_values_builder.h"
+ #include "ui/base/l10n/l10n_util.h"
+ #include "ui/base/l10n/time_format.h"
++#include "ui/base/text/bytes_formatting.h"
+ #include "ui/strings/grit/ui_strings.h"
+ 
+ namespace ash {
+@@ -57,6 +63,16 @@ void OsInstallScreenHandler::DeclareLocalizedValues(
+   builder->Add("osInstallDialogConfirmNextButton",
+                IDS_OS_INSTALL_SCREEN_CONFIRM_NEXT_BUTTON);
+ 
++  // NickelOS: choosing the disk.
++  // TODO(NickelOS): move the strings into a .grd so they can be translated.
++  builder->Add("osInstallDialogChooseDiskTitle", "Choose where to install");
++  builder->Add("osInstallDialogChooseDiskSubtitle",
++               "Everything on the disk you choose will be erased, including "
++               "any other operating system on it.");
++  builder->Add("osInstallDialogChooseDiskRecommended", "recommended");
++  builder->Add("osInstallDialogChooseDiskRemovable", "removable");
++  builder->Add("osInstallDialogConfirmDisk", "Install to: $1");
++
+   builder->AddF("osInstallDialogInProgressTitle",
+                 IDS_OS_INSTALL_SCREEN_IN_PROGRESS_TITLE,
+                 IDS_INSTALLED_PRODUCT_OS_NAME);
+@@ -94,6 +110,26 @@ void OsInstallScreenHandler::ShowStep(const char* step) {
+   CallExternalAPI("showStep", std::string(step));
+ }
+ 
++void OsInstallScreenHandler::ShowDestinations(
++    const std::vector<OsInstallClient::Destination>& destinations) {
++  base::ListValue list;
++  for (const auto& destination : destinations) {
++    const std::string& name =
++        destination.model.empty() ? destination.path : destination.model;
++    base::DictValue dict;
++    dict.Set("path", destination.path);
++    dict.Set("label",
++             base::StrCat({name, " (",
++                           base::UTF16ToUTF8(ui::FormatBytes(
++                               base::ByteSize(destination.size_in_bytes))),
++                           ")"}));
++    dict.Set("recommended", destination.recommended);
++    dict.Set("removable", destination.removable);
++    list.Append(std::move(dict));
++  }
++  CallExternalAPI("showDestinations", std::move(list));
++}
++
+ void OsInstallScreenHandler::SetStatus(OsInstallClient::Status status) {
+   switch (status) {
+     case OsInstallClient::Status::InProgress:
+diff --git a/chrome/browser/ui/webui/ash/login/os_install_screen_handler.h b/chrome/browser/ui/webui/ash/login/os_install_screen_handler.h
+index dc1259ead5d57..bde205eab7106 100644
+--- a/chrome/browser/ui/webui/ash/login/os_install_screen_handler.h
++++ b/chrome/browser/ui/webui/ash/login/os_install_screen_handler.h
+@@ -6,6 +6,8 @@
+ #define CHROME_BROWSER_UI_WEBUI_ASH_LOGIN_OS_INSTALL_SCREEN_HANDLER_H_
+ 
+ #include <optional>
++#include <string>
++#include <vector>
+ 
+ #include "chrome/browser/ui/webui/ash/login/base_screen_handler.h"
+ #include "chromeos/ash/components/dbus/os_install/os_install_client.h"
+@@ -35,6 +37,10 @@ class OsInstallScreenView {
+   virtual void Show() = 0;
+ 
+   virtual void ShowStep(const char* step) = 0;
++  // NickelOS: lets the user choose the disk to install to. With no
++  // destinations, asks to confirm an install to the disk the service picks.
++  virtual void ShowDestinations(
++      const std::vector<OsInstallClient::Destination>& destinations) = 0;
+   virtual void SetStatus(OsInstallClient::Status status) = 0;
+   virtual void SetServiceLogs(const std::string& service_log) = 0;
+   virtual void UpdateCountdownStringWithTime(base::TimeDelta time_left) = 0;
+@@ -59,6 +65,8 @@ class OsInstallScreenHandler final : public BaseScreenHandler,
+   // OsInstallScreenView:
+   void Show() override;
+   void ShowStep(const char* step) override;
++  void ShowDestinations(
++      const std::vector<OsInstallClient::Destination>& destinations) override;
+   void SetStatus(OsInstallClient::Status status) override;
+   void SetServiceLogs(const std::string& service_log) override;
+   void UpdateCountdownStringWithTime(base::TimeDelta time_left) override;
+diff --git a/chromeos/ash/components/dbus/os_install/fake_os_install_client.cc b/chromeos/ash/components/dbus/os_install/fake_os_install_client.cc
+index 8353d95b850b6..b18e831c191d5 100644
+--- a/chromeos/ash/components/dbus/os_install/fake_os_install_client.cc
++++ b/chromeos/ash/components/dbus/os_install/fake_os_install_client.cc
+@@ -4,6 +4,11 @@
+ 
+ #include "chromeos/ash/components/dbus/os_install/fake_os_install_client.h"
+ 
++#include <utility>
++#include <vector>
++
++#include "base/functional/callback.h"
++
+ namespace ash {
+ 
+ FakeOsInstallClient::FakeOsInstallClient() = default;
+@@ -29,6 +34,22 @@ void FakeOsInstallClient::StartOsInstall() {
+   NotifyObservers(Status::InProgress, /*service_log=*/"");
+ }
+ 
++void FakeOsInstallClient::GetInstallDestinations(
++    GetInstallDestinationsCallback callback) {
++  Destination destination;
++  destination.path = "/dev/nvme0n1";
++  destination.model = "Fake disk";
++  destination.size_in_bytes = uint64_t{128} * 1024 * 1024 * 1024;
++  destination.recommended = true;
++  std::vector<Destination> destinations;
++  destinations.push_back(std::move(destination));
++  std::move(callback).Run(std::move(destinations));
++}
++
++void FakeOsInstallClient::StartOsInstallTo(const std::string& device_path) {
++  StartOsInstall();
++}
++
+ void FakeOsInstallClient::UpdateStatus(Status status) {
+   NotifyObservers(status, /*service_log=*/"");
+ }
+diff --git a/chromeos/ash/components/dbus/os_install/fake_os_install_client.h b/chromeos/ash/components/dbus/os_install/fake_os_install_client.h
+index 25b5fc72eb400..4be10c2e7369e 100644
+--- a/chromeos/ash/components/dbus/os_install/fake_os_install_client.h
++++ b/chromeos/ash/components/dbus/os_install/fake_os_install_client.h
+@@ -27,6 +27,8 @@ class COMPONENT_EXPORT(OS_INSTALL) FakeOsInstallClient
+   bool HasObserver(const Observer* observer) const override;
+   TestInterface* GetTestInterface() override;
+   void StartOsInstall() override;
++  void GetInstallDestinations(GetInstallDestinationsCallback callback) override;
++  void StartOsInstallTo(const std::string& device_path) override;
+ 
+   // TestInterface overrides
+   void UpdateStatus(Status status) override;
+diff --git a/chromeos/ash/components/dbus/os_install/os_install_client.cc b/chromeos/ash/components/dbus/os_install/os_install_client.cc
+index f9b9efa1f54e3..ddc0d730263f6 100644
+--- a/chromeos/ash/components/dbus/os_install/os_install_client.cc
++++ b/chromeos/ash/components/dbus/os_install/os_install_client.cc
+@@ -5,10 +5,15 @@
+ #include "chromeos/ash/components/dbus/os_install/os_install_client.h"
+ 
+ #include <optional>
++#include <utility>
+ 
++#include "base/functional/bind.h"
++#include "base/functional/callback.h"
++#include "base/json/json_reader.h"
+ #include "base/logging.h"
+ #include "base/memory/raw_ptr.h"
+ #include "base/observer_list.h"
++#include "base/values.h"
+ #include "chromeos/ash/components/dbus/os_install/fake_os_install_client.h"
+ #include "dbus/bus.h"
+ #include "dbus/message.h"
+@@ -20,6 +25,10 @@ namespace {
+ 
+ OsInstallClient* g_instance = nullptr;
+ 
++// NickelOS additions to the service, not in system_api's constants.
++constexpr char kMethodGetInstallDestinations[] = "GetInstallDestinations";
++constexpr char kMethodStartOsInstallTo[] = "StartOsInstallTo";
++
+ std::optional<OsInstallClient::Status> ParseStatus(const std::string& str) {
+   if (str == os_install_service::kStatusInProgress)
+     return OsInstallClient::Status::InProgress;
+@@ -48,11 +57,16 @@ class OsInstallClientImpl : public OsInstallClient {
+   bool HasObserver(const Observer* observer) const override;
+   TestInterface* GetTestInterface() override;
+   void StartOsInstall() override;
++  void GetInstallDestinations(GetInstallDestinationsCallback callback) override;
++  void StartOsInstallTo(const std::string& device_path) override;
+ 
+  private:
+   void NotifyStatusChanged(std::optional<Status> status,
+                            const std::string& service_log);
+   void HandleStartResponse(dbus::Response* response);
++  void HandleGetInstallDestinationsResponse(
++      GetInstallDestinationsCallback callback,
++      dbus::Response* response);
+   void StatusUpdateReceived(dbus::Signal* signal);
+   void StatusUpdateConnected(const std::string& interface_name,
+                              const std::string& signal_name,
+@@ -102,6 +116,26 @@ void OsInstallClientImpl::StartOsInstall() {
+                                     weak_factory_.GetWeakPtr()));
+ }
+ 
++void OsInstallClientImpl::GetInstallDestinations(
++    GetInstallDestinationsCallback callback) {
++  dbus::MethodCall method_call(os_install_service::kOsInstallServiceInterface,
++                               kMethodGetInstallDestinations);
++  proxy_->CallMethod(
++      &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++      base::BindOnce(&OsInstallClientImpl::HandleGetInstallDestinationsResponse,
++                     weak_factory_.GetWeakPtr(), std::move(callback)));
++}
++
++void OsInstallClientImpl::StartOsInstallTo(const std::string& device_path) {
++  dbus::MethodCall method_call(os_install_service::kOsInstallServiceInterface,
++                               kMethodStartOsInstallTo);
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(device_path);
++  proxy_->CallMethod(&method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++                     base::BindOnce(&OsInstallClientImpl::HandleStartResponse,
++                                    weak_factory_.GetWeakPtr()));
++}
++
+ void OsInstallClientImpl::NotifyStatusChanged(std::optional<Status> status,
+                                               const std::string& service_log) {
+   if (!status) {
+@@ -131,6 +165,55 @@ void OsInstallClientImpl::HandleStartResponse(dbus::Response* response) {
+   NotifyStatusChanged(ParseStatus(status_str), /*service_log=*/"");
+ }
+ 
++// The service answers with a JSON array of
++// {path, model, size_in_bytes, removable, recommended}.
++void OsInstallClientImpl::HandleGetInstallDestinationsResponse(
++    GetInstallDestinationsCallback callback,
++    dbus::Response* response) {
++  if (!response) {
++    LOG(ERROR) << "Invalid response";
++    std::move(callback).Run(std::nullopt);
++    return;
++  }
++
++  dbus::MessageReader reader(response);
++  std::string json;
++  if (!reader.PopString(&json)) {
++    LOG(ERROR) << "Missing destinations";
++    std::move(callback).Run(std::nullopt);
++    return;
++  }
++
++  std::optional<base::ListValue> list =
++      base::JSONReader::ReadList(json, base::JSON_PARSE_RFC);
++  if (!list) {
++    LOG(ERROR) << "Invalid destinations: " << json;
++    std::move(callback).Run(std::nullopt);
++    return;
++  }
++
++  std::vector<Destination> destinations;
++  for (const base::Value& item : *list) {
++    const base::DictValue* dict = item.GetIfDict();
++    const std::string* path = dict ? dict->FindString("path") : nullptr;
++    if (!path) {
++      continue;
++    }
++    Destination destination;
++    destination.path = *path;
++    if (const std::string* model = dict->FindString("model")) {
++      destination.model = *model;
++    }
++    // Large integers come back from JSON as doubles.
++    destination.size_in_bytes = static_cast<uint64_t>(
++        dict->FindDouble("size_in_bytes").value_or(0));
++    destination.removable = dict->FindBool("removable").value_or(false);
++    destination.recommended = dict->FindBool("recommended").value_or(false);
++    destinations.push_back(std::move(destination));
++  }
++  std::move(callback).Run(std::move(destinations));
++}
++
+ void OsInstallClientImpl::StatusUpdateReceived(dbus::Signal* signal) {
+   dbus::MessageReader reader(signal);
+ 
+diff --git a/chromeos/ash/components/dbus/os_install/os_install_client.h b/chromeos/ash/components/dbus/os_install/os_install_client.h
+index 550b36455c7dd..a79da7a8ea934 100644
+--- a/chromeos/ash/components/dbus/os_install/os_install_client.h
++++ b/chromeos/ash/components/dbus/os_install/os_install_client.h
+@@ -5,9 +5,13 @@
+ #ifndef CHROMEOS_ASH_COMPONENTS_DBUS_OS_INSTALL_OS_INSTALL_CLIENT_H_
+ #define CHROMEOS_ASH_COMPONENTS_DBUS_OS_INSTALL_OS_INSTALL_CLIENT_H_
+ 
++#include <cstdint>
++#include <optional>
+ #include <string>
++#include <vector>
+ 
+ #include "base/component_export.h"
++#include "base/functional/callback_forward.h"
+ #include "base/observer_list_types.h"
+ 
+ namespace dbus {
+@@ -45,6 +49,21 @@ class COMPONENT_EXPORT(OS_INSTALL) OsInstallClient {
+     virtual void UpdateStatus(Status status) = 0;
+   };
+ 
++  // NickelOS: a disk the OS can be installed to.
++  struct Destination {
++    std::string path;
++    std::string model;
++    uint64_t size_in_bytes = 0;
++    bool removable = false;
++    // What an automatic install would choose.
++    bool recommended = false;
++  };
++
++  // The destinations, best first, or std::nullopt if the service could not
++  // list them.
++  using GetInstallDestinationsCallback =
++      base::OnceCallback<void(std::optional<std::vector<Destination>>)>;
++
+   OsInstallClient(const OsInstallClient&) = delete;
+   OsInstallClient& operator=(const OsInstallClient&) = delete;
+ 
+@@ -72,6 +91,15 @@ class COMPONENT_EXPORT(OS_INSTALL) OsInstallClient {
+   // by adding an Observer.
+   virtual void StartOsInstall() = 0;
+ 
++  // NickelOS: lists the disks the OS can be installed to, for the user to
++  // choose from.
++  virtual void GetInstallDestinations(
++      GetInstallDestinationsCallback callback) = 0;
++
++  // NickelOS: like StartOsInstall(), to |device_path|, which must be one of
++  // the destinations.
++  virtual void StartOsInstallTo(const std::string& device_path) = 0;
++
+  protected:
+   OsInstallClient();
+   virtual ~OsInstallClient();

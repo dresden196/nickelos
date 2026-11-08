@@ -1,0 +1,29 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: crossystem says nothing about the ChromeOS ACPI
+ device on PCs
+
+crossystem reads Chromebook firmware values from the ChromeOS ACPI device
+(GOOG0016, or the older chromeos_acpi/GGL0001), which PCs don't have. It
+looks for the device on every property (VbSharedDataVersion reads VDAT for
+each one) and printed "ERROR: GetAcpiSysfsPath: Failed to get ChromeOS
+ACPI sysfs path VDAT" each time: crosh opened with three such lines on
+every NickelOS PC (it asks crossystem for cros_debug). The values are
+simply not available there, which the callers already handle.
+
+---
+--- a/vboot_reference/host/arch/x86/lib/crossystem_arch.c
++++ b/vboot_reference/host/arch/x86/lib/crossystem_arch.c
+@@ -128,9 +128,10 @@
+ 	else if (stat(current_path, &fs) == 0 && S_ISDIR(fs.st_mode))
+ 		ret = asprintf(&path, "%s/%s", current_path, name);
+ 
+-	if (ret == -1)
+-		fprintf(stderr, "ERROR: %s: Failed to get ChromeOS ACPI sysfs path %s\n",
+-			__func__, name);
++	/* NickelOS: no message when the ChromeOS ACPI device isn't there, as
++	 * on every PC that isn't a Chromebook: crossystem looks for it on each
++	 * property, so every lookup printed one or more of these (three lines
++	 * when crosh opened). Callers take NULL as "not available". */
+ 
+ 	return ret == -1 ? NULL : path;
+ }

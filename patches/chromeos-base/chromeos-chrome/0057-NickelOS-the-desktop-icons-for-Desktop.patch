@@ -1,0 +1,2313 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the desktop, icons for ~/Desktop
+
+What is in the Desktop folder of the home folder (My files) shows on the
+desktop, under every window: one icon per file or folder, in Files' icon
+style, on a grid in the primary display's work area (docs/desktop.md in
+overlay-nickel). It lives in Ash (ash/nickel/desktop): a widget in the
+wallpaper container, kept above the wallpaper, shown in an active session
+in clamshell mode outside overview.
+
+- Icons sit on a tile that follows the light or dark theme. Click selects
+  (Ctrl adds), double-click opens (folders in Files, files with Files'
+  default app); with touch or a pen, tap and double tap, a long press (or
+  a two-finger tap) opens the menu, and dragging moves icons (moving on
+  after a long press closes the menu, as on the shelf). A touch whose end
+  the widget never sees (a menu takes it) does not leave its view as the
+  widget's gesture handler: the next touch goes to the view under it. Right-click on an icon: Open, Show in Files,
+  Rename, Move to trash. Right-click on the desktop: New folder, Open
+  Desktop in Files, then the wallpaper's usual menu (wallpaper, shelf).
+- Dragging icons moves them to other cells; each item's cell is kept in the
+  profile pref nickel.desktop.positions, by name. Dragging them out gives
+  their files to Files and Linux apps. A mouse drag shows the item itself
+  (tile, glyph, name) under the pointer, held where it was picked up.
+- Files dropped from Files are moved there from My files (as Files does)
+  and copied otherwise; from Linux apps, copied. They land where dropped.
+- Renaming (and a new folder's name) is asked in a bubble at the icon.
+
+Chrome's part, NickelDesktopClientImpl (ash::NickelDesktopClient), gives the
+desktop folder and does what needs the profile: opening, Show in Files,
+Move to trash and copying or moving through Files' I/O tasks.
+
+diff --git a/ash/BUILD.gn b/ash/BUILD.gn
+index 4ad2e07c24b58..9397a3f88badb 100644
+--- a/ash/BUILD.gn
++++ b/ash/BUILD.gn
+@@ -1042,6 +1042,10 @@ component("ash") {
+     "multi_user/multi_user_window_manager_observer.h",
+     "multi_user/user_switch_animator.cc",
+     "multi_user/user_switch_animator.h",
++    "nickel/desktop/nickel_desktop_controller.cc",
++    "nickel/desktop/nickel_desktop_controller.h",
++    "nickel/desktop/nickel_desktop_view.cc",
++    "nickel/desktop/nickel_desktop_view.h",
+     "policy/policy_recommendation_restorer.cc",
+     "policy/policy_recommendation_restorer.h",
+     "power/hid_battery_util.cc",
+diff --git a/ash/ash_prefs.cc b/ash/ash_prefs.cc
+index e01b97002d60a..a8278f12604ac 100644
+--- a/ash/ash_prefs.cc
++++ b/ash/ash_prefs.cc
+@@ -37,6 +37,7 @@
+ #include "ash/login/ui/login_expanded_public_account_view.h"
+ #include "ash/login/ui/management_disclosure_field_trial.h"
+ #include "ash/media/media_controller_impl.h"
++#include "ash/nickel/desktop/nickel_desktop_controller.h"
+ #include "ash/metrics/feature_discovery_duration_reporter_impl.h"
+ #include "ash/projector/projector_controller_impl.h"
+ #include "ash/public/cpp/holding_space/holding_space_prefs.h"
+@@ -175,6 +176,7 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry,
+   MahiNudgeController::RegisterProfilePrefs(registry);
+   MediaControllerImpl::RegisterProfilePrefs(registry);
+   MessageCenterController::RegisterProfilePrefs(registry);
++  NickelDesktopController::RegisterProfilePrefs(registry);
+   NightLightControllerImpl::RegisterProfilePrefs(registry);
+   OnboardingNudgeController::RegisterProfilePrefs(registry);
+   PaletteTray::RegisterProfilePrefs(registry);
+diff --git a/ash/ash_strings.grd b/ash/ash_strings.grd
+index 2e86b9877db7d..70e16eef5fcc5 100644
+--- a/ash/ash_strings.grd
++++ b/ash/ash_strings.grd
+@@ -10161,6 +10161,43 @@ To shut down the device, press and hold the power button on the device again.
+       <message name="IDS_UPDATE_REQUIRED_EOL_SEE_DETAILS" desc="The button text of the notification dialog which can be clicked to view return instructions from the admin on the settings page.">
+         See Details
+       </message>
++      <!-- NickelOS: the desktop (ash/nickel/desktop). -->
++      <message name="IDS_ASH_NICKEL_DESKTOP_OPEN" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), the menu item that opens the selected items.">
++        Open
++      </message>
++      <message name="IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), the menu item that opens the Files app at the item&#x27;s folder, with the item selected.">
++        Show in Files
++      </message>
++      <message name="IDS_ASH_NICKEL_DESKTOP_RENAME" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), the menu item, and the button in the rename bubble, that gives an item a new name.">
++        Rename
++      </message>
++      <message name="IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), the title of the bubble that asks for an item&#x27;s new name.">
++        Rename
++      </message>
++      <message name="IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), the menu item that moves the selected items to the trash.">
++        Move to trash
++      </message>
++      <message name="IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), the menu item, on the desktop itself, that makes a new folder there.">
++        New folder
++      </message>
++      <message name="IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), the name a new folder gets (then &quot;New folder 2&quot; and so on), which the user can change at once.">
++        New folder
++      </message>
++      <message name="IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), the menu item, on the desktop itself, that opens the Desktop folder in the Files app.">
++        Open Desktop in Files
++      </message>
++      <message name="IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), in the rename bubble, when another item already has that name.">
++        There's already an item with that name.
++      </message>
++      <message name="IDS_ASH_NICKEL_DESKTOP_NAME_INVALID" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), in the rename bubble, when the name cannot be used (empty, starting with a dot, or with a slash in it).">
++        Use a name that doesn't start with a dot or contain a slash.
++      </message>
++      <message name="IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), in the rename bubble, when renaming did not work.">
++        Couldn't rename it.
++      </message>
++      <message name="IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME" desc="NickelOS: on the desktop (the icons for what is in the Desktop folder), the name screen readers give the desktop&#x27;s list of items.">
++        Desktop
++      </message>
+     </messages>
+   </release>
+ </grit>
+diff --git a/ash/nickel/desktop/nickel_desktop_controller.cc b/ash/nickel/desktop/nickel_desktop_controller.cc
+new file mode 100644
+index 0000000000000..42bffd02a2b5f
+--- /dev/null
++++ b/ash/nickel/desktop/nickel_desktop_controller.cc
+@@ -0,0 +1,166 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "ash/nickel/desktop/nickel_desktop_controller.h"
++
++#include <utility>
++
++#include "ash/nickel/desktop/nickel_desktop_view.h"
++#include "ash/public/cpp/nickel_desktop_client.h"
++#include "ash/public/cpp/shell_window_ids.h"
++#include "ash/session/session_controller_impl.h"
++#include "ash/shell.h"
++#include "ash/wm/overview/overview_controller.h"
++#include "base/files/file_path.h"
++#include "components/prefs/pref_registry_simple.h"
++#include "ui/aura/window.h"
++#include "ui/display/screen.h"
++#include "ui/views/widget/widget.h"
++#include "ui/views/widget/widget_delegate.h"
++
++namespace ash {
++
++NickelDesktopController::NickelDesktopController() {
++  overview_observation_.Observe(OverviewController::Get());
++  Update();
++}
++
++NickelDesktopController::~NickelDesktopController() {
++  DestroyWidget();
++}
++
++// static
++void NickelDesktopController::RegisterProfilePrefs(
++    PrefRegistrySimple* registry) {
++  registry->RegisterDictionaryPref(kPositionsPref);
++}
++
++void NickelDesktopController::OnSessionStateChanged(
++    session_manager::SessionState state) {
++  Update();
++}
++
++void NickelDesktopController::OnActiveUserPrefServiceChanged(
++    PrefService* pref_service) {
++  // Another user's desktop (or the first one, once the profile is there).
++  DestroyWidget();
++  Update();
++}
++
++void NickelDesktopController::OnOverviewModeStarting() {
++  in_overview_ = true;
++  Update();
++}
++
++void NickelDesktopController::OnOverviewModeEnded() {
++  in_overview_ = false;
++  Update();
++}
++
++void NickelDesktopController::OnDisplayAdded(
++    const display::Display& new_display) {
++  Update();
++}
++
++void NickelDesktopController::OnDisplaysRemoved(
++    const display::Displays& removed_displays) {
++  Update();
++}
++
++void NickelDesktopController::OnDisplayMetricsChanged(
++    const display::Display& display,
++    uint32_t changed_metrics) {
++  Update();
++  if (view_) {
++    view_->OnWorkAreaChanged();
++  }
++}
++
++void NickelDesktopController::OnDisplayTabletStateChanged(
++    display::TabletState state) {
++  Update();
++}
++
++void NickelDesktopController::OnWindowAdded(aura::Window* new_window) {
++  // A new wallpaper widget goes on top of the container: stay above it.
++  if (widget_ && new_window != widget_->GetNativeWindow()) {
++    container_->StackChildAtTop(widget_->GetNativeWindow());
++  }
++}
++
++void NickelDesktopController::OnWindowDestroying(aura::Window* window) {
++  if (window == container_) {
++    DestroyWidget();
++  }
++}
++
++void NickelDesktopController::Update() {
++  Shell* shell = Shell::Get();
++  NickelDesktopClient* client = NickelDesktopClient::Get();
++  const bool wanted =
++      client &&
++      shell->session_controller()->GetSessionState() ==
++          session_manager::SessionState::ACTIVE &&
++      shell->session_controller()->GetActivePrefService() &&
++      !client->GetDesktopFolder().empty() &&
++      !display::Screen::Get()->InTabletMode();
++  if (!wanted) {
++    DestroyWidget();
++    return;
++  }
++
++  aura::Window* root = Shell::GetPrimaryRootWindow();
++  if (widget_ && widget_->GetNativeWindow()->GetRootWindow() != root) {
++    // The primary display changed.
++    DestroyWidget();
++  }
++  if (!widget_) {
++    CreateWidget(root);
++  }
++  if (in_overview_) {
++    widget_->Hide();
++  } else {
++    widget_->ShowInactive();
++  }
++}
++
++void NickelDesktopController::CreateWidget(aura::Window* root) {
++  container_ = Shell::GetContainer(root, kShellWindowId_WallpaperContainer);
++  container_->AddObserver(this);
++
++  views::Widget::InitParams params(
++      views::Widget::InitParams::CLIENT_OWNS_WIDGET,
++      views::Widget::InitParams::TYPE_WINDOW_FRAMELESS);
++  params.name = "NickelDesktopWidget";
++  params.parent = container_;
++  params.opacity = views::Widget::InitParams::WindowOpacity::kTranslucent;
++  // On the wallpaper's layer: never the active window (dialogs that need the
++  // keyboard, such as renaming, are bubbles elsewhere).
++  params.activatable = views::Widget::InitParams::Activatable::kNo;
++  params.bounds = root->GetBoundsInScreen();
++  // The wallpaper container's layout manager ignores the bounds a window
++  // asks for and fills the display with the maximizable ones, as it does the
++  // wallpaper: so the desktop is maximizable.
++  widget_delegate_ = std::make_unique<views::WidgetDelegate>();
++  widget_delegate_->SetCanMaximize(true);
++  params.delegate = widget_delegate_.get();
++  widget_ = std::make_unique<views::Widget>();
++  widget_->Init(std::move(params));
++  view_ = widget_->SetContentsView(std::make_unique<NickelDesktopView>(
++      NickelDesktopClient::Get()->GetDesktopFolder(),
++      Shell::Get()->session_controller()->GetActivePrefService()));
++  container_->StackChildAtTop(widget_->GetNativeWindow());
++}
++
++void NickelDesktopController::DestroyWidget() {
++  if (container_) {
++    container_->RemoveObserver(this);
++    container_ = nullptr;
++  }
++  view_ = nullptr;
++  widget_.reset();
++  widget_delegate_.reset();
++}
++
++}  // namespace ash
+diff --git a/ash/nickel/desktop/nickel_desktop_controller.h b/ash/nickel/desktop/nickel_desktop_controller.h
+new file mode 100644
+index 0000000000000..b7e067f859d3a
+--- /dev/null
++++ b/ash/nickel/desktop/nickel_desktop_controller.h
+@@ -0,0 +1,91 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_CONTROLLER_H_
++#define ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_CONTROLLER_H_
++
++#include <memory>
++
++#include "ash/ash_export.h"
++#include "ash/public/cpp/session/session_observer.h"
++#include "ash/wm/overview/overview_observer.h"
++#include "base/memory/raw_ptr.h"
++#include "base/scoped_observation.h"
++#include "ui/aura/window_observer.h"
++#include "ui/display/display_observer.h"
++
++class PrefRegistrySimple;
++
++namespace views {
++class Widget;
++class WidgetDelegate;
++}  // namespace views
++
++namespace ash {
++
++class NickelDesktopView;
++class OverviewController;
++
++// NickelOS: the desktop, icons for what is in ~/Desktop (docs/desktop.md in
++// overlay-nickel). One widget on the primary display, in the wallpaper
++// container above the wallpaper (so under every window), while a user
++// session is active, in clamshell mode and outside overview.
++class ASH_EXPORT NickelDesktopController : public SessionObserver,
++                                           public OverviewObserver,
++                                           public display::DisplayObserver,
++                                           public aura::WindowObserver {
++ public:
++  // Profile pref: each item's grid cell, by file name ([column, row]).
++  static constexpr char kPositionsPref[] = "nickel.desktop.positions";
++
++  NickelDesktopController();
++  NickelDesktopController(const NickelDesktopController&) = delete;
++  NickelDesktopController& operator=(const NickelDesktopController&) = delete;
++  ~NickelDesktopController() override;
++
++  static void RegisterProfilePrefs(PrefRegistrySimple* registry);
++
++  // SessionObserver:
++  void OnSessionStateChanged(session_manager::SessionState state) override;
++  void OnActiveUserPrefServiceChanged(PrefService* pref_service) override;
++
++  // OverviewObserver:
++  void OnOverviewModeStarting() override;
++  void OnOverviewModeEnded() override;
++
++  // display::DisplayObserver:
++  void OnDisplayAdded(const display::Display& new_display) override;
++  void OnDisplaysRemoved(const display::Displays& removed_displays) override;
++  void OnDisplayMetricsChanged(const display::Display& display,
++                               uint32_t changed_metrics) override;
++  void OnDisplayTabletStateChanged(display::TabletState state) override;
++
++  // aura::WindowObserver, for the wallpaper container:
++  void OnWindowAdded(aura::Window* new_window) override;
++  void OnWindowDestroying(aura::Window* window) override;
++
++ private:
++  // Creates, moves, shows or hides the desktop as the session, the displays
++  // and the modes say.
++  void Update();
++  void CreateWidget(aura::Window* root);
++  void DestroyWidget();
++
++  // The widget's delegate outlives the widget.
++  std::unique_ptr<views::WidgetDelegate> widget_delegate_;
++  std::unique_ptr<views::Widget> widget_;
++  raw_ptr<NickelDesktopView> view_ = nullptr;
++  // The wallpaper container the widget is in.
++  raw_ptr<aura::Window> container_ = nullptr;
++
++  ScopedSessionObserver session_observer_{this};
++  display::ScopedDisplayObserver display_observer_{this};
++  base::ScopedObservation<OverviewController, OverviewObserver>
++      overview_observation_{this};
++  bool in_overview_ = false;
++};
++
++}  // namespace ash
++
++#endif  // ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_CONTROLLER_H_
+diff --git a/ash/nickel/desktop/nickel_desktop_view.cc b/ash/nickel/desktop/nickel_desktop_view.cc
+new file mode 100644
+index 0000000000000..10f78562ec7fb
+--- /dev/null
++++ b/ash/nickel/desktop/nickel_desktop_view.cc
+@@ -0,0 +1,1231 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "ash/nickel/desktop/nickel_desktop_view.h"
++
++#include <algorithm>
++#include <utility>
++
++#include "ash/nickel/desktop/nickel_desktop_controller.h"
++#include "ash/public/cpp/nickel_desktop_client.h"
++#include "ash/public/cpp/shell_window_ids.h"
++#include "ash/shelf/shelf_context_menu_model.h"
++#include "ash/shell.h"
++#include "ash/strings/grit/ash_strings.h"
++#include "base/files/file_enumerator.h"
++#include "base/files/file_path_watcher.h"
++#include "base/files/file_util.h"
++#include "base/pickle.h"
++#include "base/functional/bind.h"
++#include "base/strings/string_split.h"
++#include "base/strings/string_util.h"
++#include "base/strings/strcat.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/strings/utf_string_conversions.h"
++#include "base/task/bind_post_task.h"
++#include "base/task/sequenced_task_runner.h"
++#include "base/task/thread_pool.h"
++#include "chromeos/ui/base/file_icon_util.h"
++#include "components/prefs/pref_service.h"
++#include "components/prefs/scoped_user_pref_update.h"
++#include "ui/accessibility/ax_enums.mojom.h"
++#include "ui/aura/window.h"
++#include "ui/base/clipboard/clipboard_format_type.h"
++#include "ui/base/clipboard/custom_data_helper.h"
++#include "ui/base/dragdrop/drag_drop_types.h"
++#include "ui/base/dragdrop/drop_target_event.h"
++#include "ui/base/clipboard/file_info.h"
++#include "ui/base/dragdrop/mojom/drag_drop_types.mojom.h"
++#include "ui/base/dragdrop/os_exchange_data.h"
++#include "ui/base/l10n/l10n_util.h"
++#include "ui/base/metadata/metadata_impl_macros.h"
++#include "ui/base/models/image_model.h"
++#include "ui/chromeos/styles/cros_tokens_color_mappings.h"
++#include "ui/color/color_provider.h"
++#include "ui/base/mojom/dialog_button.mojom.h"
++#include "ui/base/mojom/menu_source_type.mojom.h"
++#include "ui/compositor/canvas_painter.h"
++#include "ui/compositor/compositor.h"
++#include "ui/compositor/layer_tree_owner.h"
++#include "ui/compositor/paint_recorder.h"
++#include "ui/display/screen.h"
++#include "ui/events/event.h"
++#include "ui/gfx/canvas.h"
++#include "ui/gfx/geometry/rect_f.h"
++#include "ui/gfx/range/range.h"
++#include "ui/gfx/shadow_value.h"
++#include "ui/strings/grit/ui_strings.h"
++#include "ui/views/accessibility/view_accessibility.h"
++#include "ui/views/background.h"
++#include "ui/views/border.h"
++#include "ui/views/bubble/bubble_dialog_delegate_view.h"
++#include "ui/views/controls/image_view.h"
++#include "ui/views/controls/label.h"
++#include "ui/views/controls/menu/menu_runner.h"
++#include "ui/views/controls/textfield/textfield.h"
++#include "ui/views/drag_utils.h"
++#include "ui/views/layout/box_layout.h"
++#include "ui/views/paint_info.h"
++#include "ui/views/widget/widget.h"
++#include "url/gurl.h"
++
++namespace ash {
++
++namespace {
++
++// The grid: a cell per item, in the work area, from its top left corner.
++constexpr int kCellWidth = 96;
++constexpr int kCellHeight = 104;
++constexpr int kMargin = 12;
++// An item: a rounded tile with the file type's icon, the name under it.
++constexpr int kTileSize = 56;
++constexpr int kTileTop = 6;
++constexpr int kTileRadius = 16;
++constexpr int kGlyphSize = 32;
++constexpr int kHighlightRadius = 12;
++// The name's pill: around the text, as wide as its longest line.
++constexpr auto kLabelPadding = gfx::Insets::VH(1, 5);
++constexpr int kLabelRadius = 7;
++
++// Menu commands. The shelf's (shelf position, autohide, wallpaper) start at
++// ShelfContextMenuModel::MENU_ASH_START.
++enum Command {
++  kOpen = 1,
++  kShowInFiles,
++  kRename,
++  kMoveToTrash,
++  kNewFolder,
++  kOpenDesktopInFiles,
++};
++
++std::string NameOf(const base::FilePath& path) {
++  return path.BaseName().AsUTF8Unsafe();
++}
++
++}  // namespace
++
++// The items of the desktop folder, read on a blocking sequence and again
++// whenever the folder changes.
++class NickelDesktopView::Lister {
++ public:
++  using Callback = base::RepeatingCallback<void(std::vector<Entry>)>;
++
++  Lister(base::FilePath folder, Callback callback)
++      : folder_(std::move(folder)), callback_(std::move(callback)) {
++    watcher_.Watch(folder_, base::FilePathWatcher::Type::kNonRecursive,
++                   base::BindRepeating(&Lister::OnChanged,
++                                       base::Unretained(this)));
++    List();
++  }
++
++ private:
++  void OnChanged(const base::FilePath& path, bool error) { List(); }
++
++  void List() {
++    std::vector<Entry> entries;
++    base::FileEnumerator enumerator(
++        folder_, /*recursive=*/false,
++        base::FileEnumerator::FILES | base::FileEnumerator::DIRECTORIES);
++    for (base::FilePath path = enumerator.Next(); !path.empty();
++         path = enumerator.Next()) {
++      // Hidden files stay hidden, as in Files.
++      if (path.BaseName().value().starts_with(".")) {
++        continue;
++      }
++      entries.push_back({path, enumerator.GetInfo().IsDirectory()});
++    }
++    std::ranges::sort(entries, [](const Entry& a, const Entry& b) {
++      return base::ToLowerASCII(NameOf(a.path)) <
++             base::ToLowerASCII(NameOf(b.path));
++    });
++    callback_.Run(std::move(entries));
++  }
++
++  const base::FilePath folder_;
++  const Callback callback_;
++  base::FilePathWatcher watcher_;
++};
++
++// One item of the desktop.
++class NickelDesktopIconView : public views::View {
++  METADATA_HEADER(NickelDesktopIconView, views::View)
++
++ public:
++  NickelDesktopIconView(NickelDesktopView* desktop,
++                        const NickelDesktopView::Entry& entry)
++      : desktop_(desktop),
++        path_(entry.path),
++        is_directory_(entry.is_directory) {
++    image_view_ = AddChildView(std::make_unique<views::ImageView>());
++    UpdateImage();
++
++    const std::u16string name = entry.path.BaseName().LossyDisplayName();
++    label_ = AddChildView(std::make_unique<views::Label>(name));
++    label_->SetMultiLine(true);
++    label_->SetMaxLines(2);
++    label_->SetElideBehavior(gfx::ELIDE_TAIL);
++    label_->SetHorizontalAlignment(gfx::ALIGN_CENTER);
++    label_->SetVerticalAlignment(gfx::ALIGN_TOP);
++    label_->SetAutoColorReadabilityEnabled(false);
++    label_->SetSubpixelRenderingEnabled(false);
++    // White with a shadow, on a soft dark pill: reads on any wallpaper,
++    // light ones too (as on Plasma's desktop).
++    label_->SetEnabledColor(SK_ColorWHITE);
++    label_->SetShadows(
++        {gfx::ShadowValue(gfx::Vector2d(0, 1), 2,
++                          SkColorSetA(SK_ColorBLACK, 0x80))});
++    label_->SetBorder(views::CreateEmptyBorder(kLabelPadding));
++    label_->SetBackground(views::CreateRoundedRectBackground(
++        SkColorSetA(SK_ColorBLACK, 0x59), kLabelRadius));
++    label_->SetCustomTooltipText(name);
++
++    set_context_menu_controller(desktop);
++    SetNotifyEnterExitOnChild(true);
++    GetViewAccessibility().SetRole(ax::mojom::Role::kListBoxOption);
++    GetViewAccessibility().SetName(name);
++  }
++
++  const base::FilePath& path() const { return path_; }
++  bool is_directory() const { return is_directory_; }
++  bool selected() const { return selected_; }
++
++  // The icon as it looks (tile, glyph, name, selection), for dragging it.
++  gfx::ImageSkia CreateDragImage() {
++    const views::Widget* widget = GetWidget();
++    const float scale = views::ScaleFactorForDragFromWidget(widget);
++    SkBitmap bitmap;
++    {
++      ui::CanvasPainter painter(&bitmap, size(), scale,
++                                /*clear_color=*/SK_ColorTRANSPARENT,
++                                widget->GetCompositor()->is_pixel_canvas());
++      // Painted as a root view, at the origin: its own tile, then its
++      // children (as View::Paint does).
++      const views::PaintInfo info =
++          views::PaintInfo::CreateRootPaintInfo(painter.context(), size());
++      {
++        ui::PaintRecorder recorder(info.context(), info.paint_recording_size(),
++                                   info.paint_recording_scale_x(),
++                                   info.paint_recording_scale_y(), nullptr);
++        OnPaint(recorder.canvas());
++      }
++      PaintChildren(info);
++    }
++    return gfx::ImageSkia::CreateFromBitmap(bitmap, scale);
++  }
++
++  void SetSelected(bool selected) {
++    if (selected_ == selected) {
++      return;
++    }
++    selected_ = selected;
++    GetViewAccessibility().SetIsSelected(selected);
++    SchedulePaint();
++  }
++
++  // views::View:
++  void Layout(PassKey) override {
++    const gfx::Rect tile = GetTileBounds();
++    image_view_->SetBoundsRect(tile);
++    // Centred under the tile, as big as the name, so its pill fits it: one
++    // line as wide as the name, or two lines as wide as the cell for a name
++    // that doesn't fit on one. (Label's own height for a width doesn't
++    // break where drawing does, after a hyphen: "clip-h264.mp4" got one
++    // line, showing "clip-".)
++    const int max_width = width() - 8;
++    const int max_height = height() - tile.bottom() - 3;
++    const int one_line = label_->GetPreferredSize(views::SizeBounds()).width();
++    const bool wraps = one_line > max_width;
++    const int name_width = wraps ? max_width : one_line;
++    const int name_height =
++        std::min(label_->GetLineHeight() * (wraps ? 2 : 1) +
++                     kLabelPadding.height(),
++                 max_height);
++    label_->SetBounds((width() - name_width) / 2, tile.bottom() + 3,
++                      name_width, name_height);
++  }
++
++  void OnPaint(gfx::Canvas* canvas) override {
++    cc::PaintFlags flags;
++    flags.setAntiAlias(true);
++    if (selected_ || hovered_) {
++      flags.setColor(SkColorSetA(SK_ColorWHITE, selected_ ? 0x47 : 0x24));
++      canvas->DrawRoundRect(gfx::RectF(GetLocalBounds()), kHighlightRadius,
++                            flags);
++    }
++    // The tile is the system's raised surface (as menus and bubbles are),
++    // light or dark with the theme, as the file type icons are.
++    flags.setColor(SkColorSetA(
++        GetColorProvider()->GetColor(cros_tokens::kCrosSysSystemBaseElevated),
++        0xE6));
++    canvas->DrawRoundRect(gfx::RectF(GetTileBounds()), kTileRadius, flags);
++  }
++
++  void OnThemeChanged() override {
++    views::View::OnThemeChanged();
++    // The file type icons' colours follow the theme.
++    UpdateImage();
++  }
++
++  bool OnMousePressed(const ui::MouseEvent& event) override {
++    desktop_->OnIconPressed(this, event);
++    return true;
++  }
++
++  // Touch (and a pen, which ChromeOS turns into gestures).
++  void OnGestureEvent(ui::GestureEvent* event) override {
++    desktop_->OnIconGesture(this, event);
++  }
++
++  void OnMouseEntered(const ui::MouseEvent& event) override {
++    hovered_ = true;
++    SchedulePaint();
++  }
++
++  void OnMouseExited(const ui::MouseEvent& event) override {
++    hovered_ = false;
++    SchedulePaint();
++  }
++
++  int GetDragOperations(const gfx::Point& press_pt) override {
++    return ui::DragDropTypes::DRAG_MOVE | ui::DragDropTypes::DRAG_COPY;
++  }
++
++  void WriteDragData(const gfx::Point& press_pt,
++                     ui::OSExchangeData* data) override {
++    desktop_->WriteDragDataForIcon(this, press_pt, data);
++  }
++
++ private:
++  void UpdateImage() {
++    image_ = is_directory_
++                 ? chromeos::GetIconFromType(chromeos::IconType::kFolder,
++                                             /*dark_background=*/false,
++                                             kGlyphSize)
++                 : chromeos::GetIconForPath(path_, /*dark_background=*/false,
++                                            kGlyphSize);
++    image_view_->SetImage(ui::ImageModel::FromImageSkia(image_));
++  }
++
++  gfx::Rect GetTileBounds() const {
++    return gfx::Rect((width() - kTileSize) / 2, kTileTop, kTileSize,
++                     kTileSize);
++  }
++
++  const raw_ptr<NickelDesktopView> desktop_;
++  const base::FilePath path_;
++  const bool is_directory_;
++  gfx::ImageSkia image_;
++  raw_ptr<views::ImageView> image_view_;
++  raw_ptr<views::Label> label_;
++  bool selected_ = false;
++  bool hovered_ = false;
++};
++
++BEGIN_METADATA(NickelDesktopIconView)
++END_METADATA
++
++NickelDesktopView::NickelDesktopView(base::FilePath folder, PrefService* prefs)
++    : folder_(std::move(folder)), prefs_(prefs) {
++  set_context_menu_controller(this);
++  GetViewAccessibility().SetRole(ax::mojom::Role::kListBox);
++  GetViewAccessibility().SetName(
++      l10n_util::GetStringUTF16(IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME));
++  lister_ = base::SequenceBound<Lister>(
++      base::ThreadPool::CreateSequencedTaskRunner(
++          {base::MayBlock(), base::TaskPriority::USER_VISIBLE}),
++      folder_,
++      base::BindPostTaskToCurrentDefault(base::BindRepeating(
++          &NickelDesktopView::OnEntries, weak_factory_.GetWeakPtr())));
++}
++
++NickelDesktopView::~NickelDesktopView() = default;
++
++base::WeakPtr<NickelDesktopView> NickelDesktopView::GetWeakPtr() {
++  return weak_factory_.GetWeakPtr();
++}
++
++void NickelDesktopView::OnWorkAreaChanged() {
++  AssignCells();
++  InvalidateLayout();
++}
++
++void NickelDesktopView::OnEntries(std::vector<Entry> entries) {
++  std::set<base::FilePath> present;
++  order_.clear();
++  for (const Entry& entry : entries) {
++    present.insert(entry.path);
++    order_.push_back(entry.path);
++    if (!icons_.contains(entry.path)) {
++      icons_[entry.path] =
++          AddChildView(std::make_unique<NickelDesktopIconView>(this, entry));
++    }
++  }
++  for (auto it = icons_.begin(); it != icons_.end();) {
++    if (present.contains(it->first)) {
++      ++it;
++      continue;
++    }
++    // Gone (deleted, renamed or moved away): forget where it was.
++    if (!renamed_from_.erase(it->first)) {
++      ScopedDictPrefUpdate update(prefs_,
++                                  NickelDesktopController::kPositionsPref);
++      update->Remove(NameOf(it->first));
++    }
++    cells_.erase(it->first);
++    NickelDesktopIconView* icon = it->second;
++    it = icons_.erase(it);
++    RemoveChildViewT(icon);
++  }
++  AssignCells();
++  InvalidateLayout();
++
++  if (!pending_rename_.empty()) {
++    if (NickelDesktopIconView* icon = FindIcon(pending_rename_)) {
++      pending_rename_.clear();
++      // Once laid out, so the bubble finds its icon.
++      base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++          FROM_HERE,
++          base::BindOnce(
++              [](base::WeakPtr<NickelDesktopView> desktop,
++                 base::FilePath path) {
++                if (desktop) {
++                  if (NickelDesktopIconView* icon = desktop->FindIcon(path)) {
++                    desktop->ShowRenameBubble(icon);
++                  }
++                }
++              },
++              weak_factory_.GetWeakPtr(), icon->path()));
++    }
++  }
++}
++
++gfx::Rect NickelDesktopView::GetGridBounds() const {
++  if (!GetWidget()) {
++    return GetLocalBounds();
++  }
++  gfx::Rect work_area = display::Screen::Get()
++                            ->GetDisplayNearestWindow(
++                                GetWidget()->GetNativeWindow())
++                            .work_area();
++  work_area.Offset(-GetBoundsInScreen().OffsetFromOrigin());
++  work_area.Inset(kMargin);
++  return work_area;
++}
++
++int NickelDesktopView::GetColumns() const {
++  return std::max(1, GetGridBounds().width() / kCellWidth);
++}
++
++int NickelDesktopView::GetRows() const {
++  return std::max(1, GetGridBounds().height() / kCellHeight);
++}
++
++gfx::Rect NickelDesktopView::GetCellBounds(const Cell& cell) const {
++  const gfx::Rect grid = GetGridBounds();
++  return gfx::Rect(grid.x() + cell.column * kCellWidth,
++                   grid.y() + cell.row * kCellHeight, kCellWidth, kCellHeight);
++}
++
++NickelDesktopView::Cell NickelDesktopView::GetCellAt(
++    const gfx::Point& point) const {
++  const gfx::Rect grid = GetGridBounds();
++  return {std::clamp((point.x() - grid.x()) / kCellWidth, 0, GetColumns() - 1),
++          std::clamp((point.y() - grid.y()) / kCellHeight, 0, GetRows() - 1)};
++}
++
++NickelDesktopView::Cell NickelDesktopView::FindFreeCell(
++    const std::set<Cell>& taken,
++    const Cell& start) const {
++  const int columns = GetColumns();
++  const int rows = GetRows();
++  const int count = columns * rows;
++  const int first = std::clamp(start.column, 0, columns - 1) * rows +
++                    std::clamp(start.row, 0, rows - 1);
++  for (int i = 0; i < count; ++i) {
++    const int index = (first + i) % count;
++    const Cell cell{index / rows, index % rows};
++    if (!taken.contains(cell)) {
++      return cell;
++    }
++  }
++  // A full desktop: overlap.
++  return start;
++}
++
++void NickelDesktopView::AssignCells() {
++  // A copy: SaveCell() below replaces the pref's value.
++  const base::DictValue saved =
++      prefs_->GetDict(NickelDesktopController::kPositionsPref).Clone();
++  const int columns = GetColumns();
++  const int rows = GetRows();
++  std::map<base::FilePath, Cell> cells;
++  std::set<Cell> taken;
++  std::vector<base::FilePath> unplaced;
++  for (const base::FilePath& path : order_) {
++    const std::string name = NameOf(path);
++    std::optional<Cell> wanted;
++    if (auto it = pending_cells_.find(name); it != pending_cells_.end()) {
++      wanted = it->second;
++      pending_cells_.erase(it);
++      SaveCell(path, *wanted);
++    } else if (const base::ListValue* list = saved.FindList(name);
++               list && list->size() == 2 && (*list)[0].is_int() &&
++               (*list)[1].is_int()) {
++      wanted = Cell{(*list)[0].GetInt(), (*list)[1].GetInt()};
++    }
++    if (wanted && wanted->column < columns && wanted->row < rows &&
++        !taken.contains(*wanted)) {
++      cells[path] = *wanted;
++      taken.insert(*wanted);
++    } else {
++      unplaced.push_back(path);
++    }
++  }
++  for (const base::FilePath& path : unplaced) {
++    const Cell cell = FindFreeCell(taken, Cell());
++    cells[path] = cell;
++    taken.insert(cell);
++    // Saved only if it had no place yet: one saved off a smaller work area
++    // (another display, a docked shelf) keeps it for later.
++    if (!saved.FindList(NameOf(path))) {
++      SaveCell(path, cell);
++    }
++  }
++  cells_ = std::move(cells);
++}
++
++void NickelDesktopView::SaveCell(const base::FilePath& path, const Cell& cell) {
++  ScopedDictPrefUpdate update(prefs_, NickelDesktopController::kPositionsPref);
++  update->Set(NameOf(path),
++              base::ListValue().Append(cell.column).Append(cell.row));
++}
++
++std::vector<NickelDesktopIconView*> NickelDesktopView::GetSelection() const {
++  std::vector<NickelDesktopIconView*> selection;
++  for (const base::FilePath& path : order_) {
++    if (NickelDesktopIconView* icon = FindIcon(path); icon && icon->selected()) {
++      selection.push_back(icon);
++    }
++  }
++  return selection;
++}
++
++void NickelDesktopView::SelectOnly(NickelDesktopIconView* icon) {
++  for (auto& [path, view] : icons_) {
++    view->SetSelected(view == icon);
++  }
++}
++
++void NickelDesktopView::ClearSelection() {
++  SelectOnly(nullptr);
++}
++
++NickelDesktopIconView* NickelDesktopView::FindIcon(
++    const base::FilePath& path) const {
++  auto it = icons_.find(path);
++  return it == icons_.end() ? nullptr : it->second.get();
++}
++
++void NickelDesktopView::OnIconPressed(NickelDesktopIconView* icon,
++                                      const ui::MouseEvent& event) {
++  if (event.IsOnlyLeftMouseButton() &&
++      (event.flags() & ui::EF_IS_DOUBLE_CLICK)) {
++    if (!icon->selected()) {
++      SelectOnly(icon);
++    }
++    OpenSelection();
++    return;
++  }
++  if (event.IsOnlyLeftMouseButton() && event.IsControlDown()) {
++    icon->SetSelected(!icon->selected());
++    return;
++  }
++  if (!icon->selected()) {
++    SelectOnly(icon);
++  }
++}
++
++void NickelDesktopView::OnIconGesture(NickelDesktopIconView* icon,
++                                      ui::GestureEvent* event) {
++  switch (event->type()) {
++    case ui::EventType::kGestureTapDown:
++      RetargetTouch(icon, *event);
++      return;
++    case ui::EventType::kGestureTap:
++      if (event->details().tap_count() == 2) {
++        if (!icon->selected()) {
++          SelectOnly(icon);
++        }
++        OpenSelection();
++      } else if (event->IsControlDown()) {
++        icon->SetSelected(!icon->selected());
++      } else {
++        SelectOnly(icon);
++      }
++      event->SetHandled();
++      return;
++    case ui::EventType::kGestureLongPress:
++    case ui::EventType::kGestureTwoFingerTap: {
++      if (!icon->selected()) {
++        SelectOnly(icon);
++      }
++      gfx::Point location = event->location();
++      views::View::ConvertPointToScreen(icon, &location);
++      ShowContextMenuForViewImpl(icon, location,
++                                 ui::mojom::MenuSourceType::kLongPress);
++      event->SetHandled();
++      return;
++    }
++    // Dragging with a finger or a pen moves the icons about (as on the
++    // shelf: after a long press, moving closes the menu and drags).
++    case ui::EventType::kGestureScrollBegin:
++      if (!cells_.contains(icon->path())) {
++        return;
++      }
++      if (!icon->selected()) {
++        SelectOnly(icon);
++      }
++      // Before closing the menu, which then leaves this touch alone
++      // (OnMenuClosed).
++      touch_moving_ = true;
++      touch_anchor_ = icon->path();
++      touch_offset_ = event->location().OffsetFromOrigin();
++      if (menu_runner_ && menu_runner_->IsRunning()) {
++        menu_runner_->Cancel();
++      }
++      // Over the other icons while it moves.
++      ReorderChildView(icon, children().size());
++      event->SetHandled();
++      return;
++    case ui::EventType::kGestureScrollUpdate: {
++      if (!touch_moving_) {
++        return;
++      }
++      gfx::Point point = event->location();
++      views::View::ConvertPointToTarget(icon, this, &point);
++      const gfx::Vector2d delta =
++          (point - touch_offset_) -
++          GetCellBounds(cells_[touch_anchor_]).origin();
++      for (NickelDesktopIconView* view : GetSelection()) {
++        if (auto it = cells_.find(view->path()); it != cells_.end()) {
++          view->SetBoundsRect(GetCellBounds(it->second) + delta);
++        }
++      }
++      event->SetHandled();
++      return;
++    }
++    case ui::EventType::kGestureScrollEnd:
++    case ui::EventType::kScrollFlingStart: {
++      if (!touch_moving_) {
++        return;
++      }
++      touch_moving_ = false;
++      gfx::Point point = event->location();
++      views::View::ConvertPointToTarget(icon, this, &point);
++      std::vector<base::FilePath> paths;
++      for (NickelDesktopIconView* view : GetSelection()) {
++        paths.push_back(view->path());
++      }
++      MoveIcons(paths, touch_anchor_, point - touch_offset_);
++      event->SetHandled();
++      return;
++    }
++    case ui::EventType::kGestureEnd:
++      // A move that never ended (cancelled): back to their cells.
++      if (touch_moving_) {
++        touch_moving_ = false;
++        InvalidateLayout();
++      }
++      return;
++    default:
++      return;
++  }
++}
++
++void NickelDesktopView::OnGestureEvent(ui::GestureEvent* event) {
++  // On the desktop itself (not an icon).
++  switch (event->type()) {
++    case ui::EventType::kGestureTapDown:
++      // Not one an icon passed on.
++      if (event->target() == this) {
++        RetargetTouch(this, *event);
++      }
++      return;
++    case ui::EventType::kGestureTap:
++      ClearSelection();
++      event->SetHandled();
++      return;
++    case ui::EventType::kGestureLongPress:
++    case ui::EventType::kGestureTwoFingerTap: {
++      gfx::Point location = event->location();
++      views::View::ConvertPointToScreen(this, &location);
++      ShowContextMenuForViewImpl(this, location,
++                                 ui::mojom::MenuSourceType::kLongPress);
++      event->SetHandled();
++      return;
++    }
++    default:
++      return;
++  }
++}
++
++void NickelDesktopView::RetargetTouch(views::View* handler,
++                                      const ui::GestureEvent& event) {
++  gfx::Point point = event.location();
++  views::View::ConvertPointToTarget(handler, this, &point);
++  views::View* target = this;
++  for (const auto& [path, icon] : icons_) {
++    if (icon->bounds().Contains(point)) {
++      target = icon;
++      break;
++    }
++  }
++  if (target != handler) {
++    SetMouseAndGestureHandler(target);
++    // Only the touch: the mouse finds its own way.
++    SetMouseHandler(nullptr);
++  }
++}
++
++void NickelDesktopView::OnMenuClosed() {
++  // A menu opened by a long press takes the rest of that touch, and the
++  // widget never sees it end: forget the view that opened it, unless that
++  // touch now moves icons.
++  if (!touch_moving_) {
++    SetMouseAndGestureHandler(nullptr);
++  }
++}
++
++void NickelDesktopView::OpenSelection() {
++  NickelDesktopClient* client = NickelDesktopClient::Get();
++  if (!client) {
++    return;
++  }
++  for (NickelDesktopIconView* icon : GetSelection()) {
++    client->Open(icon->path(), icon->is_directory());
++  }
++}
++
++void NickelDesktopView::WriteDragDataForIcon(NickelDesktopIconView* icon,
++                                             const gfx::Point& press_point,
++                                             ui::OSExchangeData* data) {
++  if (!icon->selected()) {
++    SelectOnly(icon);
++  }
++  // Files and Linux apps take file names (as from Holding space).
++  std::vector<ui::FileInfo> files;
++  for (NickelDesktopIconView* view : GetSelection()) {
++    files.emplace_back(view->path(), view->path().BaseName());
++  }
++  data->SetFilenames(files);
++  // The item itself follows the pointer, held where it was picked up.
++  data->provider().SetDragImage(icon->CreateDragImage(),
++                                press_point.OffsetFromOrigin());
++  drag_anchor_ = icon->path();
++  drag_offset_ = press_point.OffsetFromOrigin();
++}
++
++void NickelDesktopView::Rename(const base::FilePath& path,
++                               const std::u16string& name,
++                               base::OnceCallback<void(RenameResult)> callback) {
++  const std::string new_name =
++      base::UTF16ToUTF8(base::TrimWhitespace(name, base::TRIM_ALL));
++  if (new_name.empty() || new_name == "." || new_name == ".." ||
++      new_name.starts_with(".") || new_name.find('/') != std::string::npos) {
++    std::move(callback).Run(RenameResult::kInvalidName);
++    return;
++  }
++  const base::FilePath target =
++      path.DirName().Append(base::FilePath::FromUTF8Unsafe(new_name));
++  if (target == path) {
++    std::move(callback).Run(RenameResult::kDone);
++    return;
++  }
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_BLOCKING},
++      base::BindOnce(
++          [](base::FilePath path, base::FilePath target) {
++            if (base::PathExists(target)) {
++              return RenameResult::kNameTaken;
++            }
++            return base::Move(path, target) ? RenameResult::kDone
++                                            : RenameResult::kFailed;
++          },
++          path, target),
++      base::BindOnce(
++          [](base::WeakPtr<NickelDesktopView> desktop, base::FilePath path,
++             base::FilePath target,
++             base::OnceCallback<void(RenameResult)> callback,
++             RenameResult result) {
++            if (desktop && result == RenameResult::kDone) {
++              // It keeps its place under its new name.
++              if (auto it = desktop->cells_.find(path);
++                  it != desktop->cells_.end()) {
++                desktop->pending_cells_[NameOf(target)] = it->second;
++              }
++              desktop->renamed_from_.insert(path);
++              ScopedDictPrefUpdate update(
++                  desktop->prefs_, NickelDesktopController::kPositionsPref);
++              update->Remove(NameOf(path));
++            }
++            std::move(callback).Run(result);
++          },
++          weak_factory_.GetWeakPtr(), path, target, std::move(callback)));
++}
++
++void NickelDesktopView::NewFolder(const Cell& cell) {
++  new_folder_cell_ = cell;
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_BLOCKING},
++      base::BindOnce(
++          [](base::FilePath folder, std::string name) {
++            for (int i = 1; i < 1000; ++i) {
++              const base::FilePath path =
++                  folder.Append(base::FilePath::FromUTF8Unsafe(
++                      i == 1 ? name
++                             : base::StrCat({name, " ", base::NumberToString(i)})));
++              if (base::PathExists(path)) {
++                continue;
++              }
++              return base::CreateDirectory(path) ? path : base::FilePath();
++            }
++            return base::FilePath();
++          },
++          folder_,
++          l10n_util::GetStringUTF8(IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME)),
++      base::BindOnce(&NickelDesktopView::OnFolderCreated,
++                     weak_factory_.GetWeakPtr()));
++}
++
++void NickelDesktopView::OnFolderCreated(base::FilePath path) {
++  if (path.empty()) {
++    return;
++  }
++  // Where the menu was opened, then renamed: once its icon is there.
++  pending_cells_[NameOf(path)] = new_folder_cell_;
++  pending_rename_ = path;
++  if (FindIcon(path)) {
++    // The folder's watcher was faster.
++    std::set<Cell> taken;
++    for (const auto& [other, cell] : cells_) {
++      if (other != path) {
++        taken.insert(cell);
++      }
++    }
++    cells_[path] = FindFreeCell(taken, new_folder_cell_);
++    SaveCell(path, cells_[path]);
++    pending_cells_.erase(NameOf(path));
++    pending_rename_.clear();
++    InvalidateLayout();
++    ShowRenameBubble(FindIcon(path));
++  }
++}
++
++void NickelDesktopView::ShowRenameBubble(NickelDesktopIconView* icon) {
++  // Asks at the icon; a bubble rather than the label itself, as the
++  // desktop's widget cannot take the keyboard.
++  CloseRenameBubble();
++  SelectOnly(icon);
++  rename_path_ = icon->path();
++
++  auto delegate = std::make_unique<views::BubbleDialogDelegate>(
++      icon, views::BubbleBorder::TOP_CENTER);
++  delegate->SetTitle(IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE);
++  delegate->SetButtonLabel(
++      ui::mojom::DialogButton::kOk,
++      l10n_util::GetStringUTF16(IDS_ASH_NICKEL_DESKTOP_RENAME));
++  delegate->SetAcceptCallbackWithClose(base::BindRepeating(
++      &NickelDesktopView::OnRenameAccepted, base::Unretained(this)));
++  delegate->set_close_on_deactivate(true);
++  // A container whose windows can take the keyboard.
++  delegate->set_parent_window(
++      Shell::GetContainer(GetWidget()->GetNativeWindow()->GetRootWindow(),
++                          kShellWindowId_SettingBubbleContainer));
++
++  auto contents = std::make_unique<views::View>();
++  contents->SetLayoutManager(std::make_unique<views::BoxLayout>(
++      views::BoxLayout::Orientation::kVertical, gfx::Insets(), 8));
++  const std::u16string name = rename_path_.BaseName().LossyDisplayName();
++  rename_textfield_ =
++      contents->AddChildView(std::make_unique<views::Textfield>());
++  rename_textfield_->SetText(name);
++  rename_textfield_->SetDefaultWidthInChars(24);
++  rename_textfield_->GetViewAccessibility().SetName(
++      l10n_util::GetStringUTF16(IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE));
++  rename_error_ = contents->AddChildView(std::make_unique<views::Label>());
++  rename_error_->SetMultiLine(true);
++  rename_error_->SetHorizontalAlignment(gfx::ALIGN_LEFT);
++  rename_error_->SetVisible(false);
++  delegate->SetContentsView(std::move(contents));
++  delegate->SetInitiallyFocusedView(rename_textfield_);
++
++  rename_delegate_ = std::move(delegate);
++  rename_widget_ = views::BubbleDialogDelegate::CreateBubble(
++      rename_delegate_.get(),
++      base::BindOnce(&NickelDesktopView::OnRenameBubbleClosed,
++                     weak_factory_.GetWeakPtr()));
++  rename_widget_->Show();
++  // The name without its extension, ready to type over.
++  const size_t dot = name.rfind(u'.');
++  rename_textfield_->SetSelectedRange(gfx::Range(
++      0, dot == std::u16string::npos || dot == 0 ? name.size() : dot));
++}
++
++bool NickelDesktopView::OnRenameAccepted() {
++  Rename(rename_path_, std::u16string(rename_textfield_->GetText()),
++         base::BindOnce(&NickelDesktopView::OnRenamed,
++                        weak_factory_.GetWeakPtr()));
++  // Closed once renamed.
++  return false;
++}
++
++void NickelDesktopView::OnRenamed(RenameResult result) {
++  if (!rename_widget_) {
++    return;
++  }
++  int message = IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED;
++  switch (result) {
++    case RenameResult::kDone:
++      rename_widget_->Close();
++      return;
++    case RenameResult::kNameTaken:
++      message = IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN;
++      break;
++    case RenameResult::kInvalidName:
++      message = IDS_ASH_NICKEL_DESKTOP_NAME_INVALID;
++      break;
++    case RenameResult::kFailed:
++      break;
++  }
++  rename_error_->SetText(l10n_util::GetStringUTF16(message));
++  rename_error_->SetVisible(true);
++  rename_delegate_->SizeToContents();
++}
++
++void NickelDesktopView::OnRenameBubbleClosed(
++    views::Widget::ClosedReason reason) {
++  // Not from within the widget's own closing.
++  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++      FROM_HERE, base::BindOnce(&NickelDesktopView::CloseRenameBubble,
++                                weak_factory_.GetWeakPtr()));
++}
++
++void NickelDesktopView::CloseRenameBubble() {
++  rename_textfield_ = nullptr;
++  rename_error_ = nullptr;
++  // The widget before its delegate.
++  rename_widget_.reset();
++  rename_delegate_.reset();
++}
++
++void NickelDesktopView::Layout(PassKey) {
++  for (const auto& [path, cell] : cells_) {
++    if (NickelDesktopIconView* icon = FindIcon(path)) {
++      icon->SetBoundsRect(GetCellBounds(cell));
++    }
++  }
++}
++
++bool NickelDesktopView::OnMousePressed(const ui::MouseEvent& event) {
++  // On the desktop itself (not an icon).
++  ClearSelection();
++  return true;
++}
++
++std::vector<base::FilePath> NickelDesktopView::GetDroppedPaths(
++    const ui::OSExchangeData& data) const {
++  std::vector<base::FilePath> paths;
++  NickelDesktopClient* client = NickelDesktopClient::Get();
++  // Files puts file system URLs there (directories only appear there).
++  if (std::optional<base::Pickle> pickle = data.GetPickledData(
++          ui::ClipboardFormatType::DataTransferCustomType());
++      pickle && client) {
++    if (std::optional<std::u16string> sources =
++            ui::ReadCustomDataForType(*pickle, u"fs/sources")) {
++      for (std::u16string_view source : base::SplitStringPiece(
++               *sources, u"\n", base::TRIM_WHITESPACE,
++               base::SPLIT_WANT_NONEMPTY)) {
++        if (base::FilePath path = client->CrackFileSystemUrl(GURL(source));
++            !path.empty()) {
++          paths.push_back(std::move(path));
++        }
++      }
++    }
++  }
++  if (paths.empty()) {
++    if (std::optional<std::vector<ui::FileInfo>> files = data.GetFilenames()) {
++      for (const ui::FileInfo& file : *files) {
++        paths.push_back(file.path);
++      }
++    }
++  }
++  return paths;
++}
++
++bool NickelDesktopView::GetDropFormats(
++    int* formats,
++    std::set<ui::ClipboardFormatType>* format_types) {
++  *formats = ui::OSExchangeData::FILE_NAME;
++  format_types->insert(ui::ClipboardFormatType::DataTransferCustomType());
++  return true;
++}
++
++bool NickelDesktopView::CanDrop(const ui::OSExchangeData& data) {
++  return !GetDroppedPaths(data).empty();
++}
++
++void NickelDesktopView::OnDragEntered(const ui::DropTargetEvent& event) {
++  drag_paths_ = GetDroppedPaths(event.data());
++  drag_from_desktop_ =
++      !drag_paths_.empty() &&
++      std::ranges::all_of(drag_paths_, [this](const base::FilePath& path) {
++        return path.DirName() == folder_;
++      });
++  NickelDesktopClient* client = NickelDesktopClient::Get();
++  int operation = ui::DragDropTypes::DRAG_COPY;
++  if (drag_from_desktop_) {
++    // Only moving icons about.
++    operation = ui::DragDropTypes::DRAG_MOVE;
++  } else if (client && !(event.flags() & ui::EF_CONTROL_DOWN) &&
++             std::ranges::all_of(drag_paths_,
++                                 [client](const base::FilePath& path) {
++                                   return client->IsInMyFiles(path);
++                                 })) {
++    // As Files does between its own folders.
++    operation = ui::DragDropTypes::DRAG_MOVE;
++  }
++  const int allowed = event.source_operations();
++  if (!(allowed & operation)) {
++    operation = (allowed & ui::DragDropTypes::DRAG_COPY)
++                    ? ui::DragDropTypes::DRAG_COPY
++                    : allowed & ui::DragDropTypes::DRAG_MOVE;
++  }
++  drag_operation_ = operation;
++}
++
++int NickelDesktopView::OnDragUpdated(const ui::DropTargetEvent& event) {
++  return drag_paths_.empty() ? ui::DragDropTypes::DRAG_NONE : drag_operation_;
++}
++
++void NickelDesktopView::OnDragExited() {
++  drag_paths_.clear();
++}
++
++views::View::DropCallback NickelDesktopView::GetDropCallback(
++    const ui::DropTargetEvent& event) {
++  if (drag_paths_.empty() || drag_operation_ == ui::DragDropTypes::DRAG_NONE) {
++    return base::NullCallback();
++  }
++  return base::BindOnce(&NickelDesktopView::PerformDrop,
++                        weak_factory_.GetWeakPtr(), std::move(drag_paths_),
++                        drag_from_desktop_, drag_operation_, event.location());
++}
++
++void NickelDesktopView::PerformDrop(
++    std::vector<base::FilePath> paths,
++    bool from_desktop,
++    int operation,
++    gfx::Point location,
++    const ui::DropTargetEvent& event,
++    ui::mojom::DragOperation& output_drag_op,
++    std::unique_ptr<ui::LayerTreeOwner> drag_image_layer_owner) {
++  output_drag_op = ui::PreferredDragOperation(operation);
++  drag_paths_.clear();
++
++  if (from_desktop) {
++    // Moved about: the icon dragged goes to the cell under it.
++    MoveIcons(paths,
++              cells_.contains(drag_anchor_) ? drag_anchor_ : paths.front(),
++              location - drag_offset_);
++    return;
++  }
++
++  NickelDesktopClient* client = NickelDesktopClient::Get();
++  if (!client) {
++    output_drag_op = ui::mojom::DragOperation::kNone;
++    return;
++  }
++  // They land where they were dropped, side by side.
++  std::set<Cell> taken;
++  for (const auto& [path, cell] : cells_) {
++    taken.insert(cell);
++  }
++  Cell next = GetCellAt(location);
++  for (const base::FilePath& path : paths) {
++    const Cell cell = FindFreeCell(taken, next);
++    pending_cells_[NameOf(path)] = cell;
++    taken.insert(cell);
++    next = cell;
++  }
++  client->CopyOrMoveToDesktop(paths,
++                              operation == ui::DragDropTypes::DRAG_MOVE);
++}
++
++void NickelDesktopView::MoveIcons(const std::vector<base::FilePath>& paths,
++                                  const base::FilePath& anchor,
++                                  const gfx::Point& anchor_origin) {
++  if (!cells_.contains(anchor)) {
++    InvalidateLayout();
++    return;
++  }
++  gfx::Point anchor_center = anchor_origin;
++  anchor_center.Offset(kCellWidth / 2, kCellHeight / 2);
++  const Cell from = cells_[anchor];
++  const Cell to = GetCellAt(anchor_center);
++  const std::set<base::FilePath> moving(paths.begin(), paths.end());
++  std::set<Cell> taken;
++  for (const auto& [path, cell] : cells_) {
++    if (!moving.contains(path)) {
++      taken.insert(cell);
++    }
++  }
++  for (const base::FilePath& path : paths) {
++    auto it = cells_.find(path);
++    if (it == cells_.end()) {
++      continue;
++    }
++    const Cell wanted{
++        std::clamp(it->second.column + to.column - from.column, 0,
++                   GetColumns() - 1),
++        std::clamp(it->second.row + to.row - from.row, 0, GetRows() - 1)};
++    it->second = FindFreeCell(taken, wanted);
++    taken.insert(it->second);
++    SaveCell(path, it->second);
++  }
++  InvalidateLayout();
++}
++
++void NickelDesktopView::ShowContextMenuForViewImpl(
++    views::View* source,
++    const gfx::Point& point,
++    ui::mojom::MenuSourceType source_type) {
++  menu_model_ = std::make_unique<ui::SimpleMenuModel>(this);
++  shelf_menu_model_.reset();
++  if (source != this) {
++    // An icon (selected when pressed).
++    const size_t count = GetSelection().size();
++    if (!count) {
++      return;
++    }
++    menu_model_->AddItem(kOpen,
++                         l10n_util::GetStringUTF16(IDS_ASH_NICKEL_DESKTOP_OPEN));
++    if (count == 1) {
++      menu_model_->AddItem(
++          kShowInFiles,
++          l10n_util::GetStringUTF16(IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES));
++      menu_model_->AddItem(
++          kRename, l10n_util::GetStringUTF16(IDS_ASH_NICKEL_DESKTOP_RENAME));
++    }
++    menu_model_->AddSeparator(ui::NORMAL_SEPARATOR);
++    menu_model_->AddItem(
++        kMoveToTrash,
++        l10n_util::GetStringUTF16(IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH));
++  } else {
++    ClearSelection();
++    gfx::Point local = point;
++    views::View::ConvertPointFromScreen(this, &local);
++    menu_cell_ = GetCellAt(local);
++    menu_model_->AddItem(
++        kNewFolder,
++        l10n_util::GetStringUTF16(IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER));
++    menu_model_->AddItem(
++        kOpenDesktopInFiles,
++        l10n_util::GetStringUTF16(IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES));
++    // Then what the wallpaper's menu has (wallpaper, shelf position and
++    // autohide).
++    shelf_menu_model_ = std::make_unique<ShelfContextMenuModel>(
++        nullptr,
++        display::Screen::Get()
++            ->GetDisplayNearestWindow(GetWidget()->GetNativeWindow())
++            .id(),
++        /*menu_in_shelf=*/false);
++    menu_model_->AddSeparator(ui::NORMAL_SEPARATOR);
++    for (size_t i = 0; i < shelf_menu_model_->GetItemCount(); ++i) {
++      const int id = shelf_menu_model_->GetCommandIdAt(i);
++      const std::u16string label = shelf_menu_model_->GetLabelAt(i);
++      const ui::ImageModel icon = shelf_menu_model_->GetIconAt(i);
++      switch (shelf_menu_model_->GetTypeAt(i)) {
++        case ui::MenuModel::TYPE_COMMAND:
++          menu_model_->AddItemWithIcon(id, label, icon);
++          break;
++        case ui::MenuModel::TYPE_CHECK:
++          menu_model_->AddCheckItem(id, label);
++          break;
++        case ui::MenuModel::TYPE_SUBMENU:
++          menu_model_->AddSubMenuWithIcon(
++              id, label, shelf_menu_model_->GetSubmenuModelAt(i), icon);
++          break;
++        case ui::MenuModel::TYPE_SEPARATOR:
++          menu_model_->AddSeparator(shelf_menu_model_->GetSeparatorTypeAt(i));
++          break;
++        default:
++          break;
++      }
++    }
++  }
++  int run_types =
++      views::MenuRunner::CONTEXT_MENU | views::MenuRunner::USE_ASH_SYS_UI_LAYOUT;
++  if (source_type == ui::mojom::MenuSourceType::kLongPress ||
++      source_type == ui::mojom::MenuSourceType::kTouch) {
++    // A finger that moves on after the long press drags the icons
++    // (OnIconGesture closes the menu then).
++    run_types |= views::MenuRunner::SEND_GESTURE_EVENTS_TO_OWNER;
++  }
++  menu_runner_ = std::make_unique<views::MenuRunner>(
++      menu_model_.get(), run_types,
++      base::BindRepeating(&NickelDesktopView::OnMenuClosed,
++                          weak_factory_.GetWeakPtr()));
++  menu_runner_->RunMenuAt(GetWidget(), nullptr, gfx::Rect(point, gfx::Size()),
++                          views::MenuAnchorPosition::kBubbleRight,
++                          source_type);
++}
++
++bool NickelDesktopView::IsCommandIdChecked(int command_id) const {
++  return shelf_menu_model_ && shelf_menu_model_->IsCommandIdChecked(command_id);
++}
++
++void NickelDesktopView::ExecuteCommand(int command_id, int event_flags) {
++  NickelDesktopClient* client = NickelDesktopClient::Get();
++  const std::vector<NickelDesktopIconView*> selection = GetSelection();
++  switch (command_id) {
++    case kOpen:
++      OpenSelection();
++      return;
++    case kShowInFiles:
++      if (client && selection.size() == 1) {
++        client->ShowInFiles(selection.front()->path());
++      }
++      return;
++    case kRename:
++      if (selection.size() == 1) {
++        ShowRenameBubble(selection.front());
++      }
++      return;
++    case kMoveToTrash:
++      if (client && !selection.empty()) {
++        std::vector<base::FilePath> paths;
++        for (NickelDesktopIconView* icon : selection) {
++          paths.push_back(icon->path());
++        }
++        client->MoveToTrash(paths);
++      }
++      return;
++    case kNewFolder:
++      NewFolder(menu_cell_);
++      return;
++    case kOpenDesktopInFiles:
++      if (client) {
++        client->Open(folder_, /*is_folder=*/true);
++      }
++      return;
++  }
++  if (shelf_menu_model_) {
++    shelf_menu_model_->ExecuteCommand(command_id, event_flags);
++  }
++}
++
++BEGIN_METADATA(NickelDesktopView)
++END_METADATA
++
++}  // namespace ash
+diff --git a/ash/nickel/desktop/nickel_desktop_view.h b/ash/nickel/desktop/nickel_desktop_view.h
+new file mode 100644
+index 0000000000000..3134c37595659
+--- /dev/null
++++ b/ash/nickel/desktop/nickel_desktop_view.h
+@@ -0,0 +1,221 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_VIEW_H_
++#define ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_VIEW_H_
++
++#include <map>
++#include <memory>
++#include <optional>
++#include <set>
++#include <string>
++#include <vector>
++
++#include "ash/ash_export.h"
++#include "base/files/file_path.h"
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/threading/sequence_bound.h"
++#include "ui/menus/simple_menu_model.h"
++#include "ui/gfx/geometry/point.h"
++#include "ui/views/context_menu_controller.h"
++#include "ui/views/view.h"
++#include "ui/views/widget/widget.h"
++
++class PrefService;
++
++namespace views {
++class BubbleDialogDelegate;
++class Label;
++class MenuRunner;
++class Textfield;
++}  // namespace views
++
++namespace ash {
++
++class NickelDesktopIconView;
++class ShelfContextMenuModel;
++
++// NickelOS: the desktop's contents, one icon per item of the desktop folder
++// on a grid in the display's work area (docs/desktop.md in overlay-nickel).
++class ASH_EXPORT NickelDesktopView : public views::View,
++                                     public views::ContextMenuController,
++                                     public ui::SimpleMenuModel::Delegate {
++  METADATA_HEADER(NickelDesktopView, views::View)
++
++ public:
++  // An item of the desktop folder.
++  struct Entry {
++    base::FilePath path;
++    bool is_directory = false;
++  };
++
++  // A grid cell.
++  struct Cell {
++    int column = 0;
++    int row = 0;
++    bool operator<(const Cell& other) const {
++      return column != other.column ? column < other.column : row < other.row;
++    }
++    bool operator==(const Cell& other) const = default;
++  };
++
++  // How renaming went.
++  enum class RenameResult { kDone, kNameTaken, kInvalidName, kFailed };
++
++  NickelDesktopView(base::FilePath folder, PrefService* prefs);
++  NickelDesktopView(const NickelDesktopView&) = delete;
++  NickelDesktopView& operator=(const NickelDesktopView&) = delete;
++  ~NickelDesktopView() override;
++
++  base::WeakPtr<NickelDesktopView> GetWeakPtr();
++
++  // The display's work area changed (shelf, resolution).
++  void OnWorkAreaChanged();
++
++  // From the icons.
++  void OnIconPressed(NickelDesktopIconView* icon, const ui::MouseEvent& event);
++  void OnIconGesture(NickelDesktopIconView* icon, ui::GestureEvent* event);
++  void WriteDragDataForIcon(NickelDesktopIconView* icon,
++                            const gfx::Point& press_point,
++                            ui::OSExchangeData* data);
++
++  // Renames `path` to `name` (in the same folder), then runs `callback`.
++  void Rename(const base::FilePath& path,
++              const std::u16string& name,
++              base::OnceCallback<void(RenameResult)> callback);
++
++  // views::View:
++  void Layout(PassKey) override;
++  bool OnMousePressed(const ui::MouseEvent& event) override;
++  void OnGestureEvent(ui::GestureEvent* event) override;
++  bool GetDropFormats(int* formats,
++                      std::set<ui::ClipboardFormatType>* format_types) override;
++  bool CanDrop(const ui::OSExchangeData& data) override;
++  void OnDragEntered(const ui::DropTargetEvent& event) override;
++  int OnDragUpdated(const ui::DropTargetEvent& event) override;
++  void OnDragExited() override;
++  DropCallback GetDropCallback(const ui::DropTargetEvent& event) override;
++
++  // views::ContextMenuController:
++  void ShowContextMenuForViewImpl(
++      views::View* source,
++      const gfx::Point& point,
++      ui::mojom::MenuSourceType source_type) override;
++
++  // ui::SimpleMenuModel::Delegate:
++  bool IsCommandIdChecked(int command_id) const override;
++  void ExecuteCommand(int command_id, int event_flags) override;
++
++ private:
++  class Lister;
++
++  // The folder's items, sorted by name, as the lister reads them.
++  void OnEntries(std::vector<Entry> entries);
++
++  // The work area, in this view's coordinates, and the grid in it.
++  gfx::Rect GetGridBounds() const;
++  int GetColumns() const;
++  int GetRows() const;
++  gfx::Rect GetCellBounds(const Cell& cell) const;
++  Cell GetCellAt(const gfx::Point& point) const;
++  // The first free cell, top to bottom then left to right, starting at
++  // `start`.
++  Cell FindFreeCell(const std::set<Cell>& taken, const Cell& start) const;
++
++  // Gives every icon a cell: the saved one, or a free one, saved.
++  void AssignCells();
++  void SaveCell(const base::FilePath& path, const Cell& cell);
++
++  // A new touch went to `handler`, which an earlier touch left as the
++  // widget's gesture handler (one whose end the widget never saw, as when a
++  // menu took it): the rest of it goes to the view under it instead.
++  void RetargetTouch(views::View* handler, const ui::GestureEvent& event);
++  void OnMenuClosed();
++
++  std::vector<NickelDesktopIconView*> GetSelection() const;
++  void SelectOnly(NickelDesktopIconView* icon);
++  void ClearSelection();
++  NickelDesktopIconView* FindIcon(const base::FilePath& path) const;
++
++  void OpenSelection();
++  void NewFolder(const Cell& cell);
++  void OnFolderCreated(base::FilePath path);
++  void ShowRenameBubble(NickelDesktopIconView* icon);
++  bool OnRenameAccepted();
++  void OnRenamed(RenameResult result);
++  void OnRenameBubbleClosed(views::Widget::ClosedReason reason);
++  void CloseRenameBubble();
++
++  // Moves `paths` (icons of the desktop) about: `anchor`'s icon goes to the
++  // cell under the icon put at `anchor_origin`, the others keep their
++  // distance to it.
++  void MoveIcons(const std::vector<base::FilePath>& paths,
++                 const base::FilePath& anchor,
++                 const gfx::Point& anchor_origin);
++
++  // Drops.
++  std::vector<base::FilePath> GetDroppedPaths(
++      const ui::OSExchangeData& data) const;
++  void PerformDrop(std::vector<base::FilePath> paths,
++                   bool from_desktop,
++                   int operation,
++                   gfx::Point location,
++                   const ui::DropTargetEvent& event,
++                   ui::mojom::DragOperation& output_drag_op,
++                   std::unique_ptr<ui::LayerTreeOwner> drag_image_layer_owner);
++
++  const base::FilePath folder_;
++  const raw_ptr<PrefService> prefs_;
++  base::SequenceBound<Lister> lister_;
++
++  // The icons, children of this view, by path; the folder's items in name
++  // order; their cells.
++  std::map<base::FilePath, raw_ptr<NickelDesktopIconView>> icons_;
++  std::vector<base::FilePath> order_;
++  std::map<base::FilePath, Cell> cells_;
++
++  // Cells for items about to appear, by name (a new folder, a rename, a
++  // drop). A folder just made, to rename once its icon is there, and where.
++  std::map<std::string, Cell> pending_cells_;
++  base::FilePath pending_rename_;
++  Cell new_folder_cell_;
++  // Items renamed here, whose disappearance is not a deletion.
++  std::set<base::FilePath> renamed_from_;
++
++  // The drag in progress over the desktop.
++  std::vector<base::FilePath> drag_paths_;
++  bool drag_from_desktop_ = false;
++  // ui::DragDropTypes::DragOperation.
++  int drag_operation_ = 0;
++  // Where in the icon being dragged from the desktop the press was.
++  gfx::Vector2d drag_offset_;
++  base::FilePath drag_anchor_;
++
++  // An icon (and the rest of the selection) moved with a finger or a pen:
++  // the icon under it, and where on that icon it is.
++  bool touch_moving_ = false;
++  base::FilePath touch_anchor_;
++  gfx::Vector2d touch_offset_;
++
++  // The context menu.
++  std::unique_ptr<ShelfContextMenuModel> shelf_menu_model_;
++  std::unique_ptr<ui::SimpleMenuModel> menu_model_;
++  std::unique_ptr<views::MenuRunner> menu_runner_;
++  // Where the desktop menu was opened, for New folder.
++  Cell menu_cell_;
++
++  // The rename bubble (the delegate outlives its widget), and the item.
++  std::unique_ptr<views::BubbleDialogDelegate> rename_delegate_;
++  std::unique_ptr<views::Widget> rename_widget_;
++  raw_ptr<views::Textfield> rename_textfield_ = nullptr;
++  raw_ptr<views::Label> rename_error_ = nullptr;
++  base::FilePath rename_path_;
++
++  base::WeakPtrFactory<NickelDesktopView> weak_factory_{this};
++};
++
++}  // namespace ash
++
++#endif  // ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_VIEW_H_
+diff --git a/ash/public/cpp/BUILD.gn b/ash/public/cpp/BUILD.gn
+index cb8b367b417a8..646d54620efe6 100644
+--- a/ash/public/cpp/BUILD.gn
++++ b/ash/public/cpp/BUILD.gn
+@@ -218,6 +218,8 @@ component("cpp") {
+     "metrics_util.h",
+     "nearby_share_controller.h",
+     "nearby_share_delegate.h",
++    "nickel_desktop_client.cc",
++    "nickel_desktop_client.h",
+     "network_config_service.cc",
+     "network_config_service.h",
+     "network_icon_image_source.cc",
+diff --git a/ash/public/cpp/nickel_desktop_client.cc b/ash/public/cpp/nickel_desktop_client.cc
+new file mode 100644
+index 0000000000000..18ae8b59ee2b2
+--- /dev/null
++++ b/ash/public/cpp/nickel_desktop_client.cc
+@@ -0,0 +1,31 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "ash/public/cpp/nickel_desktop_client.h"
++
++#include "base/check.h"
++#include "base/check_op.h"
++
++namespace ash {
++
++namespace {
++NickelDesktopClient* g_instance = nullptr;
++}  // namespace
++
++// static
++NickelDesktopClient* NickelDesktopClient::Get() {
++  return g_instance;
++}
++
++NickelDesktopClient::NickelDesktopClient() {
++  CHECK(!g_instance);
++  g_instance = this;
++}
++
++NickelDesktopClient::~NickelDesktopClient() {
++  CHECK_EQ(g_instance, this);
++  g_instance = nullptr;
++}
++
++}  // namespace ash
+diff --git a/ash/public/cpp/nickel_desktop_client.h b/ash/public/cpp/nickel_desktop_client.h
+new file mode 100644
+index 0000000000000..e1376712b8f8b
+--- /dev/null
++++ b/ash/public/cpp/nickel_desktop_client.h
+@@ -0,0 +1,65 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef ASH_PUBLIC_CPP_NICKEL_DESKTOP_CLIENT_H_
++#define ASH_PUBLIC_CPP_NICKEL_DESKTOP_CLIENT_H_
++
++#include <vector>
++
++#include "ash/public/cpp/ash_public_export.h"
++
++class GURL;
++
++namespace base {
++class FilePath;
++}  // namespace base
++
++namespace ash {
++
++// NickelOS: what the desktop (icons for ~/Desktop, ash/nickel/desktop) needs
++// from the browser, for the active user's profile. Chrome sets the one
++// instance (NickelDesktopClientImpl).
++class ASH_PUBLIC_EXPORT NickelDesktopClient {
++ public:
++  // The instance, or null before Chrome sets it.
++  static NickelDesktopClient* Get();
++
++  NickelDesktopClient(const NickelDesktopClient&) = delete;
++  NickelDesktopClient& operator=(const NickelDesktopClient&) = delete;
++
++  // The desktop folder (My files, the home folder, then Desktop), or an empty
++  // path while no user is signed in.
++  virtual base::FilePath GetDesktopFolder() = 0;
++
++  // Opens `path`: a folder in Files, a file with the app Files would open it
++  // with.
++  virtual void Open(const base::FilePath& path, bool is_folder) = 0;
++
++  // Opens Files at `path`'s folder, with `path` selected.
++  virtual void ShowInFiles(const base::FilePath& path) = 0;
++
++  // Moves `paths` to the trash, as Files does (with its notification).
++  virtual void MoveToTrash(const std::vector<base::FilePath>& paths) = 0;
++
++  // Copies, or moves if `move`, `paths` into the desktop folder, as Files
++  // does (progress and name clashes as in Files).
++  virtual void CopyOrMoveToDesktop(const std::vector<base::FilePath>& paths,
++                                   bool move) = 0;
++
++  // The local path of a file system URL Files puts in what it drags, or an
++  // empty path.
++  virtual base::FilePath CrackFileSystemUrl(const GURL& url) = 0;
++
++  // Whether `path` is in My files (the home folder), where moving within it
++  // is what dragging does in Files.
++  virtual bool IsInMyFiles(const base::FilePath& path) = 0;
++
++ protected:
++  NickelDesktopClient();
++  virtual ~NickelDesktopClient();
++};
++
++}  // namespace ash
++
++#endif  // ASH_PUBLIC_CPP_NICKEL_DESKTOP_CLIENT_H_
+diff --git a/ash/shell.cc b/ash/shell.cc
+index 3cf928e63d7d4..c05235fb5b8d1 100644
+--- a/ash/shell.cc
++++ b/ash/shell.cc
+@@ -110,6 +110,7 @@
+ #include "ash/metrics/user_metrics_recorder.h"
+ #include "ash/multi_device_setup/multi_device_notification_presenter.h"
+ #include "ash/multi_user/multi_user_window_manager.h"
++#include "ash/nickel/desktop/nickel_desktop_controller.h"
+ #include "ash/policy/policy_recommendation_restorer.h"
+ #include "ash/projector/projector_controller_impl.h"
+ #include "ash/public/cpp/accelerator_keycode_lookup_cache.h"
+@@ -810,6 +811,10 @@ Shell::~Shell() {
+   // Observes `SessionController` and must be destroyed before it.
+   privacy_hub_controller_.reset();
+ 
++  // NickelOS: observes `SessionController` and `OverviewController`, and its
++  // widget is in a root window: before any of them.
++  nickel_desktop_controller_.reset();
++
+   for (auto& observer : shell_observers_) {
+     observer.OnShellDestroying();
+   }
+@@ -1567,6 +1572,9 @@ void Shell::Init(
+   // `HoldingSpaceController` must be instantiated before the shelf.
+   holding_space_controller_ = std::make_unique<HoldingSpaceController>();
+ 
++  // NickelOS: the desktop's icons (after `OverviewController`).
++  nickel_desktop_controller_ = std::make_unique<NickelDesktopController>();
++
+   calendar_controller_ = std::make_unique<CalendarController>();
+ 
+   if (features::IsVideoConferenceEnabled()) {
+diff --git a/ash/shell.h b/ash/shell.h
+index 38357dcf7fb4f..b7bc62984eb0d 100644
+--- a/ash/shell.h
++++ b/ash/shell.h
+@@ -168,6 +168,7 @@ class GeolocationController;
+ class GlanceablesController;
+ class ColorEnhancementController;
+ class HoldingSpaceController;
++class NickelDesktopController;
+ class HotspotIconAnimation;
+ class HotspotInfoCache;
+ class HumanPresenceOrientationController;
+@@ -1096,6 +1097,8 @@ class ASH_EXPORT Shell : public SessionObserver,
+   std::unique_ptr<BootingAnimationController> booting_animation_controller_;
+   std::unique_ptr<GlanceablesController> glanceables_controller_;
+   std::unique_ptr<HoldingSpaceController> holding_space_controller_;
++  // NickelOS: the desktop's icons.
++  std::unique_ptr<NickelDesktopController> nickel_desktop_controller_;
+   std::unique_ptr<PowerPrefs> power_prefs_;
+   std::unique_ptr<SnapGroupController> snap_group_controller_;
+   std::unique_ptr<SnoopingProtectionController> snooping_protection_controller_;
+diff --git a/chrome/browser/ui/ash/main_extra_parts/BUILD.gn b/chrome/browser/ui/ash/main_extra_parts/BUILD.gn
+index 8e9c72593d7ac..15a2a501c6615 100644
+--- a/chrome/browser/ui/ash/main_extra_parts/BUILD.gn
++++ b/chrome/browser/ui/ash/main_extra_parts/BUILD.gn
+@@ -58,6 +58,7 @@ static_library("main_extra_parts") {
+     "//chrome/browser/ui/ash/capture_mode",
+     "//chrome/browser/ui/ash/cast_config",
+     "//chrome/browser/ui/ash/desks",
++    "//chrome/browser/ui/ash/nickel_desktop",
+     "//chrome/browser/ui/ash/graduation",
+     "//chrome/browser/ui/ash/in_session_auth",
+     "//chrome/browser/ui/ash/input_method",
+diff --git a/chrome/browser/ui/ash/main_extra_parts/chrome_browser_main_extra_parts_ash.cc b/chrome/browser/ui/ash/main_extra_parts/chrome_browser_main_extra_parts_ash.cc
+index fa00a7e6a7b91..cacd9c538d087 100644
+--- a/chrome/browser/ui/ash/main_extra_parts/chrome_browser_main_extra_parts_ash.cc
++++ b/chrome/browser/ui/ash/main_extra_parts/chrome_browser_main_extra_parts_ash.cc
+@@ -70,6 +70,7 @@
+ #include "chrome/browser/ui/ash/capture_mode/chrome_capture_mode_delegate.h"
+ #include "chrome/browser/ui/ash/cast_config/cast_config_controller_media_router.h"
+ #include "chrome/browser/ui/ash/desks/desks_client.h"
++#include "chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h"
+ #include "chrome/browser/ui/ash/graduation/graduation_manager_impl.h"
+ #include "chrome/browser/ui/ash/in_session_auth/in_session_auth_dialog_client.h"
+ #include "chrome/browser/ui/ash/in_session_auth/in_session_auth_token_provider_impl.h"
+@@ -408,6 +409,7 @@ void ChromeBrowserMainExtraPartsAsh::PreProfileInit() {
+       ash::ProjectorController::Get());
+ 
+   desks_client_ = std::make_unique<DesksClient>();
++  nickel_desktop_client_ = std::make_unique<NickelDesktopClientImpl>();
+ 
+   attestation_cleanup_manager_ =
+       std::make_unique<enterprise_connectors::AshAttestationCleanupManager>();
+@@ -603,6 +605,7 @@ void ChromeBrowserMainExtraPartsAsh::PostMainMessageLoopRun() {
+   campaigns_manager_client_.reset();
+ 
+   desks_client_.reset();
++  nickel_desktop_client_.reset();
+ 
+   projector_client_.reset();
+   projector_app_client_.reset();
+diff --git a/chrome/browser/ui/ash/main_extra_parts/chrome_browser_main_extra_parts_ash.h b/chrome/browser/ui/ash/main_extra_parts/chrome_browser_main_extra_parts_ash.h
+index bcbe06c6940a4..afc9d26531c11 100644
+--- a/chrome/browser/ui/ash/main_extra_parts/chrome_browser_main_extra_parts_ash.h
++++ b/chrome/browser/ui/ash/main_extra_parts/chrome_browser_main_extra_parts_ash.h
+@@ -77,6 +77,7 @@ class CampaignsManagerSession;
+ class CastConfigControllerMediaRouter;
+ class ChromeNewWindowClient;
+ class DesksClient;
++class NickelDesktopClientImpl;
+ class ExoParts;
+ class ImeControllerClientImpl;
+ class InSessionAuthDialogClient;
+@@ -193,6 +194,8 @@ class ChromeBrowserMainExtraPartsAsh : public ChromeBrowserMainExtraParts {
+   std::unique_ptr<internal::ChromeShelfControllerInitializer>
+       chrome_shelf_controller_initializer_;
+   std::unique_ptr<DesksClient> desks_client_;
++  // NickelOS: the desktop's icons.
++  std::unique_ptr<NickelDesktopClientImpl> nickel_desktop_client_;
+   std::unique_ptr<CampaignsManagerClientImpl> campaigns_manager_client_;
+   std::unique_ptr<CampaignsManagerSession> campaigns_manager_session_;
+   std::unique_ptr<ash::PeripheralsAppDelegateImpl> peripherals_app_delegate_;
+diff --git a/chrome/browser/ui/ash/nickel_desktop/BUILD.gn b/chrome/browser/ui/ash/nickel_desktop/BUILD.gn
+new file mode 100644
+index 0000000000000..673e3ac64f832
+--- /dev/null
++++ b/chrome/browser/ui/ash/nickel_desktop/BUILD.gn
+@@ -0,0 +1,25 @@
++# Copyright 2026 The NickelOS Authors
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++assert(is_chromeos)
++
++# NickelOS: the desktop's client (ash::NickelDesktopClient).
++static_library("nickel_desktop") {
++  sources = [
++    "nickel_desktop_client_impl.cc",
++    "nickel_desktop_client_impl.h",
++  ]
++
++  public_deps = [ "//chrome/browser:browser_public_dependencies" ]
++
++  deps = [
++    "//ash/public/cpp",
++    "//base",
++    "//chrome/browser/ash/file_manager",
++    "//chrome/browser/profiles:profile",
++    "//components/user_manager",
++    "//storage/browser",
++    "//url",
++  ]
++}
+diff --git a/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.cc b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.cc
+new file mode 100644
+index 0000000000000..f97ef7ff9b99a
+--- /dev/null
++++ b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.cc
+@@ -0,0 +1,149 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h"
++
++#include <memory>
++#include <utility>
++
++#include "base/files/file_path.h"
++#include "base/functional/callback_helpers.h"
++#include "chrome/browser/ash/file_manager/copy_or_move_io_task.h"
++#include "chrome/browser/ash/file_manager/fileapi_util.h"
++#include "chrome/browser/ash/file_manager/io_task.h"
++#include "chrome/browser/ash/file_manager/io_task_controller.h"
++#include "chrome/browser/ash/file_manager/open_util.h"
++#include "chrome/browser/ash/file_manager/path_util.h"
++#include "chrome/browser/ash/file_manager/trash_io_task.h"
++#include "chrome/browser/ash/file_manager/volume_manager.h"
++#include "chrome/browser/platform_util.h"
++#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/profiles/profile_manager.h"
++#include "components/user_manager/user_manager.h"
++#include "storage/browser/file_system/file_system_context.h"
++#include "storage/browser/file_system/file_system_url.h"
++#include "url/gurl.h"
++
++namespace {
++
++// The file system URLs of `paths` for Files' operations; those Files does not
++// know are left out.
++std::vector<storage::FileSystemURL> ToFileSystemUrls(
++    Profile* profile,
++    storage::FileSystemContext* context,
++    const std::vector<base::FilePath>& paths) {
++  std::vector<storage::FileSystemURL> urls;
++  for (const base::FilePath& path : paths) {
++    GURL url;
++    if (file_manager::util::ConvertAbsoluteFilePathToFileSystemUrl(
++            profile, path, file_manager::util::GetFileManagerURL(), &url)) {
++      urls.push_back(context->CrackURLInFirstPartyContext(url));
++    }
++  }
++  return urls;
++}
++
++}  // namespace
++
++NickelDesktopClientImpl::NickelDesktopClientImpl() = default;
++
++NickelDesktopClientImpl::~NickelDesktopClientImpl() = default;
++
++Profile* NickelDesktopClientImpl::GetProfile() {
++  if (!user_manager::UserManager::IsInitialized() ||
++      !user_manager::UserManager::Get()->IsUserLoggedIn()) {
++    return nullptr;
++  }
++  Profile* profile = ProfileManager::GetActiveUserProfile();
++  return profile && !profile->IsOffTheRecord() ? profile : nullptr;
++}
++
++base::FilePath NickelDesktopClientImpl::GetDesktopFolder() {
++  Profile* profile = GetProfile();
++  // My files is the home folder (one home), Desktop one of its folders.
++  return profile ? file_manager::util::GetMyFilesFolderForProfile(profile)
++                       .Append("Desktop")
++                 : base::FilePath();
++}
++
++void NickelDesktopClientImpl::Open(const base::FilePath& path, bool is_folder) {
++  if (Profile* profile = GetProfile()) {
++    // Files tells the user if it cannot open it; it runs the callback in
++    // any case, so an empty one would crash Chrome.
++    file_manager::util::OpenItem(
++        profile, path,
++        is_folder ? platform_util::OPEN_FOLDER : platform_util::OPEN_FILE,
++        base::DoNothing());
++  }
++}
++
++void NickelDesktopClientImpl::ShowInFiles(const base::FilePath& path) {
++  if (Profile* profile = GetProfile()) {
++    file_manager::util::ShowItemInFolder(profile, path, base::DoNothing());
++  }
++}
++
++void NickelDesktopClientImpl::MoveToTrash(
++    const std::vector<base::FilePath>& paths) {
++  Profile* profile = GetProfile();
++  file_manager::VolumeManager* volume_manager =
++      profile ? file_manager::VolumeManager::Get(profile) : nullptr;
++  if (!volume_manager) {
++    return;
++  }
++  scoped_refptr<storage::FileSystemContext> context =
++      file_manager::util::GetFileManagerFileSystemContext(profile);
++  std::vector<storage::FileSystemURL> urls =
++      ToFileSystemUrls(profile, context.get(), paths);
++  if (urls.empty()) {
++    return;
++  }
++  volume_manager->io_task_controller()->Add(
++      std::make_unique<file_manager::io_task::TrashIOTask>(
++          std::move(urls), profile, context, /*base_path=*/base::FilePath()));
++}
++
++void NickelDesktopClientImpl::CopyOrMoveToDesktop(
++    const std::vector<base::FilePath>& paths,
++    bool move) {
++  Profile* profile = GetProfile();
++  file_manager::VolumeManager* volume_manager =
++      profile ? file_manager::VolumeManager::Get(profile) : nullptr;
++  if (!volume_manager) {
++    return;
++  }
++  scoped_refptr<storage::FileSystemContext> context =
++      file_manager::util::GetFileManagerFileSystemContext(profile);
++  std::vector<storage::FileSystemURL> sources =
++      ToFileSystemUrls(profile, context.get(), paths);
++  std::vector<storage::FileSystemURL> destination =
++      ToFileSystemUrls(profile, context.get(), {GetDesktopFolder()});
++  if (sources.empty() || destination.empty()) {
++    return;
++  }
++  volume_manager->io_task_controller()->Add(
++      std::make_unique<file_manager::io_task::CopyOrMoveIOTask>(
++          move ? file_manager::io_task::OperationType::kMove
++               : file_manager::io_task::OperationType::kCopy,
++          std::move(sources), std::move(destination.front()), profile,
++          context));
++}
++
++base::FilePath NickelDesktopClientImpl::CrackFileSystemUrl(const GURL& url) {
++  Profile* profile = GetProfile();
++  return profile ? file_manager::util::GetFileManagerFileSystemContext(profile)
++                       ->CrackURLInFirstPartyContext(url)
++                       .path()
++                 : base::FilePath();
++}
++
++bool NickelDesktopClientImpl::IsInMyFiles(const base::FilePath& path) {
++  Profile* profile = GetProfile();
++  if (!profile) {
++    return false;
++  }
++  const base::FilePath my_files =
++      file_manager::util::GetMyFilesFolderForProfile(profile);
++  return my_files == path || my_files.IsParent(path);
++}
+diff --git a/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h
+new file mode 100644
+index 0000000000000..a7b53de618182
+--- /dev/null
++++ b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h
+@@ -0,0 +1,38 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_CLIENT_IMPL_H_
++#define CHROME_BROWSER_UI_ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_CLIENT_IMPL_H_
++
++#include <vector>
++
++#include "ash/public/cpp/nickel_desktop_client.h"
++
++class Profile;
++
++// NickelOS: the desktop's way into the active user's profile (Files' open,
++// trash and copy operations), for ash::NickelDesktopController.
++class NickelDesktopClientImpl : public ash::NickelDesktopClient {
++ public:
++  NickelDesktopClientImpl();
++  NickelDesktopClientImpl(const NickelDesktopClientImpl&) = delete;
++  NickelDesktopClientImpl& operator=(const NickelDesktopClientImpl&) = delete;
++  ~NickelDesktopClientImpl() override;
++
++  // ash::NickelDesktopClient:
++  base::FilePath GetDesktopFolder() override;
++  void Open(const base::FilePath& path, bool is_folder) override;
++  void ShowInFiles(const base::FilePath& path) override;
++  void MoveToTrash(const std::vector<base::FilePath>& paths) override;
++  void CopyOrMoveToDesktop(const std::vector<base::FilePath>& paths,
++                           bool move) override;
++  base::FilePath CrackFileSystemUrl(const GURL& url) override;
++  bool IsInMyFiles(const base::FilePath& path) override;
++
++ private:
++  // The signed-in user's profile, or null.
++  Profile* GetProfile();
++};
++
++#endif  // CHROME_BROWSER_UI_ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_CLIENT_IMPL_H_

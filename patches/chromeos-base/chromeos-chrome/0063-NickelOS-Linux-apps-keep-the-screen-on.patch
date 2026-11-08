@@ -1,0 +1,247 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux apps keep the screen on
+
+Video players, games, presentations and downloads ask the desktop to keep
+the screen on or the device awake: through xdg-desktop-portal's Inhibit
+portal (Flatpak apps, GTK 4's gtk_application_inhibit) or
+org.freedesktop.ScreenSaver (browsers, SDL, mpv, Steam). Both are
+xdg-desktop-portal-nickel's, which asks Chrome:
+
+- VmApplicationsService.NickelInhibit(app id, app name, reason, flags,
+  h socket). NickelInhibit takes a ChromeOS wake lock, as Chrome's own
+  tabs do (powerd): "idle" keeps the screen on, "suspend" the device
+  awake. The lock lasts while the socket stays open; the backend closes it
+  when the app lets go, quits or crashes.
+
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index 2b14d855ca391..687a52d95868c 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -10,6 +10,8 @@ static_library("vm") {
+     "nickel_access.h",
+     "nickel_global_shortcuts.cc",
+     "nickel_global_shortcuts.h",
++    "nickel_inhibit.cc",
++    "nickel_inhibit.h",
+     "nickel_notifications.cc",
+     "nickel_notifications.h",
+     "nickel_remote_desktop.cc",
+@@ -69,6 +71,7 @@ static_library("vm") {
+     "//chromeos/ash/components/dbus/cicerone",
+     "//chromeos/ash/components/dbus/cicerone:cicerone_proto_lib",
+     "//chromeos/ash/experiences/settings_ui",
++    "//chromeos/dbus/power",
+     "//components/app_restore",
+     "//components/exo/wayland",
+     "//components/prefs",
+diff --git a/chrome/browser/ash/dbus/vm/nickel_inhibit.cc b/chrome/browser/ash/dbus/vm/nickel_inhibit.cc
+new file mode 100644
+index 0000000000000..3e0587f8506fb
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_inhibit.cc
+@@ -0,0 +1,89 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/dbus/vm/nickel_inhibit.h"
++
++#include <unistd.h>
++
++#include <memory>
++#include <utility>
++#include <vector>
++
++#include "base/files/file_descriptor_watcher_posix.h"
++#include "base/functional/bind.h"
++#include "base/no_destructor.h"
++#include "base/posix/eintr_wrapper.h"
++#include "base/strings/strcat.h"
++#include "chromeos/dbus/power/power_policy_controller.h"
++
++namespace ash {
++
++namespace {
++
++constexpr uint32_t kFlagSuspend = 4;
++constexpr uint32_t kFlagIdle = 8;
++
++class Lock;
++
++std::vector<std::unique_ptr<Lock>>& Locks() {
++  static base::NoDestructor<std::vector<std::unique_ptr<Lock>>> locks;
++  return *locks;
++}
++
++// One wake lock, removed when its socket closes (the app let go, quit or
++// crashed, or the portal's backend went away).
++class Lock {
++ public:
++  Lock(base::ScopedFD socket, int id) : socket_(std::move(socket)), id_(id) {
++    watch_ = base::FileDescriptorWatcher::WatchReadable(
++        socket_.get(),
++        base::BindRepeating(&Lock::OnReadable, base::Unretained(this)));
++  }
++  Lock(const Lock&) = delete;
++  Lock& operator=(const Lock&) = delete;
++  ~Lock() { chromeos::PowerPolicyController::Get()->RemoveWakeLock(id_); }
++
++ private:
++  void OnReadable() {
++    char byte;
++    if (HANDLE_EINTR(read(socket_.get(), &byte, 1)) > 0) {
++      return;
++    }
++    // Closed: this goes away, and its wake lock with it.
++    std::erase_if(Locks(), [this](const std::unique_ptr<Lock>& lock) {
++      return lock.get() == this;
++    });
++  }
++
++  base::ScopedFD socket_;
++  const int id_;
++  std::unique_ptr<base::FileDescriptorWatcher::Controller> watch_;
++};
++
++}  // namespace
++
++// static
++void NickelInhibit::Hold(const std::string& app_name,
++                         const std::string& reason,
++                         uint32_t flags,
++                         base::ScopedFD socket) {
++  if (!socket.is_valid() || !chromeos::PowerPolicyController::IsInitialized() ||
++      !(flags & (kFlagIdle | kFlagSuspend))) {
++    return;
++  }
++  const std::string description =
++      base::StrCat({"NickelOS: ", app_name, reason.empty() ? "" : " (",
++                    reason, reason.empty() ? "" : ")"});
++  chromeos::PowerPolicyController* power =
++      chromeos::PowerPolicyController::Get();
++  const int id =
++      (flags & kFlagIdle)
++          ? power->AddScreenWakeLock(
++                chromeos::PowerPolicyController::REASON_OTHER, description)
++          : power->AddSystemWakeLock(
++                chromeos::PowerPolicyController::REASON_OTHER, description);
++  Locks().push_back(std::make_unique<Lock>(std::move(socket), id));
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_inhibit.h b/chrome/browser/ash/dbus/vm/nickel_inhibit.h
+new file mode 100644
+index 0000000000000..ea9d868c8b8b1
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_inhibit.h
+@@ -0,0 +1,30 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_DBUS_VM_NICKEL_INHIBIT_H_
++#define CHROME_BROWSER_ASH_DBUS_VM_NICKEL_INHIBIT_H_
++
++#include <cstdint>
++#include <string>
++
++#include "base/files/scoped_file.h"
++
++namespace ash {
++
++// NickelOS: wake locks for Linux apps keeping the screen on or the device
++// awake (the Inhibit portal's backend and org.freedesktop.ScreenSaver,
++// xdg-desktop-portal-nickel; VmApplicationsService.NickelInhibit).
++class NickelInhibit {
++ public:
++  // The portal's flags: 8 (idle) keeps the screen on, 4 (suspend) the device
++  // awake. The lock lasts while `socket` stays open.
++  static void Hold(const std::string& app_name,
++                   const std::string& reason,
++                   uint32_t flags,
++                   base::ScopedFD socket);
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_ASH_DBUS_VM_NICKEL_INHIBIT_H_
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index 4612d0e82bf76..c8502ccb840ac 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -23,6 +23,7 @@
+ #include "chrome/browser/ash/crostini/crostini_util.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_access.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h"
++#include "chrome/browser/ash/dbus/vm/nickel_inhibit.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_notifications.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_tray.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_x11_keys.h"
+@@ -167,6 +168,8 @@ constexpr char kNickelTrayItemRemovedMethod[] = "NickelTrayItemRemoved";
+ constexpr char kNickelShortcutsBindMethod[] = "NickelShortcutsBind";
+ // NickelOS: called by the Access portal's backend (NickelAccess).
+ constexpr char kNickelAccessAskMethod[] = "NickelAccessAsk";
++// NickelOS: called by the Inhibit portal's backend (NickelInhibit).
++constexpr char kNickelInhibitMethod[] = "NickelInhibit";
+ // NickelOS: called by nickel-x11-keys, which presses shortcut keys in
+ // Xwayland for X11 apps (NickelX11Keys).
+ constexpr char kNickelX11KeysConnectMethod[] = "NickelX11KeysConnect";
+@@ -291,6 +294,12 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface, kNickelInhibitMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelInhibit,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+   exported_object->ExportMethod(
+       vm_tools::apps::kVmApplicationsServiceInterface, kNickelAccessAskMethod,
+       base::BindRepeating(&VmApplicationsServiceProvider::NickelAccessAsk,
+@@ -712,6 +721,32 @@ void VmApplicationsServiceProvider::NickelAccessAsk(
+           method_call, std::move(response_sender)));
+ }
+ 
++// NickelOS: a Linux app keeps the screen on or the device awake: (app id,
++// app name, reason, portal flags, h socket). The wake lock lasts while the
++// socket stays open.
++void VmApplicationsServiceProvider::NickelInhibit(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string app_id;
++  std::string app_name;
++  std::string reason;
++  uint32_t flags = 0;
++  base::ScopedFD socket;
++  if (!reader.PopString(&app_id) || !reader.PopString(&app_name) ||
++      !reader.PopString(&reason) || !reader.PopUint32(&flags) ||
++      !reader.PopFileDescriptor(&socket)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected app id, app name, reason, flags, socket"));
++    return;
++  }
++  NickelInhibit::Hold(app_name.empty() ? app_id : app_name, reason, flags,
++                      std::move(socket));
++  std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
++}
++
+ // NickelOS: nickel-x11-keys connects: (h socket) the shortcut keys for
+ // X11 apps go into.
+ void VmApplicationsServiceProvider::NickelX11KeysConnect(
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index ecfa339da2e5c..2b573f4b4252e 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -97,6 +97,8 @@ class VmApplicationsServiceProvider
+       dbus::ExportedObject::ResponseSender response_sender);
+   void NickelAccessAsk(dbus::MethodCall* method_call,
+                        dbus::ExportedObject::ResponseSender response_sender);
++  void NickelInhibit(dbus::MethodCall* method_call,
++                     dbus::ExportedObject::ResponseSender response_sender);
+   void NickelX11KeysConnect(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);

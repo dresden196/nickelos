@@ -1,0 +1,24 @@
+{
+  "app_url": "https://docs.proton.me/",
+  "launch_container": "window",
+  "user_type": [
+    "unmanaged"
+  ],
+  "feature_name": "NickelFullExperience",
+  "only_use_offline_manifest": true,
+  "offline_manifest": {
+    "name": "Proton Docs",
+    "start_url": "https://docs.proton.me/",
+    "scope": "https://docs.proton.me/",
+    "display": "standalone",
+    "icon_any_pngs": [
+      "icons/proton-docs-192.png",
+      "icons/proton-docs-512.png"
+    ],
+    "icon_maskable_pngs": [
+      "icons/proton-docs-maskable-192.png",
+      "icons/proton-docs-maskable-512.png"
+    ],
+    "theme_color_argb_hex": "FF1B1340"
+  }
+}

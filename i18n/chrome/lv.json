@@ -1,0 +1,1466 @@
+{
+ "IDS_ABOUT_CROS_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS.",
+  "t": "NickelOS darbību nodrošina papildu BEGIN_LINK_CROS_OSSatklātā pirmkoda programmatūraEND_LINK_CROS_OSS."
+ },
+ "IDS_ABOUT_CROS_WITH_LINUX_VERSION_LICENSE": {
+  "en": "NickelOS is made possible by additional BEGIN_LINK_CROS_OSSopen source softwareEND_LINK_CROS_OSS, as is BEGIN_LINK_LINUX_OSSLinux development environmentEND_LINK_LINUX_OSS.",
+  "t": "NickelOS, kā arī BEGIN_LINK_LINUX_OSSLinux izstrādes videsEND_LINK_LINUX_OSS darbību nodrošina papildu BEGIN_LINK_CROS_OSSatklātā pirmkoda programmatūraEND_LINK_CROS_OSS."
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY": {
+  "en": "Manage accessibility settings button, Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "Poga “Pārvaldīt pieejamības iestatījumus”. Lai NickelOS iestatījumos personalizētu pieejamības rīkus, nospiediet taustiņu Enter."
+ },
+ "IDS_ACC_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUFFIX": {
+  "en": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT, Press tab then Enter to personalize your accessibility tools in NickelOS settings",
+  "t": "MANAGE_CHROMEOS_ACCESSIBILITY_FOCUSED_FRIENDLY_MATCH_TEXT. Lai NickelOS iestatījumos personalizētu pieejamības rīkus, nospiediet tabulēšanas taustiņu un pēc tam — taustiņu Enter."
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "Linux lietotne, instalēta, izmantojot INSTALLER"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "Linux lietotne"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "Gādājiet, lai tālrunis un NickelOS ierīce būtu pievienoti vienam tīklam, un pēc tam mēģiniet vēlreiz. LEARN_MORE"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "Jūsu tālrunī tiek izmantots mobilais tīkls. Gādājiet, lai tālrunis un NickelOS ierīce būtu pievienoti vienam Wi-Fi tīklam, un pēc tam mēģiniet vēlreiz. LEARN_MORE"
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "Paroļu pārvaldnieks vēlas apstiprināt jūsu identitāti."
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "Šajā laika periodā jūsu ierīcei ir jābūt ieslēgtai un pievienotai strāvas avotam. Uzlādes ierīcei vai adaptera vadiem ir jābūt pilnībā pievienotiem gan jūsu ierīcei, gan kontaktligzdai. Neizslēdziet ierīci."
+ },
+ "IDS_ASH_MESSAGE_CENTER_SYSTEM_APP_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "Varat ietaupīt laiku, NickelOS ierīcē ātri atbildot uz tālrunī saņemtajām īsziņām."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "Darbvirsma"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "Pārvietot uz atkritni"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "Izmantojiet nosaukumu, kas nesākas ar punktu un nesatur slīpsvītru."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "Vienums ar šādu nosaukumu jau pastāv."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "Jauna mape"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "Jauna mape"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "Atvērt"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "Atvērt mapi Darbvirsma lietotnē Faili"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "Pārdēvēt"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "Neizdevās pārdēvēt."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "Pārdēvēt"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "Rādīt lietotnē Faili"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "Ar jūsu NickelOS ierīci ir saderīgas tikai apstiprinātas Thunderbolt ierīces"
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "Instalēt NickelOS"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "Jūsu NickelOS ierīcē vai Bluetooth ierīcē tiek izmantota vecāka Bluetooth versija. Labākai audio kvalitātei izmantojiet iekšējo mikrofonu."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "Gādājiet, lai NickelOS ierīcē un Chromecast ierīcē būtu izveidots savienojums ar vienu un to pašu Wi-Fi tīklu."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "Atvērt NickelOS rokasgrāmatu"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "Skatiet īsu ceļvedi par savu ierīci (PRODUCT_NAME): kur atrodas lietotnes, kā iegūt jaunas un kāda Linux sistēma darbojas tās pamatā. 7 darbības."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "Labdien! Laipni lūdzam jūsu ierīcē (PRODUCT_NAME)."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Ceļveža STEP. darbība no TOTAL_STEPS. Lietotne Faili atrodas palaidējā. Sadaļa Mājas ir jūsu Linux mājas mape: Linux lietotnes un lietotne Faili redz vienus un tos pašus failus, un šeit tiek rādīta arī mākoņkrātuve, ko pievienojat iestatījumos."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Sadaļa Mājas ir jūsu Linux mājas mape: Linux lietotnes un lietotne Faili redz vienus un tos pašus failus, un šeit tiek rādīta arī mākoņkrātuve, ko pievienojat iestatījumos."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Ceļveža STEP. darbība no TOTAL_STEPS. Waydroid palaiž Android lietotnes, katru savā logā. Iestatiet to iestatījumos: sadaļā Lietotnes un pēc tam sadaļā Android lietotnes. Pēc tam, atverot APK failu, lietotne tiek instalēta, un Android lietotnes tiek rādītas palaidējā."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Waydroid palaiž Android lietotnes, katru savā logā. Iestatiet to sadaļā Iestatījumi > Lietotnes > Android lietotnes. Pēc tam, atverot APK failu, lietotne tiek instalēta, un Android lietotnes tiek rādītas palaidējā."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Ceļveža STEP. darbība no TOTAL_STEPS. Vairāk lietotņu varat iegūt lietotņu veikalā Bazaar: tās ir Linux lietotnes no Flathub, kas tiek instalētas kā Flatpak pakotnes. Tās tiek rādītas palaidējā tāpat kā jebkura cita lietotne."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Vairāk lietotņu varat iegūt lietotņu veikalā Bazaar: tās ir Linux lietotnes no Flathub, kas tiek instalētas kā Flatpak pakotnes. Tās tiek rādītas palaidējā tāpat kā jebkura cita lietotne."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Ceļveža STEP. darbība no TOTAL_STEPS. Terminālis ir īsta Linux čaula ar komandu sudo. NickelOS pamatā ir Gentoo: eix atrod pakotnes, un sudo emerge tās instalē — tāpat kā jebkurā Gentoo sistēmā."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Terminālis ir īsta Linux čaula ar komandu sudo. NickelOS pamatā ir Gentoo: eix atrod pakotnes, un sudo emerge tās instalē — tāpat kā jebkurā Gentoo sistēmā."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "Ceļveža STEP. darbība no TOTAL_STEPS. Kad palaidējs būs aktivizēts, būs pieejama meklēšanas josla. Sāciet rakstīt, lai savā ierīcē (PRODUCT_NAME) meklētu lietotnes, failus un iestatījumus."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "Meklējiet savā ierīcē (PRODUCT_NAME) lietotnes, failus un iestatījumus, izmantojot palaidēju."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Ceļveža STEP. darbība no TOTAL_STEPS. Ierīces iestatījumi ir pieejami palaidējā. Pielāgojiet ierīci (PRODUCT_NAME) iestatījumos: fona tapeti, tumšo vai gaišo režīmu, displejus un citus parametrus. Ceļvedis ir beidzies! Plašāka informācija ir pieejama NickelOS rokasgrāmatā."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Iestatījumos varat pielāgot un personalizēt savu ierīci (PRODUCT_NAME): fona tapeti, tumšo vai gaišo režīmu, displejus un citus parametrus. Ceļvedis ir beidzies! Plašāka informācija ir pieejama NickelOS rokasgrāmatā."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "Lai atbloķētu NickelOS ierīci, izmantojiet pirksta nospiedumu vai atbloķējiet tālruni."
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "Jūsu Bluetooth ierīcē ir jābūt aktivizētam režīmam savienošanai pārī, un tai ir jāatrodas tuvumā. Veiciet savienošanu pārī tikai ar uzticamām ierīcēm. Pārī savienotās ierīces ir redzamas visiem kontiem šajā NickelOS ierīcē."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "Jūsu Bluetooth ierīcē ir jābūt aktivizētam režīmam savienošanai pārī, un tai ir jāatrodas tuvumā. Veiciet savienošanu pārī tikai ar uzticamām ierīcēm. Pārī savienotās ierīces ir redzamas visiem kontiem šajā NickelOS ierīcē. BEGIN_LINK_LEARN_MOREUzziniet vairākEND_LINK_LEARN_MORE."
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Jūsu dati tiks sinhronizēti visos pārlūkos Chrome, kuros esat ieslēdzis šī konta sinhronizāciju. Lai skatītu NickelOS sinhronizācijas opcijas, pārejiet uz LINK_BEGINNickelOS iestatījumiemLINK_END."
+ },
+ "IDS_BRUSCHETTA_RESULT_DLC_INSTALL_ERROR": {
+  "en": "Error installing DLC (oftentimes a reboot is needed, check Settings\\>\\>About NickelOS for more information).",
+  "t": "Instalējot DLC, radās kļūda (bieži vien ir nepieciešama atkārtota palaišana; plašāku informāciju skatiet sadaļā Iestatījumi\\>\\>Par NickelOS)."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "Īsinājumtaustiņi"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "Skārienekrāna pieejamības funkciju izmantošana"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "Vairumā tastatūru meklēšanas taustiņš ir Windows taustiņš, kas atrodas blakus kreisajam taustiņam Alt."
+ },
+ "IDS_CHROMEVOX_TUTORIAL_LEARN_MORE": {
+  "en": "Congratulations! You’ve learned the essentials to use ChromeVox successfully. Remember that you can open the ChromeVox command menu at any time by pressing Search+Period. To learn even more about ChromeVox and NickelOS, visit the following articles.\n    If you're done with the tutorial, use ChromeVox to navigate to the Close button and click it.",
+  "t": "Apsveicam! Esat veiksmīgi apguvis ChromeVox lietošanas pamatus. Jebkurā brīdī varat atvērt ChromeVox komandu izvēlni, vienlaikus nospiežot meklēšanas taustiņu un punkta taustiņu. Papildu informāciju par ChromeVox un NickelOS skatiet tālāk norādītajos rakstos.\n    Ja esat beidzis darbu ar pamācību, izmantojiet ChromeVox, lai pārietu uz aizvēršanas pogu un noklikšķinātu uz tās."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "Jūs saņemat visjaunāko programmatūras atjauninājumu ar jaunākajiem drošības labojumiem un funkcijām."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_ERROR": {
+  "en": "To finish setting up Linux, update NickelOS and try again.",
+  "t": "Lai pabeigtu operētājsistēmas Linux iestatīšanu, atjauniniet NickelOS versiju un mēģiniet vēlreiz."
+ },
+ "IDS_CROSTINI_INSTALLER_NEED_UPDATE_TITLE": {
+  "en": "NickelOS update required",
+  "t": "Nepieciešama NickelOS atjaunināšana"
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "BEGIN_H3Atkļūdošanas funkcijasEND_H3\n          BR\n          Varat iespējot atkļūdošanas funkcijas savā NickelOS ierīcē, lai tajā instalētu un testētu pielāgotu kodu. Tādējādi varēsiet veikt tālāk norādītās darbības.BR\n          BEGIN_LIST\n            LIST_ITEMNoņemt rootfs verifikāciju, lai varētu modificēt operētājsistēmas failus.\n            LIST_ITEMIespējot SSH piekļuvi ierīcei, izmantojot standarta testēšanas atslēgas (tādējādi piekļuvei varēsiet izmantot tādus rīkus kā BEGIN_CODEcros flashEND_CODE).\n            LIST_ITEMIespējot palaišanu no USB, lai jūs varētu instalēt OS attēlu no USB diska.\n            LIST_ITEMIestatīt ierīces un sistēmas saknes pieteikšanās paroli kā pielāgotu vērtību, lai jūs varētu manuāli piekļūt ierīcei, izmantojot SSH piekļuvi.\n          END_LIST\n          BR\n          Kad būsiet iespējojis atkļūdošanas funkcijas, lielākā daļa no tām joprojām būs iespējotas arī pēc funkcijas Powerwash izmantošanas vai datu dzēšanas no ierīces, ko pārvalda uzņēmums. Lai pilnībā atspējotu visas atkļūdošanas funkcijas, atkārtoti instalējiet operētājsistēmu NickelOS.\n          BR\n          BR\n          Plašāku informāciju par atkļūdošanas funkcijām skatiet šeit:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDPiezīme.END_BOLD Procesa laikā sistēma tiks atkārtoti palaista."
+ },
+ "IDS_ENABLE_DEBUGGING_SETUP_MESSAGE": {
+  "en": "You are enabling NickelOS debugging features which will set up sshd daemon and enable booting from USB drives.",
+  "t": "Jūs iespējojat NickelOS atkļūdošanas funkcijas, kas iestatīs sshd dēmonu un iespējos palaišanu no USB diskiem."
+ },
+ "IDS_EULA_SCREEN_ACCESSIBLE_TITLE": {
+  "en": "NickelOS terms",
+  "t": "NickelOS noteikumi"
+ },
+ "IDS_EXTENSION_INSTALL_KIOSK_MODE_ONLY": {
+  "en": "App with 'kiosk_only' manifest attribute must be installed in NickelOS kiosk mode",
+  "t": "Lai instalētu lietotni ar manifesta atribūtu kiosk_only, ir jāizmanto NickelOS kioska režīms."
+ },
+ "IDS_EXTENSION_PROMPT_WARNING_ENTERPRISE_REMOTE_APPS": {
+  "en": "Add remote apps to the NickelOS launcher",
+  "t": "Pievienot attālās lietotnes NickelOS palaidējam"
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "Atrodiet palīdzības rakstus un atbildes uz bieži uzdotiem jautājumiem."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "Paldies par atsauksmēm! Tās tiks nosūtītas, kad atkal būsiet tiešsaistē."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "Paldies par atsauksmēm!"
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Šis fails ir paredzēts datoram ar Macintosh programmatūru. Tas nav saderīgs ar jūsu ierīci, kurā darbojas operētājsistēma NickelOS. Lūdzu, meklējiet Chrome interneta veikalā atbilstošu aizstājošo lietotni."
+ },
+ "IDS_FILE_BROWSER_ERROR_VIEWING_FILE_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. Please search the Chrome Web Store for a suitable replacement app.",
+  "t": "Šis fails ir paredzēts datoram ar Windows programmatūru. Tas nav saderīgs ar jūsu ierīci, kurā darbojas operētājsistēma NickelOS. Lūdzu, meklējiet Chrome interneta veikalā atbilstošu aizstājošo lietotni."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "Mājas"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Šis fails ir paredzēts datoram ar Macintosh programmatūru. Tas nav saderīgs ar jūsu ierīci, kurā darbojas operētājsistēma NickelOS. BEGIN_LINK_HELPUzziniet vairākEND_LINK_HELP par failu atvēršanu operētājsistēmā NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Šis fails ir paredzēts datoram ar Windows programmatūru. Tas nav saderīgs ar jūsu ierīci, kurā darbojas operētājsistēma NickelOS. BEGIN_LINK_HELPUzziniet vairākEND_LINK_HELP par failu atvēršanu operētājsistēmā NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_FILE": {
+  "en": "This file type is not supported. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Šis faila tips netiek atbalstīts. BEGIN_LINK_HELPUzziniet vairākEND_LINK_HELP par failu atvēršanu operētājsistēmā NickelOS."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "Jūsu ierīce drīz vairs nesaņems atjauninājumus."
+ },
+ "IDS_HELP_APP_WHATS_NEW_CONTINUE_TASK_TITLE": {
+  "en": "NickelOS update",
+  "t": "NickelOS atjauninājums"
+ },
+ "IDS_HELP_APP_WHATS_NEW_SUGGESTION_CHIP": {
+  "en": "What's new with NickelOS",
+  "t": "NickelOS jaunumi"
+ },
+ "IDS_IME_SERVICE_DISPLAY_NAME": {
+  "en": "NickelOS Input Method Service",
+  "t": "NickelOS ievades metodes pakalpojums"
+ },
+ "IDS_INSTALLED_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "Lai iestatītu Android tālrunī, NickelOS ierīcē ir jābūt ieslēgtam Bluetooth savienojumam."
+ },
+ "IDS_LOGIN_SYNC_CONSENT_SCREEN_SUBTITLE_2": {
+  "en": "Your saved preferences and activity will be ready on any NickelOS device when you sign in with your Google Account. You can choose what to sync in Settings.",
+  "t": "Jūsu saglabātās preferences un darbības būs pieejamas jebkurā NickelOS ierīcē, kad pierakstīsieties savā Google kontā. Iestatījumos varat izvēlēties, ko sinhronizēt."
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "Jūsu administrators ir iespējojis tālāk norādītā satura sinhronizāciju starp iepriekšējo un pašreizējo sesiju visās jūsu NickelOS ierīcēs:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "Atļaut"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "Neatļaut"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "Ne tagad"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "Ievadiet šī datora administratora NAME paroli."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "Lietotne APP_NAME vēlas izmantot šīs ierīces kameru. Jūsu atbilde šai lietotnei tiks saglabāta."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "Vai atļaut lietotnei APP_NAME izmantot kameru?"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "Lietotne APP_NAME vēlas izmantot kameru. Lai to atļautu, ieslēdziet piekļuvi kamerai konfidencialitātes vadīklās."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "Atvērt iestatījumus"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "Piekļuve kamerai ir izslēgta"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "Atļaut"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "Neatļaut"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "Lai mainītu īsinājumtaustiņu, atlasiet tā taustiņus un nospiediet jaunus. Ar atpakaļatkāpes taustiņu to var noņemt."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "Lietotne APP_NAME vēlas, lai šie īsinājumtaustiņi darbotos arī tad, kad izmantojat citas lietotnes. Tā uzzina tikai to, kad tos nospiežat, nevis to, ko vēl rakstāt."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "Izmantojiet taustiņu kopā ar taustiņu Ctrl, Alt vai meklēšanas taustiņu vai arī izmantojiet funkciju taustiņu."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "Nav iestatīts"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "Nospiediet taustiņus…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "Šie taustiņi jau tiek izmantoti. Izmēģiniet citus."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "Vai atļaut īsinājumtaustiņus?"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "Mainīt"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "Galddators"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "Dators"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "Klēpjdators"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE (NAME)"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "Planšetdators"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "Apstipriniet paroli"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "Notiek konta izveide..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "Nevarēja izveidot kontu."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "Nevarēja izveidot kontu: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "Izvēlieties paroli."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "Nevarēja iestatīt kontu: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "Šis lietotājvārds jau ir aizņemts."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "Konta izveide aizņēma pārāk ilgu laiku. Mēģiniet vēlreiz."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "Lietotājvārdam jāsākas ar mazo burtu, un tajā var izmantot tikai mazos burtus, ciparus, - un _ (līdz 32)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "Paroles nesakrīt"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "Jūsu vārds"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "Parole"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "Jūsu attēls"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "Tas tiek rādīts pierakstīšanās ekrānā un sistēmas teknē. Lai izmantotu savu fotoattēlu, vēlāk atveriet iestatījumus."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "Izvēlieties attēlu"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "Jūsu konts un tā faili tiek glabāti šajā ierīcē un šifrēti ar jūsu paroli. Bez Google konta tos nevarēs atkopt, ja aizmirsīsiet paroli."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "Izveidojiet savu kontu"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "Lietotājvārds"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "Sāciet ar mazo burtu; izmantojiet mazos burtus, ciparus, - un _ (līdz 32)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "Lietotne APP_NAME vēlas uzzināt, kur atrodas šī ierīce. Atrašanās vieta tiek noteikta pēc tuvumā esošajiem Wi-Fi tīkliem un ierīces interneta adreses. Jūsu atbilde šai lietotnei tiks saglabāta."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "Vai atļaut lietotnei APP_NAME izmantot jūsu atrašanās vietu?"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "Lietotne APP_NAME vēlas izmantot jūsu atrašanās vietu. Lai to atļautu, ieslēdziet piekļuvi atrašanās vietai konfidencialitātes vadīklās."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "Piekļuve atrašanās vietai ir izslēgta"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "Lietotne APP_NAME vēlas vadīt šīs ierīces tastatūru un rādītāju. Atļaujiet to tikai tad, ja uzticaties tam, kurš veido savienojumu."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "Lietotne APP_NAME vada šo ierīci."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "Vai atļaut attālo vadību?"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "Iestatot NickelOS, jūs izvēlējāties opciju “Minimāla”, tāpēc meklētājprogramma jums netika izvēlēta. Šīs meklētājprogrammas ir populāras jūsu reģionā un tiek rādītas nejaušā secībā."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "Jebkurā gadījumā jums būs lietotņu veikals Bazaar, kur atrast citas lietotnes, kā arī lietotnes fotoattēlu, videoklipu, mūzikas un dokumentu atvēršanai."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "Pilnīga pieredze"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "Viss ir gatavs lietošanai un privāts. DuckDuckGo meklē tīmeklī no pārlūkprogrammas un palaidēja, uBlock Origin bloķē reklāmas un izsekotājus pārlūkprogrammā, ir instalētas Proton privātās lietotnes (Mail, Calendar, Drive, Pass u.c.), un komplektā ir iekļautas bezmaksas atklātā pirmkoda lietotnes: LibreOffice, OBS Studio, GIMP, Kdenlive u.c."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "Minimāla"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "Tikai pats galvenais. Palaidējs meklē tikai šajā datorā, un nekas cits jums netiek iestatīts."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "Visu šo vēlāk varēsiet mainīt iestatījumos."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "Kā vēlaties sākt?"
+ },
+ "IDS_OMNIBOX_PEDAL_MANAGE_CHROMEOS_ACCESSIBILITY_SUGGESTION_CONTENTS": {
+  "en": "Personalize your accessibility tools in NickelOS settings",
+  "t": "Personalizēt pieejamības rīkus NickelOS iestatījumos"
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_LAPTOP": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press the space bar.",
+  "t": "Vai vēlaties aktivizēt NickelOS iebūvēto ekrāna lasītāju ChromeVox? Ja vēlaties to darīt, nospiediet atstarpes taustiņu."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_ANNOUNCEMENT_TEXT_TABLET": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS? If so, press and hold both volume keys for five seconds.",
+  "t": "Vai vēlaties aktivizēt NickelOS iebūvēto ekrāna lasītāju ChromeVox? Ja vēlaties to darīt, nospiediet un piecas sekundes turiet nospiestus abus skaļuma taustiņus."
+ },
+ "IDS_OOBE_CHROMEVOX_HINT_TEXT": {
+  "en": "Do you want to activate ChromeVox, the built-in screen reader for NickelOS?",
+  "t": "Vai vēlaties aktivizēt NickelOS iebūvēto ekrāna lasītāju ChromeVox?"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "Pirms darba sākšanas dublējiet savus datus. Instalējot operētājsistēmu DEVICE_OS, jūsu izvēlētais disks tiks pārrakstīts."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "Operētājsistēma DEVICE_OS ir brīvā programmatūra, kas tiek nodrošināta “tāda, kāda ir”: tā var nedarboties visos datoros, un tās autori nav atbildīgi par datu zudumiem."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "Atjauninājumi, izstrādātāju opcijas"
+ },
+ "IDS_OS_SETTINGS_APP_DETAILS_TYPE_CROS_SYSTEM": {
+  "en": "NickelOS System App",
+  "t": "NickelOS sistēmas lietotne"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "Tālruņi, kopīgošana tuvumā"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "Tālruņi, FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your apps and settings will sync across all NickelOS devices where you are signed in with your Google account. For browser sync options, go to LINK_BEGINChrome settingsLINK_END.",
+  "t": "Jūsu lietotnes un iestatījumi tiks sinhronizēti visās NickelOS ierīcēs, kurās esat pierakstījies, izmantojot savu Google kontu. Lai skatītu pārlūka sinhronizācijas opcijas, pārejiet uz LINK_BEGINChrome iestatījumiemLINK_END."
+ },
+ "IDS_OS_SETTINGS_SYNC_FEATURE_LABEL_2": {
+  "en": "Your apps and settings will sync across all NickelOS devices where you are signed in with your Google Account. To manage what browser data is saved in your Google Account, go to LINK_BEGINChrome settingsLINK_END.",
+  "t": "Jūsu lietotnes un iestatījumi tiks sinhronizēti visās NickelOS ierīcēs, kurās esat pierakstījies, izmantojot savu Google kontu. Lai pārvaldītu, kādi pārlūka dati tiek saglabāti jūsu Google kontā, atveriet LINK_BEGINChrome iestatījumusLINK_END."
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "Mākoņkrātuve"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Google disks"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "Pievienot mākoņa kontu"
+ },
+ "IDS_OS_SETTINGS_TAG_OS_VERSION": {
+  "en": "NickelOS version",
+  "t": "NickelOS versija"
+ },
+ "IDS_PAGE_INFO_COOKIE_SYNC_DESCRIPTION": {
+  "en": "Cookies for this site are synced across your NickelOS devices. To manage what you sync, go to SYNC_SETTINGS.",
+  "t": "Šīs vietnes sīkfaili tiek sinhronizēti visās jūsu NickelOS ierīcēs. Lai pārvaldītu sinhronizētos datus, pārejiet uz vietni SYNC_SETTINGS."
+ },
+ "IDS_PASSWORD_CHANGE_NOTIFICATION_TITLE": {
+  "en": "NickelOS password updated",
+  "t": "NickelOS parole ir atjaunināta"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "Jūsu attēli"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "Kad ekrāns ir īslaicīgi neaktīvs, tiek rādīti jūsu attēli, laiks un multivides informācija"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "Jūsu attēli"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "Ekrānsaudzētājā tiek rādīti attēli no jūsu mapes Attēli un tajā esošajām mapēm. Pievienojiet vismaz 2 attēlus."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "Mape Attēli"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "Attēli, kas iekļauti NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "Ekrānsaudzētājā tiek rādītas NickelOS fona tapetes. Ieslēdziet šo iestatījumu, lai to vietā rādītu attēlus no mapes Mani faili > Pictures."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "NickelOS fona tapetes"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "No Open-Meteo jūsu aptuvenajai atrašanās vietai, ko beaconDB nosaka pēc jūsu IP adreses"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "Rādīt laikapstākļus"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "Printerim ir jābūt ieslēgtam un pievienotam tam pašam tīklam, kuram ir pievienota NickelOS ierīce, vai jāizmanto USB vads."
+ },
+ "IDS_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_RELAUNCH_TO_UPDATE": {
+  "en": "Relaunch to update &NickelOS",
+  "t": "Atkārtoti palaist, lai atjauninātu &NickelOS"
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "Mājas"
+ },
+ "IDS_SETTINGS_ABOUT_OS": {
+  "en": "About NickelOS",
+  "t": "Par NickelOS"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Ja iestatījums ir ieslēgts, dati tiek saglabāti jūsu Google kontā un tos var izmantot visās jūsu ierīcēs. Ja tas ir izslēgts, dati tiek saglabāti tikai šajā ierīcē. Lai skatītu NickelOS sinhronizācijas opcijas, pārejiet uz LINK_BEGINNickelOS iestatījumiemLINK_END."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "Atļaujiet Android lietotnēm kontrolēt USB ierīces šajā NickelOS ierīcē. Atļauja tiks pieprasīta ikreiz, kad pievienosiet USB ierīci. Noteiktas Android lietotnes pieprasīs papildu atļaujas."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Jūsu ierīcē vairs netiek saņemti drošības un programmatūras atjauninājumi."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Šī ierīce vairs nesaņem atjauninājumus"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Jūsu ierīcē vairs netiek saņemti drošības un programmatūras atjauninājumi."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Šī ierīce vairs nesaņem atjauninājumus"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "Atļaujiet Android lietotnēm kontrolēt USB ierīces šajā NickelOS ierīcē."
+ },
+ "IDS_SETTINGS_LANGUAGES_OPEN_CHROME_OS_SETTINGS_LABEL": {
+  "en": "Manage languages in NickelOS settings",
+  "t": "Valodu pārvaldība NickelOS iestatījumos"
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "Šī opcija attiecas uz NickelOS ierīcēm ar datu plānu vai mobilā tīkla sargspraudni, vai arī piesaisti pārnēsājamam tīklājam."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "Pievienot personu"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "Jūs tiksiet izrakstīts. Pierakstīšanās ekrānā jaunā persona izvēlēsies vārdu, lietotājvārdu un paroli."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "Administrators"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Administratori var instalēt programmatūru visiem lietotājiem, mainīt sistēmu un pārvaldīt kontus."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "Mainīt paroli"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "Apstiprināt"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "Apstipriniet jauno paroli"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "Pašreizējā parole"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "Izvēlieties jaunu paroli"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Radās problēma. Mēģiniet vēlreiz."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "Šajā ierīcē ir nepieciešams vismaz viens administrators"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "Vai padarīt lietotāju NAME par administratoru?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "Jaunā parole"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "Nevienam citam šajā ierīcē nav konta."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "Citi šīs ierīces lietotāji"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Katram ir savs konts un faili. Administratori var instalēt programmatūru visiem lietotājiem, mainīt sistēmu un pārvaldīt kontus."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "Īpašnieks, administrators"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "Jaunās paroles nesakrīt"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "Noņemt"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "Vai padarīt lietotāju NAME par standarta lietotāju?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "Šīs personas konts un visi tās faili tiks dzēsti no šīs ierīces. Šo darbību nevar atsaukt."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "Vai noņemt lietotāju NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "Izrakstīties"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "Standarta lietotājs"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "Parole nav pareiza"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "Jūsu konts"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "Jūsu parole"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "Šos iestatījumus var mainīt tikai šīs ierīces administrators."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "Lietotnēm, kas izstrādātas tikai tālruņos izmantotajiem ARM procesoriem, tostarp daudzām spēlēm. Patentēta programmatūra, kas tiek lejupielādēta, kad to ieslēdzat."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "Daudzas Android lietotnes, īpaši spēles, ir izstrādātas tikai tālruņos izmantotajiem ARM procesoriem. Lai tās palaistu šajā datorā, sistēmai Android ir nepieciešams tulkotājs. NickelOS to neizstrādā un neietver: ieslēdzot šo funkciju, no GitHub tiek lejupielādēts TRANSLATOR — tā pati kopija, ko instalē Waydroid kopienas skripts waydroid_script."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "Tā ir patentēta programmatūra, uz kuru attiecas tās īpašnieka noteikumi, un jūs to instalējat pats. Dažas lietotnes var darboties lēni vai nedarboties vispār. Lai to izmantotu, sistēma Android tiek restartēta."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "Piekrist un ieslēgt"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "Vai ieslēgt ARM lietotņu atbalstu?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "ARM lietotņu atbalsts"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "Notiek noņemšana..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "Notiek lejupielāde un instalēšana..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "Notiek Android lejupielāde"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "Lejupielāde netika pabeigta. Pārbaudiet savienojumu un mēģiniet vēlreiz."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Radās problēma. Mēģiniet vēlreiz."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "Android iestatījumi"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "Notiek Android iestatīšana..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "Noņemt"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "Tiek dzēsta sistēma Android, jūsu Android lietotnes un to dati"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "Sistēma Android, jūsu Android lietotnes un to dati tiks dzēsti no šīs ierīces. Citi šīs ierīces lietotāji saglabās savus Android datus, taču nevarēs atvērt savas Android lietotnes, kamēr sistēma Android netiks iestatīta atkārtoti."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "Vai noņemt Android?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "Noņemt Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "Notiek Android noņemšana..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "Iestatīt"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "Android lietotnes tiek atvērtas atsevišķos logos līdzās citām jūsu lietotnēm. Iestatīšanas laikā tiek lejupielādēta sistēma Android (LineageOS no projekta Waydroid): aptuveni 1 GB, un šajā ierīcē tā aizņems 2,5 GB."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "Palaist Android lietotnes"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "Android lietotnes"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "Intel Houdini"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "Google NDK tulkošana"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "Android lietotnes pašlaik nav pieejamas."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "Android šajā ierīcē aizņem SIZE"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "Piekļuves atslēgas ID"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "Pievienot kontu"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "Atpakaļ"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "Klienta ID"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "Klienta noslēpums"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "Izveidot savienojumu"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "Notiek savienojuma izveide…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "Skatiet Google disku, OneDrive, Dropbox un citas mākoņkrātuves lietotnē Faili"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "Mākoņkrātuves pievienošana"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "Konts ACCOUNT_NAME tagad ir pieejams lietotnē Faili."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "Google diskam ir nepieciešams jūsu klienta ID un noslēpums no Google Cloud konsoles."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "E-pasta adrese vai lietotājvārds"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "Galapunkts (Amazon S3 gadījumā atstājiet tukšu)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "Nevarēja izveidot savienojumu. Pārbaudiet informāciju un mēģiniet vēlreiz."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "Gatavs"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "Kā tos izveidot"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "Lietotnē Faili"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "Nosaukums"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "Tālāk"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "Nav savienojuma"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "Parole"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "NickelOS izmanto rīku rclone, lai jūsu mākoņkrātuve tiktu rādīta lietotnē Faili un faili būtu viegli pieejami. Izvēlieties pakalpojumu, kurā pierakstīties."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "Reģions (neobligāti)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "Noņemt"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "Lietotnē Faili šis konts vairs netiks rādīts. Jūsu faili paliks mākonī, un vēlāk kontu varēsiet pievienot atkārtoti."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "Vai noņemt kontu ACCOUNT_NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "Notiek noņemšana…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "Amazon S3 vai saderīga krātuve"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "Slepenā piekļuves atslēga"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "Servera adrese"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "Pakalpojums"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "Pabeidziet pierakstīšanos lapā, kas tika atvērta pārlūkprogrammā."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "Kad izveidosiet savienojumu, pārlūkprogrammā tiks atvērta pakalpojuma pierakstīšanās lapa."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "Mākoņkrātuve"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "Divpakāpju verifikācijas kods (ja to izmantojat)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "Lietotājvārds"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "Nextcloud vai WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "Tikai šī datora administrators var mainīt tā nosaukumu."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "Mainīt"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "Citas ierīces redz šo nosaukumu jūsu tīklā un Bluetooth savienojumā, un tas tiek rādīts arī lietotnē Terminālis un Linux lietotnēs."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "Datora nosaukuma maiņa"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "Nosaukumu nevarēja mainīt. Mēģiniet vēlreiz."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "Izmantojiet vismaz vienu burtu no A līdz Z vai ciparu."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "Datora nosaukums"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "Terminālī: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "Lietotnes, kas atver katra veida failus no lietotnes Faili un no Linux lietotnēm"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "Dokumenti"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "E-pasts"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "Attēli"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "Mūzika"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "Neviena lietotne nevar atvērt šos failus"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "Nav iestatīta"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "PDF dokumenti"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "Prezentācijas"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "Ekrānuzņēmumi (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "Ekrāna tveršana (iebūvēta)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "Izklājlapas"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "Teksta faili"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "Noklusējuma lietotnes"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "Videoklipi"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (vietne)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "Šīs ierīces iekšējie diski, izņemot to, kurā ir NickelOS. Disks ar Windows tiek atvērts tikai lasīšanai, lai sistēma Windows paliktu neskarta."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "Citi diski"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "Atļaut izmaiņas"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "Šajā diskā ir Windows. Tas ir pieejams tikai lasīšanai, ja vien neatļausiet izmaiņas."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "Ja ir ieslēgta ātrā startēšana, sistēma Windows netiek pilnībā izslēgta, un šeit veiktās izmaiņas var tikt zaudētas vai sabojāt failus, kad Windows atkal tiek startēta. Pirms veicat izmaiņas, izslēdziet ātro startēšanu sistēmā Windows vai turiet nospiestu pārslēgšanas (Shift) taustiņu, kamēr izslēdzat Windows."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "Vai atļaut izmaiņas Windows diskā?"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "Sistēma Windows netika pilnībā izslēgta, tāpēc disks joprojām ir pieejams tikai lasīšanai. Lai veiktu izmaiņas, pilnībā izslēdziet Windows."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "Rādīt lietotnē Faili"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "Saņemiet palīdzību no citiem"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "Forums, Discord un GitHub vietnē nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "Gentoo apguve"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "Portage un emerge no paša sākuma, blakus atbilstošās pacman un apt komandas"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "NickelOS rokasgrāmata"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "Kā darbojas NickelOS. Šī kopija ir iekļauta jūsu NickelOS versijā un darbojas bezsaistē."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "Rokasgrāmata, Gentoo apguve, problēmu novēršana"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "Rokasgrāmata tiešsaistē"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "Jaunākā versija vietnē nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "Palīdzība"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "Problēmu novēršana"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "Žurnāli, avāriju pārskati un biežākās problēmas ar to risinājumiem"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "Linux lietotnes"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "Pieņemt"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "Pieejams savienošanai pārī"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "Atcelt"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "Pievienots"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "Pievienots · Akumulators: PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "Pievienots · Notiek uzlāde, PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "Ar lietotni KDE Connect Android ierīcē vai iPhone tālrunī, vienā Wi-Fi tīklā"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "Citas iespējas: DEVICE_NAME"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "Vēl nav neviena tālruņa vai planšetdatora. Instalējiet lietotni KDE Connect no Google Play, F-Droid vai App Store, atveriet to tajā pašā Wi-Fi tīklā un pēc tam savienojiet ierīces pārī no jebkuras no tām."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "Savienojums ar tālruņiem nedarbojas. Lai to palaistu, izrakstieties un pierakstieties vēlreiz."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "Atvērt lietotni Valent"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "Savienot pārī"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "Savienots pārī · Nav pievienots"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "Gaida apstiprinājumu"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "Noraidīt"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "Atskaņot signālu"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "Sūtīt failus"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "Failu sūtīšana"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "Tālruņi un planšetdatori"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "Atcelt savienojumu pārī"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "Vēlas izveidot savienojumu pārī ar šo ierīci"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "Ļauj, piemēram, lietotnei Discord izmantot funkciju “Nospied, lai runātu”, kamēr esat citos logos. Lietotnes redz tikai taustiņus, kas nospiesti kopā ar taustiņu Ctrl, Alt vai meklēšanas taustiņu, un funkciju taustiņus, bet nekad to, ko rakstāt."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "Īsinājumtaustiņi vecākām Linux lietotnēm"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "Pievienojiet printeri tam pašam Wi-Fi tīklam, kuram ir pievienota NickelOS ierīce, vai izmantojiet USB vadu. LINK_BEGINUzziniet vairāk par saderībuLINK_END."
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "Nevar izveidot savienojumu ar printeri. Pārbaudiet, vai printeris ir ieslēgts un vai printerim ir izveidots savienojums ar NickelOS ierīci Wi-Fi tīklā vai izmantojot USB savienojumu."
+ },
+ "IDS_SETTINGS_SECURE_DNS_OPEN_CHROME_OS_SETTINGS_LABEL": {
+  "en": "Manage secure DNS in NickelOS settings",
+  "t": "Drošas DNS pārvaldība NickelOS iestatījumos"
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "Mājas"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "Lai sāktu darbu, gādājiet, lai jūsu USB vai Bluetooth slēdzis būtu pievienots NickelOS ierīcei. Varat arī izmantot tastatūras taustiņus."
+ },
+ "IDS_SHORT_PRODUCT_OS_NAME": {
+  "en": "NickelOS",
+  "t": "NickelOS"
+ },
+ "IDS_SIGNIN_ERROR_SECONDARY_ACCOUNT_DISPLAY_SOURCE": {
+  "en": "NickelOS System",
+  "t": "NickelOS sistēma"
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "Lai atbloķētu NickelOS ierīci, pārliecinieties, ka tālrunī ir ieslēgts Bluetooth savienojums."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "Jūsu NickelOS ierīcē ir izslēgts Bluetooth savienojums. Lai atbloķētu NickelOS ierīci, ievadiet paroli."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "Jūsu tālrunim nav iespējots bloķēšanas ekrāns. Lai atbloķētu NickelOS ierīci, ievadiet paroli."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "Lai atbloķētu NickelOS ierīci, vispirms atbloķējiet tālruni."
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "Jūsu ierīcē tiek izmantots iebūvēts sensors, lai konstatētu, vai tās priekšā atrodas cilvēki. Visi dati tiek nekavējoties apstrādāti jūsu ierīcē un pēc tam tiek dzēsti. Sensoru dati nekad netiek sūtīti uzņēmumam Google."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "NickelOS žurnāli"
+ },
+ "IDS_SYNC_OTHER_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data due to an error signing in.",
+  "t": "NickelOS nevarēja sinhronizēt jūsu datus pierakstīšanās kļūdas dēļ."
+ },
+ "IDS_SYNC_SIGN_IN_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because your account sign-in details are out of date.",
+  "t": "NickelOS nevarēja sinhronizēt jūsu datus, jo jūsu konta pierakstīšanās informācija ir novecojusi."
+ },
+ "IDS_SYNC_UNAVAILABLE_ERROR_BUBBLE_VIEW_MESSAGE": {
+  "en": "NickelOS could not sync your data because Sync is not available for your domain.",
+  "t": "NickelOS nevarēja sinhronizēt jūsu datus, jo jūsu domēnā nav pieejama sinhronizācija."
+ },
+ "IDS_TERMS_OF_SERVICE_SCREEN_SUBHEADING": {
+  "en": "MANAGER requires that you read and accept the following Terms of Service before using this device. These terms do not expand, modify or limit the NickelOS Terms.",
+  "t": "MANAGER pieprasa, lai pirms šīs ierīces lietošanas jūs izlasītu tālāk sniegtos pakalpojumu sniegšanas noteikumus un piekristu tiem. Šie noteikumi nepaplašina, nepārveido un neierobežo operētājsistēmas NickelOS noteikumus."
+ },
+ "IDS_UPDATE_RECOMMENDED": {
+  "en": "NickelOS needs to be restarted to apply the update.",
+  "t": "NickelOS ir jārestartē, lai lietotu atjauninājumu."
+ },
+ "IDS_UPDATE_RECOMMENDED_DIALOG_TITLE": {
+  "en": "Restart NickelOS",
+  "t": "NickelOS restartēšana"
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "Ierīcē pierakstīsieties ar savu kontu, un savs konts var būt ikvienam, kas to izmanto."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "Jūsu personīgais konts jūsu ierīcē"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "NickelOS ir izstrādāta, rūpējoties par drošību, un tā tiek atjaunināta automātiski."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "Operētājsistēmā NickelOS tīmekļa lietotnes un Linux lietotnes darbojas līdzās. Varat iegūt lietotnes produktivitātei, izklaidei un daudz kam citam."
+ },
+ "IDS_UPDATE_SLIDE_UPDATE_TEXT": {
+  "en": "This is the only time you’ll wait for an update. On NickelOS, software updates happen in the background.",
+  "t": "Turpmāk jums vairs nekad nebūs jāgaida atjauninājumi. Operētājsistēmā NickelOS programmatūras atjauninājumi notiek fonā."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "Operētājsistēmā NickelOS Chrome lietotnes nedarbojas. Ieteicams izmantot citu lietotni."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_NOTIFICATION_MESSAGE": {
+  "en": "This Chrome app will stop working after your NickelOS version is updated. Save any app data you want to keep. To learn about your options, contact the app developer or your IT support team.",
+  "t": "Šīs Chrome lietotnes darbība tiks pārtraukta pēc NickelOS versijas atjaunināšanas. Saglabājiet visus lietotnes datus, kurus vēlaties paturēt. Lai uzzinātu par jums pieejamajām iespējām, sazinieties ar lietotnes izstrādātāju vai savu IT atbalsta komandu."
+ },
+ "IDS_WRONG_HWID_SCREEN_MESSAGE_FIRST_PART": {
+  "en": "Unfortunately, your computer is configured with a malformed hardware ID. This prevents NickelOS from updating with the latest security fixes and your computer BEGIN_BOLDmay be vulnerable to malicious attacksEND_BOLD.",
+  "t": "Diemžēl jūsu datora konfigurācijā tika izmantots nepareizi veidots aparatūras ID. Tādēļ operētājsistēmu NickelOS nevarēja atjaunināt, izmantojot jaunākos drošības labojumus, un jūsu dators, BEGIN_BOLDiespējams, nav aizsargāts pret ļaunprātīgiem uzbrukumiemEND_BOLD."
+ }
+}

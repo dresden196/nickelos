@@ -1,0 +1,378 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux app windows take the focus as on a Linux
+ desktop
+
+ChromeOS shows every window of the default Wayland server's clients
+inactive unless Chrome granted it permission (ARC, or Crostini windows
+for five seconds after the app is launched again). On NickelOS those
+clients are the user's Linux apps on the device, so a dialog an app
+opened (a save dialog, its password prompt) and the polkit password
+prompt came up without the keyboard: typing went on into the window
+behind.
+
+- ChromeSecurityDelegate::CanSelfActivate: a window takes the focus when
+  it first shows; later an app may move the focus between its own windows
+  (a dialog for the window in use, or another window with the same app
+  id), never take it from another app's window. Permissions Chrome grants
+  still apply.
+- Exo gains xdg-activation-v1, which GTK and Qt use to hand the focus on
+  (gtk_window_present, an app started from another): tokens are good only
+  when asked for from the window that has the focus, for one use within
+  ten seconds; without a good token, an activation is the app's own
+  request and the security delegate decides (so an app started again from
+  the launcher brings its open window forward, through the permission the
+  shelf already grants).
+
+diff --git a/chrome/browser/ash/exo/BUILD.gn b/chrome/browser/ash/exo/BUILD.gn
+index d58f20f7411ad..fc0ed1274cb3d 100644
+--- a/chrome/browser/ash/exo/BUILD.gn
++++ b/chrome/browser/ash/exo/BUILD.gn
+@@ -13,6 +13,7 @@ static_library("exo") {
+   ]
+ 
+   deps = [
++    "//ash",
+     "//ash/public/cpp",
+     "//base",
+     "//chrome/browser/ash/arc:arc_util",
+@@ -27,6 +28,7 @@ static_library("exo") {
+     "//content/public/common",
+     "//ui/aura",
+     "//ui/base",
++    "//ui/wm",
+   ]
+ }
+ 
+diff --git a/chrome/browser/ash/exo/chrome_security_delegate.cc b/chrome/browser/ash/exo/chrome_security_delegate.cc
+index 729f3c4dc68ff..863e53f4307d2 100644
+--- a/chrome/browser/ash/exo/chrome_security_delegate.cc
++++ b/chrome/browser/ash/exo/chrome_security_delegate.cc
+@@ -8,6 +8,7 @@
+ #include <string>
+ 
+ #include "ash/public/cpp/app_types_util.h"
++#include "ash/wm/window_util.h"
+ #include "base/command_line.h"
+ #include "base/feature_list.h"
+ #include "base/memory/ref_counted_memory.h"
+@@ -38,6 +39,7 @@
+ #include "ui/base/clipboard/file_info.h"
+ #include "ui/base/data_transfer_policy/data_transfer_endpoint.h"
+ #include "ui/gl/gl_switches.h"
++#include "ui/wm/core/window_util.h"
+ 
+ namespace ash {
+ 
+@@ -301,7 +303,32 @@ bool ChromeSecurityDelegate::CanSelfActivate(aura::Window* window) const {
+   //
+   // Unfortunately, several clients don't have their own SecurityDelegate yet,
+   // so we will continue to use the old exo::Permissions stuff until they do.
+-  return exo::HasPermissionToActivate(window);
++  if (exo::HasPermissionToActivate(window)) {
++    return true;
++  }
++
++  // NickelOS: this server's clients are the user's Linux apps on the device
++  // (VMs have their own delegates). They take the focus as on a Linux
++  // desktop: a window takes it when it first shows (ChromeOS showed them all
++  // inactive, so the dialogs apps open and the password prompt got no
++  // keyboard), and later an app may move it between its own windows (a
++  // dialog for the window in use, another window of the same app), never
++  // take it from another app's window.
++  if (!window->IsVisible()) {
++    return true;
++  }
++  aura::Window* active = ash::window_util::GetActiveWindow();
++  if (!active) {
++    return false;
++  }
++  if (wm::HasTransientAncestor(window, active) ||
++      wm::HasTransientAncestor(active, window)) {
++    return true;
++  }
++  const std::string* app_id = exo::GetShellApplicationId(window);
++  const std::string* active_app_id = exo::GetShellApplicationId(active);
++  return app_id && active_app_id && !app_id->empty() &&
++         *app_id == *active_app_id;
+ }
+ 
+ bool ChromeSecurityDelegate::CanLockPointer(aura::Window* window) const {
+diff --git a/components/exo/wayland/BUILD.gn b/components/exo/wayland/BUILD.gn
+index d47a715bbb2d2..f65eed467ce7d 100644
+--- a/components/exo/wayland/BUILD.gn
++++ b/components/exo/wayland/BUILD.gn
+@@ -81,6 +81,8 @@ source_set("wayland") {
+     "wp_single_pixel_buffer.h",
+     "wp_viewporter.cc",
+     "wp_viewporter.h",
++    "xdg_activation.cc",
++    "xdg_activation.h",
+     "xdg_shell.cc",
+     "xdg_shell.h",
+     "zaura_output_manager.cc",
+@@ -193,6 +195,7 @@ source_set("wayland") {
+     "//third_party/wayland-protocols:ui_controls_v1_protocol",
+     "//third_party/wayland-protocols:viewporter_protocol",
+     "//third_party/wayland-protocols:vsync_feedback_protocol",
++    "//third_party/wayland-protocols:xdg_activation",
+     "//third_party/wayland-protocols:xdg_decoration_protocol",
+     "//third_party/wayland-protocols:xdg_output_protocol",
+     "//third_party/wayland-protocols:xdg_shell_protocol",
+diff --git a/components/exo/wayland/server.cc b/components/exo/wayland/server.cc
+index c0f85f4f0ad04..bb680ec1f866c 100644
+--- a/components/exo/wayland/server.cc
++++ b/components/exo/wayland/server.cc
+@@ -28,6 +28,7 @@
+ #include <touchpad-haptics-unstable-v1-server-protocol.h>
+ #include <viewporter-server-protocol.h>
+ #include <vsync-feedback-unstable-v1-server-protocol.h>
++#include <xdg-activation-v1-server-protocol.h>
+ #include <xdg-decoration-unstable-v1-server-protocol.h>
+ #include <xdg-shell-server-protocol.h>
+ 
+@@ -67,6 +68,7 @@
+ #include "components/exo/wayland/wp_presentation.h"
+ #include "components/exo/wayland/wp_single_pixel_buffer.h"
+ #include "components/exo/wayland/wp_viewporter.h"
++#include "components/exo/wayland/xdg_activation.h"
+ #include "components/exo/wayland/xdg_shell.h"
+ #include "components/exo/wayland/zaura_shell.h"
+ #include "components/exo/wayland/zcr_alpha_compositing.h"
+@@ -290,6 +292,8 @@ void Server::Initialize() {
+                    display_, bind_shell);
+   wl_global_create(wl_display_.get(), &wp_content_type_manager_v1_interface,
+                    /*version=*/1, display_, bind_content_type);
++  wl_global_create(wl_display_.get(), &xdg_activation_v1_interface,
++                   /*version=*/1, display_, bind_xdg_activation);
+   wl_global_create(wl_display_.get(), &zcr_cursor_shapes_v1_interface,
+                    /*version=*/1, display_, bind_cursor_shapes);
+   wl_global_create(wl_display_.get(), &zcr_gaming_input_v2_interface,
+diff --git a/components/exo/wayland/xdg_activation.cc b/components/exo/wayland/xdg_activation.cc
+new file mode 100644
+index 0000000000000..ba8cd95c23c49
+--- /dev/null
++++ b/components/exo/wayland/xdg_activation.cc
+@@ -0,0 +1,191 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "components/exo/wayland/xdg_activation.h"
++
++#include <wayland-server-core.h>
++#include <wayland-server-protocol-core.h>
++#include <xdg-activation-v1-server-protocol.h>
++
++#include <map>
++#include <memory>
++#include <string>
++
++#include "base/memory/raw_ptr.h"
++#include "base/no_destructor.h"
++#include "base/rand_util.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/time/time.h"
++#include "components/exo/shell_surface_base.h"
++#include "components/exo/shell_surface_util.h"
++#include "components/exo/surface.h"
++#include "components/exo/surface_observer.h"
++#include "components/exo/wayland/server_util.h"
++#include "components/exo/wm_helper.h"
++#include "ui/aura/window.h"
++
++namespace exo::wayland {
++namespace {
++
++// A token brings a window forward once, within this time of being made.
++constexpr base::TimeDelta kTokenLifetime = base::Seconds(10);
++
++// The tokens that can still activate a window, with when they stop.
++std::map<std::string, base::TimeTicks>& GoodTokens() {
++  static base::NoDestructor<std::map<std::string, base::TimeTicks>> tokens;
++  return *tokens;
++}
++
++// A token request (xdg_activation_token_v1) until it is committed.
++class TokenRequest : public SurfaceObserver {
++ public:
++  TokenRequest() = default;
++  TokenRequest(const TokenRequest&) = delete;
++  TokenRequest& operator=(const TokenRequest&) = delete;
++  ~TokenRequest() override { SetSurface(nullptr); }
++
++  void SetSurface(Surface* surface) {
++    if (surface_) {
++      surface_->RemoveSurfaceObserver(this);
++    }
++    surface_ = surface;
++    if (surface_) {
++      surface_->AddSurfaceObserver(this);
++    }
++  }
++
++  // Makes the token. It is good only if asked for from the window that has
++  // the focus: the app the user is using hands the focus on.
++  std::string Commit() {
++    committed_ = true;
++    const std::string token =
++        base::HexEncode(base::RandBytesAsVector(16));
++    aura::Window* active = WMHelper::GetInstance()->GetActiveWindow();
++    if (surface_ && surface_->window() && active &&
++        active->Contains(surface_->window())) {
++      auto& tokens = GoodTokens();
++      const base::TimeTicks now = base::TimeTicks::Now();
++      std::erase_if(tokens, [now](const auto& t) { return t.second <= now; });
++      tokens[token] = now + kTokenLifetime;
++    }
++    return token;
++  }
++
++  bool committed() const { return committed_; }
++
++  // SurfaceObserver:
++  void OnSurfaceDestroying(Surface* surface) override { SetSurface(nullptr); }
++
++ private:
++  raw_ptr<Surface> surface_ = nullptr;
++  bool committed_ = false;
++};
++
++////////////////////////////////////////////////////////////////////////////////
++// xdg_activation_token_v1_interface:
++
++void token_set_serial(wl_client* client,
++                      wl_resource* resource,
++                      uint32_t serial,
++                      wl_resource* seat) {
++  // The focus check in Commit() stands in for the serial.
++}
++
++void token_set_app_id(wl_client* client,
++                      wl_resource* resource,
++                      const char* app_id) {}
++
++void token_set_surface(wl_client* client,
++                       wl_resource* resource,
++                       wl_resource* surface_resource) {
++  GetUserDataAs<TokenRequest>(resource)->SetSurface(
++      GetUserDataAs<Surface>(surface_resource));
++}
++
++void token_commit(wl_client* client, wl_resource* resource) {
++  TokenRequest* request = GetUserDataAs<TokenRequest>(resource);
++  if (request->committed()) {
++    wl_resource_post_error(resource, XDG_ACTIVATION_TOKEN_V1_ERROR_ALREADY_USED,
++                           "the activation token was already committed");
++    return;
++  }
++  xdg_activation_token_v1_send_done(resource, request->Commit().c_str());
++}
++
++void token_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++const struct xdg_activation_token_v1_interface token_implementation = {
++    .set_serial = token_set_serial,
++    .set_app_id = token_set_app_id,
++    .set_surface = token_set_surface,
++    .commit = token_commit,
++    .destroy = token_destroy,
++};
++
++////////////////////////////////////////////////////////////////////////////////
++// xdg_activation_v1_interface:
++
++void activation_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++void activation_get_activation_token(wl_client* client,
++                                     wl_resource* resource,
++                                     uint32_t id) {
++  wl_resource* token_resource = wl_resource_create(
++      client, &xdg_activation_token_v1_interface,
++      wl_resource_get_version(resource), id);
++  SetImplementation(token_resource, &token_implementation,
++                    std::make_unique<TokenRequest>());
++}
++
++void activation_activate(wl_client* client,
++                         wl_resource* resource,
++                         const char* token,
++                         wl_resource* surface_resource) {
++  Surface* surface = GetUserDataAs<Surface>(surface_resource);
++  if (!surface->window()) {
++    return;
++  }
++  ShellSurfaceBase* shell_surface =
++      GetShellSurfaceBaseForWindow(surface->window()->GetToplevelWindow());
++  if (!shell_surface) {
++    return;
++  }
++
++  auto& tokens = GoodTokens();
++  auto it = tokens.find(token);
++  const bool good = it != tokens.end() && it->second > base::TimeTicks::Now();
++  if (it != tokens.end()) {
++    tokens.erase(it);
++  }
++  if (good) {
++    shell_surface->Activate();
++  } else {
++    // As the app's own request: the security delegate decides.
++    shell_surface->RequestActivation();
++  }
++}
++
++const struct xdg_activation_v1_interface activation_implementation = {
++    .destroy = activation_destroy,
++    .get_activation_token = activation_get_activation_token,
++    .activate = activation_activate,
++};
++
++}  // namespace
++
++void bind_xdg_activation(wl_client* client,
++                         void* data,
++                         uint32_t version,
++                         uint32_t id) {
++  wl_resource* resource =
++      wl_resource_create(client, &xdg_activation_v1_interface, 1, id);
++  wl_resource_set_implementation(resource, &activation_implementation, data,
++                                 nullptr);
++}
++
++}  // namespace exo::wayland
+diff --git a/components/exo/wayland/xdg_activation.h b/components/exo/wayland/xdg_activation.h
+new file mode 100644
+index 0000000000000..d077a17c3c63c
+--- /dev/null
++++ b/components/exo/wayland/xdg_activation.h
+@@ -0,0 +1,26 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef COMPONENTS_EXO_WAYLAND_XDG_ACTIVATION_H_
++#define COMPONENTS_EXO_WAYLAND_XDG_ACTIVATION_H_
++
++#include <stdint.h>
++
++struct wl_client;
++
++namespace exo::wayland {
++
++// xdg-activation-v1 (NickelOS): how a Linux app hands the focus on. The app
++// the user is using gets tokens it can pass along (to a window of its own or
++// of an app it starts); a window is brought forward with a token, or, as an
++// activation request of the app's own, when the security delegate allows it
++// (e.g. right after the user started the app again from the launcher).
++void bind_xdg_activation(wl_client* client,
++                         void* data,
++                         uint32_t version,
++                         uint32_t id);
++
++}  // namespace exo::wayland
++
++#endif  // COMPONENTS_EXO_WAYLAND_XDG_ACTIVATION_H_

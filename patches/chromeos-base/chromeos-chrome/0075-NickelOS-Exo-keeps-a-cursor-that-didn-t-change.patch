@@ -1,0 +1,43 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Exo keeps a cursor that didn't change
+
+Exo makes the cursor again on every commit of a client's cursor surface:
+a new bitmap, a new platform cursor, and a new hardware cursor image.
+Waydroid's hwcomposer commits Android's pointer surface with every frame
+Android draws, nearly always with the same image, so while the pointer was
+over an Android window ChromeOS loaded a new hardware cursor every frame
+(about 60 a second while scrolling) and the pointer lagged behind the
+mouse. A commit whose image, hotspot and scale are the cursor's already
+leaves it as it is; entering a surface still applies the cursor again.
+
+diff --git a/components/exo/pointer.cc b/components/exo/pointer.cc
+index 315110a03e13a..268f2b9a916e1 100644
+--- a/components/exo/pointer.cc
++++ b/components/exo/pointer.cc
+@@ -48,6 +48,7 @@
+ #include "ui/gfx/geometry/transform_util.h"
+ #include "ui/gfx/geometry/vector2d_conversions.h"
+ #include "ui/gfx/geometry/vector2d_f.h"
++#include "ui/gfx/skia_util.h"
+ #include "ui/ozone/public/input_controller.h"
+ #include "ui/ozone/public/ozone_platform.h"
+ #include "ui/views/widget/widget.h"
+@@ -1055,6 +1056,18 @@ void Pointer::OnCursorBitmapObtained(const gfx::Point& hotspot,
+     return;
+   }
+ 
++  // NickelOS: some clients commit their cursor surface with every frame they
++  // draw, nearly always with the same image (Waydroid's Android does, on each
++  // frame while the pointer is over it). Making the cursor again for each one
++  // loads a new hardware cursor every frame, and the pointer lags behind the
++  // mouse. The cursor already shown stays when nothing about it changed
++  // (entering a surface applies it again).
++  if (cursor_ == ui::mojom::CursorType::kCustom && !cursor_bitmap_.isNull() &&
++      hotspot == cursor_hotspot_ && cursor_scale == cursor_scale_ &&
++      gfx::BitmapsAreEqual(cursor_bitmap, cursor_bitmap_)) {
++    return;
++  }
++
+   cursor_bitmap_ = cursor_bitmap;
+   cursor_scale_ = cursor_scale;
+   DCHECK(cursor_bitmap_.readyToDraw());

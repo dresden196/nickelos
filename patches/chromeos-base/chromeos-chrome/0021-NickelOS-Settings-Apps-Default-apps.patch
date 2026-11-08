@@ -1,0 +1,517 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Settings > Apps > Default apps
+
+ChromeOS sets the app a kind of file opens with only from Files' "Open
+with" menu ("Change default"). NickelOS adds a Default apps card to the
+Apps page: for images, videos, music, PDF documents and text files, the
+apps that can open them (ChromeOS's own, web apps, Linux apps) and the one
+they open with. Choosing one writes the defaults Files keeps, for all the
+kind's types and extensions. Linux apps open files through ChromeOS
+(nickel-open, Chrome 0020), so the same defaults apply to them.
+
+NickelDefaultAppsHandler finds the apps the way Files does (file_tasks,
+for a sample file of each kind in Downloads) and sets the default with
+UpdateDefaultTask; the card is the nickel-default-apps element.
+
+diff --git a/chrome/app/os_settings_strings.grdp b/chrome/app/os_settings_strings.grdp
+index edeb8447bebe8..28099ae334a31 100644
+--- a/chrome/app/os_settings_strings.grdp
++++ b/chrome/app/os_settings_strings.grdp
+@@ -7080,6 +7080,33 @@ Press &amp; hold keyboard keys to see accent marks and special characters. This
+   <message name="IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST" desc="NickelOS: the type of a Linux app installed on the device itself, and what installed it.">
+     Linux app, installed with <ph name="INSTALLER">$1<ex>Flatpak</ex></ph>
+   </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE" desc="NickelOS: title of the card in the Apps settings that sets which app opens each kind of file.">
++    Default apps
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION" desc="NickelOS: explanation under the Default apps title.">
++    The apps that open each kind of file, from Files and from Linux apps
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES" desc="NickelOS: a kind of file in the Default apps card.">
++    Images
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS" desc="NickelOS: a kind of file in the Default apps card.">
++    Videos
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC" desc="NickelOS: a kind of file in the Default apps card.">
++    Music
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF" desc="NickelOS: a kind of file in the Default apps card.">
++    PDF documents
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT" desc="NickelOS: a kind of file in the Default apps card.">
++    Text files
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET" desc="NickelOS: shown in a Default apps menu when no default app is set for that kind of file.">
++    Not set
++  </message>
++  <message name="IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE" desc="NickelOS: shown in the Default apps card when no installed app can open that kind of file.">
++    No app opens these
++  </message>
+   <message name="IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_PREINSTALLED_APP" desc="Explanation text for the installation source of an app, describing the type of the app, and that it came automatically installed with the device (preinstalled).">
+     <ph name="APP_TYPE">$1<ex>ChromeOS System App</ex></ph> preinstalled on your <ph name="DEVICE_TYPE">$2<ex>Chromebook</ex></ph>
+   </message>
+diff --git a/chrome/browser/resources/ash/settings/BUILD.gn b/chrome/browser/resources/ash/settings/BUILD.gn
+index 918e503c4de6f..a121a357534d2 100644
+--- a/chrome/browser/resources/ash/settings/BUILD.gn
++++ b/chrome/browser/resources/ash/settings/BUILD.gn
+@@ -239,6 +239,7 @@ build_webui("build") {
+     "os_apps_page/app_parental_controls/app_verify_pin_dialog.ts",
+     "os_apps_page/app_parental_controls/block_app_item.ts",
+ 
++    "os_apps_page/nickel_default_apps.ts",
+     "os_apps_page/os_apps_page.ts",
+     "os_bluetooth_page/os_bluetooth_change_device_name_dialog.ts",
+     "os_bluetooth_page/os_bluetooth_device_detail_subpage.ts",
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.html b/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.html
+new file mode 100644
+index 0000000000000..d948522d78b19
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.html
+@@ -0,0 +1,27 @@
++<style include="settings-shared md-select"></style>
++<settings-card header-text="$i18n{nickelDefaultAppsTitle}">
++  <div class="settings-box first">
++    <div class="secondary">$i18n{nickelDefaultAppsDescription}</div>
++  </div>
++  <template is="dom-repeat" items="[[kinds_]]" as="kind">
++    <div class="settings-box">
++      <div class="start">[[kindName_(kind.id)]]</div>
++      <template is="dom-if" if="[[hasApps_(kind)]]" restamp>
++        <select class="md-select" data-kind$="[[kind.id]]"
++            aria-label$="[[kindName_(kind.id)]]" on-change="onChange_">
++          <option value="" selected$="[[!hasDefault_(kind)]]"
++              hidden$="[[hasDefault_(kind)]]">
++            $i18n{nickelDefaultAppsNotSet}
++          </option>
++          <template is="dom-repeat" items="[[kind.apps]]" as="app">
++            <option value="[[app.taskId]]"
++                selected$="[[isDefault_(app, kind)]]">[[app.title]]</option>
++          </template>
++        </select>
++      </template>
++      <template is="dom-if" if="[[!hasApps_(kind)]]" restamp>
++        <div class="secondary">$i18n{nickelDefaultAppsNone}</div>
++      </template>
++    </div>
++  </template>
++</settings-card>
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts b/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts
+new file mode 100644
+index 0000000000000..de931a913e60b
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_apps_page/nickel_default_apps.ts
+@@ -0,0 +1,105 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++/**
++ * @fileoverview NickelOS: the Default apps card on the Apps page. For each
++ * kind of file, the app Files and Linux apps open it with, chosen from the
++ * apps that can (NickelDefaultAppsHandler).
++ */
++
++import 'chrome://resources/ash/common/cr_elements/md_select.css.js';
++import '../os_settings_page/settings_card.js';
++import '../settings_shared.css.js';
++
++import {I18nMixin} from 'chrome://resources/ash/common/cr_elements/i18n_mixin.js';
++import {sendWithPromise} from 'chrome://resources/js/cr.js';
++import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++
++import {getTemplate} from './nickel_default_apps.html.js';
++
++interface DefaultAppChoice {
++  taskId: string;
++  title: string;
++}
++
++interface DefaultAppKind {
++  id: string;
++  apps: DefaultAppChoice[];
++  defaultTaskId: string;
++}
++
++// The name shown for each kind of file.
++const KIND_NAMES: Record<string, string> = {
++  images: 'nickelDefaultAppsImages',
++  videos: 'nickelDefaultAppsVideos',
++  music: 'nickelDefaultAppsMusic',
++  pdf: 'nickelDefaultAppsPdf',
++  text: 'nickelDefaultAppsText',
++};
++
++const NickelDefaultAppsElementBase = I18nMixin(PolymerElement);
++
++export class NickelDefaultAppsElement extends NickelDefaultAppsElementBase {
++  static get is() {
++    return 'nickel-default-apps' as const;
++  }
++
++  static get template() {
++    return getTemplate();
++  }
++
++  static get properties() {
++    return {
++      kinds_: {
++        type: Array,
++        value: () => [],
++      },
++    };
++  }
++
++  declare private kinds_: DefaultAppKind[];
++
++  override connectedCallback(): void {
++    super.connectedCallback();
++    this.refresh_();
++  }
++
++  private async refresh_(): Promise<void> {
++    this.kinds_ = await sendWithPromise('getNickelDefaultApps');
++  }
++
++  private kindName_(id: string): string {
++    return this.i18n(KIND_NAMES[id] || 'nickelDefaultAppsTitle');
++  }
++
++  private hasApps_(kind: DefaultAppKind): boolean {
++    return kind.apps.length > 0;
++  }
++
++  private hasDefault_(kind: DefaultAppKind): boolean {
++    return !!kind.defaultTaskId;
++  }
++
++  private isDefault_(app: DefaultAppChoice, kind: DefaultAppKind): boolean {
++    return app.taskId === kind.defaultTaskId;
++  }
++
++  private async onChange_(e: Event): Promise<void> {
++    const select = e.target as HTMLSelectElement;
++    const kindId = select.dataset['kind'];
++    if (!kindId || !select.value) {
++      return;
++    }
++    await sendWithPromise('setNickelDefaultApp', kindId, select.value);
++    await this.refresh_();
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    [NickelDefaultAppsElement.is]: NickelDefaultAppsElement;
++  }
++}
++
++customElements.define(NickelDefaultAppsElement.is, NickelDefaultAppsElement);
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html b/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html
+index 821894e626e11..3a77d9e354bca 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html
++++ b/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html
+@@ -163,6 +163,7 @@
+         </settings-toggle-button>
+       </template>
+     </settings-card>
++    <nickel-default-apps></nickel-default-apps>
+   </div>
+ 
+   <!-- APP NOTIFICATIONS -->
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.ts b/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.ts
+index 84080c665fc1c..6e12c8ff07d41 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.ts
++++ b/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.ts
+@@ -23,6 +23,7 @@ import './app_management_page/app_management_cros_shared_vars.css.js';
+ import './app_management_page/uninstall_button.js';
+ import './app_parental_controls/app_setup_pin_dialog.js';
+ import './app_parental_controls/app_verify_pin_dialog.js';
++import './nickel_default_apps.js';
+ 
+ import {PrefsMixin} from '/shared/settings/prefs/prefs_mixin.js';
+ import type {CrToggleElement} from 'chrome://resources/ash/common/cr_elements/cr_toggle/cr_toggle.js';
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
+index 3f80e55e01fef..9b01f11401e2c 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
+@@ -14,6 +14,8 @@ static_library("apps") {
+     "app_parental_controls_handler.h",
+     "apps_section.cc",
+     "apps_section.h",
++    "nickel_default_apps_handler.cc",
++    "nickel_default_apps_handler.h",
+   ]
+ 
+   public_deps = [
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+index 4549579c064fe..1b93d1ade20a5 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+@@ -18,6 +18,7 @@
+ #include "chrome/browser/ash/arc/arc_util.h"
+ #include "chrome/browser/ash/child_accounts/on_device_controls/app_controls_service_factory.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/apps/android_apps_handler.h"
++#include "chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/crostini/guest_os_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/system_preferences/startup_section.h"
+ #include "chrome/browser/ui/webui/ash/settings/search/search_tag_registry.h"
+@@ -254,6 +255,16 @@ void AddAppManagementStrings(content::WebUIDataSource* html_source) {
+        IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST},
+       {"appManagementAppDetailsTypeAndSourceNickelHost",
+        IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST},
++      {"nickelDefaultAppsTitle", IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE},
++      {"nickelDefaultAppsDescription",
++       IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION},
++      {"nickelDefaultAppsImages", IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES},
++      {"nickelDefaultAppsVideos", IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS},
++      {"nickelDefaultAppsMusic", IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC},
++      {"nickelDefaultAppsPdf", IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF},
++      {"nickelDefaultAppsText", IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT},
++      {"nickelDefaultAppsNotSet", IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET},
++      {"nickelDefaultAppsNone", IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE},
+       {"appManagementAppDetailsTypeAndroidInstallReasonPolicy",
+        IDS_OS_SETTINGS_APP_DETAILS_TYPE_ANDROID_INSTALL_REASON_POLICY},
+       {"appManagementAppDetailsTypeChromeInstallReasonPolicy",
+@@ -664,6 +675,8 @@ void AppsSection::AddLoadTimeData(content::WebUIDataSource* html_source) {
+ void AppsSection::AddHandlers(content::WebUI* web_ui) {
+   web_ui->AddMessageHandler(
+       std::make_unique<AndroidAppsHandler>(profile(), app_service_proxy_));
++  web_ui->AddMessageHandler(
++      std::make_unique<NickelDefaultAppsHandler>(profile()));
+   if (arc::IsArcVmEnabled()) {
+     web_ui->AddMessageHandler(std::make_unique<GuestOsHandler>(profile()));
+   }
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc
+new file mode 100644
+index 0000000000000..5435d02127ed5
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.cc
+@@ -0,0 +1,159 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.h"
++
++#include <optional>
++#include <set>
++#include <utility>
++#include <vector>
++
++#include "base/functional/bind.h"
++#include "base/strings/string_split.h"
++#include "chrome/browser/ash/file_manager/file_tasks.h"
++#include "chrome/browser/ash/file_manager/fileapi_util.h"
++#include "chrome/browser/ash/file_manager/path_util.h"
++#include "chrome/browser/profiles/profile.h"
++#include "content/public/browser/web_ui.h"
++#include "extensions/browser/entry_info.h"
++#include "url/gurl.h"
++
++namespace ash::settings {
++
++namespace {
++
++// A kind of file: the sample its apps are looked up for, and the types its
++// default is set for.
++struct Kind {
++  const char* id;
++  const char* sample_suffix;
++  const char* sample_mime_type;
++  const char* suffixes;    // Space-separated.
++  const char* mime_types;  // Space-separated.
++};
++
++constexpr Kind kKinds[] = {
++    {"images", ".png", "image/png",
++     ".png .jpg .jpeg .gif .webp .bmp .avif .heic .svg .tif .tiff",
++     "image/png image/jpeg image/gif image/webp image/bmp image/avif "
++     "image/heic image/svg+xml image/tiff"},
++    {"videos", ".mp4", "video/mp4", ".mp4 .webm .mkv .mov .m4v .avi .ogv",
++     "video/mp4 video/webm video/x-matroska video/quicktime video/x-m4v "
++     "video/x-msvideo video/ogg"},
++    {"music", ".mp3", "audio/mpeg",
++     ".mp3 .ogg .oga .opus .flac .wav .m4a .aac",
++     "audio/mpeg audio/ogg audio/opus audio/flac audio/wav audio/x-wav "
++     "audio/mp4 audio/aac"},
++    {"pdf", ".pdf", "application/pdf", ".pdf", "application/pdf"},
++    {"text", ".txt", "text/plain", ".txt .md .log", "text/plain text/markdown"},
++};
++
++std::set<std::string> SplitSet(const char* list) {
++  std::vector<std::string> items = base::SplitString(
++      list, " ", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
++  return std::set<std::string>(items.begin(), items.end());
++}
++
++}  // namespace
++
++NickelDefaultAppsHandler::NickelDefaultAppsHandler(Profile* profile)
++    : profile_(profile) {}
++
++NickelDefaultAppsHandler::~NickelDefaultAppsHandler() = default;
++
++void NickelDefaultAppsHandler::RegisterMessages() {
++  web_ui()->RegisterMessageCallback(
++      "getNickelDefaultApps",
++      base::BindRepeating(&NickelDefaultAppsHandler::HandleGetDefaultApps,
++                          weak_ptr_factory_.GetWeakPtr()));
++  web_ui()->RegisterMessageCallback(
++      "setNickelDefaultApp",
++      base::BindRepeating(&NickelDefaultAppsHandler::HandleSetDefaultApp,
++                          weak_ptr_factory_.GetWeakPtr()));
++}
++
++void NickelDefaultAppsHandler::HandleGetDefaultApps(
++    const base::ListValue& args) {
++  AllowJavascript();
++  FindApps(args[0].GetString(), base::ListValue(), 0);
++}
++
++void NickelDefaultAppsHandler::FindApps(std::string callback_id,
++                                        base::ListValue categories,
++                                        size_t index) {
++  if (index == std::size(kKinds)) {
++    ResolveJavascriptCallback(base::Value(callback_id),
++                              base::Value(std::move(categories)));
++    return;
++  }
++  // A file of this kind in Downloads (it need not exist): the apps are
++  // matched on its type and extension, as for a real file in Files.
++  const Kind& kind = kKinds[index];
++  const base::FilePath path =
++      file_manager::util::GetDownloadsFolderForProfile(profile_).Append(
++          std::string("sample") + kind.sample_suffix);
++  GURL url;
++  if (!file_manager::util::ConvertAbsoluteFilePathToFileSystemUrl(
++          profile_, path, file_manager::util::GetFileManagerURL(), &url)) {
++    OnAppsFound(std::move(callback_id), std::move(categories), index, nullptr);
++    return;
++  }
++  file_manager::file_tasks::FindAllTypesOfTasks(
++      profile_, {extensions::EntryInfo(path, kind.sample_mime_type, false)},
++      {url}, {std::string()},
++      base::BindOnce(&NickelDefaultAppsHandler::OnAppsFound,
++                     weak_ptr_factory_.GetWeakPtr(), std::move(callback_id),
++                     std::move(categories), index));
++}
++
++void NickelDefaultAppsHandler::OnAppsFound(
++    std::string callback_id,
++    base::ListValue categories,
++    size_t index,
++    std::unique_ptr<file_manager::file_tasks::ResultingTasks> tasks) {
++  base::ListValue apps;
++  std::string default_task_id;
++  if (tasks) {
++    for (const auto& task : tasks->tasks) {
++      // Apps that open any file, and virtual tasks, are not defaults.
++      if (task.is_generic_file_handler || task.is_dlp_blocked ||
++          task.task_title.empty()) {
++        continue;
++      }
++      const std::string task_id =
++          file_manager::file_tasks::TaskDescriptorToId(task.task_descriptor);
++      apps.Append(base::DictValue()
++                      .Set("taskId", task_id)
++                      .Set("title", task.task_title));
++      if (task.is_default) {
++        default_task_id = task_id;
++      }
++    }
++  }
++  categories.Append(base::DictValue()
++                        .Set("id", kKinds[index].id)
++                        .Set("apps", std::move(apps))
++                        .Set("defaultTaskId", default_task_id));
++  FindApps(std::move(callback_id), std::move(categories), index + 1);
++}
++
++void NickelDefaultAppsHandler::HandleSetDefaultApp(
++    const base::ListValue& args) {
++  AllowJavascript();
++  const base::Value& callback_id = args[0];
++  const std::string& kind_id = args[1].GetString();
++  std::optional<file_manager::file_tasks::TaskDescriptor> task =
++      file_manager::file_tasks::ParseTaskID(args[2].GetString());
++  for (const Kind& kind : kKinds) {
++    if (kind_id == kind.id && task) {
++      file_manager::file_tasks::UpdateDefaultTask(
++          profile_, *task, SplitSet(kind.suffixes), SplitSet(kind.mime_types));
++      ResolveJavascriptCallback(callback_id, base::Value(true));
++      return;
++    }
++  }
++  ResolveJavascriptCallback(callback_id, base::Value(false));
++}
++
++}  // namespace ash::settings
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.h b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.h
+new file mode 100644
+index 0000000000000..fbd0bdf30a8ef
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.h
+@@ -0,0 +1,62 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_APPS_NICKEL_DEFAULT_APPS_HANDLER_H_
++#define CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_APPS_NICKEL_DEFAULT_APPS_HANDLER_H_
++
++#include <memory>
++#include <string>
++
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "base/values.h"
++#include "content/public/browser/web_ui_message_handler.h"
++
++class Profile;
++
++namespace file_manager::file_tasks {
++struct ResultingTasks;
++}  // namespace file_manager::file_tasks
++
++namespace ash::settings {
++
++// NickelOS: Settings > Apps > Default apps. For each kind of file (images,
++// videos, music, PDF, text), the apps that can open it (ChromeOS's own, web
++// apps, Linux apps) and the one it opens with. Choosing one makes it Files'
++// default for that kind, the default Files' "Change default" sets; Linux apps
++// open files through ChromeOS (nickel-open), so it applies to them too.
++class NickelDefaultAppsHandler : public content::WebUIMessageHandler {
++ public:
++  explicit NickelDefaultAppsHandler(Profile* profile);
++  NickelDefaultAppsHandler(const NickelDefaultAppsHandler&) = delete;
++  NickelDefaultAppsHandler& operator=(const NickelDefaultAppsHandler&) =
++      delete;
++  ~NickelDefaultAppsHandler() override;
++
++  // content::WebUIMessageHandler:
++  void RegisterMessages() override;
++
++ private:
++  // getNickelDefaultApps() -> [{id, apps: [{taskId, title}], defaultTaskId}]
++  void HandleGetDefaultApps(const base::ListValue& args);
++  // setNickelDefaultApp(categoryId, taskId) -> bool
++  void HandleSetDefaultApp(const base::ListValue& args);
++
++  // Finds the apps for the kinds of files from |index| on, one at a time.
++  void FindApps(std::string callback_id,
++                base::ListValue categories,
++                size_t index);
++  void OnAppsFound(
++      std::string callback_id,
++      base::ListValue categories,
++      size_t index,
++      std::unique_ptr<file_manager::file_tasks::ResultingTasks> tasks);
++
++  raw_ptr<Profile> profile_;
++  base::WeakPtrFactory<NickelDefaultAppsHandler> weak_ptr_factory_{this};
++};
++
++}  // namespace ash::settings
++
++#endif  // CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_APPS_NICKEL_DEFAULT_APPS_HANDLER_H_

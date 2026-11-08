@@ -1,0 +1,350 @@
+#!/bin/bash
+# NickelOS's image step (docs/unified.md, "Step 3 in the real
+# build"): build_image's board_finalize_base_image hook (nickel_unified,
+# scripts/board_specific_setup.sh) runs it as root on the image's root
+# filesystem. build_image then labels everything by path, hashes and signs
+# the image as any image.
+#   1. merged /usr, with the matching file_contexts rules in the board's copy
+#      (build_image labels with it) and the image's
+#   2. the records of the image's packages, trimmed, with ChromeOS's own
+#      files in a record of their own (nickel-unify-records.py)
+#   3. Gentoo's packages of the swap set (gentoo/swap.txt), never those held
+#      back (gentoo/held-back.txt), Portage and OpenRC (for your services),
+#      installed by the Unified Gentoo root's Portage from its binary packages
+#   4. GCC's runtime in /usr/lib64, the libraries kept Google's for one
+#      program in /usr/lib64/cros, sandbox policies, Gentoo's /etc copies
+#      left out, the font cache, Portage's settings for the device, the
+#      loader's settings (without /usr/local) and cache
+#   5. the records packed into the image (/usr/share/nickel-gentoo): the
+#      device's /var/db/pkg is made from them when the OS build changes;
+#      build_image's own go back for its next steps (the SDK's Portage
+#      can't read Gentoo's)
+#   nickel-unify ROOT BOARD_ROOT
+# The Unified Gentoo root is the build host's /srv/nickel/unified/root,
+# bound into the source checkout (nickel-build-stock), so the SDK sees it.
+set -euo pipefail
+R=$1
+B=$2
+HERE=$(cd "$(dirname "$0")" && pwd)
+G=${NICKEL_UNIFIED_ROOT:-/mnt/host/source/.nickel-unified-root}
+PKGDIR_G=${NICKEL_UNIFIED_PKGDIR:-/var/cache/uf-pkgs}
+FC=etc/selinux/arc/contexts/files/file_contexts
+M=/mnt/image
+PRIV=/usr/lib64/cros
+note() { echo "nickel-unify: $*"; }
+[ -x "$G/usr/bin/emerge" ] || { note "no Unified Gentoo root at $G (nickel-build-stock binds /srv/nickel/unified/root there)" >&2; exit 1; }
+[ -d "$R/usr/bin" ] && [ -f "$B/$FC" ] || { note "usage: nickel-unify ROOT BOARD_ROOT" >&2; exit 2; }
+# Our packages NickelOS's Gentoo repository carries too must match this
+# overlay's (gentoo/device-repo.txt): the image takes the Unified root's
+# builds of them.
+bash "$HERE/uf-device-repo.sh" --check || exit 1
+# The image must have NickelOS: build_packages skips the BSP, and with it
+# every NickelOS package, when one of its dependencies can't be installed
+# on the board (an EAPI 8 ebuild, builds 23b and 23c), and still succeeds.
+ls -d "$R"/var/db/pkg/chromeos-base/chromeos-bsp-nickel-[0-9]* >/dev/null 2>&1 || {
+	note "the image has no chromeos-bsp-nickel: build_packages skipped NickelOS's packages (emerge-nickel -pv chromeos-bsp-nickel says why)" >&2; exit 1; }
+
+# The Gentoo root's Portage works on the image at /mnt/image: the image with
+# what build_image mounts on it (its /var and /usr/local, from the data
+# partition), and the kernel's file systems for the packages' install steps.
+mounted=()
+cleanup() {
+	local i
+	for ((i = ${#mounted[@]} - 1; i >= 0; i--)); do
+		umount -R "${mounted[i]}" 2>/dev/null || umount -lR "${mounted[i]}" 2>/dev/null || true
+	done
+}
+trap cleanup EXIT
+mnt() {
+	mountpoint -q "${@: -1}" && return 0
+	mount "$@"
+	mounted+=("${@: -1}")
+}
+mnt -t proc proc "$G/proc"
+mnt --rbind /dev "$G/dev"
+mount --make-rslave "$G/dev"
+mnt --rbind /sys "$G/sys"
+mount --make-rslave "$G/sys"
+mkdir -p "$G$M"
+mnt --rbind "$R" "$G$M"
+mount --make-rslave "$G$M"
+in_gentoo() {
+	chroot "$G" /usr/bin/env -i HOME=/root TERM=dumb LANG=C.UTF-8 \
+		PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin /bin/bash -c "$1"
+}
+
+note "1. merged /usr"
+python3 "$HERE/uf-merge-usr.py" "$R" "$B/$FC" "$R/$FC"
+
+note "2. the records"
+work=$(mktemp -d)
+# build_image's own records, for the steps after this hook: the dev and test
+# images' packages are installed by the SDK's Portage, which can't read
+# Gentoo's newer records (EAPI 8 and 9: every Gentoo package showed as
+# masked). The device's are the ones packed into the image (step 5).
+cp -a "$R/var/db/pkg" "$work/vdb-build"
+# Gentoo's package moves on the image's records first (x11-libs/libva is
+# media-libs/libva in Gentoo, sys-devel/llvm llvm-core/llvm...), as Portage
+# would make them at its first run anyway: everything after this compares
+# the image's packages with Gentoo's by Gentoo's names.
+in_gentoo "ROOT=$M emaint --fix moveinst" | sed 's/^/nickel-unify: /'
+python3 "$HERE/nickel-unify-records.py" "$R" "$G/var/db/pkg" "$HERE/gentoo/swap.txt" "$work/swap" "$B"
+
+# Libraries kept Google's for one program each (vision decision 3, "beside
+# Gentoo's"): Gentoo's package of the same library installs normally, and
+# Google's copy goes to /usr/lib64/cros, found through those programs'
+# RUNPATH (PRIV_USERS in the records step). libwayland-server for sommelier
+# (1.26 crashed it on client teardown), libcares for the DNS proxy (1.34
+# broke its socket functions). Google's C++ libraries are moved there by
+# the records step.
+mkdir -p "$work/priv"
+for so in libwayland-server.so.0 libcares.so.2; do
+	real=$(readlink -f "$R/usr/lib64/$so")
+	cp -a "$real" "$work/priv/"
+	ln -sfn "$(basename "$real")" "$work/priv/$so"
+done
+
+note "3. Gentoo's packages"
+# Portage and OpenRC for your packages and services, with what they need on
+# the device (gentoo/install.txt).
+{ cat "$work/swap"; grep -vE '^\s*(#|$)' "$HERE/gentoo/install.txt"; } > "$G/root/nickel-unify-swap.txt"
+# ChromeOS's own: its /var layout (Gentoo's baselayout makes /var/lock and
+# /var/run links; /var is the data partition's, and ChromeOS's /var/lock is
+# a directory) and its name (/etc/os-release says NickelOS, not Gentoo).
+# Also in the device's profile.
+os_mask='/var/lock /var/run /etc/os-release'
+# OpenRC runs your services only (nickel-openrc.conf): its scripts for what
+# OpenRC does as init (mounting, the clock, the network, killing every
+# process at shutdown) stay out, since stopping them would unmount
+# ChromeOS's filesystems; nickel-os provides their names. The same list is
+# in the device's profile (repo/nickel make.defaults).
+openrc_mask=$(printf '/etc/init.d/%s ' mount-ro save-termencoding seedrng binfmt net-online bootmisc \
+	netmount killprocs termencoding swclock numlock loopback dmesg sysctl consolefont root mtab sysfs \
+	save-keymaps localmount osclock keymaps hostname savecache modules devfs fsck cgroups swap procfs \
+	agetty hwclock runsvdir s6-svscan)
+grep -vE '^\s*(#|$)' "$HERE/gentoo/held-back.txt" > "$G/root/nickel-unify-held.txt"
+# Never merged either: the image's packages newer than Gentoo's.
+grep -v '^$' "$work/swap.newer" > "$G/root/nickel-unify-newer.txt" || true
+# Gentoo's files win where another package of the image ships the same file
+# (logged as collisions); /etc stays the image's (Gentoo's copies are left
+# as ._cfg files, removed below); no docs or translations, as ChromeOS
+# leaves them out, but the English man pages stay: the Terminal has man
+# (man-db, install.txt), and the guide sends people to man emerge. Static
+# libraries stay as Gentoo's packages install them (most only with
+# USE=static-libs): other packages' CMake files name them,
+# and leaving them out broke every build against LLVM's CMake
+# ("libLLVMDemangle.a ... does not exist": Intel's OpenCL compiler on
+# the Intel test PC, 2026-10-21), the same for SPIRV-Tools'. LLVM's are about
+# 107 MB. glibc's libc_nonshared.a and empty libpthread.a and friends,
+# which every program and -lpthread need, were the exceptions before.
+# Headers stay: emerge builds on the device.
+in_gentoo "
+PKGDIR=$PKGDIR_G \
+FEATURES='-news -config-protect-if-modified -sandbox -usersandbox -protect-owned -collision-protect' \
+CONFIG_PROTECT=/etc CONFIG_PROTECT_MASK='' \
+INSTALL_MASK='/usr/share/doc /usr/share/man/?? /usr/share/man/??.* /usr/share/man/??_* /usr/share/info /usr/share/gtk-doc /usr/share/locale /usr/lib64/*.la /etc/runlevels $openrc_mask $os_mask' \
+emerge --root=$M --usepkgonly --getbinpkg=n --oneshot \
+	--rebuild-if-new-slot=n --ignore-built-slot-operator-deps=y --with-bdeps=n \
+	--binpkg-respect-use=n --binpkg-changed-deps=n --quiet-build --jobs=8 \
+	--exclude \"\$(cat /root/nickel-unify-held.txt /root/nickel-unify-newer.txt | tr '\n' ' ')\" \
+	\$(cat /root/nickel-unify-swap.txt) > /root/nickel-unify-install.log 2>&1
+" || { tail -40 "$G/root/nickel-unify-install.log"; note "emerge failed (log: $G/root/nickel-unify-install.log)" >&2; exit 1; }
+note "$(grep -c '^>>> Installing' "$G/root/nickel-unify-install.log") packages installed"
+grep -a "merged despite file collisions\|NOT merged" "$G/root/nickel-unify-install.log" |
+	sed -E 's/\x1b\[[0-9;]*m//g' | sort | uniq -c | head -20 || true
+# GCC's runtime (libstdc++, libgcc_s: Gentoo's C++ and Google's libc++ need
+# them) without the compiler, recorded as installed: the compiler comes as
+# a binary package when first needed.
+in_gentoo "
+PKGDIR=$PKGDIR_G FEATURES='-news -sandbox -usersandbox -protect-owned -collision-protect' \
+INSTALL_MASK='/usr/libexec/gcc /usr/x86_64-pc-linux-gnu/gcc-bin /usr/share/gcc-data /usr/share/doc /usr/share/man /usr/share/info /usr/share/locale /usr/lib/gcc/x86_64-pc-linux-gnu/*/include /usr/lib/gcc/x86_64-pc-linux-gnu/*/include-fixed /usr/lib/gcc/x86_64-pc-linux-gnu/*/plugin /usr/lib/gcc/x86_64-pc-linux-gnu/*/finclude /usr/lib/gcc/x86_64-pc-linux-gnu/*/32 /usr/lib/gcc/x86_64-pc-linux-gnu/*/*.a /usr/lib/gcc/x86_64-pc-linux-gnu/*/*.o /usr/lib/gcc/x86_64-pc-linux-gnu/*/lib*san.so*' \
+emerge --root=$M --usepkgonly --getbinpkg=n --oneshot --quiet-build sys-devel/gcc > /root/nickel-unify-gcc.log 2>&1
+" || { tail -20 "$G/root/nickel-unify-gcc.log"; note "GCC's runtime failed" >&2; exit 1; }
+# Recorded as GCC, marked as only part of it: the device fetches the whole
+# compiler at its first startup, and keeps yours across OS updates of the
+# same version (nickel-gentoo).
+for d in "$R"/var/db/pkg/sys-devel/gcc-[0-9]*; do
+	echo "the runtime libraries only (nickel-unify)" > "$d/NICKEL_PARTIAL"
+done
+
+note "4. the rest"
+# GCC's runtime in /usr/lib64, where ChromeOS's sandboxes (minijail's mount
+# namespaces) see libraries; GCC's own directory links to it.
+gcc=$(ls -d "$R"/usr/lib/gcc/x86_64-pc-linux-gnu/* | tail -1)
+for f in $(cd "$gcc" && ls | grep -E '^lib(gcc_s|stdc\+\+|atomic|gomp|quadmath|itm)\.so'); do
+	if [ -L "$gcc/$f" ]; then
+		ln -sfn "$(readlink "$gcc/$f")" "$R/usr/lib64/$f"
+	else
+		mv "$gcc/$f" "$R/usr/lib64/$f"
+		ln -s "../../../../lib64/$f" "$gcc/$f"
+	fi
+done
+[ -e "$R/usr/lib64/libstdc++.so.6" ] && [ -e "$R/usr/lib64/libgcc_s.so.1" ] || { note "GCC's runtime is not in /usr/lib64" >&2; exit 1; }
+mkdir -p "$R$PRIV"
+cp -a "$work/priv/." "$R$PRIV/"
+# A library ChromeOS's files need that Gentoo's packages left out of the
+# image altogether (another library name, and preserve-libs didn't keep it)
+# comes back from the board's root into $PRIV.
+python3 "$HERE/nickel-unify-keep.py" "$R" "$B" "$work/swap.rpath" | sed 's/^/nickel-unify: /'
+# $PRIV in the RUNPATH of the files that load a library from there (the
+# records step lists them: Google's C++ libraries' users and the programs
+# above; their records say so already). Not a file a Gentoo package put in
+# that place since: it would take Google's copies.
+cp "$work/swap.rpath" "$G/root/nickel-unify-rpath.txt"
+ls "$R$PRIV" > "$G/root/nickel-unify-priv.txt"
+in_gentoo "n=0; while read -r f; do [ -f $M\$f ] || continue
+	patchelf --print-needed $M\$f | grep -qxF -f /root/nickel-unify-priv.txt || continue
+	patchelf --add-rpath $PRIV $M\$f || exit 1; n=\$((n + 1)); done < /root/nickel-unify-rpath.txt; echo \$n" |
+	sed "s|^|nickel-unify: RUNPATH $PRIV: |; s|\$| files|"
+# Google's AMD driver, kept for minigbm, must bind its own symbols to itself
+# (nickel-mesa-apart.bashrc): bound to Gentoo's libgallium, which exports
+# some of the same names, AMD had no GBM device and nothing on screen.
+if [ -f "$R$PRIV/dri/radeonsi_dri.so" ]; then
+	dyn=$(in_gentoo "readelf -d $M$PRIV/dri/radeonsi_dri.so")
+	grep -qE '\((FLAGS|SYMBOLIC)\).*SYMBOLIC' <<< "$dyn" || {
+		note "$PRIV/dri/radeonsi_dri.so isn't linked -Bsymbolic: AMD would get no GBM device" >&2
+		exit 1
+	}
+	note "Google's radeonsi for minigbm: in $PRIV/dri, -Bsymbolic"
+fi
+# Sandbox policies: the system calls Gentoo's newer libraries make.
+NICKEL_SRC=/mnt/host/source BOARD_ROOT=$B UF=$HERE bash "$HERE/uf-policies.sh" "$R" | tail -3
+# Except where Gentoo's must win: python-exec's choice of Python (Google's
+# named its 3.11, which the records step takes out: one Python, Gentoo's).
+# The Unified root's copy is Gentoo's: Portage didn't always reinstall
+# python-exec-conf (no ._cfg file), and Google's stayed (build 23d).
+for f in /etc/python-exec/python-exec.conf; do
+	if [ -f "$G$f" ] && ! cmp -s "$G$f" "$R$f"; then
+		cp "$G$f" "$R$f"
+		note "Gentoo's $f taken"
+	fi
+done
+note "Gentoo's /etc files left out where the image has its own: $(find "$R/etc" -name '._cfg[0-9][0-9][0-9][0-9]_*' -print -delete | wc -l)"
+chroot "$R" /usr/bin/fc-cache -s -f >/dev/null 2>&1 && note "font cache made"
+# The module caches from the image's own modules: Portage's install steps
+# ran in the Unified root and listed the root's (gdk-pixbuf's named a JPEG
+# XL loader and an SVG loader the image hadn't, so GTK apps lost their SVG
+# icons: build 23e).
+chroot "$R" /usr/bin/gdk-pixbuf-query-loaders --update-cache >/dev/null 2>&1 &&
+	note "image loaders cache made: $(grep -c '^"/' "$R"/usr/lib64/gdk-pixbuf-2.0/2.10.0/loaders.cache || true) loaders" ||
+	note "gdk-pixbuf-query-loaders failed" >&2
+chroot "$R" /usr/bin/gio-querymodules /usr/lib64/gio/modules >/dev/null 2>&1 || note "gio-querymodules failed" >&2
+chroot "$R" /usr/bin/glib-compile-schemas /usr/share/glib-2.0/schemas >/dev/null 2>&1 || note "glib-compile-schemas failed" >&2
+# Portage's settings for the device (nickel-gentoo's) and its profile, in the
+# image's /etc: read-only below your layer, so OS updates bring their changes.
+if [ -d "$R/usr/share/nickel-gentoo/etc" ]; then
+	cp -a "$R/usr/share/nickel-gentoo/etc/." "$R/etc/"
+	ln -sfn ../../usr/share/nickel-gentoo/repo/nickel/profiles/nickel/amd64/desktop "$R/etc/portage/make.profile"
+fi
+# The OS's own Gentoo settings (the Unified root's: Google's patches carried
+# on Gentoo's packages, the flags and build options ChromeOS needs) for the
+# device too, so a package of the OS you rebuild is built as the image's was.
+cp -r "$HERE/gentoo/etc/portage/." "$R/etc/portage/"
+chown -R root:root "$R/etc/portage"
+# OpenRC's runlevels: nickel-os at boot, your services in default (rc-update
+# add), nothing else; nickel-stop (empty) stops them all at shutdown. No
+# cgroups of OpenRC's: ChromeOS's own manage them.
+rm -rf "$R/etc/runlevels"
+mkdir -p "$R"/etc/runlevels/{sysinit,boot,default,shutdown,nickel-stop}
+ln -s /etc/init.d/nickel-os "$R/etc/runlevels/boot/nickel-os"
+[ ! -f "$R/etc/rc.conf" ] || sed -i -E 's/^#?rc_controller_cgroups=.*/rc_controller_cgroups="NO"/' "$R/etc/rc.conf"
+# The OS's records keep only the dependencies the image meets (Google's
+# name build-tree packages the image never had); Gentoo's are reported.
+cp "$HERE/nickel-unify-deps.py" "$G/root/"
+in_gentoo "ROOT=$M python3 /root/nickel-unify-deps.py $M" | sed 's/^/nickel-unify: /'
+# The packages held back stay the image's on the device too: Gentoo's newer
+# versions are masked there (emerge -uDN @world would otherwise bring the
+# very versions that broke), until each line of held-back.txt goes. A
+# virtual is masked as Gentoo's package, any version: the records step gave
+# the image's Gentoo's version number.
+mkdir -p "$R/etc/portage/package.mask"
+{
+	echo "# NickelOS: held back as the image's (nickel-unify, from"
+	echo "# scripts/unified/gentoo/held-back.txt, where each one's reason is)."
+	while read -r cp; do
+		case $cp in virtual/*) echo "$cp::gentoo"; continue ;; esac
+		for d in "$R"/var/db/pkg/"$cp"-[0-9]*; do
+			if [ -d "$d" ]; then echo ">${d#"$R"/var/db/pkg/}"; fi
+		done
+	done < "$G/root/nickel-unify-held.txt"
+} > "$R/etc/portage/package.mask/nickel-held-back"
+note "held back on the device: $(grep -c '^>' "$R/etc/portage/package.mask/nickel-held-back") packages"
+# The loader's search leaves /usr/local out (Google's 00basic and Gentoo's
+# 50baselayout list it): a library there must never replace the OS's own
+# copy, Chrome's included. Its programs find their libraries through
+# RUNPATH (nickel-local-rpath).
+for f in "$R"/etc/env.d/*; do
+	[ -f "$f" ] && sed -i -E "/^LDPATH=/ { s#/usr/local/lib(64)?:?##g; s#:(['\"])#\1#; }" "$f"
+done
+# Google's LLVM 15 (llvm-core/llvm:15 in the records, only for the build
+# environment Google's packages come from: no program of the OS links it)
+# put its bin directory first on PATH (env.d's 10llvm-*, before Gentoo's
+# 60llvm-*, whose order is newest first): every build on the device that
+# runs an LLVM tool by name got LLVM 15's (opencl-clang's llvm-tblgen made
+# options for 15 that LLVM 22's headers refuse, Intel's OpenCL on
+# the Intel test PC, 2026-10-22). Its files stay; Gentoo's LLVM is the one found.
+for f in "$R"/etc/env.d/*llvm*; do
+	if [ -f "$f" ] && grep -q '^PATH="/usr/lib/llvm/bin"' "$f"; then
+		rm -f "$f"
+		note "the OS's own LLVM off PATH: ${f#"$R"}"
+	fi
+done
+in_gentoo "ROOT=$M env-update >/dev/null && ldconfig -r $M"
+if grep -q '^/usr/local' "$R/etc/ld.so.conf"; then note "/usr/local is still in the image's ld.so.conf" >&2; exit 1; fi
+# Every program and library finds what it needs (a report: stock ChromeOS
+# has a few that don't, Samba's and the camera's).
+python3 "$HERE/uf-check-libs.py" "$R" | sed 's/^/nickel-unify: /'
+# VA-API drivers where the image's libva, Gentoo's, looks for them
+# (/usr/lib64/dri). Built against ChromiumOS's libva, Intel's and NVIDIA's
+# went to /usr/lib64/va/drivers, where nothing looked any more: Chrome
+# decoded video on the CPU on those GPUs (16852.17.9; moved by
+# nickel-va-drivers.bashrc and nvidia-vaapi-driver r2).
+stray=$(cd "$R" && find usr/lib64 -name '*_drv_video.so' ! -path 'usr/lib64/dri/*' | sort | tr '\n' ' ')
+if [ -n "$stray" ]; then note "VA-API drivers where libva doesn't look (it reads /usr/lib64/dri): $stray" >&2; exit 1; fi
+# And resolves its symbols: a Gentoo library built against a newer library
+# than the one the image keeps loads, then can't (Mesa's EGL against
+# Google's Wayland 1.22, build 23d: Chrome had no GPU and no login screen).
+# Libraries that leave symbols to the program loading them are listed in
+# gentoo/undefined-ok.txt; any other stops the build.
+undef=$(chroot "$R" /bin/bash -c 'for f in /usr/lib64/*.so.*; do
+	[ -f "$f" ] && [ ! -L "$f" ] || continue
+	ldd -r "$f" 2>&1 | grep -F "undefined symbol" | sed "s|^|$f: |"
+done; true' | grep -vF -f <(grep -vE '^\s*(#|$)' "$HERE/gentoo/undefined-ok.txt") | sort -u) || true
+note "libraries with symbols nothing in the image has: $(printf '%s' "$undef" | cut -d: -f1 | sort -u | grep -c . || true)"
+printf '%s\n' "$undef" | grep . | head -20 | sed 's/^/nickel-unify:   /' || true
+if [ -n "$undef" ]; then
+	note "an image library can't resolve its symbols (above): a package it needs is older in the image than the one it was built against (swap it, or list the library in gentoo/undefined-ok.txt if it leaves them to its loader)" >&2
+	exit 1
+fi
+
+# The OS's own packages are under licenses Gentoo's default (@FREE) doesn't
+# all list (Google's BSD-Google, LLVM's exception, NVIDIA's, unRAR's):
+# Portage on the device showed them as masked and wanted to replace them.
+# NickelOS ships them, so exactly those installed versions are accepted.
+mkdir -p "$R/etc/portage/package.license"
+{
+	echo "# NickelOS: the OS's own installed packages, under the licenses they"
+	echo "# ship with (nickel-unify; only these exact versions)."
+	for d in "$R"/var/db/pkg/*/*/; do
+		cpv=${d#"$R"/var/db/pkg/}
+		echo "=${cpv%/} *"
+	done
+} > "$R/etc/portage/package.license/nickel-os"
+note "OS packages' licenses accepted: $(grep -c '^=' "$R/etc/portage/package.license/nickel-os")"
+# The OS as Portage on the device sees it (nickel-unify-os.py): the set
+# @nickel-os (in your world, so emerge --depclean keeps the OS), Gentoo's
+# packages of the names the OS keeps Google's masked, and the flags Gentoo's
+# packages in the image were built with.
+cp "$HERE/nickel-unify-os.py" "$G/root/"
+in_gentoo "ROOT=$M python3 /root/nickel-unify-os.py $M /var/db/repos/gentoo" | sed 's/^/nickel-unify: /'
+
+note "5. the records into the image"
+mkdir -p "$R/usr/share/nickel-gentoo"
+tar --zstd -cf "$R/usr/share/nickel-gentoo/pkgdb.tar.zst" -C "$R/var/db/pkg" .
+note "$(find "$R/var/db/pkg" -mindepth 2 -maxdepth 2 -type d | wc -l) records, $(du -h "$R/usr/share/nickel-gentoo/pkgdb.tar.zst" | cut -f1) packed"
+rm -rf "$R/var/db/pkg"
+cp -a "$work/vdb-build" "$R/var/db/pkg"
+note "build_image's own records back for its next steps (the device unpacks the image's)"
+rm -rf "$work"
+df -h "$R" | tail -1
+df -i "$R" | tail -1

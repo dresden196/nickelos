@@ -1,0 +1,9 @@
+# The stock-reven stand-in overlay (src/private-overlays/overlay-reven-private)
+# is auto-added for any board that inherits reven. Its catch-all model config
+# must not compete with ours.
+chromeos-base/chromeos-config-bsp::reven-private
+
+# Flex's hardware information service reports device data to Google.
+# NickelOS is de-Googled; chromeos-bsp-nickel does not pull it in, and this
+# keeps anything else from doing so.
+chromeos-base/flex_hwis

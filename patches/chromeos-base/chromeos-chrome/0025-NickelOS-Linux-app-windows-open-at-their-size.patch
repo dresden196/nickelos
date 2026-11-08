@@ -1,0 +1,45 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux app windows open at their size
+
+Exo creates a shell surface's widget at the client's first commit, with
+an empty placeholder for bounds (1x1) until its first frame. GTK 4 asks
+for state changes in between, unsetting maximized and fullscreen on every
+new window, and each is answered with a configure carrying the widget's
+bounds: the client sizes itself to 1x1, so every GTK 4 window opened at
+its minimum size (a 480x320 GtkGLArea window at 157x66) on the Dell and
+in the VM. Crostini's apps go through sommelier; NickelOS's talk to Exo
+directly. Until the window is first shown, such a configure now carries
+an empty size (the client chooses), as the one sent before the widget
+existed does; bounds the window has been given (window restore, 0018)
+still go out.
+
+diff --git a/components/exo/shell_surface.cc b/components/exo/shell_surface.cc
+index bd75e835f5ad6..79e9e38d06d1e 100644
+--- a/components/exo/shell_surface.cc
++++ b/components/exo/shell_surface.cc
+@@ -1043,9 +1043,23 @@ void ShellSurface::Configure(bool ends_drag) {
+       auto occlusion_state = occlusion_observer_->state();
+       auto restore_state_type = std::optional<chromeos::WindowStateType>{
+           window_state->GetRestoreWindowState()};
++      // NickelOS: the widget exists from the client's first commit, but its
++      // bounds are an empty placeholder, 1x1, until its first frame. Linux
++      // apps talk to Exo directly (Crostini's go through sommelier), and GTK
++      // 4 asks for state changes then (unset maximized and fullscreen on
++      // every new window), each answered with a configure: sizing the client
++      // to 1x1 opened every GTK 4 window at its minimum size. Until the
++      // window is first shown, an empty size (0x0: the client chooses) goes
++      // out instead, as in the configure sent before the widget existed.
++      // Bounds it has been given (window restore) still do.
++      gfx::Rect bounds = GetClientBoundsInScreen(widget_);
++      if (!widget_->IsVisible() && !widget_->IsMinimized() &&
++          bounds.width() <= 1 && bounds.height() <= 1) {
++        bounds.set_size(gfx::Size());
++      }
+       serial = configure_callback_.Run(
+-          GetClientBoundsInScreen(widget_), window_state->GetStateType(),
+-          IsResizing(), widget_->IsActive(), origin_offset,
++          bounds, window_state->GetStateType(), IsResizing(),
++          widget_->IsActive(), origin_offset,
+           /*raster_scale=*/1.0, occlusion_state, restore_state_type);
+     } else {
+       auto state = chromeos::ToWindowStateType(initial_show_state_);

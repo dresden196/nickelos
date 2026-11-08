@@ -1,0 +1,30 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: no growth campaigns (Google's promotions)
+
+ChromeOS's growth framework shows Google's in-product promotions: nudges
+and notifications from campaigns in the growth-campaigns DLC, which only
+Google's update servers serve. On NickelOS every session asked dlcservice
+for that DLC in vain (14 times in the release check of 16852.17.4), each
+failure leaving a dlc_service_failure crash report, and it has nothing to
+show anyway. kGrowthFramework is off by default: the campaigns manager
+isn't started, in sessions or in demo mode (both checks go through
+IsGrowthFrameworkEnabled).
+
+---
+diff --git a/ash/constants/ash_features.cc b/ash/constants/ash_features.cc
+index ee982f8..280a031 100644
+--- a/ash/constants/ash_features.cc
++++ b/ash/constants/ash_features.cc
+@@ -815,7 +815,11 @@ BASE_FEATURE(kFeatureManagementGrowthFramework,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ // Enables growth framework.
+-BASE_FEATURE(kGrowthFramework, base::FEATURE_ENABLED_BY_DEFAULT);
++// NickelOS: off. It shows Google's promotions (campaigns from the
++// growth-campaigns DLC, which only Google's update servers have: on NickelOS
++// every session asked dlcservice for it in vain, each time leaving a crash
++// report).
++BASE_FEATURE(kGrowthFramework, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ // Enable set app window as nudge parent.
+ BASE_FEATURE(kGrowthCampaignsNudgeParentToAppWindow,

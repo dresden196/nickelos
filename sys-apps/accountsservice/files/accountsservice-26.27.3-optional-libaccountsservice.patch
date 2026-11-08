@@ -1,0 +1,54 @@
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -8,6 +8,7 @@
+ option('minimum_uid', type: 'integer', value: 1000, description: 'Set minimum uid for human users')
+ 
+ option('elogind', type: 'boolean', value: false, description: 'Use elogind')
++option('libaccountsservice', type: 'boolean', value: true, description: 'Build the libaccountsservice client library (needs logind from systemd or elogind)')
+ option('libxcrypt', type: 'boolean', value: true, description: 'Use crypt_gensalt() from libxcrypt if available')
+ 
+ option('introspection', type: 'boolean', value: true, description: 'Enable introspection for this build')
+--- a/meson.build
++++ b/meson.build
+@@ -238,10 +238,13 @@
+ create_homed = get_option('create_homed')
+ config_h.set10('CREATE_HOMED', create_homed)
+ 
+-if get_option('elogind')
+-  logind_dep = dependency('libelogind', version: '>= 229.4')
+-else
+-  logind_dep = dependency('libsystemd', version: '>= 186')
++# Only the client library uses logind; accounts-daemon builds without it.
++if get_option('libaccountsservice')
++  if get_option('elogind')
++    logind_dep = dependency('libelogind', version: '>= 229.4')
++  else
++    logind_dep = dependency('libsystemd', version: '>= 186')
++  endif
+ endif
+ 
+ subdir('data')
+@@ -253,11 +256,11 @@
+   subdir('doc/dbus')
+ endif
+ 
+-if get_option('gtk_doc')
++if get_option('gtk_doc') and get_option('libaccountsservice')
+   subdir('doc/libaccountsservice')
+ endif
+ 
+-if get_option('tests') and meson.can_run_host_binaries()
++if get_option('tests') and get_option('libaccountsservice') and meson.can_run_host_binaries()
+   subdir('tests')
+ endif
+ 
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -79,4 +79,6 @@
+   install_dir: act_libexecdir,
+ )
+ 
+-subdir('libaccountsservice')
++if get_option('libaccountsservice')
++  subdir('libaccountsservice')
++endif

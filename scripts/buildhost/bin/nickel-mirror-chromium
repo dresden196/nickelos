@@ -1,0 +1,17 @@
+#!/bin/bash
+# Bare mirror of chromium/src with full history, including the ash/ + chromeos/
+# code the NickelOS desktop depends on, in case upstream ever drops it.
+# Not "clone --mirror": that pulls refs/changes/* (millions of Gerrit CLs).
+# heads + branch-heads (release branches) + tags is what builds need.
+set -euo pipefail
+R=/srv/nickel/mirror/chromium/src.git
+if [ ! -d "$R" ]; then
+  git init -q --bare "$R"
+  git -C "$R" remote add origin https://chromium.googlesource.com/chromium/src.git
+  git -C "$R" config --unset-all remote.origin.fetch || true
+  for r in heads branch-heads tags; do git -C "$R" config --add remote.origin.fetch "+refs/$r/*:refs/$r/*"; done
+  git -C "$R" config protocol.version 2
+fi
+echo "== chromium mirror start $(date -Is)"
+git -C "$R" fetch --prune --progress origin
+echo "== chromium mirror done $(date -Is)"; du -sh "$R"

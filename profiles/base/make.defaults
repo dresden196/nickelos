@@ -1,0 +1,42 @@
+# NickelOS board profile. Inherits everything from reven:base (the public half
+# of ChromeOS Flex) and only lists what NickelOS adds or changes.
+
+# Model config (chromeos-config-bsp) comes from this overlay. Public reven has
+# USE=unibuild but no config, which stalls boot at cros_configfs.
+USE="${USE} has_chromeos_config_bsp"
+
+# No Crostini (docs/host-apps.md, "The Crostini removal"): Linux apps run on
+# the device itself. reven turns kvm_host on board-wide, which brings crosvm,
+# the VM daemons (concierge, cicerone, seneschal) and the termina DLCs, and,
+# through /etc/ui_use_flags.txt, has session_manager start Chrome with
+# Crostini enabled. Global, so that file goes without it too.
+USE="${USE} -kvm_host"
+
+# Firmware from ChromiumOS's linux-firmware: the x86 PC hardware set. Intel
+# Wi-Fi/BT, i915 and audio DSP come from here because these are the versions
+# matched to the ChromeOS 6.12 kernel. Everything else Flex ships comes from
+# sys-kernel/linux-firmware-nickel (upstream release), whose file list is
+# generated against this set by scripts/gen-firmware-list.py so the two never
+# install the same file. Rerun that script whenever this list changes.
+# Left out on purpose: ARM/SoC-only flags (adreno, venus, mt8173-vpu,
+# rockchip, qca-wcn399x, ath10k_wcn3990, ath11k_wcn6750, nvidia-xusb), cros-pd
+# (Chromebook EC) and ipu3/ipu6 (need a camera stack we don't ship yet).
+LINUX_FIRMWARE="${LINUX_FIRMWARE}
+	iwlwifi-all
+	ibt-hw ibt_9260 ibt_9462 ibt_9560 ibt_ax200 ibt_ax201 ibt_ax203 ibt_ax210
+	ibt_ax211 ibt_ax211_mtl ibt_be200
+	i915_adl i915_cnl i915_glk i915_mtl i915_skl i915_tgl
+	adsp_apl adsp_cnl adsp_glk adsp_kbl adsp_skl fw_sst fw_sst2
+	amdgpu_gc_11_0_1 amdgpu_gc_11_0_4 amdgpu_yellow_carp
+	ath3k-all ath9k_htc ath10k_qca6174a-3 ath10k_qca6174a-5 ath11k_wcn6855
+	qca6174a-3-bt qca6174a-5-bt qca-wcn685x-bt
+	bcm4354-bt brcmfmac-all
+	marvell-mwlwifi marvell-pcie8897 marvell-pcie8997
+	mt7920 mt7920-bt mt7921e mt7921e-bt mt7922 mt7922-bt mt7925 mt7925-bt
+	rt2870 rtw8822c rtw8852a rtw8852b rtw8852c
+	rtl_bt-8822ce-uart rtl_bt-8822ce-usb rtl_bt-8852ae-usb rtl_bt-8852be-usb
+	rtl_bt-8852be-vt-usb rtl_bt-8852ce-usb
+	rtl8107e-1 rtl8107e-2 rtl8125a-3 rtl8125b-1 rtl8125b-2 rtl8153
+	rtl8168fp-3 rtl8168g-1 rtl8168g-2 rtl8168h-1 rtl8168h-2
+	ice keyspan_usb
+"

@@ -1,0 +1,14 @@
+[Unit]
+Description=NickelOS image build for board %i
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=nickel
+Environment=HOME=/home/nickel
+Environment=NICKEL_BOARD=%i
+# Per-board knobs, e.g. NICKEL_SEED_FROM=reven
+EnvironmentFile=-/etc/default/nickel-build-%i
+ExecStart=/usr/local/bin/nickel-build-stock
+TimeoutStartSec=infinity

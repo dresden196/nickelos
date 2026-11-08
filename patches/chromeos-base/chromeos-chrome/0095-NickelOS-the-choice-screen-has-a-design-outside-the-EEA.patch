@@ -1,0 +1,88 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the choice screen has a design outside the EEA
+
+Chrome 0092 shows a Minimal device's first browser window Chrome's search
+engine choice screen in every region. Its page, chrome://search-engine-
+choice, takes its title and subtitles from the region's program
+(RegionalCapabilitiesService::GetChoiceScreenDesign), and outside the EEA
+there is none: CHECK(choice_screen_design.has_value()) took Chrome down as
+the first browser window opened (build 23u, experience-test.sh minimal;
+minidump: SearchEngineChoiceUI::SearchEngineChoiceUI, line 84).
+
+- With the switch 0092 sets (nickel-search-engine-choice), a region
+  without a program gets the EEA's desktop design.
+- The screen's "Learn more" card began "Based on a law in your region":
+  on a NickelOS Minimal device it says the screen is there because the
+  user chose Minimal in setup.
+
+diff --git a/chrome/browser/ui/webui/search_engine_choice/search_engine_choice_ui.cc b/chrome/browser/ui/webui/search_engine_choice/search_engine_choice_ui.cc
+index c0dfd634cb433..f3198c6dc1934 100644
+--- a/chrome/browser/ui/webui/search_engine_choice/search_engine_choice_ui.cc
++++ b/chrome/browser/ui/webui/search_engine_choice/search_engine_choice_ui.cc
+@@ -5,6 +5,7 @@
+ #include "chrome/browser/ui/webui/search_engine_choice/search_engine_choice_ui.h"
+ 
+ #include "base/check_deref.h"
++#include "base/command_line.h"
+ #include "base/functional/bind.h"
+ #include "base/json/json_writer.h"
+ #include "base/strings/strcat.h"
+@@ -108,6 +109,14 @@ SearchEngineChoiceUI::SearchEngineChoiceUI(content::WebUI* web_ui)
+       {"guestCheckboxText", IDS_SEARCH_ENGINE_CHOICE_GUEST_SESSION_CHECKBOX},
+   };
+   source->AddLocalizedStrings(kLocalizedStrings);
++  // NickelOS: on a Minimal device the screen comes from setup's choice, not
++  // from a law in the user's region.
++  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
++          "nickel-search-engine-choice")) {
++    source->AddLocalizedString(
++        "infoDialogFirstParagraph",
++        IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH);
++  }
+   source->AddResourcePath("images/left_illustration.svg",
+                           IDR_SIGNIN_IMAGES_SHARED_LEFT_BANNER_SVG);
+   source->AddResourcePath("images/left_illustration_dark.svg",
+diff --git a/components/regional_capabilities/regional_capabilities_service.cc b/components/regional_capabilities/regional_capabilities_service.cc
+index ff5c4f21bf776..f5713a37df3d1 100644
+--- a/components/regional_capabilities/regional_capabilities_service.cc
++++ b/components/regional_capabilities/regional_capabilities_service.cc
+@@ -546,6 +546,24 @@ bool RegionalCapabilitiesService::
+ #if !BUILDFLAG(IS_ANDROID)
+ std::optional<RegionalCapabilitiesService::ChoiceScreenDesign>
+ RegionalCapabilitiesService::GetChoiceScreenDesign() {
++  // NickelOS: a Minimal device's choice screen (GetChoiceScreenEligibility
++  // Config) shows outside the EEA too, where there is no design: the EEA's
++  // desktop one. Without it, chrome://search-engine-choice CHECK-failed and
++  // took Chrome down as the first browser window opened (23u).
++  if (GetActiveProgramSettings().program == Program::kDefault &&
++      base::CommandLine::ForCurrentProcess()->HasSwitch(
++          "nickel-search-engine-choice")) {
++    return RegionalCapabilitiesService::ChoiceScreenDesign{
++        .title_string_id = IDS_SEARCH_ENGINE_CHOICE_PAGE_TITLE,
++        .subtitle_1_string_id = IDS_SEARCH_ENGINE_CHOICE_PAGE_SUBTITLE,
++        .subtitle_1_learn_more_suffix_string_id =
++            IDS_SEARCH_ENGINE_CHOICE_PAGE_SUBTITLE_INFO_LINK,
++        .subtitle_1_learn_more_a11y_string_id =
++            IDS_SEARCH_ENGINE_CHOICE_PAGE_SUBTITLE_INFO_LINK_A11Y_LABEL,
++        .learn_more_third_paragraph_string_id =
++            IDS_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_THIRD_PARAGRAPH,
++    };
++  }
+   switch (GetActiveProgramSettings().program) {
+     case Program::kDefault:
+     case Program::kScone:
+diff --git a/components/search_engine_choice_strings.grdp b/components/search_engine_choice_strings.grdp
+index cc85a72337f12..15f0c31ee6ebe 100644
+--- a/components/search_engine_choice_strings.grdp
++++ b/components/search_engine_choice_strings.grdp
+@@ -1,6 +1,10 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <grit-part>
+ 
++  <message name="IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH" desc="NickelOS: first paragraph of the card that explains the search engine choice screen, when NickelOS shows it because the user chose Minimal (no search engine set up) when setting up the device. 'Minimal' is the name of that option in setup.">
++    You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.
++  </message>
++
+   <!-- Non-choice screen strings -->
+ 
+   <message name="IDS_SEARCH_ENGINE_CHOICE_SETTINGS_SUBTITLE" desc="This is the body text of a dialog where the user can change their default search engine. This string explains that the list of search engines reflects the user’s region and are randomized (not in order of recommendation). We want users to understand that they can use any search engine with Chrome." formatter_data="android_java">

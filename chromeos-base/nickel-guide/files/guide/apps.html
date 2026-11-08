@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apps · NickelOS guide</title>
+<meta name="description" content="Getting apps on NickelOS: Bazaar and Flathub, the apps installed at first boot, AppImages, Gentoo packages, uninstalling, default apps, and the dialogs apps open when they ask for the camera, your location or your screen.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1b18" media="(prefers-color-scheme: dark)">
+<link rel="preload" href="assets/fonts/GoogleSansFlex-nickelos.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to the content</a>
+
+<header class="masthead">
+  <div class="wrap masthead-row">
+    <a class="brand" href="https://nickelos.dev/" aria-label="NickelOS home">
+      <img src="assets/img/nickelos-logo-v3.png" alt="" width="32" height="32">
+      <span>NickelOS</span>
+    </a>
+    <nav aria-label="Site">
+      <a href="index.html">Guide</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="community.html">Get help</a>
+    </nav>
+    <span class="chip" title="NickelOS has not been released yet">Alpha</span>
+  </div>
+</header>
+
+<main id="main" class="guide">
+  <div class="wrap guide-layout">
+    <nav class="guide-nav" aria-label="Guide">
+      <p class="eyebrow">Guide</p>
+      <ul>
+        <li><a href="index.html">Start here</a></li>
+        <li><a href="install.html">Installing</a></li>
+        <li><a href="basics.html">Getting around</a></li>
+        <li><a href="apps.html" aria-current="page">Apps</a></li>
+        <li><a href="android.html">Android apps</a></li>
+        <li><a href="gentoo.html">Gentoo and Portage</a></li>
+        <li><a href="learning-gentoo.html">Learning Gentoo</a></li>
+        <li><a href="terminal.html">Terminal and system</a></li>
+        <li><a href="graphics.html">Graphics</a></li>
+        <li><a href="sound.html">Sound and camera</a></li>
+        <li><a href="games.html">Steam and games</a></li>
+        <li><a href="files.html">Your files</a></li>
+        <li><a href="input.html">Typing and keyboard</a></li>
+        <li><a href="updates.html">Updates</a></li>
+        <li><a href="under-the-hood.html">Under the hood</a></li>
+        <li><a href="troubleshooting.html">Troubleshooting</a></li>
+        <li><a href="community.html">Getting help</a></li>
+      </ul>
+    </nav>
+    <article class="guide-page">
+<h1>Apps</h1>
+<p>On NickelOS you install a Linux app the same way you would on any other Linux distribution. You don't need to repackage it or turn on a "Linux mode" first. However it got there, it shows up in the launcher, can be pinned to the shelf, and opens in a normal ChromeOS window.</p>
+      <nav class="toc" aria-label="On this page"><a href="#where-apps-come-from">Where apps come from</a><a href="#bazaar-and-flatpak">Bazaar and Flatpak</a><a href="#appimages">AppImages</a><a href="#how-apps-get-into-the-launcher">How apps get into the launcher</a><a href="#uninstalling">Uninstalling</a><a href="#default-apps-links-and-open-with">Default apps, links and "Open with"</a><a href="#notifications-tray-icons-and-starting-at-sign-in">Notifications, tray icons and starting at sign-in</a><a href="#when-an-app-asks-for-something">When an app asks for something</a></nav>
+
+<h2 id="where-apps-come-from">Where apps come from</h2>
+<div class="table"><table><thead><tr><th>Source</th><th>How</th><th>Lands in</th></tr></thead><tbody><tr><td>Flathub</td><td>Bazaar, or <code>flatpak install</code> in the Terminal</td><td><code>/var/lib/flatpak</code> (for everyone) or <code>~/.local/share/flatpak</code> (just you)</td></tr><tr><td>Gentoo</td><td><code>sudo emerge</code> in the Terminal (see <a href="gentoo.html">Gentoo and Portage</a>)</td><td><code>/usr</code>, like on any Gentoo (really on the data partition)</td></tr><tr><td>AppImage</td><td>Download it and run it, or let Gear Lever manage it</td><td>Wherever you keep it</td></tr><tr><td>Android</td><td>Set up Android in Settings, then open an APK (see <a href="android.html">Android apps</a>)</td><td>Your own Android, in <code>~/.local/share/waydroid</code></td></tr><tr><td>Built in</td><td>Comes with NickelOS</td><td>The system image</td></tr></tbody></table></div>
+<p>Snap isn't supported. snapd needs systemd, and NickelOS runs ChromeOS's init, upstart, with OpenRC for the services you add. Most apps on the Snap Store are on Flathub too.</p>
+<p>The built-in apps are ChromeOS's own, all open source: the Chrome browser (Chromium), Files, Settings, the Terminal, the Camera app, and screen capture (Ctrl + Show windows, or Quick Settings &gt; Screen capture).</p>
+<h2 id="bazaar-and-flatpak">Bazaar and Flatpak</h2>
+<p>Bazaar is pinned to the shelf and is where most people get their apps. It's a store for Flathub, the main place Linux apps are published as Flatpaks. Flatpak apps carry their own libraries (a "runtime"), so they work the same on every distribution, NickelOS included.</p>
+<p>Bazaar installs apps for everyone on the device. Administrators don't get asked for a password in their own session, and standard users are asked for an administrator's. Flathub is already set up, so the <code>flatpak</code> command works in the Terminal straight away:</p>
+<pre><code>flatpak search gimp
+flatpak install flathub org.gimp.GIMP
+flatpak update
+flatpak list --app
+flatpak install --user flathub org.gimp.GIMP   # just for you, no password</code></pre>
+<p>On ChromeOS, <code>/var</code> is small and doesn't allow programs to run from it. So on NickelOS <code>/var/lib/flatpak</code> is really <code>/mnt/stateful_partition/nickel/flatpak</code>, on the data partition with the rest of your stuff. Big apps and games have room there, and system updates don't touch it.</p>
+<h3 id="the-apps-you-start-with">The apps you start with</h3>
+<p>On first boot, as soon as there's a network, NickelOS installs these from Flathub. A notification tells you while it's happening, and when it's done.</p>
+<div class="table"><table><thead><tr><th>App</th><th>For</th></tr></thead><tbody><tr><td>Bazaar</td><td>Getting more apps</td></tr><tr><td>Loupe</td><td>Pictures</td></tr><tr><td>Showtime</td><td>Videos</td></tr><tr><td>Papers</td><td>PDFs and other documents</td></tr><tr><td>Amberol</td><td>Music</td></tr></tbody></table></div>
+<p>Files opens pictures, videos, music and PDFs with them until you choose other apps (below). If you remove one of them, it stays removed. If there's no network within half an hour, NickelOS tries again at the next start. What happened is logged in <code>/var/log/nickel-flatpak-defaults.log</code>.</p>
+<h2 id="appimages">AppImages</h2>
+<p>AppImages work as they do anywhere: make the file executable and run it.</p>
+<pre><code>chmod +x ~/Downloads/Some-App.AppImage
+~/Downloads/Some-App.AppImage</code></pre>
+<p>Your home folder lets programs run from it (ChromeOS normally blocks that, and NickelOS changes it). FUSE is there for AppImages that mount themselves. AppImages use the libraries a Linux desktop has (GTK, X11, sound), and on NickelOS those are Gentoo's, in the system image. <strong>Gear Lever</strong> (on Flathub) puts AppImages in the launcher for you and keeps them in one folder.</p>
+<h2 id="how-apps-get-into-the-launcher">How apps get into the launcher</h2>
+<p>Every app in the launcher comes from a <code>.desktop</code> file, the standard Linux app entry. A small service called <strong>nickel-appd</strong> runs in your session. It reads the desktop files in every data directory your session knows about and hands the list to Chrome:</p>
+<ul><li><code>~/.local/share/applications</code> (your own, Steam's games, AppImages added by Gear Lever)</li><li><code>~/.local/share/flatpak/exports/share</code> and <code>/var/lib/flatpak/exports/share</code> (Flatpak apps)</li><li><code>/usr/share</code> (the system's apps and Gentoo's) and <code>/usr/local/share</code></li></ul>
+<p>It watches those folders, so a new app shows up as soon as its desktop file appears, and disappears when it goes. App icons come from the icon theme like on any desktop. When you start an app from the launcher, Chrome asks nickel-appd to start it, and it starts with your full session environment. The window then gets grouped under the app's shelf item, matched by its Wayland app id or X11 window class, the desktop file's <code>StartupWMClass</code>, or its name.</p>
+<p><a href="under-the-hood.html#nickel-appd">Under the hood</a> has the whole list of what nickel-appd does.</p>
+<h2 id="uninstalling">Uninstalling</h2>
+<p>Right-click an app in the launcher or on the shelf and pick <strong>Uninstall</strong>. NickelOS removes it through whatever installed it:</p>
+<div class="table"><table><thead><tr><th>Installed with</th><th>Removed by</th></tr></thead><tbody><tr><td>Flatpak, for everyone</td><td><code>flatpak uninstall</code>, after polkit checks you're allowed</td></tr><tr><td>Flatpak, just you</td><td><code>flatpak uninstall --user</code></td></tr><tr><td>Gentoo (emerge)</td><td><code>emerge --deselect</code> and <code>emerge --depclean</code> for that package, after an administrator's password</td></tr><tr><td>AppImage</td><td>Deleting the AppImage and its desktop file</td></tr><tr><td>Steam (a game)</td><td>Steam's own uninstall dialog</td></tr><tr><td>Android (an APK)</td><td>Android's package manager, in your Android</td></tr></tbody></table></div>
+<p>Settings &gt; Apps &gt; Manage your apps shows, for each Linux app, where it came from, its version, its size and how much data it keeps (for a Flatpak, what's in <code>~/.var/app/&lt;app id&gt;</code>).</p>
+<h2 id="default-apps-links-and-open-with">Default apps, links and "Open with"</h2>
+<p><strong>Settings &gt; Apps &gt; Default apps</strong> picks the app that opens images, videos, music, PDFs, text files, documents, spreadsheets and presentations, the app that gets email (<code>mailto:</code>) links, and what the Print Screen key opens. It covers ChromeOS's own apps, web apps and Linux apps, and it's used by Files and by Linux apps alike.</p>
+<p>When a Linux app opens something with <code>xdg-open</code> (or GLib, or the OpenURI portal), NickelOS hands it to ChromeOS: links open in the browser, files open in their default app, and folders open in Files. That's <code>nickel-open</code>, the default handler in <code>/usr/share/nickel/applications</code>. Your own choices in <code>~/.config/mimeapps.list</code> still win over NickelOS's.</p>
+<h2 id="notifications-tray-icons-and-starting-at-sign-in">Notifications, tray icons and starting at sign-in</h2>
+<ul><li><strong>Notifications</strong> from Linux apps (libnotify, GNotification, the portal) are ChromeOS notifications, with the app's name, icon and buttons. Clicking one brings the app forward.</li><li><strong>Tray icons.</strong> ChromeOS has no system tray for apps, so on NickelOS the shelf is the tray. An app that closes to the tray (Discord, Slack, Steam, Telegram) keeps its shelf item while it runs, even with no window open. Click it to bring the window back. Right-click it for the app's own tray menu, and <strong>Close</strong> quits it for real. Old X11 tray icons (Wine programs, Java apps) work the same way.</li><li><strong>Start at sign-in.</strong> An app's "start when I sign in" setting works. NickelOS starts what's in <code>~/.config/autostart</code> and <code>/etc/xdg/autostart</code> once per sign-in, after the desktop is up.</li></ul>
+<h2 id="when-an-app-asks-for-something">When an app asks for something</h2>
+<p>Linux apps ask the desktop for files, the camera, the screen and so on through <strong>desktop portals</strong> (xdg-desktop-portal), the same way they do on GNOME and KDE. NickelOS has its own portal backend, <code>xdg-desktop-portal-nickel</code>, that answers with ChromeOS's own dialogs. Flatpak apps use portals always. Other apps use them too, because the session sets <code>GTK_USE_PORTAL=1</code> and <code>GDK_DEBUG=portals</code>.</p>
+<div class="table"><table><thead><tr><th>The app wants to</th><th>What you see</th></tr></thead><tbody><tr><td>Open or save a file</td><td>ChromeOS's own file picker</td></tr><tr><td>Use the camera</td><td>"Allow (app) to use the camera?" The answer is remembered for that app</td></tr><tr><td>Know your location</td><td>Flatpak apps ask once, with ChromeOS's location dialog. The Privacy controls switch covers every Linux app</td></tr><tr><td>Share your screen</td><td>ChromeOS's "share your screen" picker, then a notification with <strong>Stop</strong> while it's shared</td></tr><tr><td>Control the device (remote desktop)</td><td>"Allow remote control?", then a notification with <strong>Stop</strong></td></tr><tr><td>Take a screenshot</td><td>The same picker. The picture is saved in <code>~/Pictures/Screenshots</code></td></tr><tr><td>Use keyboard shortcuts while in the background</td><td>"Allow keyboard shortcuts?" with each shortcut's keys, which you can change</td></tr><tr><td>Print</td><td>ChromeOS's print preview, with your printers and Save as PDF</td></tr><tr><td>Keep the screen on (video, games, downloads)</td><td>Nothing: it just stays on until the app lets go</td></tr><tr><td>Remember a password or sign-in</td><td>Nothing: it goes into your keyring (below)</td></tr><tr><td>Pick a colour from the screen</td><td>ChromeOS's eyedropper</td></tr><tr><td>Set the wallpaper</td><td>Nothing: it's set, like choosing one in Wallpaper and style</td></tr><tr><td>Add its own launcher (a web app, a program it manages)</td><td>A dialog asking first</td></tr><tr><td>Your name and picture</td><td>A dialog asking first</td></tr><tr><td>Send an email with attachments</td><td>Your default mail app with a new message</td></tr></tbody></table></div>
+<p>Linux apps also follow ChromeOS's dark or light mode, accent colour and fonts, live, through the same backend.</p>
+<p><strong>Saved passwords.</strong> Apps keep passwords and sign-ins in the Secret Service, which on NickelOS is gnome-keyring. Your login keyring unlocks itself when you sign in. Its password is a random key made for your account, kept at the top of your encrypted vault, outside the home folder apps can see. Flatpak apps get their own key through the Secret portal.</p>
+<p><strong>Location</strong> comes from GeoClue. When an app asks and location is allowed, GeoClue sends the Wi-Fi networks your device can see, and your internet address, to beaconDB, an open location service, and gets back a position. If the Privacy controls switch is off, GeoClue gives apps nothing.</p>
+<p><strong>Changing your mind.</strong> The Flatpak permission store holds the answers you gave. <code>flatpak permissions</code> lists them, and <code>flatpak permission-reset &lt;app id&gt;</code> forgets them for an app, so it asks again next time.</p>
+    </article>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-row">
+    <div class="footer-brand">
+      <img src="assets/img/nickelos-logo-v3.png" alt="" width="48" height="48">
+      <div>
+        <p><strong>NickelOS</strong> &middot; Project Crowbar</p>
+        <p class="small">nickelos.dev</p>
+      </div>
+    </div>
+    <div class="small footer-notes">
+      <p>This copy of the guide came with NickelOS and works offline. The newest is at <a href="https://nickelos.dev/help/">nickelos.dev/help</a>.</p>
+      <p>NickelOS is a community project, not affiliated with or endorsed by Google. ChromeOS, ChromiumOS, Chrome, Chromebook and Googlebook are trademarks of Google LLC. Other names belong to their owners.</p>
+      <p>No trackers or analytics. Set in Google Sans Flex and Google Sans Code (<a href="assets/fonts/OFL.txt">SIL Open Font License</a>).</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

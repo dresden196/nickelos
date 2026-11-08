@@ -1,0 +1,23 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] os_install_service: Gentoo's cp tries FICLONE first
+
+NickelOS Unified runs Gentoo's coreutils, whose cp asks for a reflink clone
+(ioctl FICLONE) before copying; ext4 refuses it and cp copies. This policy
+allowed ioctl for listed requests only, so cp was killed while the
+installer copied the stateful partition. With it allowed, an install from
+inside the sandbox completes and the installed disk boots.
+
+---
+--- a/conf/os_install_service-seccomp-amd64.policy
++++ b/conf/os_install_service-seccomp-amd64.policy
+@@ -14,7 +14,9 @@
+ # CDROM_LAST_WRITTEN = 0x5395
+ # FS_IOC_FIEMAP = 0xc020660b
+ # BLKGETZONESZ = 0x80041284
+-ioctl: arg1 == BLKALIGNOFF || arg1 == BLKDISCARD || \
++# NickelOS Unified: Gentoo's coreutils cp first tries to clone a file (FICLONE,
++# 0x40049409; ext4 refuses and cp copies).
++ioctl: arg1 == 0x40049409 || arg1 == BLKALIGNOFF || arg1 == BLKDISCARD || \
+        arg1 == BLKDISCARDZEROES || arg1 == BLKGETSIZE64 || \
+        arg1 == BLKIOMIN || arg1 == BLKIOOPT || arg1 == BLKPBSZGET || \
+        arg1 == BLKROGET || arg1 == BLKRRPART || arg1 == BLKFLSBUF || \

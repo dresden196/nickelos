@@ -1,0 +1,293 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: setup's Full experience, for every account
+
+Dresden, 2026-10-23: the two ways to start are Full experience and Minimal.
+
+- Full experience (preselected): DuckDuckGo for the browser and the
+  launcher; Proton's apps installed as web apps (Mail, Calendar, Drive,
+  Docs, Pass, Lumo), no longer a bookmarks folder; and a set of free,
+  open-source apps (nickel-flatpak-defaults installs them). The web apps
+  are Chrome's preinstalled web apps (configs in
+  /usr/share/chromium/extensions/web_apps), gated on
+  "NickelFullExperience", which IsPreinstalledAppInstallFeatureEnabled()
+  answers from the device's choice: it is in local state before the first
+  account exists, so the first sync of a new account already has it, and
+  Chrome's usual retries, and a user's uninstall being remembered, apply.
+- Minimal: the launcher searches only the device; nothing else is set up.
+
+The choice is the device's now, kept in local state rather than cleared
+after the first account: every account takes it at its first sign-in.
+Choices stored by earlier builds ("default", "privacy") count as Full.
+
+diff --git a/chrome/browser/ash/login/screens/nickel_setup_screen.cc b/chrome/browser/ash/login/screens/nickel_setup_screen.cc
+index 6de6f9fe80b30..1b62ab6bfbdab 100644
+--- a/chrome/browser/ash/login/screens/nickel_setup_screen.cc
++++ b/chrome/browser/ash/login/screens/nickel_setup_screen.cc
+@@ -4,7 +4,6 @@
+ 
+ #include "chrome/browser/ash/login/screens/nickel_setup_screen.h"
+ 
+-#include <iterator>
+ #include <memory>
+ #include <utility>
+ 
+@@ -14,17 +13,12 @@
+ #include "base/callback_list.h"
+ #include "base/functional/bind.h"
+ #include "base/logging.h"
+-#include "base/memory/raw_ptr.h"
+ #include "base/no_destructor.h"
+-#include "base/scoped_observation.h"
+-#include "chrome/browser/bookmarks/bookmark_model_factory.h"
+ #include "chrome/browser/ash/profiles/profile_helper.h"
+ #include "chrome/browser/browser_process.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/search_engines/template_url_service_factory.h"
+ #include "chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.h"
+-#include "components/bookmarks/browser/base_bookmark_model_observer.h"
+-#include "components/bookmarks/browser/bookmark_model.h"
+ #include "components/prefs/pref_service.h"
+ #include "components/prefs/scoped_user_pref_update.h"
+ #include "components/search_engines/template_url.h"
+@@ -35,7 +29,6 @@
+ #include "components/user_manager/user.h"
+ #include "components/user_manager/user_manager.h"
+ #include "third_party/search_engines_data/resources/definitions/prepopulated_engines.h"
+-#include "url/gurl.h"
+ 
+ namespace ash {
+ 
+@@ -64,64 +57,11 @@ void SetDefaultSearchEngine(TemplateURLService* service,
+   service->SetUserSelectedDefaultSearchProvider(engine);
+ }
+ 
+-// Proton's apps, in a folder on the bookmarks bar.
+-struct ProtonApp {
+-  const char16_t* title;
+-  const char* url;
+-};
+-constexpr ProtonApp kProtonApps[] = {
+-    {u"Proton Mail", "https://mail.proton.me/"},
+-    {u"Proton Calendar", "https://calendar.proton.me/"},
+-    {u"Proton Drive", "https://drive.proton.me/"},
+-    {u"Proton Docs", "https://docs.proton.me/"},
+-    {u"Proton Pass", "https://pass.proton.me/"},
+-    {u"Proton VPN", "https://account.proton.me/vpn"},
+-    {u"Lumo", "https://lumo.proton.me/"},
+-};
+-
+-// Adds the Proton folder once the profile's bookmarks are loaded; deletes
+-// itself.
+-class ProtonBookmarks : public bookmarks::BaseBookmarkModelObserver {
+- public:
+-  static void Add(bookmarks::BookmarkModel* model) {
+-    if (model->loaded()) {
+-      AddNow(model);
+-      return;
+-    }
+-    new ProtonBookmarks(model);
+-  }
+-
+- private:
+-  explicit ProtonBookmarks(bookmarks::BookmarkModel* model) : model_(model) {
+-    observation_.Observe(model);
+-  }
+-  ~ProtonBookmarks() override = default;
+-
+-  static void AddNow(bookmarks::BookmarkModel* model) {
+-    const bookmarks::BookmarkNode* bar = model->bookmark_bar_node();
+-    const bookmarks::BookmarkNode* folder =
+-        model->AddFolder(bar, bar->children().size(), u"Proton");
+-    for (size_t i = 0; i < std::size(kProtonApps); ++i) {
+-      model->AddURL(folder, i, kProtonApps[i].title, GURL(kProtonApps[i].url));
+-    }
+-  }
+-
+-  // bookmarks::BaseBookmarkModelObserver:
+-  void BookmarkModelLoaded(bool ids_reassigned) override {
+-    AddNow(model_);
+-    delete this;
+-  }
+-  void BookmarkModelBeingDeleted() override { delete this; }
+-  void BookmarkModelChanged() override {}
+-
+-  raw_ptr<bookmarks::BookmarkModel> model_;
+-  base::ScopedObservation<bookmarks::BookmarkModel,
+-                          bookmarks::BookmarkModelObserver>
+-      observation_{this};
+-};
+-
+-// Sets up what `experience` ("default" or "minimal"; "privacy" is what
+-// builds before 2026-10-22 called the default) means for `profile`.
++// Sets up what `experience` ("full" or "minimal"; "default" and "privacy"
++// are what earlier builds called the full one) means for `profile`. Full
++// experience's web apps (Proton's) come from Chrome's preinstalled web app
++// configs, gated on NickelFullExperience; its Flatpaks from
++// nickel-flatpak-defaults, which reads the device's choice too.
+ void Apply(Profile* profile, const std::string& experience) {
+   // Minimal: the launcher searches the device only (no web results).
+   if (experience == "minimal") {
+@@ -132,13 +72,8 @@ void Apply(Profile* profile, const std::string& experience) {
+     return;
+   }
+ 
+-  // Default: Proton's apps bookmarked, and DuckDuckGo as the search engine
+-  // for the browser and the launcher (whose web results follow the
+-  // browser's).
+-  if (bookmarks::BookmarkModel* model =
+-          BookmarkModelFactory::GetForBrowserContext(profile)) {
+-    ProtonBookmarks::Add(model);
+-  }
++  // Full experience: DuckDuckGo as the search engine for the browser and
++  // the launcher (whose web results follow the browser's).
+   const std::u16string keyword = u"duckduckgo.com";
+   TemplateURLService* service =
+       TemplateURLServiceFactory::GetForProfile(profile);
+@@ -181,8 +116,8 @@ void NickelSetupScreen::MaybeApplyChoice(Profile* profile) {
+       !profile->GetPrefs()->GetString(prefs::kNickelSetupExperience).empty()) {
+     return;
+   }
+-  // The device's first account takes it, once.
+-  local_state->ClearPref(prefs::kNickelSetupPendingExperience);
++  // The device's choice, kept: every account takes it at its first sign-in
++  // (and the Flatpaks and web apps follow it for all of them).
+   profile->GetPrefs()->SetString(prefs::kNickelSetupExperience, experience);
+   Apply(profile, experience);
+ }
+diff --git a/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.html b/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.html
+index 57b105baa073d..6a7ab47b7b57d 100644
+--- a/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.html
++++ b/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.html
+@@ -5,7 +5,8 @@ found in the LICENSE file.
+ -->
+ 
+ <!--
+-  NickelOS: how NickelOS starts out for the user (Default or Minimal).
++  NickelOS: how NickelOS starts out for the user (Full experience or
++  Minimal).
+   Text only: no vendor logos.
+ -->
+ <style include="oobe-dialog-host-styles cr-card-radio-group-styles
+@@ -35,14 +36,14 @@ found in the LICENSE file.
+   </div>
+   <div slot="content" class="layout vertical landscape-vertical-centered">
+     <cr-radio-group id="experience" selected="{{selected}}">
+-      <cr-card-radio-button id="defaultButton" class="flex" name="default">
++      <cr-card-radio-button id="fullButton" class="flex" name="full">
+         <div class="card-container">
+           <div class="card-content">
+             <div class="card-label">
+-              [[i18nDynamic(locale, 'nickelSetupDefault')]]
++              [[i18nDynamic(locale, 'nickelSetupFull')]]
+             </div>
+             <div class="card-text">
+-              [[i18nDynamic(locale, 'nickelSetupDefaultDescription')]]
++              [[i18nDynamic(locale, 'nickelSetupFullDescription')]]
+             </div>
+           </div>
+         </div>
+diff --git a/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.ts b/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.ts
+index 21925146c7bb3..2b22a9f7420e7 100644
+--- a/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.ts
++++ b/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.ts
+@@ -4,7 +4,8 @@
+ 
+ /**
+  * @fileoverview NickelOS: before the device's first account is created, how
+- * NickelOS starts out: Default (preselected) or Minimal (NickelSetupScreen).
++ * NickelOS starts out: Full experience (preselected) or Minimal
++ * (NickelSetupScreen).
+  */
+ 
+ import '//resources/ash/common/cr_elements/cros_color_overrides.css.js';
+@@ -46,8 +47,8 @@ export class NickelSetup extends NickelSetupBase {
+ 
+   static get properties(): PolymerElementProperties {
+     return {
+-      // The experience picked: default or minimal.
+-      selected: {type: String, value: 'default'},
++      // The experience picked: full or minimal.
++      selected: {type: String, value: 'full'},
+     };
+   }
+ 
+diff --git a/chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.cc b/chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.cc
+index dafe53dd19791..ffbd772677079 100644
+--- a/chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.cc
++++ b/chrome/browser/ui/webui/ash/login/nickel_setup_screen_handler.cc
+@@ -18,9 +18,9 @@ void NickelSetupScreenHandler::DeclareLocalizedValues(
+     ::login::LocalizedValuesBuilder* builder) {
+   builder->Add("nickelSetupTitle", IDS_NICKEL_SETUP_TITLE);
+   builder->Add("nickelSetupSubtitle", IDS_NICKEL_SETUP_SUBTITLE);
+-  builder->Add("nickelSetupDefault", IDS_NICKEL_SETUP_DEFAULT);
+-  builder->Add("nickelSetupDefaultDescription",
+-               IDS_NICKEL_SETUP_DEFAULT_DESCRIPTION);
++  builder->Add("nickelSetupFull", IDS_NICKEL_SETUP_FULL);
++  builder->Add("nickelSetupFullDescription",
++               IDS_NICKEL_SETUP_FULL_DESCRIPTION);
+   builder->Add("nickelSetupMinimal", IDS_NICKEL_SETUP_MINIMAL);
+   builder->Add("nickelSetupMinimalDescription",
+                IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION);
+diff --git a/chrome/browser/web_applications/preinstalled_app_install_features.cc b/chrome/browser/web_applications/preinstalled_app_install_features.cc
+index f08b2cf0eabc1..eda531f1d1023 100644
+--- a/chrome/browser/web_applications/preinstalled_app_install_features.cc
++++ b/chrome/browser/web_applications/preinstalled_app_install_features.cc
+@@ -12,6 +12,12 @@
+ #include "base/memory/raw_ref.h"
+ #include "build/build_config.h"
+ 
++#if BUILDFLAG(IS_CHROMEOS)
++#include "ash/constants/nickel_pref_names.h"
++#include "chrome/browser/browser_process.h"
++#include "components/prefs/pref_service.h"
++#endif
++
+ #if BUILDFLAG(IS_CHROMEOS)
+ #include "chrome/browser/enterprise/browser_management/management_service_factory.h"
+ #include "chromeos/constants/chromeos_features.h"
+@@ -90,6 +96,25 @@ bool IsPreinstalledAppInstallFeatureEnabled(std::string_view feature_name) {
+     return true;
+   }
+ 
++  // NickelOS: the web apps of setup's Full experience (Proton's), for every
++  // account on a device whose setup chose it. The choice is in local state
++  // before the first account exists, so it is there for the first sync.
++  if (feature_name == "NickelFullExperience") {
++#if BUILDFLAG(IS_CHROMEOS)
++    PrefService* local_state =
++        g_browser_process ? g_browser_process->local_state() : nullptr;
++    if (!local_state) {
++      return false;
++    }
++    const std::string& experience =
++        local_state->GetString(ash::prefs::kNickelSetupPendingExperience);
++    return experience == "full" || experience == "default" ||
++           experience == "privacy";
++#else
++    return false;
++#endif  // BUILDFLAG(IS_CHROMEOS)
++  }
++
+   for (std::string_view feature : kShippedPreinstalledAppInstallFeatures) {
+     if (feature == feature_name) {
+       return true;
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index 7af98b2b30455..7790086a67231 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -2276,11 +2276,11 @@
+       <message name="IDS_NICKEL_SETUP_SUBTITLE" desc="NickelOS: on the setup screen before the first account is made, under the title.">
+         You can change all of this later in Settings.
+       </message>
+-      <message name="IDS_NICKEL_SETUP_DEFAULT" desc="NickelOS: on the setup screen before the first account is made, the first choice (preselected): private by default.">
+-        Default
++      <message name="IDS_NICKEL_SETUP_FULL" desc="NickelOS: on the setup screen before the first account is made, the first choice (preselected): everything set up, private by default, with a set of free, open-source apps.">
++        Full experience
+       </message>
+-      <message name="IDS_NICKEL_SETUP_DEFAULT_DESCRIPTION" desc="NickelOS: on the setup screen before the first account is made, what the Default choice sets up. Proton is a company whose web apps (mail, calendar, cloud storage, passwords) are encrypted; its name stays as is.">
+-        Private from the start. DuckDuckGo searches the web from the browser and the launcher, and Proton's private apps (Mail, Calendar, Drive, Pass and more) are bookmarked in the browser.
++      <message name="IDS_NICKEL_SETUP_FULL_DESCRIPTION" desc="NickelOS: on the setup screen before the first account is made, what the Full experience sets up. Proton is a company whose apps (mail, calendar, cloud storage, passwords) are encrypted; DuckDuckGo a private search engine; uBlock Origin a browser extension that blocks ads and trackers; LibreOffice, OBS Studio, GIMP and Kdenlive are open-source apps (office suite, screen recording, photo editing, video editing): their names stay as they are.">
++        Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.
+       </message>
+       <message name="IDS_NICKEL_SETUP_MINIMAL" desc="NickelOS: on the setup screen before the first account is made, the second choice: as little as possible.">
+         Minimal

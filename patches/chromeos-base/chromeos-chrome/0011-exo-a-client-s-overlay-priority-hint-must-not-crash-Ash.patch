@@ -1,0 +1,30 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] exo: a client's overlay priority hint must not crash Ash
+
+Exo still offers the overlay_prioritizer protocol, which only Lacros used
+to send hints over. Every Chromium-based Wayland client (Electron apps such
+as Obsidian or balenaEtcher, Chrome for Linux on Wayland) finds it and sets
+a hint on its surfaces. Surface::AppendContentsToFrame then hit
+CHECK_EQ(REGULAR, overlay_priority_hint) and the browser process died with
+the whole session as soon as such a window was drawn.
+
+On ChromeOS such apps reach Exo through sommelier, which does not pass the
+protocol on, so this never showed. NickelOS apps talk to Exo directly. The
+hint keeps steering dmabuf feedback as before; drawing ignores it, as it did
+when the CHECK held.
+
+diff --git a/components/exo/surface.cc b/components/exo/surface.cc
+index d713008b177b1..108e71e9133c8 100644
+--- a/components/exo/surface.cc
++++ b/components/exo/surface.cc
+@@ -1762,7 +1762,9 @@ void Surface::AppendContentsToFrame(const gfx::PointF& parent_to_root_px,
+         texture_quad->set_force_rgbx();
+       }
+ 
+-      CHECK_EQ(exo::OverlayPriority::REGULAR, state_.overlay_priority_hint);
++      // Clients may set a priority hint through overlay_prioritizer (every
++      // Chromium-based Wayland client does, e.g. Electron apps). It only
++      // steers dmabuf feedback; drawing ignores it. It must not crash Ash.
+ 
+       if (state_.buffer.has_value() && state_.buffer->buffer() &&
+           ShouldDisableOverlay(state_.buffer->buffer()->GetFormat())) {

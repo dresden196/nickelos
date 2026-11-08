@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Android settings
+Comment=Android's own Settings app
+NoDisplay=true
+Exec=waydroid app launch com.android.settings
+Icon=waydroid

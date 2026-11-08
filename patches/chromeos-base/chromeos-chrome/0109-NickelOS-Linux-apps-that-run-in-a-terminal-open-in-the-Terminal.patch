@@ -1,0 +1,45 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux apps that run in a terminal open in the
+ Terminal
+
+Apps whose desktop file says Terminal=true (vim since 16852.17.5, htop,
+mc) did nothing from the launcher: nickel-appd launched them through
+GLib, which looks for a terminal emulator, and NickelOS has none but
+ChromeOS's Terminal ("Unable to find terminal required for application").
+They now open in the Terminal, as Crostini's terminal apps do
+(guest_os::launcher::LaunchApplication: the app's executable and the
+files), which runs the command on the device instead of a prompt (0003).
+
+---
+diff --git a/chrome/browser/ash/crostini/crostini_util.cc b/chrome/browser/ash/crostini/crostini_util.cc
+--- a/chrome/browser/ash/crostini/crostini_util.cc
++++ b/chrome/browser/ash/crostini/crostini_util.cc
+@@ -234,6 +234,28 @@
+   RecordAppLaunchHistogram(CrostiniAppLaunchAppType::kRegisteredApp);
+   guest_os::GuestOsRegistryServiceFactory::GetForProfile(profile)->AppLaunched(
+       app_id);
++
++  // Apps that run in a terminal (Terminal=true: vim, htop) open in the
++  // Terminal, as Crostini's do (guest_os::launcher::LaunchApplication), which
++  // runs the command instead of a prompt (Chrome 0003). nickel-appd would ask
++  // GLib for a terminal emulator, and NickelOS has none but the Terminal.
++  if (registration.Terminal()) {
++    std::vector<std::string> terminal_args = {
++        registration.ExecutableFileName()};
++    for (const auto& arg : args) {
++      if (const auto* url = std::get_if<storage::FileSystemURL>(&arg)) {
++        terminal_args.push_back(url->path().value());
++      } else {
++        terminal_args.push_back(std::get<std::string>(arg));
++      }
++    }
++    guest_os::LaunchTerminal(profile, display_id, registration.ToGuestId(),
++                             /*cwd=*/std::string(), terminal_args);
++    return OnApplicationLaunched(app_id, std::move(callback),
++                                 CrostiniResult::UNKNOWN_ERROR,
++                                 /*success=*/true, std::string());
++  }
++
+   // Lets the window tracker put the app's window on |display_id|.
+   if (auto* shelf_controller = ChromeShelfController::instance()) {
+     if (auto* window_controller =

@@ -1,0 +1,72 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] cros-disks: read-only disk mounts are read-only, and unmount
+ without crashing
+
+Two faults with disks mounted through a FUSE program (NTFS's ntfs-3g):
+
+- A read-only mount was read-only only at the kernel's FUSE mount: the
+  program's options never said so, and ntfs-3g opened the device for
+  writing and wrote to it (the volume's dirty flag), on a volume mounted
+  read-only to keep it unchanged. The program now gets "ro" too. (A
+  hibernated Windows volume came up read-only only because ntfs-3g falls
+  back to that by itself.)
+- MountPoint::Unmount() asks the program of every read-only FUSE mount to
+  end its PID namespace, so umount() does not block; the disk mounters
+  start theirs without one, and KillPidNamespace() DCHECKs it was asked
+  for. With DCHECKs on (test images), unmounting a read-only NTFS volume
+  crashed cros-disks, and its restart dropped every other mount.
+  KillPidNamespace() now does nothing for such a program, as it in effect
+  did without DCHECKs.
+
+diff -ruN a/cros-disks/disk_manager.cc b/cros-disks/disk_manager.cc
+--- a/cros-disks/disk_manager.cc
++++ b/cros-disks/disk_manager.cc
+@@ -88,7 +88,7 @@
+   std::unique_ptr<SandboxedProcess> PrepareSandbox(
+       const std::string& source,
+       const base::FilePath&,
+-      std::vector<std::string>,
++      std::vector<std::string> params,
+       MountError* error) const override {
+     auto device = base::FilePath(source);
+ 
+@@ -133,9 +133,18 @@
+       return nullptr;
+     }
+ 
+-    if (!options_.empty()) {
++    // NickelOS: a read-only mount is read-only for the filesystem's own
++    // program too. Only the kernel's FUSE mount was made read-only, and
++    // ntfs-3g still opened the device for writing and wrote to it (the
++    // volume's dirty flag), also on a volume mounted read-only to keep it
++    // unchanged.
++    std::vector<std::string> program_options = options_;
++    if (IsReadOnlyMount(params)) {
++      program_options.push_back("ro");
++    }
++    if (!program_options.empty()) {
+       std::string options;
+-      if (!JoinParamsIntoOptions(options_, &options)) {
++      if (!JoinParamsIntoOptions(program_options, &options)) {
+         *error = MountError::kInvalidMountOptions;
+         return nullptr;
+       }
+diff -ruN a/cros-disks/sandboxed_process.cc b/cros-disks/sandboxed_process.cc
+--- a/cros-disks/sandboxed_process.cc
++++ b/cros-disks/sandboxed_process.cc
+@@ -286,7 +286,14 @@
+     return false;
+   }
+ 
+-  DCHECK(kill_pid_namespace_);
++  // NickelOS: MountPoint::Unmount() asks every read-only FUSE mount's
++  // process to end, also those started without a PID namespace to end (the
++  // NTFS, exFAT and other disk mounters), whose init does not watch the
++  // termination pipe: unmounting a read-only NTFS volume failed this
++  // DCHECK and crashed cros-disks, taking the other mounts with it.
++  if (!kill_pid_namespace_) {
++    return false;
++  }
+ 
+   // Closing termination_fd_ will eventually cause the termination of the 'init'
+   // process of the PID namespace.

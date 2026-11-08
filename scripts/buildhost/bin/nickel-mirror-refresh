@@ -1,0 +1,47 @@
+#!/bin/bash
+# Nightly (nickel-mirror-refresh.timer): brings the source mirrors up to date
+# without touching any working checkout: every public ChromiumOS repo with
+# all its branches, and chromium/src's heads, branch heads and tags. Then
+# records what upstream has, each ChromiumOS release branch (and main) with
+# its manifest commit, in $STATE, and says what changed since the last run:
+# a new release branch (time for nickel-rebase-report) or new commits on one
+# (Google's point releases, security fixes).
+#
+# --no-current-branch: the manifest marks some projects (chromiumos-overlay
+# among them) sync-c, and repo then fetches only the manifest's branch even
+# in a mirror; the release branches are what rebases need.
+set -euo pipefail
+export PATH=$HOME/depot_tools:$PATH
+M=/srv/nickel/mirror/chromiumos
+C=/srv/nickel/mirror/chromium/src.git
+STATE=/srv/nickel/mirror/upstream-state
+
+echo "== cros mirror $(date -Is)"
+cd "$M"
+repo sync --no-current-branch -j16 --retry-fetches=5 ||
+	repo sync --no-current-branch -j8 --retry-fetches=5
+
+echo "== chromium mirror $(date -Is)"
+git -C "$C" fetch --prune origin
+
+# Repos Chrome pulls in through its DEPS that the ChromiumOS manifest
+# doesn't have, where NickelOS's Chrome patches change files
+# (third_party/cros_system_api); nickel-rebase-report reads them.
+for project in chromiumos/platform2/system_api; do
+	r="$M/$project.git"
+	[ -d "$r" ] || git clone -q --mirror "https://chromium.googlesource.com/$project" "$r"
+	git -C "$r" fetch -q --prune origin
+done
+
+new=$(mktemp)
+git --git-dir="$M/chromiumos/manifest.git" for-each-ref \
+	--format='%(refname:short) %(objectname:short)' \
+	'refs/heads/release-R*' 'refs/heads/main' | sort > "$new"
+if [ -f "$STATE" ]; then
+	comm -13 <(cut -d' ' -f1 "$STATE") <(cut -d' ' -f1 "$new") |
+		sed 's/^/NEW RELEASE BRANCH: /'
+	join "$STATE" "$new" | awk '$2 != $3 { print "MOVED: " $1 " " $2 " -> " $3 }'
+fi
+mv "$new" "$STATE"
+chmod 644 "$STATE"
+echo "== done $(date -Is): newest $(grep -o 'release-R[0-9]*-[0-9]*\.B' "$STATE" | sort -V | tail -1)"

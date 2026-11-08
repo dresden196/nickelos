@@ -1,0 +1,46 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: no Google account check (ListAccounts)
+
+Chrome's Google sign-in kept asking accounts.google.com which Google
+accounts the browser's cookies belong to (gaia_auth_list_accounts): at
+startup for AI Mode (0085 turned that off) and whenever a google.com
+cookie was deleted, which at the sign-in screen happened every few
+minutes. NickelOS has no Google accounts (local accounts, and Google
+closed sign-in and sync to builds other than its own), so the answer is
+always none: GaiaCookieManagerService::TriggerListAccounts() gives it
+(the cookie jar's accounts are fresh and empty) without asking.
+
+Signing in to Google's websites is not affected: their cookies work as
+before; only Chrome's own idea of the signed-in accounts stays empty.
+
+diff --git a/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc b/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
+index 92b485477138b..997fc3646cd3f 100644
+--- a/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
++++ b/components/signin/internal/identity_manager/gaia_cookie_manager_service.cc
+@@ -527,21 +527,11 @@ GaiaCookieManagerService::GetCachedListAccounts() {
+ }
+ 
+ void GaiaCookieManagerService::TriggerListAccounts() {
+-  // Callers suspect that a check to Gaia needs to be done, don't rely on the
+-  // in progress request, conditions might have changed while the request is
+-  // in-flight.
+-  // Note: /ListAccounts requests is optimized in `OptimizeListAccounts()`
+-  // called in `HandleNextRequest()`. Only if there are no other requests in the
+-  // queue that `HandleNextRequest()` won't be called before executing
+-  // /ListAccounts.
+-  requests_.push_back(GaiaCookieRequest::CreateListAccountsRequest());
+-  if (requests_.size() == 1) {
+-    fetcher_retries_ = 0;
+-    listAccountsUnexpectedServerResponseRetried_ = false;
+-    signin_client_->DelayNetworkCall(base::BindOnce(
+-        &GaiaCookieManagerService::MaybeStartFetchingListAccounts,
+-        weak_ptr_factory_.GetWeakPtr()));
+-  }
++  // NickelOS: no Google accounts, ever (local accounts; Google closed sign-in
++  // and sync to other builds): the answer is always "none", so it is given
++  // here instead of asking accounts.google.com, which Chrome did whenever a
++  // google.com cookie went (at the sign-in screen, every few minutes).
++  list_accounts_stale_ = false;
+ }
+ 
+ void GaiaCookieManagerService::TriggerListAccountsIfStale() {

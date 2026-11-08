@@ -1,0 +1,21 @@
+#!/bin/sh
+# NickelOS: Portage's useradd (acct-user.eclass) for Gentoo's system users.
+# /etc/passwd is the OS's (nickel-accounts merges it at boot), so the user is
+# kept with Gentoo's accounts and merged in: nickel-gentoo account. People's
+# accounts are Settings > Accounts'.
+[ -n "${EBUILD_PHASE}" ] || { echo "useradd: add people in Settings > Accounts" >&2; exit 1; }
+uid= group= groups= home=/dev/null shell=/sbin/nologin comment=
+while [ $# -gt 1 ]; do
+	case $1 in
+	-u|--uid) uid=$2; shift ;;
+	-g|--gid) group=$2; shift ;;
+	-G|--groups) groups=$2; shift ;;
+	-d|--home-dir) home=$2; shift ;;
+	-s|--shell) shell=$2; shift ;;
+	-c|--comment) comment=$2; shift ;;
+	-R|--root|-P|--prefix) shift ;;
+	esac
+	shift
+done
+exec /usr/sbin/nickel-gentoo account user "$1" uid "$uid" group "$group" groups "$groups" \
+	home "$home" shell "$shell" comment "$comment"

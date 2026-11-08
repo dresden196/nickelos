@@ -1,0 +1,252 @@
+#!/bin/sh
+# NickelOS's ISO installer (scripts/iso/README.md), in frecon's terminal
+# (as /sbin/agetty, which frecon starts) or on the kernel's console.
+#   Install NickelOS on this computer: chromeos-install, NickelOS's own
+#     installer, from the image on the medium onto a disk you choose (the
+#     installed layout: two systems for updates, the data partition the
+#     rest of the disk).
+#   Try NickelOS first: this USB stick becomes a NickelOS stick, the USB
+#     image NickelOS's live session and its installer run from; only on a
+#     stick that holds nothing else.
+# The tools (chromeos-install, cgpt, e2fsprogs) are the image's own, run in
+# its system partition (read-only).
+export PATH=/sbin:/bin
+. /run/nickelos-media
+# The image in the squashfs (chromiumos_image.bin; any one .bin there).
+IMG=$(ls /nickelos/chromiumos_image.bin /nickelos/*.bin 2>/dev/null | head -1)
+SYS=/run/nickelsys
+LOCK=/run/nickelos-installer.lock
+exec 9>"$LOCK"
+flock -n 9 || { echo "The installer is already running."; sleep 5; exit 0; }
+
+say() { printf '%s\n' "$*"; }
+pause() { printf '%s' "${1:-Press Enter to go on. }"; read -r _; }
+
+# The disk a partition belongs to (sda1 -> sda, nvme0n1p1 -> nvme0n1).
+disk_of() {
+	b=${1##*/}
+	if [ -e "/sys/class/block/$b/partition" ]; then
+		b=$(basename "$(dirname "$(readlink -f "/sys/class/block/$b")")")
+	fi
+	echo "$b"
+}
+MEDIA_DISK=$(disk_of "$MEDIA_DEV")
+
+size_gb() { echo $(( $(cat "/sys/block/$1/size") * 512 / 1000000000 )); }
+size_text() {
+	b=$(( $(cat "/sys/block/$1/size") * 512 ))
+	if [ "$b" -ge 1000000000 ]; then echo "$(( b / 1000000000 )) GB"; else echo "$(( b / 1000000 )) MB"; fi
+}
+model() {
+	m=$(cat "/sys/block/$1/device/model" 2>/dev/null || cat "/sys/block/$1/device/name" 2>/dev/null)
+	m=$(echo "$m" | sed 's/  */ /g; s/^ //; s/ $//')
+	echo "${m:-Disk}"
+}
+is_usb() { readlink -f "/sys/block/$1/device" | grep -q /usb; }
+
+# The image's system partition, for its tools.
+open_image() {
+	mountpoint -q "$SYS" && return 0
+	LOOP=$(losetup -f) && losetup -r -P "$LOOP" "$IMG" || return 1
+	mkdir -p "$SYS"
+	mount -o ro "${LOOP}p3" "$SYS" || return 1
+	for d in dev proc sys run; do mount --bind "/$d" "$SYS/$d"; done
+	mount -t tmpfs tmpfs "$SYS/tmp"
+	mkdir -p "$SYS/tmp/nickelos"
+	mount --bind /nickelos "$SYS/tmp/nickelos"
+	echo "$LOOP" > /run/nickelos-loop
+}
+in_sys() { chroot "$SYS" "$@"; }
+
+choose_disk() {
+	n=0
+	: > /run/disks
+	for d in /sys/block/*; do
+		b=${d##*/}
+		case $b in loop*|ram*|zram*|dm-*|sr*|mmcblk*boot*|mmcblk*rpmb) continue ;; esac
+		[ "$b" = "$MEDIA_DISK" ] && continue
+		[ "$(cat "$d/size")" -gt 0 ] 2>/dev/null || continue
+		n=$((n + 1))
+		u=; is_usb "$b" && u=" (USB)"
+		say "  $n  $(model "$b"), $(size_text "$b")$u   /dev/$b"
+		echo "$n $b" >> /run/disks
+	done
+	[ "$n" -gt 0 ] || { say "  No disk to install on was found."; return 1; }
+	say ""
+	printf 'Disk number, or Enter to go back: '
+	read -r c
+	DISK=$(awk -v c="$c" '$1 == c { print $2 }' /run/disks)
+	[ -n "$DISK" ]
+}
+
+install() {
+	clear
+	say "Install NickelOS on this computer"
+	say ""
+	say "Choose the disk. Everything on it will be erased."
+	say ""
+	choose_disk || { pause; return; }
+	say ""
+	say "This erases everything on $(model "$DISK") ($(size_text "$DISK"), /dev/$DISK)"
+	say "and installs NickelOS there."
+	printf 'Type yes to install: '
+	read -r a
+	[ "$a" = yes ] || return
+	open_image || { say "The NickelOS image on this medium could not be opened."; pause; return; }
+	flags="--dst=/dev/$DISK --payload_image=/tmp/nickelos/${IMG##*/} --yes"
+	is_usb "$DISK" && flags="$flags --skip_dst_removable"
+	say ""
+	say "Installing. This takes a few minutes."
+	if in_sys /usr/sbin/chromeos-install $flags </dev/null > /run/install.log 2>&1; then
+		sync
+		say ""
+		say "NickelOS is installed."
+		pause "Take out the USB stick (or the disc) and press Enter to restart. "
+		reboot -f
+	else
+		say ""
+		say "Installing failed. The last lines of its log:"
+		tail -15 /run/install.log
+		pause
+	fi
+}
+
+# What the medium holds besides NickelOS's own files (Rufus's ISO mode
+# copies them onto a FAT or exFAT stick, beside anything else there).
+other_files() {
+	ls -A "$MEDIA_DIR" | grep -v -x -e EFI -e efi -e nickelos -e boot -e README.txt \
+		-e autorun.inf -e autorun.ico -e boot.catalog -e nickelos-secureboot.der -e "System Volume Information" -e '\[BOOT\]'
+}
+
+try() {
+	clear
+	say "Try NickelOS first"
+	say ""
+	say "This makes this USB stick a NickelOS stick: NickelOS then starts from it,"
+	say "and you can install it from there. Everything on the stick is erased."
+	say ""
+	if [ "$MEDIA_KIND" = file ]; then
+		say "This stick holds other files (NickelOS started from an ISO file on it,"
+		say "as Ventoy keeps them), so it can't become a NickelOS stick. Install"
+		say "NickelOS on this computer instead, or write the ISO to a stick of its own."
+		pause; return
+	fi
+	case $MEDIA_DISK in
+	sr*) say "NickelOS started from a disc. Install it on this computer instead."; pause; return ;;
+	esac
+	if [ -n "$(other_files)" ]; then
+		say "This stick holds other files besides NickelOS's:"
+		other_files | head -5 | sed 's/^/  /'
+		say "Write the ISO to a stick of its own, or install NickelOS on this computer."
+		pause; return
+	fi
+	open_image || { say "The NickelOS image on this medium could not be opened."; pause; return; }
+	L=$(cat /run/nickelos-loop)
+	# The stick needs room for every partition before the data partition
+	# (the USB layout keeps it last) and at least 2 GB of data partition.
+	state_start=$(in_sys cgpt show -i 1 -b "$L")
+	need=$(( state_start * 512 + 2000000000 ))
+	have=$(( $(cat "/sys/block/$MEDIA_DISK/size") * 512 ))
+	if [ "$have" -lt "$need" ]; then
+		say "This stick is too small: NickelOS needs $(( need / 1000000000 + 1 )) GB."
+		pause; return
+	fi
+	sq=$(stat -c %s "$MEDIA_DIR/nickelos/image.sqfs")
+	avail=$(awk '/MemAvailable/ { print $2 * 1024 }' /proc/meminfo)
+	if [ "$avail" -lt $(( sq + 600000000 )) ]; then
+		say "This computer has too little memory to rewrite the stick it runs from."
+		say "Install NickelOS on this computer instead."
+		pause; return
+	fi
+	say "This erases everything on $(model "$MEDIA_DISK") ($(size_text "$MEDIA_DISK"), /dev/$MEDIA_DISK)."
+	printf 'Type yes to go on: '
+	read -r a
+	[ "$a" = yes ] || return
+	say ""
+	say "Copying NickelOS into memory..."
+	# Off the stick before it is rewritten: the image into memory.
+	mkdir -p /run/ram
+	mount -t tmpfs -o size=$(( sq + 300000000 )) tmpfs /run/ram
+	cp "$MEDIA_DIR/nickelos/image.sqfs" /run/ram/ || { say "Copying failed."; pause; return; }
+	close_image
+	umount /nickelos
+	mount -o ro -t squashfs /run/ram/image.sqfs /nickelos
+	umount "$MEDIA_DIR" 2>/dev/null
+	open_image || { say "The NickelOS image in memory could not be opened."; pause; return; }
+	L=$(cat /run/nickelos-loop)
+	W=/dev/$MEDIA_DISK
+	say "Writing the stick. This takes a few minutes."
+	# Nothing in it may wait for the keyboard (its output goes to the log).
+	if write_stick "$L" "$W" </dev/null > /run/try.log 2>&1; then
+		sync
+		say ""
+		say "This stick is a NickelOS stick now. Restarting into NickelOS from it."
+		sleep 3
+		reboot -f
+	else
+		say ""
+		say "Writing the stick failed. The last lines of its log:"
+		tail -15 /run/try.log
+		pause
+	fi
+}
+
+# The USB image onto the stick, its data partition fitted to the stick:
+# the image's partition table made again for the stick's size (sfdisk: the
+# same partitions, IDs and attributes, the data partition, last in the USB
+# layout, to the end), every partition but ROOT-A and STATE as it is,
+# ROOT-A's filesystem by its used blocks (e2image: every metadata block
+# written, so nothing old on the stick is read as part of it), and STATE
+# made new and filled with the image's files.
+write_stick() {
+	L=$1 W=$2
+	set -ex
+	# The boot code before the partition table (legacy BIOS).
+	in_sys dd if="$L" of="$W" bs=440 count=1 conv=notrunc,fsync status=none
+	in_sys sfdisk -d "$L" | sed -e '/^last-lba:/d' -e '/^device:/d' \
+		-e '/name="STATE"/ s/, size= *[0-9]*//' > "$SYS/tmp/layout"
+	in_sys sfdisk --no-reread --no-tell-kernel -q "$W" < "$SYS/tmp/layout"
+	in_sys blockdev --rereadpt "$W"
+	sleep 2
+	p() { case ${W##*/} in *[0-9]) echo "${W}p$1" ;; *) echo "$W$1" ;; esac; }
+	# Direct I/O: the image already fills much of memory (in tmpfs), so the
+	# writes to the stick don't pile up in the page cache as well.
+	for i in 2 4 5 6 7 8 9 10 11 12; do
+		[ -b "${L}p$i" ] || continue
+		in_sys dd if="${L}p$i" of="$(p "$i")" bs=4M oflag=direct conv=fsync status=none
+	done
+	in_sys e2image -ra -p "${L}p3" "$(p 3)"
+	in_sys mkfs.ext4 -F -q -L STATE "$(p 1)"
+	mkdir -p "$SYS/tmp/from" "$SYS/tmp/to"
+	mount -o ro "${L}p1" "$SYS/tmp/from"
+	mount "$(p 1)" "$SYS/tmp/to"
+	in_sys cp -a /tmp/from/. /tmp/to/
+	umount "$SYS/tmp/to" "$SYS/tmp/from"
+	set +ex
+}
+
+close_image() {
+	mountpoint -q "$SYS" || return 0
+	umount "$SYS/tmp/nickelos" "$SYS/tmp" 2>/dev/null
+	for d in run sys proc dev; do umount "$SYS/$d" 2>/dev/null; done
+	umount "$SYS"
+	losetup -d "$(cat /run/nickelos-loop)"
+}
+
+version=$(sed -n 's/^CHROMEOS_RELEASE_VERSION=//p' /etc/nickelos/lsb-release 2>/dev/null)
+while :; do
+	clear
+	say "NickelOS ${version}"
+	say ""
+	say "  1  Install NickelOS on this computer"
+	say "  2  Try NickelOS first (makes this USB stick a NickelOS stick)"
+	say "  3  Turn off"
+	say ""
+	printf 'Choose 1, 2 or 3: '
+	read -r c
+	case $c in
+	1) install ;;
+	2) try ;;
+	3) poweroff -f ;;
+	esac
+done

@@ -1,0 +1,66 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: no content recommendations
+
+"Get content recommendations" (suggested apps and websites in the launcher
+and its suggestion chips) is fed by Google's servers. It is off by default
+on NickelOS, and its switch is gone from Settings (Search and suggestions,
+and the Privacy controls page).
+
+Google's AI features in the same card (Help me read, Help me write, Lobster)
+showed only because Chromium's field-trial testing config switched their
+experiments on; NickelOS builds without that config (nickel-chrome.bashrc),
+so they are off as their code says, and the card does not show them.
+
+diff --git a/chrome/browser/ash/preferences/preferences.cc b/chrome/browser/ash/preferences/preferences.cc
+index 702d0585312ed..fa07895cba1af 100644
+--- a/chrome/browser/ash/preferences/preferences.cc
++++ b/chrome/browser/ash/preferences/preferences.cc
+@@ -563,8 +563,10 @@ void Preferences::RegisterProfilePrefs(
+   registry->RegisterBooleanPref(prefs::kLoginDisplayPasswordButtonEnabled,
+                                 true);
+ 
++  // NickelOS: suggested content (apps and websites recommended in the
++  // launcher) comes from Google's servers: off, and Settings has no switch.
+   registry->RegisterBooleanPref(
+-      prefs::kSuggestedContentEnabled, true,
++      prefs::kSuggestedContentEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_OS_PREF);
+ 
+   registry->RegisterBooleanPref(prefs::kMagicBoostEnabled, true);
+diff --git a/chrome/browser/resources/ash/settings/os_privacy_page/privacy_hub_subpage.html b/chrome/browser/resources/ash/settings/os_privacy_page/privacy_hub_subpage.html
+index 57ab0d0a56075..1b8aa1418c396 100644
+--- a/chrome/browser/resources/ash/settings/os_privacy_page/privacy_hub_subpage.html
++++ b/chrome/browser/resources/ash/settings/os_privacy_page/privacy_hub_subpage.html
+@@ -113,10 +113,4 @@
+   </template>
+ </if>
+ 
+-<div class="hr"></div>
+-<settings-toggle-button id="contentRecommendationsToggle"
+-    pref="{{prefs.settings.suggested_content_enabled}}"
+-    label="$i18n{enableSuggestedContent}"
+-    sub-label="$i18n{enableSuggestedContentDesc}"
+-    learn-more-url="$i18n{suggestedContentLearnMoreURL}">
+-</settings-toggle-button>
++<!-- NickelOS: no content recommendations (Google's), so no switch for them. -->
+diff --git a/chrome/browser/resources/ash/settings/os_search_page/search_and_assistant_settings_card.html b/chrome/browser/resources/ash/settings/os_search_page/search_and_assistant_settings_card.html
+index 846fd1dda1f24..49fbb0cd0e232 100644
+--- a/chrome/browser/resources/ash/settings/os_search_page/search_and_assistant_settings_card.html
++++ b/chrome/browser/resources/ash/settings/os_search_page/search_and_assistant_settings_card.html
+@@ -31,14 +31,8 @@
+     </cr-link-row>
+   </template>
+ 
+-  <settings-toggle-button id="contentRecommendationsToggle"
+-      class="hr"
+-      icon="os-settings:content-recommend"
+-      pref="{{prefs.settings.suggested_content_enabled}}"
+-      label="$i18n{enableSuggestedContent}"
+-      sub-label="$i18n{enableSuggestedContentDesc}"
+-      learn-more-url="$i18n{suggestedContentLearnMoreURL}">
+-  </settings-toggle-button>
++  <!-- NickelOS: no content recommendations (Google's), so no switch for
++       them. -->
+ 
+   <!--TODO(b:337868408) learn more link for magicboost-->
+   <template is="dom-if" if="[[isMagicBoostFeatureEnabled_]]">

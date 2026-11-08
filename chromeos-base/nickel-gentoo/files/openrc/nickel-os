@@ -1,0 +1,24 @@
+#!/sbin/openrc-run
+# Distributed under the terms of the GNU General Public License v2
+#
+# NickelOS: what ChromeOS's own services already provide, for your
+# services' dependencies (docs/unified.md, "OpenRC"). ChromeOS's init
+# (Upstart) mounted the filesystems, shill runs the network, rsyslog logs,
+# its dbus-daemon is the system bus; Gentoo's own scripts for those are left
+# out of the image, since stopping them would unmount ChromeOS's
+# filesystems or take its network down.
+
+description="ChromeOS's own services: network, mounts, logging, the system bus"
+
+depend() {
+	provide net localmount netmount root fsck clock hostname logger dns dbus \
+		bootmisc sysfs devfs procfs modules udev
+}
+
+start() {
+	return 0
+}
+
+stop() {
+	return 0
+}

@@ -1,0 +1,342 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Linux apps print through ChromeOS's print preview
+
+Flatpak apps print through xdg-desktop-portal's Print portal, which had no
+backend: Print did nothing. xdg-desktop-portal-nickel's lets the app lay
+out its pages (PDF) and asks Chrome:
+
+- VmApplicationsService.NickelPrint(app name, title, h document) answers
+  whether print preview opened. NickelPrint saves the PDF in
+  /tmp/nickel-print (kept a day), opens it in a window of its own and
+  ChromeOS's print preview over it, with its printers (Settings >
+  Printers) and Save as PDF.
+
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index 687a52d95868c..c063b8f6fc1fd 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -14,6 +14,8 @@ static_library("vm") {
+     "nickel_inhibit.h",
+     "nickel_notifications.cc",
+     "nickel_notifications.h",
++    "nickel_print.cc",
++    "nickel_print.h",
+     "nickel_remote_desktop.cc",
+     "nickel_remote_desktop.h",
+     "nickel_screen_cast.cc",
+@@ -57,7 +59,10 @@ static_library("vm") {
+     "//chrome/browser/chromeos/policy/dlp",
+     "//chrome/browser/profiles:profile",
+     "//chrome/browser/profiles:profile_manager",
++    "//chrome/browser/ui:browser_commands",
+     "//chrome/browser/ui:chrome_pages",
++    "//chrome/browser/ui/browser_window",
++    "//chrome/browser/ui/navigator",
+     "//chrome/browser/ui/select_file_policy",
+     "//chrome/browser/ui/views/select_file_dialog_extension",
+     "//chrome/common",
+@@ -76,6 +81,7 @@ static_library("vm") {
+     "//components/exo/wayland",
+     "//components/prefs",
+     "//components/session_manager/core",
++    "//components/tabs:public",
+     "//components/user_manager",
+     "//media/capture:capture_lib",
+     "//ui/base/clipboard:file_info",
+diff --git a/chrome/browser/ash/dbus/vm/nickel_print.cc b/chrome/browser/ash/dbus/vm/nickel_print.cc
+new file mode 100644
+index 0000000000000..7ee94afe0dfe2
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_print.cc
+@@ -0,0 +1,170 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/dbus/vm/nickel_print.h"
++
++#include <unistd.h>
++
++#include <cctype>
++#include <utility>
++
++#include "base/containers/span.h"
++#include "base/files/file.h"
++#include "base/files/file_enumerator.h"
++#include "base/files/file_util.h"
++#include "base/functional/bind.h"
++#include "base/memory/weak_ptr.h"
++#include "base/posix/eintr_wrapper.h"
++#include "base/task/sequenced_task_runner.h"
++#include "base/task/thread_pool.h"
++#include "base/time/time.h"
++#include "chrome/browser/profiles/profile.h"
++#include "chrome/browser/profiles/profile_manager.h"
++#include "chrome/browser/ui/browser_commands.h"
++#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
++#include "chrome/browser/ui/navigator/browser_navigator.h"
++#include "chrome/browser/ui/navigator/browser_navigator_params.h"
++#include "components/tabs/public/tab_interface.h"
++#include "content/public/browser/web_contents.h"
++#include "content/public/browser/web_contents_observer.h"
++#include "net/base/filename_util.h"
++#include "ui/base/base_window.h"
++#include "ui/base/page_transition_types.h"
++#include "ui/base/window_open_disposition.h"
++
++namespace ash {
++
++namespace {
++
++// In /tmp, where ChromeOS lets file: URLs go; kept a day (removed at the
++// next print).
++constexpr char kDocumentDir[] = "/tmp/nickel-print";
++constexpr base::TimeDelta kKeep = base::Days(1);
++
++// The file name a document is saved as: its title, plainly.
++std::string FileName(const std::string& title) {
++  std::string name;
++  for (char c : title) {
++    name += (isalnum(static_cast<unsigned char>(c)) || c == ' ' || c == '-' ||
++             c == '_' || c == '.')
++                ? c
++                : '_';
++  }
++  if (name.size() > 80) {
++    name.resize(80);
++  }
++  return (name.empty() ? std::string("Document") : name) + ".pdf";
++}
++
++// Copies the document to a file; an empty path if that failed.
++base::FilePath WriteDocument(base::ScopedFD document, const std::string& title) {
++  const base::FilePath dir(kDocumentDir);
++  if (!base::CreateDirectory(dir)) {
++    return base::FilePath();
++  }
++  base::SetPosixFilePermissions(dir, 0700);
++  base::FileEnumerator old(dir, false, base::FileEnumerator::FILES);
++  for (base::FilePath path = old.Next(); !path.empty(); path = old.Next()) {
++    if (base::Time::Now() - old.GetInfo().GetLastModifiedTime() > kKeep) {
++      base::DeleteFile(path);
++    }
++  }
++  const base::FilePath path = base::GetUniquePath(dir.Append(FileName(title)));
++  if (path.empty()) {
++    return base::FilePath();
++  }
++  base::File out(path, base::File::FLAG_CREATE | base::File::FLAG_WRITE);
++  if (!out.IsValid()) {
++    return base::FilePath();
++  }
++  char buffer[64 * 1024];
++  for (;;) {
++    const ssize_t n =
++        HANDLE_EINTR(read(document.get(), buffer, sizeof(buffer)));
++    if (n < 0) {
++      out.Close();
++      base::DeleteFile(path);
++      return base::FilePath();
++    }
++    if (n == 0) {
++      break;
++    }
++    if (!out.WriteAtCurrentPosAndCheck(
++            base::as_bytes(base::span(buffer, static_cast<size_t>(n))))) {
++      out.Close();
++      base::DeleteFile(path);
++      return base::FilePath();
++    }
++  }
++  return path;
++}
++
++// Opens print preview once the document has loaded in its window (the PDF
++// viewer sets itself up a moment after the page loads), then goes away.
++class PrintWhenLoaded : public content::WebContentsObserver {
++ public:
++  explicit PrintWhenLoaded(content::WebContents* contents)
++      : content::WebContentsObserver(contents) {}
++
++  void DocumentOnLoadCompletedInPrimaryMainFrame() override {
++    base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
++        FROM_HERE,
++        base::BindOnce(&PrintWhenLoaded::Print, weak_factory_.GetWeakPtr()),
++        base::Seconds(1));
++  }
++
++  void WebContentsDestroyed() override { delete this; }
++
++ private:
++  void Print() {
++    if (tabs::TabInterface* tab =
++            tabs::TabInterface::MaybeGetFromContents(web_contents())) {
++      if (BrowserWindowInterface* browser = tab->GetBrowserWindowInterface()) {
++        // In front: a browser window restoring its session may have opened
++        // over it.
++        browser->GetWindow()->Activate();
++        chrome::Print(browser);
++      }
++    }
++    delete this;
++  }
++
++  base::WeakPtrFactory<PrintWhenLoaded> weak_factory_{this};
++};
++
++void Open(base::OnceCallback<void(bool)> callback, base::FilePath path) {
++  Profile* profile = ProfileManager::GetActiveUserProfile();
++  if (path.empty() || !profile) {
++    std::move(callback).Run(false);
++    return;
++  }
++  NavigateParams params(profile, net::FilePathToFileURL(path),
++                        ui::PAGE_TRANSITION_AUTO_TOPLEVEL);
++  params.disposition = WindowOpenDisposition::NEW_POPUP;
++  params.window_action = NavigateParams::WindowAction::kShowWindow;
++  Navigate(&params);
++  if (content::WebContents* contents =
++          params.navigated_or_inserted_contents.get()) {
++    new PrintWhenLoaded(contents);
++    std::move(callback).Run(true);
++    return;
++  }
++  std::move(callback).Run(false);
++}
++
++}  // namespace
++
++// static
++void NickelPrint::Print(const std::string& app_name,
++                        const std::string& title,
++                        base::ScopedFD document,
++                        base::OnceCallback<void(bool)> callback) {
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
++      base::BindOnce(&WriteDocument, std::move(document),
++                     title.empty() ? app_name : title),
++      base::BindOnce(&Open, std::move(callback)));
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_print.h b/chrome/browser/ash/dbus/vm/nickel_print.h
+new file mode 100644
+index 0000000000000..6fbcec8379196
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_print.h
+@@ -0,0 +1,30 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_DBUS_VM_NICKEL_PRINT_H_
++#define CHROME_BROWSER_ASH_DBUS_VM_NICKEL_PRINT_H_
++
++#include <string>
++
++#include "base/files/scoped_file.h"
++#include "base/functional/callback.h"
++
++namespace ash {
++
++// NickelOS: Linux apps print through ChromeOS's print preview (the Print
++// portal's backend, xdg-desktop-portal-nickel; VmApplicationsService
++// .NickelPrint).
++class NickelPrint {
++ public:
++  // Reads the document (a PDF) from `document`, opens it in a window of its
++  // own and print preview over it; `callback` gets whether it opened.
++  static void Print(const std::string& app_name,
++                    const std::string& title,
++                    base::ScopedFD document,
++                    base::OnceCallback<void(bool)> callback);
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_ASH_DBUS_VM_NICKEL_PRINT_H_
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index c8502ccb840ac..cd5c1a096f732 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -25,6 +25,7 @@
+ #include "chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_inhibit.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_notifications.h"
++#include "chrome/browser/ash/dbus/vm/nickel_print.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_tray.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_x11_keys.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_remote_desktop.h"
+@@ -170,6 +171,8 @@ constexpr char kNickelShortcutsBindMethod[] = "NickelShortcutsBind";
+ constexpr char kNickelAccessAskMethod[] = "NickelAccessAsk";
+ // NickelOS: called by the Inhibit portal's backend (NickelInhibit).
+ constexpr char kNickelInhibitMethod[] = "NickelInhibit";
++// NickelOS: called by the Print portal's backend (NickelPrint).
++constexpr char kNickelPrintMethod[] = "NickelPrint";
+ // NickelOS: called by nickel-x11-keys, which presses shortcut keys in
+ // Xwayland for X11 apps (NickelX11Keys).
+ constexpr char kNickelX11KeysConnectMethod[] = "NickelX11KeysConnect";
+@@ -300,6 +303,12 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface, kNickelPrintMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelPrint,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+   exported_object->ExportMethod(
+       vm_tools::apps::kVmApplicationsServiceInterface, kNickelAccessAskMethod,
+       base::BindRepeating(&VmApplicationsServiceProvider::NickelAccessAsk,
+@@ -747,6 +756,37 @@ void VmApplicationsServiceProvider::NickelInhibit(
+   std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
+ }
+ 
++// NickelOS: a Linux app prints: (app name, title, h document, a PDF).
++// Answers whether ChromeOS's print preview opened: (b).
++void VmApplicationsServiceProvider::NickelPrint(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string app_name;
++  std::string title;
++  base::ScopedFD document;
++  if (!reader.PopString(&app_name) || !reader.PopString(&title) ||
++      !reader.PopFileDescriptor(&document)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected app name, title, document"));
++    return;
++  }
++  NickelPrint::Print(
++      app_name, title, std::move(document),
++      base::BindOnce(
++          [](dbus::MethodCall* method_call,
++             dbus::ExportedObject::ResponseSender response_sender,
++             bool shown) {
++            std::unique_ptr<dbus::Response> response =
++                dbus::Response::FromMethodCall(method_call);
++            dbus::MessageWriter(response.get()).AppendBool(shown);
++            std::move(response_sender).Run(std::move(response));
++          },
++          method_call, std::move(response_sender)));
++}
++
+ // NickelOS: nickel-x11-keys connects: (h socket) the shortcut keys for
+ // X11 apps go into.
+ void VmApplicationsServiceProvider::NickelX11KeysConnect(
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index 2b573f4b4252e..b998f4cd2b68d 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -99,6 +99,8 @@ class VmApplicationsServiceProvider
+                        dbus::ExportedObject::ResponseSender response_sender);
+   void NickelInhibit(dbus::MethodCall* method_call,
+                      dbus::ExportedObject::ResponseSender response_sender);
++  void NickelPrint(dbus::MethodCall* method_call,
++                   dbus::ExportedObject::ResponseSender response_sender);
+   void NickelX11KeysConnect(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);

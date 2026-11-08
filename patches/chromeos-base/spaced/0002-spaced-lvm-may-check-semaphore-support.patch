@@ -1,0 +1,20 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] spaced: lvm may check semaphore support
+
+Gentoo's lvm2 (pvs, which spaced runs) checks SysV semaphore support with
+semctl even with udev sync off; spaced's policy killed it. Google's policy
+for os_install_service, which runs lvm too, allows it.
+
+---
+--- a/spaced/seccomp/spaced-seccomp-amd64.policy
++++ b/spaced/seccomp/spaced-seccomp-amd64.policy
+@@ -76,6 +76,9 @@
+ quotactl: 1
+ read: 1
+ readlink: 1
++# NickelOS Unified: Gentoo's lvm2 (pvs) checks SysV semaphore support first,
++# as Google's policy for os_install_service allows lvm.
++semctl: 1
+ recvmsg: 1
+ rename: 1
+ restart_syscall: 1

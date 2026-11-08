@@ -1,0 +1,87 @@
+# Flatpak stack (Gentoo ports in this overlay). Policy: wayland and X on;
+# systemd, elogind, pulseaudio off; introspection, vala, docs, tests and man
+# pages off; seccomp on where offered; policykit on for flatpak.
+sys-auth/polkit pam -introspection -systemd -elogind -nls -gtk -kde -examples
+sys-fs/fuse3 suid -io-uring -systemtap
+x11-libs/libXmu -doc
+sys-apps/bubblewrap -selinux
+app-crypt/gpgme -common-lisp -static-libs
+dev-libs/appstream -introspection -systemd -apt -doc
+net-libs/libsoup brotli ssl -introspection -gssapi -samba
+dev-util/ostree curl gpg http2 -soup -archive -doc -dracut -grub -introspection -libmount -selinux -sodium -ssl -systemd -zeroconf
+net-libs/glib-networking ssl -gnome -libproxy
+gnome-base/dconf -gtk-doc
+gnome-base/gsettings-desktop-schemas -introspection
+sys-apps/flatpak policykit seccomp wayland X -introspection -systemd
+sys-apps/xdg-desktop-portal seccomp -flatpak geolocation -gstreamer -systemd -udev
+sys-apps/accountsservice xcrypt -elogind -systemd -introspection -doc -gtk-doc -selinux
+dev-libs/appstream-glib -fonts -gtk-doc -introspection
+
+# Chrome's test binaries (chromeos_integration_tests and others, packaged as
+# test bundles) serve Google's test lab, not NickelOS; building them roughly
+# doubles the link and packaging time of every Chrome build. chrome_debug
+# stays on: crash symbolization needs the debug symbols.
+chromeos-base/chromeos-chrome -build_tests
+# Crosier is the lab's harness for those binaries; without them its package
+# can only be Google's prebuilt one, and R157's (r38) has none: built here it
+# fails looking for Chrome's test output. exclude_crosier installs nothing.
+chromeos-base/crosier-chrome exclude_crosier
+
+# X11 apps on the host: Xwayland 24.1 (this overlay) run by sommelier against
+# Exo. sommelier's ebuild is limited to VM guests by REQUIRED_USE="kvm_guest";
+# the flag gates nothing else in it (its GN build never reads use.kvm_guest).
+chromeos-base/sommelier kvm_guest
+# GLX for X11 clients (Steam's client needs it): Xwayland's GLX extension,
+# which needs GL headers from libglvnd[X] (adds libGLX/libGL to the image;
+# Chrome does not use them). Without glamor (mesa-reven has no GBM) GLX
+# clients render in software through Mesa's swrast DRI driver.
+media-libs/libglvnd X
+x11-base/xwayland glx
+# Vulkan's loader with its window-system code: without it, Linux apps'
+# vkCreateXcbSurfaceKHR/vkCreateXlibSurfaceKHR/vkCreateWaylandSurfaceKHR do
+# not exist (ChromeOS builds it for Chrome, which draws to no window this
+# way), so no native Vulkan app or game could show a frame. Flatpak apps
+# bring their own loader.
+media-libs/vulkan-loader X wayland
+
+# PulseAudio sound server for Flatpak apps (Gentoo ports in this overlay): a
+# per-session daemon whose only sink and source are CRAS's ALSA plugin. ALSA
+# on; no device probing (udev), D-Bus, GLib, X, Bluetooth, network/zeroconf,
+# systemd/elogind, extra DSP (orc, fftw/equalizer, webrtc-aec, soxr) or
+# alsa-plugins; the "simple" database instead of gdbm. libsndfile is already
+# minimal (no codecs) in the chromeos profile.
+media-libs/libpulse -asyncns -dbus -glib -gtk -selinux -systemd -valgrind -X
+media-sound/pulseaudio-daemon alsa -alsa-plugin -aptx -asyncns -bluetooth -dbus -elogind -equalizer -fftw -gdbm -glib -gstreamer -jack -ldac -lirc -ofono-headset -orc -oss -selinux -sox -ssl -systemd -tcpd -udev -valgrind -webrtc-aec -X -zeroconf
+
+# Desktop base for AppImages and native apps (chromeos-base/nickel-desktop-base;
+# Gentoo ports in this overlay: gtk+:3, gtk:4, libadwaita, graphene,
+# at-spi2-core, libXcomposite, libXinerama, hicolor-icon-theme).
+# GTK 3 and GTK 4 get their Wayland and X11 backends; the X11 ones need
+# cairo's Xlib surface, so the image's cairo gains its xlib/xcb backends (and
+# libXrender). The CUPS print backend follows the board's USE=cups
+# (libcups is already on the image). at-spi2-core without X: apps find the
+# accessibility bus through the session bus (org.a11y.Bus), on X11 and
+# Wayland alike.
+x11-libs/cairo X
+x11-libs/gtk+ wayland X
+gui-libs/gtk wayland X
+app-accessibility/at-spi2-core -X
+
+# Session tracking (Gentoo port sys-auth/elogind in this overlay): elogind
+# tracks the signed-in user's session on seat0, so polkit can tell an active
+# local session (password prompts for pkexec, e.g. balenaEtcher writing a
+# drive), uaccess gives the active user ACLs on seat devices and login1
+# exists; powerd keeps the power keys, lid and suspend (elogind's NickelOS
+# defaults in /etc/elogind/*.conf.d ignore them). PAM (pam_elogind), ACL
+# (uaccess) and its polkit policy on; no audit, SELinux, debug build.
+# polkit's session tracking moves from the ConsoleKit fallback (nothing to
+# talk to on ChromeOS) to libelogind; this overrides -elogind above.
+sys-auth/elogind acl pam policykit -audit -debug -selinux
+sys-auth/polkit elogind
+
+# The web's common audio and video formats (H.264, AAC, MP3; HEVC through the
+# hardware decoder), as Google's Chrome and most Linux distributions' Chromium
+# have them: without them, YouTube and many sites say "Your browser can't play
+# this video" (DEMUXER_ERROR_NO_SUPPORTED_STREAMS). ChromiumOS's own switch:
+# proprietary_codecs=true, ffmpeg_branding=ChromeOS.
+chromeos-base/chromeos-chrome chrome_media hevc_codec

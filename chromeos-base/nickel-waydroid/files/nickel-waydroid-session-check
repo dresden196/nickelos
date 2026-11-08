@@ -1,0 +1,8 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# At sign-in, as the user (nickel-waydroid-session.conf): without Android
+# set up, Waydroid's launcher entries for their Android apps go.
+W=/var/lib/waydroid
+[ -f "${W}/waydroid.cfg" ] && [ -d "${W}/rootfs" ] && exit 0
+rm -f "${XDG_DATA_HOME:-${HOME}/.local/share}"/applications/waydroid.*.desktop

@@ -1,0 +1,20 @@
+# NickelOS (sourced by Portage for gnome-base/gnome-keyring): what NickelOS's
+# own port did, on Gentoo's package. A Linux desktop unlocks the login
+# keyring with the sign-in password; ChromeOS gives that to cryptohome only,
+# so the session bus starts gnome-keyring through nickel-keyring, which
+# unlocks it with the account's own key. Without that, the keyring came up
+# locked and asked for a password, and apps waiting on it (Obsidian's
+# cookies, so its update check) never went on.
+#  - started by the session bus only, through nickel-keyring (no XDG
+#    autostart entry, which would start it locked)
+#  - no p11-kit module of its own (NSS would ask the keyring too)
+post_src_install() {
+	local s
+	rm -rf "${ED}"/etc/xdg/autostart
+	rm -f "${ED}"/usr/share/p11-kit/modules/gnome-keyring.module
+	for s in org.gnome.keyring org.freedesktop.secrets org.freedesktop.impl.portal.Secret; do
+		[[ -f ${ED}/usr/share/dbus-1/services/${s}.service ]] || continue
+		sed -i 's|^Exec=.*|Exec=/usr/libexec/nickel-keyring|' \
+			"${ED}/usr/share/dbus-1/services/${s}.service" || die
+	done
+}

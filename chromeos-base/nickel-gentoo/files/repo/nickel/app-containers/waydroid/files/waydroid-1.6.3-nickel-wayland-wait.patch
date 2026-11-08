@@ -1,0 +1,30 @@
+NickelOS: an Android app started right after sign-in can come before
+ChromeOS's Wayland server has made the session's socket, and the session
+then quit at once ("Wayland socket ... doesn't exist"). Wait up to 30
+seconds for it.
+
+diff -ruN a/tools/actions/session_manager.py b/tools/actions/session_manager.py
+--- a/tools/actions/session_manager.py
++++ b/tools/actions/session_manager.py
+@@ -4,6 +4,7 @@
+ import os
+ import signal
+ import sys
++import time
+ import tools.config
+ import tools.helpers.ipc
+ from tools import services
+@@ -62,6 +63,13 @@
+             logging.error("XDG_RUNTIME_DIR is not set; please don't start a Waydroid session with 'sudo'!")
+             sys.exit(1)
+         wayland_socket_path = os.path.join(xdg_runtime_dir, wayland_display)
++    # NickelOS: an Android app started right after sign-in (an autostart
++    # entry, a quick click) can come before ChromeOS's Wayland server has
++    # made the session's socket. Wait for it a little.
++    for _ in range(60):
++        if os.path.exists(wayland_socket_path):
++            break
++        time.sleep(0.5)
+     if not os.path.exists(wayland_socket_path):
+         logging.error(f"Wayland socket '{wayland_socket_path}' doesn't exist; are you running a Wayland compositor?")
+         sys.exit(1)

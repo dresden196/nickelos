@@ -1,0 +1,51 @@
+# NickelOS proof: system calls ChromeOS services make on Gentoo's
+# libraries that their sandbox rules didn't allow (file, call, why).
+heartd-seccomp.policy futex GCC's unwinder (libgcc_s) and libstdc++ use pthread_once
+drm-seccomp.policy futex the same, in cros_healthd's executor delegate
+mtpd-seccomp.policy getsockopt seen killing mtpd at boot
+cras-seccomp.policy getxattr seen killing CRAS at boot
+cros_healthd-seccomp.policy recvfrom seen killing cros_healthd at boot
+mini_udisks-seccomp.policy lseek seen killing mini_udisks (second boot)
+cros_healthd-seccomp.policy statx Gentoo's GLib 2.88 stats files with statx (third boot)
+dns-proxy-seccomp.policy fsopen util-linux 2.42's libmount uses the new mount API where mount is allowed
+dns-proxy-seccomp.policy fsconfig util-linux 2.42's libmount uses the new mount API where mount is allowed
+dns-proxy-seccomp.policy fsmount util-linux 2.42's libmount uses the new mount API where mount is allowed
+dns-proxy-seccomp.policy move_mount util-linux 2.42's libmount uses the new mount API where mount is allowed
+dns-proxy-seccomp.policy open_tree util-linux 2.42's libmount uses the new mount API where mount is allowed
+dns-proxy-seccomp.policy fspick util-linux 2.42's libmount uses the new mount API where mount is allowed
+imageloader-helper-seccomp.policy fsopen util-linux 2.42's libmount uses the new mount API where mount is allowed
+imageloader-helper-seccomp.policy fsconfig util-linux 2.42's libmount uses the new mount API where mount is allowed
+imageloader-helper-seccomp.policy fsmount util-linux 2.42's libmount uses the new mount API where mount is allowed
+imageloader-helper-seccomp.policy move_mount util-linux 2.42's libmount uses the new mount API where mount is allowed
+imageloader-helper-seccomp.policy open_tree util-linux 2.42's libmount uses the new mount API where mount is allowed
+imageloader-helper-seccomp.policy fspick util-linux 2.42's libmount uses the new mount API where mount is allowed
+ml_service-seccomp.policy fsopen util-linux 2.42's libmount uses the new mount API where mount is allowed
+ml_service-seccomp.policy fsconfig util-linux 2.42's libmount uses the new mount API where mount is allowed
+ml_service-seccomp.policy fsmount util-linux 2.42's libmount uses the new mount API where mount is allowed
+ml_service-seccomp.policy move_mount util-linux 2.42's libmount uses the new mount API where mount is allowed
+ml_service-seccomp.policy open_tree util-linux 2.42's libmount uses the new mount API where mount is allowed
+ml_service-seccomp.policy fspick util-linux 2.42's libmount uses the new mount API where mount is allowed
+os_install_service-seccomp.policy fsopen util-linux 2.42's libmount uses the new mount API where mount is allowed
+os_install_service-seccomp.policy fsconfig util-linux 2.42's libmount uses the new mount API where mount is allowed
+os_install_service-seccomp.policy fsmount util-linux 2.42's libmount uses the new mount API where mount is allowed
+os_install_service-seccomp.policy move_mount util-linux 2.42's libmount uses the new mount API where mount is allowed
+os_install_service-seccomp.policy open_tree util-linux 2.42's libmount uses the new mount API where mount is allowed
+os_install_service-seccomp.policy fspick util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-executor-seccomp.policy fsopen util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-executor-seccomp.policy fsconfig util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-executor-seccomp.policy fsmount util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-executor-seccomp.policy move_mount util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-executor-seccomp.policy open_tree util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-executor-seccomp.policy fspick util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-seccomp.policy fsopen util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-seccomp.policy fsconfig util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-seccomp.policy fsmount util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-seccomp.policy move_mount util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-seccomp.policy open_tree util-linux 2.42's libmount uses the new mount API where mount is allowed
+rmad-seccomp.policy fspick util-linux 2.42's libmount uses the new mount API where mount is allowed
+system-proxy-seccomp.policy fsopen util-linux 2.42's libmount uses the new mount API where mount is allowed
+system-proxy-seccomp.policy fsconfig util-linux 2.42's libmount uses the new mount API where mount is allowed
+system-proxy-seccomp.policy fsmount util-linux 2.42's libmount uses the new mount API where mount is allowed
+system-proxy-seccomp.policy move_mount util-linux 2.42's libmount uses the new mount API where mount is allowed
+system-proxy-seccomp.policy open_tree util-linux 2.42's libmount uses the new mount API where mount is allowed
+system-proxy-seccomp.policy fspick util-linux 2.42's libmount uses the new mount API where mount is allowed

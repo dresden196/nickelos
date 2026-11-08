@@ -1,0 +1,956 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Settings > Apps > Android apps
+
+Android apps run in Waydroid on NickelOS (nickel-waydroid). This adds an
+Android apps card to the Apps page, between Default apps and Linux apps:
+
+- Before Android is set up: "Run Android apps" and Set up, which
+  downloads Android (LineageOS from the Waydroid project, about 1 GB),
+  with its progress and Cancel.
+- Once set up: Android settings (Android's own Settings app, launched
+  through nickel-appd as org.nickelos.AndroidSettings), how much space
+  Android takes, the ARM app support switch, and Remove Android.
+- ARM app support installs a translator for apps built only for ARM
+  processors: Intel's Houdini on Intel CPUs, Google's NDK translation on
+  AMD. NickelOS neither makes nor includes it; turning the switch on
+  first shows a dialog saying so (proprietary software, under its
+  owner's terms, that the user installs), and the switch stays off
+  unless the user agrees. Removing Android asks first too.
+- Changes are for the device's administrators: nickel-waydroidd checks,
+  and the card says so to everyone else.
+
+NickelAndroidAppsHandler talks to nickel-waydroidd (org.nickelos.Android,
+system bus); the card polls its state every second while something is
+under way.
+
+Ash's UrlHandlerService, which opens the links Linux apps open, also
+takes chrome://os-settings links now (shown in the Settings window, as
+Ash does for any): nickel-waydroid's APK handler and Waydroid's launcher
+entry send people to Settings > Apps to set Android up or turn on ARM
+app support, as chrome://os-settings/apps?nickel=android, which scrolls
+the card into view.
+
+The strings are in ui_chromeos_strings.grd, which few files include.
+
+diff --git a/ash/dbus/url_handler_service_provider.cc b/ash/dbus/url_handler_service_provider.cc
+index 77c747e0b4225..81d1af74c3fbd 100644
+--- a/ash/dbus/url_handler_service_provider.cc
++++ b/ash/dbus/url_handler_service_provider.cc
+@@ -50,7 +50,16 @@ void UrlHandlerServiceProvider::Start(
+ }
+ 
+ bool UrlHandlerServiceProvider::UrlAllowed(const GURL& gurl) const {
+-  return gurl.is_valid() && allowed_url_schemes_.contains(gurl.GetScheme());
++  if (!gurl.is_valid()) {
++    return false;
++  }
++  // NickelOS: a page of ChromeOS's Settings too, which Ash shows in the
++  // Settings window: nickel-waydroid opens Settings > Apps, where Android
++  // is set up, from its APK handler and Waydroid's launcher entry.
++  if (gurl.SchemeIs("chrome") && gurl.GetHost() == "os-settings") {
++    return true;
++  }
++  return allowed_url_schemes_.contains(gurl.GetScheme());
+ }
+ 
+ void UrlHandlerServiceProvider::OpenUrl(
+diff --git a/chrome/browser/resources/ash/settings/BUILD.gn b/chrome/browser/resources/ash/settings/BUILD.gn
+index bfcbcee5e2955..49b110de59504 100644
+--- a/chrome/browser/resources/ash/settings/BUILD.gn
++++ b/chrome/browser/resources/ash/settings/BUILD.gn
+@@ -240,6 +240,7 @@ build_webui("build") {
+     "os_apps_page/app_parental_controls/app_verify_pin_dialog.ts",
+     "os_apps_page/app_parental_controls/block_app_item.ts",
+ 
++    "os_apps_page/nickel_android_apps.ts",
+     "os_apps_page/nickel_default_apps.ts",
+     "os_apps_page/os_apps_page.ts",
+     "os_bluetooth_page/os_bluetooth_change_device_name_dialog.ts",
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/nickel_android_apps.html b/chrome/browser/resources/ash/settings/os_apps_page/nickel_android_apps.html
+new file mode 100644
+index 0000000000000..6afe5738290e2
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_apps_page/nickel_android_apps.html
+@@ -0,0 +1,147 @@
++<style include="settings-shared">
++  progress {
++    accent-color: var(--cros-sys-primary);
++    margin-top: 8px;
++    width: 100%;
++  }
++
++  .nickel-android-error {
++    color: var(--cros-sys-error);
++  }
++
++  cr-dialog p {
++    margin: 0 0 12px;
++  }
++</style>
++<settings-card header-text="$i18n{nickelAndroidTitle}">
++  <template is="dom-if" if="[[is_(state_.android, 'unavailable')]]" restamp>
++    <div class="settings-box first">
++      <div class="secondary">$i18n{nickelAndroidUnavailable}</div>
++    </div>
++  </template>
++
++  <!-- Not set up yet. -->
++  <template is="dom-if" if="[[is_(state_.android, 'absent')]]" restamp>
++    <div class="settings-box first two-line">
++      <div class="start settings-box-text">
++        <div id="nickelAndroidSetUpLabel">$i18n{nickelAndroidSetUpLabel}</div>
++        <div class="secondary">$i18n{nickelAndroidSetUpDescription}</div>
++        <div class="secondary nickel-android-error"
++            hidden$="[[!errorText_(state_.error)]]">
++          [[errorText_(state_.error)]]
++        </div>
++      </div>
++      <div class="separator"></div>
++      <cr-button id="nickelAndroidSetUp" on-click="onSetUpClick_"
++          disabled="[[!state_.admin]]"
++          aria-describedby="nickelAndroidSetUpLabel">
++        $i18n{nickelAndroidSetUp}
++      </cr-button>
++    </div>
++  </template>
++
++  <!-- Downloading and setting up, or removing. -->
++  <template is="dom-if" if="[[isWorking_(state_.android)]]" restamp>
++    <div class="settings-box first two-line">
++      <div class="start settings-box-text">
++        <div>[[workText_(state_.android, state_.progress)]]</div>
++        <template is="dom-if" if="[[hasProgress_(state_.progress)]]" restamp>
++          <progress max="1" value="[[state_.progress]]"></progress>
++        </template>
++        <template is="dom-if" if="[[!hasProgress_(state_.progress)]]" restamp>
++          <progress></progress>
++        </template>
++      </div>
++      <template is="dom-if" if="[[is_(state_.android, 'setting-up')]]"
++          restamp>
++        <div class="separator"></div>
++        <cr-button on-click="onCancelClick_" disabled="[[!state_.admin]]">
++          $i18n{cancel}
++        </cr-button>
++      </template>
++    </div>
++  </template>
++
++  <!-- Set up. -->
++  <template is="dom-if" if="[[is_(state_.android, 'ready')]]" restamp>
++    <cr-link-row id="nickelAndroidOpenSettings" class="settings-box first"
++        label="$i18n{nickelAndroidOpenSettings}"
++        sub-label="[[usesText_(state_.diskText)]]"
++        on-click="onOpenSettingsClick_" external>
++    </cr-link-row>
++    <div class="settings-box two-line">
++      <div class="start settings-box-text" aria-hidden="true">
++        <div id="nickelAndroidArmLabel">$i18n{nickelAndroidArmLabel}</div>
++        <div class="secondary">[[armSubLabel_(state_.arm)]]</div>
++        <div class="secondary nickel-android-error"
++            hidden$="[[!errorText_(state_.error)]]">
++          [[errorText_(state_.error)]]
++        </div>
++        <template is="dom-if" if="[[isArmWorking_(state_.arm)]]" restamp>
++          <template is="dom-if" if="[[hasProgress_(state_.progress)]]"
++              restamp>
++            <progress max="1" value="[[state_.progress]]"></progress>
++          </template>
++          <template is="dom-if" if="[[!hasProgress_(state_.progress)]]"
++              restamp>
++            <progress></progress>
++          </template>
++        </template>
++      </div>
++      <cr-toggle id="nickelAndroidArmToggle"
++          checked="[[isArmOn_(state_.arm)]]"
++          disabled="[[!canChangeArm_(state_.admin, state_.arm)]]"
++          on-change="onArmChange_"
++          aria-labelledby="nickelAndroidArmLabel">
++      </cr-toggle>
++    </div>
++    <div class="settings-box two-line">
++      <div class="start settings-box-text">
++        <div id="nickelAndroidRemoveLabel">$i18n{nickelAndroidRemoveLabel}</div>
++        <div class="secondary">$i18n{nickelAndroidRemoveDescription}</div>
++      </div>
++      <div class="separator"></div>
++      <cr-button id="nickelAndroidRemove" on-click="onRemoveClick_"
++          disabled="[[!canChangeArm_(state_.admin, state_.arm)]]"
++          aria-describedby="nickelAndroidRemoveLabel">
++        $i18n{nickelAndroidRemove}
++      </cr-button>
++    </div>
++  </template>
++
++  <template is="dom-if" if="[[showAdminOnly_(state_.android, state_.admin)]]"
++      restamp>
++    <div class="settings-box">
++      <div class="secondary">$i18n{nickelAndroidAdminOnly}</div>
++    </div>
++  </template>
++</settings-card>
++
++<cr-dialog id="armDialog" on-cancel="onArmDialogCancel_">
++  <div slot="title">$i18n{nickelAndroidArmDialogTitle}</div>
++  <div slot="body">
++    <p>[[armDialogBody_(state_.translator)]]</p>
++    <p>$i18n{nickelAndroidArmDialogBody2}</p>
++  </div>
++  <div slot="button-container">
++    <cr-button class="cancel-button" on-click="onArmDialogCancel_">
++      $i18n{cancel}
++    </cr-button>
++    <cr-button class="action-button" on-click="onArmDialogConfirm_">
++      $i18n{nickelAndroidArmDialogConfirm}
++    </cr-button>
++  </div>
++</cr-dialog>
++
++<cr-dialog id="removeDialog" on-cancel="onRemoveDialogCancel_">
++  <div slot="title">$i18n{nickelAndroidRemoveDialogTitle}</div>
++  <div slot="body">$i18n{nickelAndroidRemoveDialogBody}</div>
++  <div slot="button-container">
++    <cr-button class="cancel-button" on-click="onRemoveDialogCancel_">
++      $i18n{cancel}
++    </cr-button>
++    <cr-button class="action-button" on-click="onRemoveDialogConfirm_">
++      $i18n{nickelAndroidRemove}
++    </cr-button>
++  </div>
++</cr-dialog>
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/nickel_android_apps.ts b/chrome/browser/resources/ash/settings/os_apps_page/nickel_android_apps.ts
+new file mode 100644
+index 0000000000000..bfc7cbb580226
+--- /dev/null
++++ b/chrome/browser/resources/ash/settings/os_apps_page/nickel_android_apps.ts
+@@ -0,0 +1,252 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++/**
++ * @fileoverview NickelOS: the Android apps card on the Apps page. Android
++ * runs in Waydroid; this sets it up (a download, with its progress), turns
++ * ARM app support on (after the user agrees: proprietary software they
++ * install) and off, opens Android's own Settings app, and removes Android
++ * (NickelAndroidAppsHandler, nickel-waydroidd). Changes are for
++ * administrators of the device.
++ */
++
++import 'chrome://resources/ash/common/cr_elements/cr_button/cr_button.js';
++import 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
++import 'chrome://resources/ash/common/cr_elements/cr_link_row/cr_link_row.js';
++import 'chrome://resources/ash/common/cr_elements/cr_toggle/cr_toggle.js';
++import '../os_settings_page/settings_card.js';
++import '../settings_shared.css.js';
++
++import type {CrDialogElement} from 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
++import type {CrToggleElement} from 'chrome://resources/ash/common/cr_elements/cr_toggle/cr_toggle.js';
++import {I18nMixin} from 'chrome://resources/ash/common/cr_elements/i18n_mixin.js';
++import {sendWithPromise} from 'chrome://resources/js/cr.js';
++import {afterNextRender, PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++
++import {getTemplate} from './nickel_android_apps.html.js';
++
++interface AndroidState {
++  // "absent", "setting-up", "ready", "removing" or "unavailable".
++  android: string;
++  // "off", "on", "turning-on" or "turning-off".
++  arm: string;
++  // What ARM app support installs here: "libhoudini" or "libndk".
++  translator: string;
++  // 0 to 1 while something downloads, else -1.
++  progress: number;
++  // Why the last change failed: "download", "failed", or "".
++  error: string;
++  admin: boolean;
++  diskText: string;
++}
++
++// While something is under way, the page asks again this often (ms).
++const POLL_MS = 1000;
++
++const NickelAndroidAppsElementBase = I18nMixin(PolymerElement);
++
++export class NickelAndroidAppsElement extends NickelAndroidAppsElementBase {
++  static get is() {
++    return 'nickel-android-apps' as const;
++  }
++
++  static get template() {
++    return getTemplate();
++  }
++
++  static get properties() {
++    return {
++      state_: {
++        type: Object,
++        value: () => ({
++          android: '',
++          arm: 'off',
++          translator: '',
++          progress: -1,
++          error: '',
++          admin: false,
++          diskText: '',
++        }),
++      },
++    };
++  }
++
++  declare private state_: AndroidState;
++  private pollTimer_: number|null = null;
++
++  override connectedCallback(): void {
++    super.connectedCallback();
++    this.refresh_().then(() => this.scrollIntoViewIfAsked_());
++  }
++
++  // Opened as chrome://os-settings/apps?nickel=android (nickel-waydroid's APK
++  // handler and Waydroid's launcher entry send people here to set Android up
++  // or turn on ARM app support): the card comes into view by itself.
++  private scrollIntoViewIfAsked_(): void {
++    if (new URLSearchParams(window.location.search).get('nickel') !==
++        'android') {
++      return;
++    }
++    afterNextRender(this, () => this.scrollIntoView({block: 'center'}));
++  }
++
++  override disconnectedCallback(): void {
++    super.disconnectedCallback();
++    this.stopPolling_();
++  }
++
++  private stopPolling_(): void {
++    if (this.pollTimer_ !== null) {
++      clearTimeout(this.pollTimer_);
++      this.pollTimer_ = null;
++    }
++  }
++
++  private async refresh_(): Promise<void> {
++    this.stopPolling_();
++    this.state_ = await sendWithPromise('getNickelAndroidState');
++    const s = this.state_;
++    if (this.isWorking_(s.android) || this.isArmWorking_(s.arm)) {
++      this.pollTimer_ = setTimeout(() => this.refresh_(), POLL_MS);
++    }
++  }
++
++  private is_(value: string, expected: string): boolean {
++    return value === expected;
++  }
++
++  private isWorking_(android: string): boolean {
++    return android === 'setting-up' || android === 'removing';
++  }
++
++  private isArmWorking_(arm: string): boolean {
++    return arm === 'turning-on' || arm === 'turning-off';
++  }
++
++  private isArmOn_(arm: string): boolean {
++    return arm === 'on' || arm === 'turning-on';
++  }
++
++  private canChangeArm_(admin: boolean, arm: string): boolean {
++    return admin && !this.isArmWorking_(arm);
++  }
++
++  private hasProgress_(progress: number): boolean {
++    return progress >= 0;
++  }
++
++  private showAdminOnly_(android: string, admin: boolean): boolean {
++    return !admin && android !== '' && android !== 'unavailable';
++  }
++
++  private workText_(android: string, progress: number): string {
++    if (android === 'removing') {
++      return this.i18n('nickelAndroidRemoving');
++    }
++    if (progress < 0 || progress >= 1) {
++      return this.i18n('nickelAndroidPreparing');
++    }
++    return `${this.i18n('nickelAndroidDownloading')} · ${
++        Math.floor(progress * 100)}%`;
++  }
++
++  private usesText_(diskText: string): string {
++    return diskText ? this.i18n('nickelAndroidUses', diskText) : '';
++  }
++
++  private armSubLabel_(arm: string): string {
++    if (arm === 'turning-on') {
++      return this.i18n('nickelAndroidArmTurningOn');
++    }
++    if (arm === 'turning-off') {
++      return this.i18n('nickelAndroidArmTurningOff');
++    }
++    return this.i18n('nickelAndroidArmDescription');
++  }
++
++  private errorText_(error: string): string {
++    if (error === 'download') {
++      return this.i18n('nickelAndroidErrorDownload');
++    }
++    return error ? this.i18n('nickelAndroidErrorFailed') : '';
++  }
++
++  private armDialogBody_(translator: string): string {
++    return this.i18n(
++        'nickelAndroidArmDialogBody1',
++        this.i18n(
++            translator === 'libhoudini' ? 'nickelAndroidTranslatorHoudini' :
++                                          'nickelAndroidTranslatorNdk'));
++  }
++
++  private async onSetUpClick_(): Promise<void> {
++    await sendWithPromise('nickelAndroidSetUp');
++    await this.refresh_();
++  }
++
++  private async onCancelClick_(): Promise<void> {
++    await sendWithPromise('nickelAndroidCancel');
++    await this.refresh_();
++  }
++
++  private onOpenSettingsClick_(): void {
++    sendWithPromise('nickelAndroidOpenSettings');
++  }
++
++  private dialog_(id: string): CrDialogElement {
++    return this.shadowRoot!.querySelector<CrDialogElement>(`#${id}`)!;
++  }
++
++  private closeDialog_(id: string): void {
++    const dialog = this.dialog_(id);
++    if (dialog.open) {
++      dialog.close();
++    }
++  }
++
++  // Turning ARM app support on waits for the agreement: the switch stays
++  // off until then.
++  private async onArmChange_(e: Event): Promise<void> {
++    const toggle = e.target as CrToggleElement;
++    if (!toggle.checked) {
++      await sendWithPromise('nickelAndroidSetArm', false);
++      await this.refresh_();
++      return;
++    }
++    toggle.checked = false;
++    this.dialog_('armDialog').showModal();
++  }
++
++  private async onArmDialogConfirm_(): Promise<void> {
++    this.closeDialog_('armDialog');
++    await sendWithPromise('nickelAndroidSetArm', true);
++    await this.refresh_();
++  }
++
++  private onArmDialogCancel_(): void {
++    this.closeDialog_('armDialog');
++  }
++
++  private onRemoveClick_(): void {
++    this.dialog_('removeDialog').showModal();
++  }
++
++  private async onRemoveDialogConfirm_(): Promise<void> {
++    this.closeDialog_('removeDialog');
++    await sendWithPromise('nickelAndroidRemove');
++    await this.refresh_();
++  }
++
++  private onRemoveDialogCancel_(): void {
++    this.closeDialog_('removeDialog');
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    [NickelAndroidAppsElement.is]: NickelAndroidAppsElement;
++  }
++}
++
++customElements.define(NickelAndroidAppsElement.is, NickelAndroidAppsElement);
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html b/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html
+index 045e7dbb8207b..1f051a04601f2 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html
++++ b/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.html
+@@ -164,6 +164,7 @@
+       </template>
+     </settings-card>
+     <nickel-default-apps></nickel-default-apps>
++    <nickel-android-apps></nickel-android-apps>
+     <settings-card header-text="$i18n{nickelLinuxAppsTitle}">
+       <settings-toggle-button id="nickelX11KeysToggle"
+           pref="{{prefs.nickel.x11_key_forwarding}}"
+diff --git a/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.ts b/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.ts
+index 6e12c8ff07d41..7aac18dfee2fe 100644
+--- a/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.ts
++++ b/chrome/browser/resources/ash/settings/os_apps_page/os_apps_page.ts
+@@ -23,6 +23,7 @@ import './app_management_page/app_management_cros_shared_vars.css.js';
+ import './app_management_page/uninstall_button.js';
+ import './app_parental_controls/app_setup_pin_dialog.js';
+ import './app_parental_controls/app_verify_pin_dialog.js';
++import './nickel_android_apps.js';
+ import './nickel_default_apps.js';
+ 
+ import {PrefsMixin} from '/shared/settings/prefs/prefs_mixin.js';
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
+index 02d406a452329..fad237096dc06 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/BUILD.gn
+@@ -14,6 +14,8 @@ static_library("apps") {
+     "app_parental_controls_handler.h",
+     "apps_section.cc",
+     "apps_section.h",
++    "nickel_android_apps_handler.cc",
++    "nickel_android_apps_handler.h",
+     "nickel_default_apps_handler.cc",
+     "nickel_default_apps_handler.h",
+   ]
+@@ -44,11 +46,13 @@ static_library("apps") {
+     "//chrome/browser/web_applications",
+     "//chrome/browser/web_applications:features",
+     "//chrome/common",
++    "//chromeos/ash/components/dbus",
+     "//chromeos/ash/experiences/arc",
+     "//chromeos/ash/experiences/arc:arc_app_constants",
+     "//components/strings:components_strings",
+     "//content/public/browser",
+     "//content/public/common",
++    "//dbus",
+     "//third_party/re2",
+     "//ui/base",
+     "//ui/chromeos",
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+index 5732997d46320..a2cd4a9088703 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/apps_section.cc
+@@ -18,6 +18,7 @@
+ #include "chrome/browser/ash/arc/arc_util.h"
+ #include "chrome/browser/ash/child_accounts/on_device_controls/app_controls_service_factory.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/apps/android_apps_handler.h"
++#include "chrome/browser/ui/webui/ash/settings/pages/apps/nickel_android_apps_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/apps/nickel_default_apps_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/crostini/guest_os_handler.h"
+ #include "chrome/browser/ui/webui/ash/settings/pages/system_preferences/startup_section.h"
+@@ -269,6 +270,45 @@ void AddAppManagementStrings(content::WebUIDataSource* html_source) {
+       {"nickelLinuxAppsTitle", IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE},
+       {"nickelX11KeysLabel", IDS_SETTINGS_NICKEL_X11_KEYS_LABEL},
+       {"nickelX11KeysDescription", IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION},
++      {"nickelAndroidTitle", IDS_SETTINGS_NICKEL_ANDROID_TITLE},
++      {"nickelAndroidSetUpLabel", IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL},
++      {"nickelAndroidSetUpDescription",
++       IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION},
++      {"nickelAndroidSetUp", IDS_SETTINGS_NICKEL_ANDROID_SET_UP},
++      {"nickelAndroidDownloading", IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING},
++      {"nickelAndroidPreparing", IDS_SETTINGS_NICKEL_ANDROID_PREPARING},
++      {"nickelAndroidRemoving", IDS_SETTINGS_NICKEL_ANDROID_REMOVING},
++      {"nickelAndroidOpenSettings", IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS},
++      {"nickelAndroidUses", IDS_SETTINGS_NICKEL_ANDROID_USES},
++      {"nickelAndroidArmLabel", IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL},
++      {"nickelAndroidArmDescription",
++       IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION},
++      {"nickelAndroidArmTurningOn", IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON},
++      {"nickelAndroidArmTurningOff",
++       IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF},
++      {"nickelAndroidArmDialogTitle",
++       IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE},
++      {"nickelAndroidArmDialogBody1",
++       IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1},
++      {"nickelAndroidArmDialogBody2",
++       IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2},
++      {"nickelAndroidArmDialogConfirm",
++       IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM},
++      {"nickelAndroidTranslatorHoudini",
++       IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI},
++      {"nickelAndroidTranslatorNdk", IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK},
++      {"nickelAndroidRemoveLabel", IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL},
++      {"nickelAndroidRemoveDescription",
++       IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION},
++      {"nickelAndroidRemove", IDS_SETTINGS_NICKEL_ANDROID_REMOVE},
++      {"nickelAndroidRemoveDialogTitle",
++       IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE},
++      {"nickelAndroidRemoveDialogBody",
++       IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY},
++      {"nickelAndroidAdminOnly", IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY},
++      {"nickelAndroidErrorDownload", IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD},
++      {"nickelAndroidErrorFailed", IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED},
++      {"nickelAndroidUnavailable", IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE},
+       {"appManagementAppDetailsTypeAndroidInstallReasonPolicy",
+        IDS_OS_SETTINGS_APP_DETAILS_TYPE_ANDROID_INSTALL_REASON_POLICY},
+       {"appManagementAppDetailsTypeChromeInstallReasonPolicy",
+@@ -681,6 +721,7 @@ void AppsSection::AddHandlers(content::WebUI* web_ui) {
+       std::make_unique<AndroidAppsHandler>(profile(), app_service_proxy_));
+   web_ui->AddMessageHandler(
+       std::make_unique<NickelDefaultAppsHandler>(profile()));
++  web_ui->AddMessageHandler(std::make_unique<NickelAndroidAppsHandler>());
+   if (arc::IsArcVmEnabled()) {
+     web_ui->AddMessageHandler(std::make_unique<GuestOsHandler>(profile()));
+   }
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_android_apps_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_android_apps_handler.cc
+new file mode 100644
+index 0000000000000..e4ecfb918a55e
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_android_apps_handler.cc
+@@ -0,0 +1,186 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/webui/ash/settings/pages/apps/nickel_android_apps_handler.h"
++
++#include <cstdint>
++#include <utility>
++#include <vector>
++
++#include "base/byte_size.h"
++#include "base/functional/bind.h"
++#include "base/strings/strcat.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
++#include "content/public/browser/web_ui.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_proxy.h"
++#include "ui/base/text/bytes_formatting.h"
++
++namespace ash::settings {
++
++namespace {
++
++constexpr char kAndroidService[] = "org.nickelos.Android";
++constexpr char kAndroidPath[] = "/org/nickelos/Android";
++constexpr char kAndroidInterface[] = "org.nickelos.Android";
++constexpr char kErrorPrefix[] = "org.nickelos.Android.Error.";
++
++// nickel-appd: launches the session's apps from their desktop files.
++constexpr char kAppsService[] = "org.nickelos.Apps";
++constexpr char kAppsPath[] = "/org/nickelos/Apps";
++constexpr char kAppsInterface[] = "org.nickelos.Apps";
++// Android's Settings app (waydroid app launch com.android.settings).
++constexpr char kAndroidSettingsApp[] = "org.nickelos.AndroidSettings";
++
++dbus::ObjectProxy* Proxy(const char* service, const char* path) {
++  return DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++      service, dbus::ObjectPath(path));
++}
++
++// nickel-waydroidd's error, as the page names it.
++std::string ErrorCode(dbus::ErrorResponse* error) {
++  if (!error) {
++    return "failed";
++  }
++  const std::string name = error->GetErrorName();
++  if (name == base::StrCat({kErrorPrefix, "NotAllowed"})) {
++    return "not-allowed";
++  }
++  if (name == base::StrCat({kErrorPrefix, "Busy"})) {
++    return "busy";
++  }
++  return "failed";
++}
++
++}  // namespace
++
++NickelAndroidAppsHandler::NickelAndroidAppsHandler() = default;
++
++NickelAndroidAppsHandler::~NickelAndroidAppsHandler() = default;
++
++void NickelAndroidAppsHandler::RegisterMessages() {
++  web_ui()->RegisterMessageCallback(
++      "getNickelAndroidState",
++      base::BindRepeating(&NickelAndroidAppsHandler::HandleGetState,
++                          base::Unretained(this)));
++  for (const auto& [message, method] :
++       {std::pair{"nickelAndroidSetUp", "SetUp"},
++        std::pair{"nickelAndroidCancel", "Cancel"},
++        std::pair{"nickelAndroidSetArm", "SetArm"},
++        std::pair{"nickelAndroidRemove", "Remove"}}) {
++    web_ui()->RegisterMessageCallback(
++        message, base::BindRepeating(&NickelAndroidAppsHandler::HandleCall,
++                                     base::Unretained(this),
++                                     std::string(method)));
++  }
++  web_ui()->RegisterMessageCallback(
++      "nickelAndroidOpenSettings",
++      base::BindRepeating(&NickelAndroidAppsHandler::HandleOpenSettings,
++                          base::Unretained(this)));
++}
++
++void NickelAndroidAppsHandler::OnJavascriptDisallowed() {
++  weak_ptr_factory_.InvalidateWeakPtrs();
++}
++
++void NickelAndroidAppsHandler::HandleGetState(const base::ListValue& args) {
++  AllowJavascript();
++  dbus::MethodCall method_call(kAndroidInterface, "GetState");
++  Proxy(kAndroidService, kAndroidPath)
++      ->CallMethodWithErrorResponse(
++          &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++          base::BindOnce(&NickelAndroidAppsHandler::OnState,
++                         weak_ptr_factory_.GetWeakPtr(),
++                         args[0].GetString()));
++}
++
++void NickelAndroidAppsHandler::OnState(const std::string& callback_id,
++                                       dbus::Response* response,
++                                       dbus::ErrorResponse* error) {
++  // GetState's a{sv}: strings, but for admin (b), progress (d) and disk
++  // (t, sent as its size in words).
++  base::DictValue state;
++  state.Set("android", "unavailable");
++  state.Set("arm", "off");
++  state.Set("translator", "");
++  state.Set("progress", -1.0);
++  state.Set("error", "");
++  state.Set("admin", false);
++  state.Set("diskText", "");
++  dbus::MessageReader reader(response);
++  dbus::MessageReader array(nullptr);
++  if (response && reader.PopArray(&array)) {
++    while (array.HasMoreData()) {
++      dbus::MessageReader entry(nullptr);
++      std::string key;
++      if (!array.PopDictEntry(&entry) || !entry.PopString(&key)) {
++        break;
++      }
++      if (key == "admin") {
++        bool value = false;
++        if (entry.PopVariantOfBool(&value)) {
++          state.Set(key, value);
++        }
++      } else if (key == "progress") {
++        double value = -1;
++        if (entry.PopVariantOfDouble(&value)) {
++          state.Set(key, value);
++        }
++      } else if (key == "disk") {
++        uint64_t value = 0;
++        if (entry.PopVariantOfUint64(&value) && value > 0) {
++          state.Set("diskText", ui::FormatBytes(base::ByteSize(value)));
++        }
++      } else {
++        std::string value;
++        if (entry.PopVariantOfString(&value)) {
++          state.Set(key, value);
++        }
++      }
++    }
++  }
++  ResolveJavascriptCallback(base::Value(callback_id), state);
++}
++
++void NickelAndroidAppsHandler::HandleCall(const std::string& method,
++                                          const base::ListValue& args) {
++  AllowJavascript();
++  dbus::MethodCall method_call(kAndroidInterface, method);
++  if (method == "SetArm") {
++    dbus::MessageWriter writer(&method_call);
++    writer.AppendBool(args.size() > 1 && args[1].is_bool() && args[1].GetBool());
++  }
++  Proxy(kAndroidService, kAndroidPath)
++      ->CallMethodWithErrorResponse(
++          &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++          base::BindOnce(&NickelAndroidAppsHandler::OnDone,
++                         weak_ptr_factory_.GetWeakPtr(),
++                         args[0].GetString()));
++}
++
++void NickelAndroidAppsHandler::OnDone(const std::string& callback_id,
++                                      dbus::Response* response,
++                                      dbus::ErrorResponse* error) {
++  ResolveJavascriptCallback(
++      base::Value(callback_id),
++      base::Value(response ? std::string() : ErrorCode(error)));
++}
++
++void NickelAndroidAppsHandler::HandleOpenSettings(
++    const base::ListValue& args) {
++  AllowJavascript();
++  dbus::MethodCall method_call(kAppsInterface, "LaunchApplication");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(kAndroidSettingsApp);
++  writer.AppendArrayOfStrings(std::vector<std::string>());
++  Proxy(kAppsService, kAppsPath)
++      ->CallMethodWithErrorResponse(
++          &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++          base::BindOnce(&NickelAndroidAppsHandler::OnDone,
++                         weak_ptr_factory_.GetWeakPtr(),
++                         args[0].GetString()));
++}
++
++}  // namespace ash::settings
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_android_apps_handler.h b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_android_apps_handler.h
+new file mode 100644
+index 0000000000000..b06263661ffdf
+--- /dev/null
++++ b/chrome/browser/ui/webui/ash/settings/pages/apps/nickel_android_apps_handler.h
+@@ -0,0 +1,66 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_APPS_NICKEL_ANDROID_APPS_HANDLER_H_
++#define CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_APPS_NICKEL_ANDROID_APPS_HANDLER_H_
++
++#include <string>
++
++#include "base/memory/weak_ptr.h"
++#include "base/values.h"
++#include "content/public/browser/web_ui_message_handler.h"
++
++namespace dbus {
++class ErrorResponse;
++class Response;
++}  // namespace dbus
++
++namespace ash::settings {
++
++// NickelOS: Settings > Apps > Android apps. Android runs in Waydroid;
++// nickel-waydroidd (root, org.nickelos.Android on the system bus) sets it
++// up, turns ARM app support on and off and removes it, for administrators,
++// and says how far along it is. Android's own Settings app opens through
++// nickel-appd (org.nickelos.AndroidSettings.desktop).
++//
++// Messages (all answered with a promise):
++//   getNickelAndroidState() -> {android, arm, translator, progress, error,
++//                               admin, diskText}
++//     android: "absent", "setting-up", "ready", "removing", or
++//     "unavailable" when the service doesn't answer.
++//   nickelAndroidSetUp(), nickelAndroidCancel(), nickelAndroidSetArm(on),
++//   nickelAndroidRemove() -> error ("" when started)
++//   nickelAndroidOpenSettings()
++// Errors: "not-allowed", "busy", "failed".
++class NickelAndroidAppsHandler : public content::WebUIMessageHandler {
++ public:
++  NickelAndroidAppsHandler();
++  NickelAndroidAppsHandler(const NickelAndroidAppsHandler&) = delete;
++  NickelAndroidAppsHandler& operator=(const NickelAndroidAppsHandler&) =
++      delete;
++  ~NickelAndroidAppsHandler() override;
++
++  // content::WebUIMessageHandler:
++  void RegisterMessages() override;
++  void OnJavascriptDisallowed() override;
++
++ private:
++  void HandleGetState(const base::ListValue& args);
++  void HandleCall(const std::string& method, const base::ListValue& args);
++  void HandleOpenSettings(const base::ListValue& args);
++
++  void OnState(const std::string& callback_id,
++               dbus::Response* response,
++               dbus::ErrorResponse* error);
++  // Answers |callback_id| with "" or the error's name.
++  void OnDone(const std::string& callback_id,
++              dbus::Response* response,
++              dbus::ErrorResponse* error);
++
++  base::WeakPtrFactory<NickelAndroidAppsHandler> weak_ptr_factory_{this};
++};
++
++}  // namespace ash::settings
++
++#endif  // CHROME_BROWSER_UI_WEBUI_ASH_SETTINGS_PAGES_APPS_NICKEL_ANDROID_APPS_HANDLER_H_
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index 70c3c527a4742..61f080f965bc5 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -2007,6 +2007,91 @@
+       <message name="IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION" desc="NickelOS: under the switch that lets older (X11) Linux apps see shortcut keys while other windows have the focus: what it is for and what those apps see.">
+         Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.
+       </message>
++      <!-- NickelOS: Settings > Apps > Android apps (Waydroid, NickelAndroidAppsHandler). -->
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_TITLE" desc="NickelOS: in Settings > Apps, the title of the settings for Android apps, which run in Waydroid.">
++        Android apps
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL" desc="NickelOS: in Settings > Apps > Android apps, before Android is set up: the row that sets it up.">
++        Run Android apps
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION" desc="NickelOS: under 'Run Android apps', before Android is set up: what Android apps are like here and what setting up downloads.">
++        Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_SET_UP" desc="NickelOS: button that downloads and sets up Android, so Android apps can run.">
++        Set up
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING" desc="NickelOS: while Android downloads; the percentage done follows.">
++        Downloading Android
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_PREPARING" desc="NickelOS: while Android is being set up and there is no percentage to show (starting, unpacking).">
++        Setting up Android...
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_REMOVING" desc="NickelOS: while Android is being removed from the device.">
++        Removing Android...
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS" desc="NickelOS: link that opens Android's own Settings app (apps, permissions, storage).">
++        Android settings
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_USES" desc="NickelOS: under 'Android settings': how much space Android takes on the device.">
++        Android uses <ph name="SIZE">$1<ex>2.4 GB</ex></ph> on this device
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL" desc="NickelOS: the switch that installs a translator so Android apps built only for ARM processors can run.">
++        ARM app support
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION" desc="NickelOS: under the 'ARM app support' switch: what it is for, and that it is proprietary software downloaded when turned on.">
++        For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON" desc="NickelOS: under the 'ARM app support' switch while the translator downloads and installs.">
++        Downloading and installing...
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF" desc="NickelOS: under the 'ARM app support' switch while the translator is removed.">
++        Removing...
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE" desc="NickelOS: title of the dialog that asks before ARM app support (a proprietary translator) is downloaded and installed.">
++        Turn on ARM app support?
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1" desc="NickelOS: in the dialog before ARM app support is turned on: why a translator is needed, that NickelOS does not make or include it, and where it comes from. The translator's name is filled in.">
++        Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads <ph name="TRANSLATOR">$1<ex>Intel's Houdini</ex></ph> from GitHub, the same copy the Waydroid community's waydroid_script installs.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2" desc="NickelOS: in the dialog before ARM app support is turned on: that it is proprietary software the user installs, its limits, and that Android restarts.">
++        It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM" desc="NickelOS: button in the ARM app support dialog that agrees and turns it on.">
++        Agree and turn on
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI" desc="NickelOS: the name of Intel's ARM translator for Android (libhoudini), used on Intel processors.">
++        Intel's Houdini
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK" desc="NickelOS: the name of Google's ARM translator for Android (libndk_translation), used on AMD processors.">
++        Google's NDK translation
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL" desc="NickelOS: the row that removes Android from the device.">
++        Remove Android
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION" desc="NickelOS: under 'Remove Android': what is deleted.">
++        Deletes Android, your Android apps and their data
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_REMOVE" desc="NickelOS: button that removes Android from the device (after a dialog).">
++        Remove
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE" desc="NickelOS: title of the dialog that asks before Android is removed.">
++        Remove Android?
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY" desc="NickelOS: in the dialog before Android is removed: what is deleted, and what it means for other people who use the device.">
++        Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY" desc="NickelOS: shown in Settings > Apps > Android apps to someone who is not an administrator of the device.">
++        Only an administrator of this device can change these.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD" desc="NickelOS: a download for Android (Android itself, or ARM app support) did not finish.">
++        The download didn't finish. Check your connection, then try again.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED" desc="NickelOS: a change to Android's settings failed for another reason.">
++        Something went wrong. Try again.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE" desc="NickelOS: shown when the service behind Android apps is not running.">
++        Android apps aren't available right now.
++      </message>
+       <!-- NickelOS: Settings > Device > Storage management, the device's other drives. -->
+       <message name="IDS_SETTINGS_NICKEL_DRIVES_TITLE" desc="NickelOS: in Settings > Device > Storage management, the heading over the device's other internal drives (such as a disk that holds Windows).">
+         Other drives

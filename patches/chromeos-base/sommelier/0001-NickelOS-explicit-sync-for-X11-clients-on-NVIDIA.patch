@@ -1,0 +1,966 @@
+NickelOS: explicit synchronization (linux-drm-syncobj-v1) for X11 clients
+on NVIDIA, on by default (NICKEL_SOMMELIER_EXPLICIT_SYNC=0 turns it off).
+Without it Xwayland on NVIDIA (no implicit sync) copies every frame an app
+presents and waits for the GPU (glFinish) before presenting it; with it
+Xwayland hands the app's buffers through with sync points. Exo has no
+explicit sync, so sommelier keeps the promises, as compositors with
+explicit sync do: a commit whose acquire point has not signaled is held,
+its fence watched in the event loop, and goes to Exo once the rendering is
+done. Nothing waits on a CPU meanwhile, and Exo never composites behind a
+slow app (a GPU-side wait in Exo would hold the whole screen back). Any
+other request for a surface with a held commit sends that commit on first.
+A release point is signaled when Exo releases the buffer (after the GPU is
+done with it). Apps without sync points are copied, not flipped (xwayland
+r3). NICKEL_SOMMELIER_EXPLICIT_SYNC=test-nowait drops the synchronization,
+for hw/x-sync-test.sh only.
+
+diff --git a/vm_tools/sommelier/BUILD.gn b/vm_tools/sommelier/BUILD.gn
+index 61dc87a..26aca0d 100644
+--- a/vm_tools/sommelier/BUILD.gn
++++ b/vm_tools/sommelier/BUILD.gn
+@@ -46,6 +46,7 @@ wayland_protocols = [
+   "protocol/idle-inhibit-unstable-v1.xml",
+   "protocol/keyboard-extension-unstable-v1.xml",
+   "protocol/linux-dmabuf-unstable-v1.xml",
++  "protocol/linux-drm-syncobj-v1.xml",
+   "protocol/linux-explicit-synchronization-unstable-v1.xml",
+   "protocol/pointer-constraints-unstable-v1.xml",
+   "protocol/relative-pointer-unstable-v1.xml",
+@@ -109,6 +110,7 @@ static_library("libsommelier") {
+     "compositor/sommelier-compositor.cc",
+     "compositor/sommelier-dmabuf-sync.cc",
+     "compositor/sommelier-drm.cc",
++    "compositor/sommelier-drm-syncobj.cc",
+     "compositor/sommelier-formats.cc",
+     "compositor/sommelier-linux-dmabuf.cc",
+     "compositor/sommelier-mmap.cc",
+diff --git a/vm_tools/sommelier/compositor/sommelier-compositor.cc b/vm_tools/sommelier/compositor/sommelier-compositor.cc
+index 23a35a7..0c5a8b6 100644
+--- a/vm_tools/sommelier/compositor/sommelier-compositor.cc
++++ b/vm_tools/sommelier/compositor/sommelier-compositor.cc
+@@ -10,6 +10,7 @@
+ #include "../sommelier-window.h"     // NOLINT(build/include_directory)
+ #include "../sommelier-xshape.h"     // NOLINT(build/include_directory)
+ #include "sommelier-dmabuf-sync.h"   // NOLINT(build/include_directory)
++#include "sommelier-drm-syncobj.h"  // NOLINT(build/include_directory)
+ #include "sommelier-formats.h"       // NOLINT(build/include_directory)
+ #include "viewporter-shim.h"         // NOLINT(build/include_directory)
+ #include <assert.h>
+@@ -115,6 +116,8 @@ static void sl_host_surface_attach(struct wl_client* client,
+               "buffer_id", buffer_id);
+   struct sl_host_surface* host =
+       static_cast<sl_host_surface*>(wl_resource_get_user_data(resource));
++  // NickelOS: a held commit (explicit sync) goes on first.
++  sl_drm_syncobj_surface_flush(host);
+   if (host->ctx->timing != nullptr) {
+     host->ctx->timing->UpdateLastAttach(resource_id, buffer_id);
+   }
+@@ -122,6 +125,8 @@ static void sl_host_surface_attach(struct wl_client* client,
+       buffer_resource ? static_cast<sl_host_buffer*>(
+                             wl_resource_get_user_data(buffer_resource))
+                       : nullptr;
++  // NickelOS: explicit sync points belong to this buffer.
++  sl_drm_syncobj_surface_attach(host, host_buffer);
+   struct wl_buffer* buffer_proxy = nullptr;
+   struct sl_window* window = nullptr;
+   bool window_shaped = false;
+@@ -431,6 +436,8 @@ static void sl_host_surface_damage(struct wl_client* client,
+               try_wl_resource_get_id(resource));
+   const struct sl_host_surface* host =
+       static_cast<sl_host_surface*>(wl_resource_get_user_data(resource));
++  // NickelOS: a held commit (explicit sync) goes on first.
++  sl_drm_syncobj_surface_flush(host);
+ 
+   struct sl_output_buffer* buffer;
+   int64_t x1, y1, x2, y2;
+@@ -463,6 +470,8 @@ static void sl_host_surface_damage_buffer(struct wl_client* client,
+               try_wl_resource_get_id(resource));
+   const struct sl_host_surface* host =
+       static_cast<sl_host_surface*>(wl_resource_get_user_data(resource));
++  // NickelOS: a held commit (explicit sync) goes on first.
++  sl_drm_syncobj_surface_flush(host);
+   struct sl_output_buffer* buffer;
+ 
+   wl_list_for_each(buffer, &host->busy_buffers, link) {
+@@ -529,6 +538,8 @@ static void sl_host_surface_frame(struct wl_client* client,
+               try_wl_resource_get_id(resource));
+   struct sl_host_surface* host =
+       static_cast<sl_host_surface*>(wl_resource_get_user_data(resource));
++  // NickelOS: a held commit (explicit sync) goes on first.
++  sl_drm_syncobj_surface_flush(host);
+   struct sl_host_callback* host_callback = new sl_host_callback();
+ 
+   host_callback->resource =
+@@ -616,6 +627,13 @@ void sl_host_surface_commit(struct wl_client* client,
+   if (host->ctx->timing != nullptr) {
+     host->ctx->timing->UpdateLastCommit(resource_id);
+   }
++  // NickelOS: held until the app's rendering is done (explicit sync), then
++  // run again from here.
++  if (sl_drm_syncobj_surface_commit(host, [client, resource] {
++        sl_host_surface_commit(client, resource);
++      })) {
++    return;
++  }
+   struct sl_window* window = host->window;
+   struct sl_viewport* viewport = nullptr;
+ 
+@@ -865,19 +883,48 @@ static void sl_host_surface_set_buffer_scale(struct wl_client* client,
+                                              int32_t scale) {
+   struct sl_host_surface* host =
+       static_cast<sl_host_surface*>(wl_resource_get_user_data(resource));
++  // NickelOS: a held commit (explicit sync) goes on first.
++  sl_drm_syncobj_surface_flush(host);
+ 
+   host->contents_scale = scale;
+ }
+ 
++// NickelOS: a held commit (explicit sync) goes on before these.
++static void sl_host_surface_set_opaque_region(struct wl_client* client,
++                                              struct wl_resource* resource,
++                                              struct wl_resource* region) {
++  sl_drm_syncobj_surface_flush(
++      static_cast<sl_host_surface*>(wl_resource_get_user_data(resource)));
++  ForwardRequest<wl_surface_set_opaque_region, AllowNullResource::kYes>(
++      client, resource, region);
++}
++
++static void sl_host_surface_set_input_region(struct wl_client* client,
++                                             struct wl_resource* resource,
++                                             struct wl_resource* region) {
++  sl_drm_syncobj_surface_flush(
++      static_cast<sl_host_surface*>(wl_resource_get_user_data(resource)));
++  ForwardRequest<wl_surface_set_input_region, AllowNullResource::kYes>(
++      client, resource, region);
++}
++
++static void sl_host_surface_set_buffer_transform(struct wl_client* client,
++                                                 struct wl_resource* resource,
++                                                 int32_t transform) {
++  sl_drm_syncobj_surface_flush(
++      static_cast<sl_host_surface*>(wl_resource_get_user_data(resource)));
++  ForwardRequest<wl_surface_set_buffer_transform>(client, resource, transform);
++}
++
+ static const struct wl_surface_interface sl_surface_implementation = {
+     sl_host_surface_destroy,
+     sl_host_surface_attach,
+     sl_host_surface_damage,
+     sl_host_surface_frame,
+-    ForwardRequest<wl_surface_set_opaque_region, AllowNullResource::kYes>,
+-    ForwardRequest<wl_surface_set_input_region, AllowNullResource::kYes>,
++    sl_host_surface_set_opaque_region,
++    sl_host_surface_set_input_region,
+     sl_host_surface_commit,
+-    ForwardRequest<wl_surface_set_buffer_transform>,
++    sl_host_surface_set_buffer_transform,
+     sl_host_surface_set_buffer_scale,
+     sl_host_surface_damage_buffer};
+ 
+@@ -889,6 +936,8 @@ static void sl_destroy_host_surface(struct wl_resource* resource) {
+   struct sl_window *window, *surface_window = nullptr;
+   struct sl_output_buffer* buffer;
+ 
++  sl_drm_syncobj_surface_destroyed(host);
++
+   wl_list_for_each(window, &host->ctx->windows, link) {
+     if (window->host_surface_id == try_wl_resource_get_id(resource)) {
+       surface_window = window;
+diff --git a/vm_tools/sommelier/compositor/sommelier-drm-syncobj.cc b/vm_tools/sommelier/compositor/sommelier-drm-syncobj.cc
+new file mode 100644
+index 0000000..f2012dd
+--- /dev/null
++++ b/vm_tools/sommelier/compositor/sommelier-drm-syncobj.cc
+@@ -0,0 +1,446 @@
++// Copyright 2026 NickelOS
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++//
++// NickelOS: explicit synchronization (linux-drm-syncobj-v1) for sommelier's
++// clients, i.e. Xwayland. NVIDIA's driver has no implicit sync, so without
++// this Xwayland copies every frame an app presents into its own buffer and
++// waits for the GPU (glFinish) before handing that to the compositor. With
++// it, Xwayland hands the app's buffers through, with an acquire point (the
++// app's rendering is done when it signals) and a release point (signaled
++// when the buffer is free again).
++//
++// Exo has no explicit synchronization, so sommelier keeps the promises
++// itself, the way Wayland compositors with explicit sync do: a commit whose
++// acquire point has not signaled yet is held (its fence watched in the event
++// loop) and goes to Exo once the app's rendering is done. Nothing waits on a
++// CPU meanwhile: input, other windows and Exo's events go on, and Exo never
++// gets a buffer the GPU is still drawing into, so its compositing never
++// waits for an app (a GPU-side wait in Exo would stall the whole screen
++// behind a slow app). Xwayland sends nothing more for a surface until that
++// commit's frame callback; anything that does come for it first sends the
++// held commit on (waiting for its fence, at most a second). A release point
++// is signaled when Exo releases the buffer, which it does once the GPU is
++// done with it.
++//
++// Offered only on NVIDIA (Mesa's drivers keep implicit sync, which costs
++// nothing here); NICKEL_SOMMELIER_EXPLICIT_SYNC=0 turns it off. Apps that
++// pass no sync points of their own (no DRI3 1.4 syncobjs, e.g. NVIDIA's GL
++// and Vulkan with libxcb older than 1.17) are not flipped by Xwayland on
++// NVIDIA (xwayland 24.1.13-r3): it copies their frames and fences the copy.
++
++#include "sommelier-drm-syncobj.h"  // NOLINT(build/include_directory)
++
++#include <errno.h>
++#include <poll.h>
++#include <stdlib.h>
++#include <string.h>
++#include <time.h>
++#include <unistd.h>
++#include <xf86drm.h>
++
++#include <gbm.h>
++
++#include <functional>
++#include <map>
++#include <memory>
++#include <set>
++#include <utility>
++#include <vector>
++
++#include "../sommelier.h"          // NOLINT(build/include_directory)
++#include "../sommelier-logging.h"  // NOLINT(build/include_directory)
++#include "linux-drm-syncobj-v1-server-protocol.h"  // NOLINT(build/include_directory)
++
++#ifndef DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE
++#define DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE (1 << 2)
++#endif
++
++namespace {
++
++constexpr int64_t kAcquireTimeoutNs = 1000 * 1000 * 1000;
++
++// A timeline the client imported: a DRM syncobj handle on sommelier's render
++// node, kept until every point waiting on it was signaled.
++struct Timeline {
++  int fd;
++  uint32_t handle;
++  ~Timeline() { drmSyncobjDestroy(fd, handle); }
++};
++
++struct Point {
++  std::shared_ptr<Timeline> timeline;
++  uint64_t value = 0;
++  explicit operator bool() const { return timeline != nullptr; }
++};
++
++struct SyncobjSurface {
++  struct wl_resource* resource;
++  struct sl_host_surface* surface;
++  Point acquire;
++  Point release;
++  struct sl_host_buffer* attached = nullptr;
++  bool buffer_attached = false;
++};
++
++int g_drm_fd = -1;
++// NICKEL_SOMMELIER_EXPLICIT_SYNC=test-nowait: commits go to the host with no
++// wait and no fence, unsynchronized, so that hw/x-sync-test.sh can show it
++// catches frames shown before the GPU finished them. Never for real use.
++bool g_test_nowait = false;
++std::map<struct sl_host_surface*, SyncobjSurface*> g_surfaces;
++// Release points of committed buffers, signaled when the buffer is released.
++std::multimap<struct sl_host_buffer*, Point> g_releases;
++
++// A commit held until its acquire fence signals.
++struct HeldCommit {
++  int fence = -1;
++  struct wl_event_source* source = nullptr;
++  struct sl_host_buffer* buffer = nullptr;
++  Point release;
++  std::function<void()> resume;
++};
++std::map<struct sl_host_surface*, HeldCommit> g_held;
++// Surfaces whose held commit is going on to the host right now.
++std::set<struct sl_host_surface*> g_resuming;
++
++void Signal(const Point& point) {
++  uint32_t handle = point.timeline->handle;
++  uint64_t value = point.value;
++  if (drmSyncobjTimelineSignal(g_drm_fd, &handle, &value, 1)) {
++    LOG(WARNING) << "drm syncobj: signaling a release point failed: "
++                 << strerror(errno);
++  }
++}
++
++int64_t Deadline() {
++  struct timespec now;
++  clock_gettime(CLOCK_MONOTONIC, &now);
++  return now.tv_sec * 1000000000LL + now.tv_nsec + kAcquireTimeoutNs;
++}
++
++// Waits until the rendering behind |point| is done (on a CPU: the fallback
++// when Exo cannot wait itself).
++void WaitSignaled(const Point& point) {
++  uint32_t handle = point.timeline->handle;
++  uint64_t value = point.value;
++  if (drmSyncobjTimelineWait(g_drm_fd, &handle, &value, 1, Deadline(),
++                             DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT,
++                             nullptr)) {
++    LOG(WARNING) << "drm syncobj: acquire point not signaled in time ("
++                 << strerror(errno) << "), presenting anyway";
++  }
++}
++
++// Waits until the rendering behind |point| is submitted (not done) and
++// returns its fence as a sync_file, or -1.
++int ExportSubmitted(const Point& point) {
++  uint32_t handle = point.timeline->handle;
++  uint64_t value = point.value;
++  if (drmSyncobjTimelineWait(g_drm_fd, &handle, &value, 1, Deadline(),
++                             DRM_SYNCOBJ_WAIT_FLAGS_WAIT_FOR_SUBMIT |
++                                 DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE,
++                             nullptr)) {
++    return -1;
++  }
++  uint32_t binary;
++  if (drmSyncobjCreate(g_drm_fd, 0, &binary))
++    return -1;
++  int fd = -1;
++  if (drmSyncobjTransfer(g_drm_fd, binary, 0, handle, value, 0) ||
++      drmSyncobjExportSyncFile(g_drm_fd, binary, &fd)) {
++    fd = -1;
++  }
++  drmSyncobjDestroy(g_drm_fd, binary);
++  return fd;
++}
++
++// Sends |surface|'s held commit on to the host; with |wait|, once its fence
++// signals (at most a second).
++void ReleaseHeld(struct sl_host_surface* surface, bool wait) {
++  auto it = g_held.find(surface);
++  if (it == g_held.end())
++    return;
++  HeldCommit held = std::move(it->second);
++  g_held.erase(it);
++  if (held.source)
++    wl_event_source_remove(held.source);
++  if (wait) {
++    struct pollfd p = {held.fence, POLLIN, 0};
++    if (poll(&p, 1, static_cast<int>(kAcquireTimeoutNs / 1000000)) <= 0) {
++      LOG(WARNING) << "drm syncobj: acquire point not signaled in time, "
++                      "presenting anyway";
++    }
++  }
++  close(held.fence);
++  if (held.buffer)
++    g_releases.emplace(held.buffer, std::move(held.release));
++  else if (held.release)
++    Signal(held.release);
++  g_resuming.insert(surface);
++  held.resume();
++  g_resuming.erase(surface);
++}
++
++int OnFenceSignaled(int, uint32_t, void* data) {
++  ReleaseHeld(static_cast<struct sl_host_surface*>(data), false);
++  return 0;
++}
++
++uint64_t PointValue(uint32_t hi, uint32_t lo) {
++  return (static_cast<uint64_t>(hi) << 32) | lo;
++}
++
++std::shared_ptr<Timeline> TimelineOf(struct wl_resource* resource) {
++  return *static_cast<std::shared_ptr<Timeline>*>(
++      wl_resource_get_user_data(resource));
++}
++
++// wp_linux_drm_syncobj_timeline_v1
++
++void TimelineDestroy(struct wl_client*, struct wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++const struct wp_linux_drm_syncobj_timeline_v1_interface kTimelineImpl = {
++    TimelineDestroy};
++
++void DestroyTimelineResource(struct wl_resource* resource) {
++  delete static_cast<std::shared_ptr<Timeline>*>(
++      wl_resource_get_user_data(resource));
++}
++
++// wp_linux_drm_syncobj_surface_v1
++
++SyncobjSurface* SurfaceOf(struct wl_resource* resource) {
++  return static_cast<SyncobjSurface*>(wl_resource_get_user_data(resource));
++}
++
++void SurfaceDestroy(struct wl_client*, struct wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++void SetAcquirePoint(struct wl_client*,
++                     struct wl_resource* resource,
++                     struct wl_resource* timeline,
++                     uint32_t point_hi,
++                     uint32_t point_lo) {
++  SyncobjSurface* s = SurfaceOf(resource);
++  if (!s->surface) {
++    wl_resource_post_error(resource, WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_SURFACE,
++                           "the surface was destroyed");
++    return;
++  }
++  s->acquire = Point{TimelineOf(timeline), PointValue(point_hi, point_lo)};
++}
++
++void SetReleasePoint(struct wl_client*,
++                     struct wl_resource* resource,
++                     struct wl_resource* timeline,
++                     uint32_t point_hi,
++                     uint32_t point_lo) {
++  SyncobjSurface* s = SurfaceOf(resource);
++  if (!s->surface) {
++    wl_resource_post_error(resource, WP_LINUX_DRM_SYNCOBJ_SURFACE_V1_ERROR_NO_SURFACE,
++                           "the surface was destroyed");
++    return;
++  }
++  s->release = Point{TimelineOf(timeline), PointValue(point_hi, point_lo)};
++}
++
++const struct wp_linux_drm_syncobj_surface_v1_interface kSurfaceImpl = {
++    SurfaceDestroy, SetAcquirePoint, SetReleasePoint};
++
++void DestroySurfaceResource(struct wl_resource* resource) {
++  SyncobjSurface* s = SurfaceOf(resource);
++  if (s->surface)
++    g_surfaces.erase(s->surface);
++  delete s;
++}
++
++// wp_linux_drm_syncobj_manager_v1
++
++void ManagerDestroy(struct wl_client*, struct wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++void GetSurface(struct wl_client* client,
++                struct wl_resource* resource,
++                uint32_t id,
++                struct wl_resource* surface_resource) {
++  struct sl_host_surface* surface = static_cast<sl_host_surface*>(
++      wl_resource_get_user_data(surface_resource));
++  if (g_surfaces.count(surface)) {
++    wl_resource_post_error(resource,
++                           WP_LINUX_DRM_SYNCOBJ_MANAGER_V1_ERROR_SURFACE_EXISTS,
++                           "the surface already has a syncobj surface");
++    return;
++  }
++  SyncobjSurface* s = new SyncobjSurface();
++  s->surface = surface;
++  s->resource = wl_resource_create(client, &wp_linux_drm_syncobj_surface_v1_interface,
++                                   wl_resource_get_version(resource), id);
++  wl_resource_set_implementation(s->resource, &kSurfaceImpl, s,
++                                 DestroySurfaceResource);
++  g_surfaces[surface] = s;
++}
++
++void ImportTimeline(struct wl_client* client,
++                    struct wl_resource* resource,
++                    uint32_t id,
++                    int32_t fd) {
++  uint32_t handle;
++  int ret = drmSyncobjFDToHandle(g_drm_fd, fd, &handle);
++  close(fd);
++  if (ret) {
++    wl_resource_post_error(resource,
++                           WP_LINUX_DRM_SYNCOBJ_MANAGER_V1_ERROR_INVALID_TIMELINE,
++                           "not a DRM syncobj: %s", strerror(errno));
++    return;
++  }
++  auto* timeline = new std::shared_ptr<Timeline>(new Timeline{g_drm_fd, handle});
++  struct wl_resource* timeline_resource =
++      wl_resource_create(client, &wp_linux_drm_syncobj_timeline_v1_interface,
++                         wl_resource_get_version(resource), id);
++  wl_resource_set_implementation(timeline_resource, &kTimelineImpl, timeline,
++                                 DestroyTimelineResource);
++}
++
++const struct wp_linux_drm_syncobj_manager_v1_interface kManagerImpl = {
++    ManagerDestroy, GetSurface, ImportTimeline};
++
++void BindManager(struct wl_client* client,
++                 void* data,
++                 uint32_t version,
++                 uint32_t id) {
++  struct wl_resource* resource = wl_resource_create(
++      client, &wp_linux_drm_syncobj_manager_v1_interface, version, id);
++  wl_resource_set_implementation(resource, &kManagerImpl, data, nullptr);
++}
++
++}  // namespace
++
++struct sl_global* sl_drm_syncobj_global_create(struct sl_context* ctx) {
++  const char* enabled = getenv("NICKEL_SOMMELIER_EXPLICIT_SYNC");
++  if (!ctx->gbm || (enabled && !strcmp(enabled, "0")))
++    return nullptr;
++  int fd = gbm_device_get_fd(ctx->gbm);
++  drmVersionPtr version = drmGetVersion(fd);
++  bool nvidia = version && version->name && !strcmp(version->name, "nvidia-drm");
++  drmFreeVersion(version);
++  uint64_t timeline_cap = 0;
++  if (!nvidia || drmGetCap(fd, DRM_CAP_SYNCOBJ_TIMELINE, &timeline_cap) ||
++      !timeline_cap) {
++    return nullptr;
++  }
++  g_drm_fd = fd;
++  g_test_nowait = enabled && !strcmp(enabled, "test-nowait");
++  if (g_test_nowait)
++    LOG(WARNING) << "drm syncobj: test-nowait, frames are NOT synchronized";
++  LOG(INFO) << "explicit sync (linux-drm-syncobj-v1) for X11 clients";
++  return sl_global_create(ctx, &wp_linux_drm_syncobj_manager_v1_interface, 1,
++                          ctx, BindManager);
++}
++
++void sl_drm_syncobj_surface_attach(struct sl_host_surface* surface,
++                                   struct sl_host_buffer* buffer) {
++  auto it = g_surfaces.find(surface);
++  if (it == g_surfaces.end())
++    return;
++  it->second->attached = buffer;
++  it->second->buffer_attached = true;
++}
++
++bool sl_drm_syncobj_surface_commit(struct sl_host_surface* surface,
++                                   std::function<void()> resume) {
++  // The held commit itself, going on now.
++  if (g_resuming.erase(surface))
++    return false;
++  // Another commit before the held one's frame callback: that one first.
++  ReleaseHeld(surface, true);
++  auto it = g_surfaces.find(surface);
++  if (it == g_surfaces.end())
++    return false;
++  SyncobjSurface* s = it->second;
++  bool has_buffer = s->buffer_attached && s->attached;
++  bool held = false;
++  // The protocol makes these errors, but an error ends Xwayland, and every
++  // X11 app with it: a commit without both points goes through unsynced,
++  // and a release point nobody can keep is signaled at once.
++  if (has_buffer && (!s->acquire || !s->release)) {
++    LOG(WARNING) << "drm syncobj: buffer committed without both points";
++    if (s->release)
++      Signal(s->release);
++    has_buffer = false;
++  } else if (!has_buffer && s->release) {
++    Signal(s->release);
++  }
++  if (has_buffer && !g_test_nowait) {
++    int fence = ExportSubmitted(s->acquire);
++    struct pollfd p = {fence, POLLIN, 0};
++    if (fence < 0) {
++      WaitSignaled(s->acquire);
++    } else if (poll(&p, 1, 0) > 0) {
++      close(fence);  // Already done.
++    } else {
++      HeldCommit& h = g_held[surface];
++      h.fence = fence;
++      h.buffer = s->attached;
++      h.release = std::move(s->release);
++      h.resume = std::move(resume);
++      h.source = wl_event_loop_add_fd(
++          wl_display_get_event_loop(surface->ctx->host_display), fence,
++          WL_EVENT_READABLE, OnFenceSignaled, surface);
++      held = true;
++    }
++  }
++  if (has_buffer && !held)
++    g_releases.emplace(s->attached, std::move(s->release));
++  s->acquire = Point();
++  s->release = Point();
++  s->buffer_attached = false;
++  return held;
++}
++
++void sl_drm_syncobj_surface_flush(const struct sl_host_surface* surface) {
++  ReleaseHeld(const_cast<struct sl_host_surface*>(surface), true);
++}
++
++void sl_drm_syncobj_surface_destroyed(struct sl_host_surface* surface) {
++  // A held commit of a destroyed surface is never shown.
++  auto held = g_held.find(surface);
++  if (held != g_held.end()) {
++    if (held->second.source)
++      wl_event_source_remove(held->second.source);
++    close(held->second.fence);
++    if (held->second.release)
++      Signal(held->second.release);
++    g_held.erase(held);
++  }
++  auto it = g_surfaces.find(surface);
++  if (it == g_surfaces.end())
++    return;
++  it->second->surface = nullptr;
++  g_surfaces.erase(it);
++}
++
++void sl_drm_syncobj_buffer_released(struct sl_host_buffer* buffer) {
++  auto range = g_releases.equal_range(buffer);
++  for (auto it = range.first; it != range.second; ++it)
++    Signal(it->second);
++  g_releases.erase(range.first, range.second);
++}
++
++void sl_drm_syncobj_buffer_destroyed(struct sl_host_buffer* buffer) {
++  sl_drm_syncobj_buffer_released(buffer);
++  // A held commit keeps the surface's content; its release point is kept
++  // now, as nothing can release the buffer any more.
++  for (auto& [surface, held] : g_held) {
++    if (held.buffer == buffer) {
++      held.buffer = nullptr;
++      if (held.release)
++        Signal(held.release);
++      held.release = Point();
++    }
++  }
++}
+diff --git a/vm_tools/sommelier/compositor/sommelier-drm-syncobj.h b/vm_tools/sommelier/compositor/sommelier-drm-syncobj.h
+new file mode 100644
+index 0000000..85f409a
+--- /dev/null
++++ b/vm_tools/sommelier/compositor/sommelier-drm-syncobj.h
+@@ -0,0 +1,35 @@
++// Copyright 2026 NickelOS
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef VM_TOOLS_SOMMELIER_COMPOSITOR_SOMMELIER_DRM_SYNCOBJ_H_
++#define VM_TOOLS_SOMMELIER_COMPOSITOR_SOMMELIER_DRM_SYNCOBJ_H_
++
++#include <functional>
++
++struct sl_context;
++struct sl_global;
++struct sl_host_buffer;
++struct sl_host_surface;
++
++// NickelOS: linux-drm-syncobj-v1 for X11 clients on NVIDIA (see the .cc).
++// nullptr unless the render node is NVIDIA's (or with
++// NICKEL_SOMMELIER_EXPLICIT_SYNC=0).
++struct sl_global* sl_drm_syncobj_global_create(struct sl_context* ctx);
++// wl_surface.attach: the buffer the next commit's points belong to.
++void sl_drm_syncobj_surface_attach(struct sl_host_surface* surface,
++                                   struct sl_host_buffer* buffer);
++// wl_surface.commit, before it goes to the host. True: the commit is held
++// until its acquire point signals; then |resume| runs the commit again,
++// which this lets through. Keeps the release point for the buffer.
++bool sl_drm_syncobj_surface_commit(struct sl_host_surface* surface,
++                                   std::function<void()> resume);
++// Any other wl_surface request: a held commit of |surface| goes on first.
++void sl_drm_syncobj_surface_flush(const struct sl_host_surface* surface);
++void sl_drm_syncobj_surface_destroyed(struct sl_host_surface* surface);
++// The host released the buffer: signals its release points.
++void sl_drm_syncobj_buffer_released(struct sl_host_buffer* buffer);
++// The client destroyed the buffer.
++void sl_drm_syncobj_buffer_destroyed(struct sl_host_buffer* buffer);
++
++#endif  // VM_TOOLS_SOMMELIER_COMPOSITOR_SOMMELIER_DRM_SYNCOBJ_H_
+diff --git a/vm_tools/sommelier/protocol/linux-drm-syncobj-v1.xml b/vm_tools/sommelier/protocol/linux-drm-syncobj-v1.xml
+new file mode 100644
+index 0000000..2c491ea
+--- /dev/null
++++ b/vm_tools/sommelier/protocol/linux-drm-syncobj-v1.xml
+@@ -0,0 +1,261 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<protocol name="linux_drm_syncobj_v1">
++  <copyright>
++    Copyright 2016 The Chromium Authors.
++    Copyright 2017 Intel Corporation
++    Copyright 2018 Collabora, Ltd
++    Copyright 2021 Simon Ser
++
++    Permission is hereby granted, free of charge, to any person obtaining a
++    copy of this software and associated documentation files (the "Software"),
++    to deal in the Software without restriction, including without limitation
++    the rights to use, copy, modify, merge, publish, distribute, sublicense,
++    and/or sell copies of the Software, and to permit persons to whom the
++    Software is furnished to do so, subject to the following conditions:
++
++    The above copyright notice and this permission notice (including the next
++    paragraph) shall be included in all copies or substantial portions of the
++    Software.
++
++    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
++    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++    DEALINGS IN THE SOFTWARE.
++  </copyright>
++
++  <description summary="protocol for providing explicit synchronization">
++    This protocol allows clients to request explicit synchronization for
++    buffers. It is tied to the Linux DRM synchronization object framework.
++
++    Synchronization refers to co-ordination of pipelined operations performed
++    on buffers. Most GPU clients will schedule an asynchronous operation to
++    render to the buffer, then immediately send the buffer to the compositor
++    to be attached to a surface.
++
++    With implicit synchronization, ensuring that the rendering operation is
++    complete before the compositor displays the buffer is an implementation
++    detail handled by either the kernel or userspace graphics driver.
++
++    By contrast, with explicit synchronization, DRM synchronization object
++    timeline points mark when the asynchronous operations are complete. When
++    submitting a buffer, the client provides a timeline point which will be
++    waited on before the compositor accesses the buffer, and another timeline
++    point that the compositor will signal when it no longer needs to access the
++    buffer contents for the purposes of the surface commit.
++
++    Linux DRM synchronization objects are documented at:
++    https://dri.freedesktop.org/docs/drm/gpu/drm-mm.html#drm-sync-objects
++
++    Warning! The protocol described in this file is currently in the testing
++    phase. Backward compatible changes may be added together with the
++    corresponding interface version bump. Backward incompatible changes can
++    only be done by creating a new major version of the extension.
++  </description>
++
++  <interface name="wp_linux_drm_syncobj_manager_v1" version="1">
++    <description summary="global for providing explicit synchronization">
++      This global is a factory interface, allowing clients to request
++      explicit synchronization for buffers on a per-surface basis.
++
++      See wp_linux_drm_syncobj_surface_v1 for more information.
++    </description>
++
++    <request name="destroy" type="destructor">
++      <description summary="destroy explicit synchronization factory object">
++        Destroy this explicit synchronization factory object. Other objects
++        shall not be affected by this request.
++      </description>
++    </request>
++
++    <enum name="error">
++      <entry name="surface_exists" value="0"
++        summary="the surface already has a synchronization object associated"/>
++      <entry name="invalid_timeline" value="1"
++        summary="the timeline object could not be imported"/>
++    </enum>
++
++    <request name="get_surface">
++      <description summary="extend surface interface for explicit synchronization">
++        Instantiate an interface extension for the given wl_surface to provide
++        explicit synchronization.
++
++        If the given wl_surface already has an explicit synchronization object
++        associated, the surface_exists protocol error is raised.
++
++        Graphics APIs, like EGL or Vulkan, that manage the buffer queue and
++        commits of a wl_surface themselves, are likely to be using this
++        extension internally. If a client is using such an API for a
++        wl_surface, it should not directly use this extension on that surface,
++        to avoid raising a surface_exists protocol error.
++      </description>
++      <arg name="id" type="new_id" interface="wp_linux_drm_syncobj_surface_v1"
++        summary="the new synchronization surface object id"/>
++      <arg name="surface" type="object" interface="wl_surface"
++        summary="the surface"/>
++    </request>
++
++    <request name="import_timeline">
++      <description summary="import a DRM syncobj timeline">
++        Import a DRM synchronization object timeline.
++
++        If the FD cannot be imported, the invalid_timeline error is raised.
++      </description>
++      <arg name="id" type="new_id" interface="wp_linux_drm_syncobj_timeline_v1"/>
++      <arg name="fd" type="fd" summary="drm_syncobj file descriptor"/>
++    </request>
++  </interface>
++
++  <interface name="wp_linux_drm_syncobj_timeline_v1" version="1">
++    <description summary="synchronization object timeline">
++      This object represents an explicit synchronization object timeline
++      imported by the client to the compositor.
++    </description>
++
++    <request name="destroy" type="destructor">
++      <description summary="destroy the timeline">
++        Destroy the synchronization object timeline. Other objects are not
++        affected by this request, in particular timeline points set by
++        set_acquire_point and set_release_point are not unset.
++      </description>
++    </request>
++  </interface>
++
++  <interface name="wp_linux_drm_syncobj_surface_v1" version="1">
++    <description summary="per-surface explicit synchronization">
++      This object is an add-on interface for wl_surface to enable explicit
++      synchronization.
++
++      Each surface can be associated with only one object of this interface at
++      any time.
++
++      Explicit synchronization is guaranteed to be supported for buffers
++      created with any version of the linux-dmabuf protocol. Compositors are
++      free to support explicit synchronization for additional buffer types.
++      If at surface commit time the attached buffer does not support explicit
++      synchronization, an unsupported_buffer error is raised.
++
++      As long as the wp_linux_drm_syncobj_surface_v1 object is alive, the
++      compositor may ignore implicit synchronization for buffers attached and
++      committed to the wl_surface. The delivery of wl_buffer.release events
++      for buffers attached to the surface becomes undefined.
++
++      Clients must set both acquire and release points if and only if a
++      non-null buffer is attached in the same surface commit. See the
++      no_buffer, no_acquire_point and no_release_point protocol errors.
++
++      If at surface commit time the acquire and release DRM syncobj timelines
++      are identical, the acquire point value must be strictly less than the
++      release point value, or else the conflicting_points protocol error is
++      raised.
++    </description>
++
++    <request name="destroy" type="destructor">
++      <description summary="destroy the surface synchronization object">
++        Destroy this surface synchronization object.
++
++        Any timeline point set by this object with set_acquire_point or
++        set_release_point since the last commit may be discarded by the
++        compositor. Any timeline point set by this object before the last
++        commit will not be affected.
++      </description>
++    </request>
++
++    <enum name="error">
++      <entry name="no_surface" value="1"
++        summary="the associated wl_surface was destroyed"/>
++      <entry name="unsupported_buffer" value="2"
++        summary="the buffer does not support explicit synchronization"/>
++      <entry name="no_buffer" value="3" summary="no buffer was attached"/>
++      <entry name="no_acquire_point" value="4"
++        summary="no acquire timeline point was set"/>
++      <entry name="no_release_point" value="5"
++        summary="no release timeline point was set"/>
++      <entry name="conflicting_points" value="6"
++        summary="acquire and release timeline points are in conflict"/>
++    </enum>
++
++    <request name="set_acquire_point">
++      <description summary="set the acquire timeline point">
++        Set the timeline point that must be signalled before the compositor may
++        sample from the buffer attached with wl_surface.attach.
++
++        The 64-bit unsigned value combined from point_hi and point_lo is the
++        point value.
++
++        The acquire point is double-buffered state, and will be applied on the
++        next wl_surface.commit request for the associated surface. Thus, it
++        applies only to the buffer that is attached to the surface at commit
++        time.
++
++        If an acquire point has already been attached during the same commit
++        cycle, the new point replaces the old one.
++
++        If the associated wl_surface was destroyed, a no_surface error is
++        raised.
++
++        If at surface commit time there is a pending acquire timeline point set
++        but no pending buffer attached, a no_buffer error is raised. If at
++        surface commit time there is a pending buffer attached but no pending
++        acquire timeline point set, the no_acquire_point protocol error is
++        raised.
++      </description>
++      <arg name="timeline" type="object" interface="wp_linux_drm_syncobj_timeline_v1"/>
++      <arg name="point_hi" type="uint" summary="high 32 bits of the point value"/>
++      <arg name="point_lo" type="uint" summary="low 32 bits of the point value"/>
++    </request>
++
++    <request name="set_release_point">
++      <description summary="set the release timeline point">
++        Set the timeline point that must be signalled by the compositor when it
++        has finished its usage of the buffer attached with wl_surface.attach
++        for the relevant commit.
++
++        Once the timeline point is signaled, and assuming the associated buffer
++        is not pending release from other wl_surface.commit requests, no
++        additional explicit or implicit synchronization with the compositor is
++        required to safely re-use the buffer.
++
++        Note that clients cannot rely on the release point being always
++        signaled after the acquire point: compositors may release buffers
++        without ever reading from them. In addition, the compositor may use
++        different presentation paths for different commits, which may have
++        different release behavior. As a result, the compositor may signal the
++        release points in a different order than the client committed them.
++
++        Because signaling a timeline point also signals every previous point,
++        it is generally not safe to use the same timeline object for the
++        release points of multiple buffers. The out-of-order signaling
++        described above may lead to a release point being signaled before the
++        compositor has finished reading. To avoid this, it is strongly
++        recommended that each buffer should use a separate timeline for its
++        release points.
++
++        The 64-bit unsigned value combined from point_hi and point_lo is the
++        point value.
++
++        The release point is double-buffered state, and will be applied on the
++        next wl_surface.commit request for the associated surface. Thus, it
++        applies only to the buffer that is attached to the surface at commit
++        time.
++
++        If a release point has already been attached during the same commit
++        cycle, the new point replaces the old one.
++
++        If the associated wl_surface was destroyed, a no_surface error is
++        raised.
++
++        If at surface commit time there is a pending release timeline point set
++        but no pending buffer attached, a no_buffer error is raised. If at
++        surface commit time there is a pending buffer attached but no pending
++        release timeline point set, the no_release_point protocol error is
++        raised.
++      </description>
++      <arg name="timeline" type="object" interface="wp_linux_drm_syncobj_timeline_v1"/>
++      <arg name="point_hi" type="uint" summary="high 32 bits of the point value"/>
++      <arg name="point_lo" type="uint" summary="low 32 bits of the point value"/>
++    </request>
++  </interface>
++</protocol>
+diff --git a/vm_tools/sommelier/sommelier.cc b/vm_tools/sommelier/sommelier.cc
+index 1b2815d..f39635a 100644
+--- a/vm_tools/sommelier/sommelier.cc
++++ b/vm_tools/sommelier/sommelier.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "compositor/sommelier-linux-dmabuf.h"  // NOLINT(build/include_directory)
+ #include "sommelier.h"  // NOLINT(build/include_directory)
++#include "compositor/sommelier-drm-syncobj.h"  // NOLINT(build/include_directory)
+ #include <cstdint>
+ #include <cstring>
+ #include "sommelier-logging.h"      // NOLINT(build/include_directory)
+@@ -269,6 +270,8 @@ static void sl_buffer_release(void* data, struct wl_buffer* buffer) {
+   if (host->ctx->timing != nullptr) {
+     host->ctx->timing->UpdateLastRelease(resource_id);
+   }
++  // NickelOS: Exo is done with it: its explicit sync release points too.
++  sl_drm_syncobj_buffer_released(host);
+   wl_buffer_send_release(host->resource);
+ }
+ 
+@@ -290,6 +293,7 @@ static void sl_destroy_host_buffer(struct wl_resource* resource) {
+   if (host->sync_point) {
+     sl_sync_point_destroy(host->sync_point);
+   }
++  sl_drm_syncobj_buffer_destroyed(host);
+   wl_resource_set_user_data(resource, nullptr);
+   delete host;
+ }
+@@ -664,6 +668,8 @@ void sl_registry_handler(void* data,
+     linux_dmabuf->version = MIN(SL_LINUX_DMABUF_MAX_VERSION, version);
+ 
+     linux_dmabuf->host_drm_global = sl_drm_global_create(ctx, linux_dmabuf);
++    // NickelOS: explicit sync for X11 clients on NVIDIA.
++    sl_drm_syncobj_global_create(ctx);
+ 
+     if (ctx->enable_linux_dmabuf) {
+       linux_dmabuf->host_linux_dmabuf_global =

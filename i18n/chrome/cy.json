@@ -1,0 +1,1286 @@
+{
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_AND_SOURCE_NICKEL_HOST": {
+  "en": "Linux app, installed with INSTALLER",
+  "t": "Ap Linux, wedi'i osod gan ddefnyddio INSTALLER"
+ },
+ "IDS_APP_MANAGEMENT_APP_DETAILS_TYPE_NICKEL_HOST": {
+  "en": "Linux app",
+  "t": "Ap Linux"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_DIFFERENT_NETWORK_TEXT": {
+  "en": "Make sure your phone and NickelOS device are on the same network and then try again. LEARN_MORE",
+  "t": "Sicrhewch fod eich ffôn a'ch dyfais NickelOS ar yr un rhwydwaith ac yna rhowch gynnig arall arni. LEARN_MORE"
+ },
+ "IDS_ASH_ECHE_APP_STREAMING_ERROR_DIALOG_PHONE_ON_CELLULAR_TEXT": {
+  "en": "Your phone is using a mobile network. Make Sure your phone and NickelOS device are on the same Wi-Fi network and then try again. LEARN_MORE",
+  "t": "Mae eich ffôn yn defnyddio rhwydwaith symudol. Gwnewch yn siŵr bod eich ffôn a'ch dyfais NickelOS ar yr un rhwydwaith Wi-Fi ac yna rhowch gynnig arall arni. LEARN_MORE"
+ },
+ "IDS_ASH_IN_SESSION_AUTH_PASSWORD_MANAGER_PROMPT": {
+  "en": "Password Manager would like to confirm it's you",
+  "t": "Hoffai'r Rheolwr Cyfrineiriau gadarnhau mai chi sydd yno"
+ },
+ "IDS_ASH_LOGIN_POD_TPM_LOCKED_ISSUE_DESCRIPTION": {
+  "en": "Your device needs to stay on and connected to power during this time. Make sure the charger or adapter cables are completely plugged in, both to your device and the power outlet. Do not turn off your device.",
+  "t": "Mae angen cadw'ch dyfais ymlaen ac wedi'i chysylltu i'r pŵer am y cyfnod hwn. Gwnewch yn siŵr bod y gwefrydd neu geblau'r addasydd wedi'u plygio i mewn, i'ch dyfais yn ogystal ag i'r cyflenwad pŵer. Peidiwch â diffodd eich dyfais."
+ },
+ "IDS_ASH_MULTI_DEVICE_SETUP_NOTIFIER_TEXT_WITHOUT_PHONE_HUB": {
+  "en": "Save time by quickly replying to your phone's texts from your NickelOS device",
+  "t": "Arbed amser trwy ymateb yn gyflym i negeseuon testun eich ffôn o'ch dyfais NickelOS"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_ACCESSIBLE_NAME": {
+  "en": "Desktop",
+  "t": "Bwrdd Gwaith"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_MOVE_TO_TRASH": {
+  "en": "Move to trash",
+  "t": "Symud i'r sbwriel"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_INVALID": {
+  "en": "Use a name that doesn't start with a dot or contain a slash.",
+  "t": "Defnyddiwch enw nad yw'n dechrau gyda dot nac yn cynnwys slaes."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NAME_TAKEN": {
+  "en": "There's already an item with that name.",
+  "t": "Mae eitem gyda'r enw hwnnw'n bodoli eisoes."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER": {
+  "en": "New folder",
+  "t": "Ffolder newydd"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_NEW_FOLDER_NAME": {
+  "en": "New folder",
+  "t": "Ffolder newydd"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN": {
+  "en": "Open",
+  "t": "Agor"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_OPEN_IN_FILES": {
+  "en": "Open Desktop in Files",
+  "t": "Agor y Bwrdd Gwaith yn Files"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME": {
+  "en": "Rename",
+  "t": "Ailenwi"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_FAILED": {
+  "en": "Couldn't rename it.",
+  "t": "Methu ag ailenwi."
+ },
+ "IDS_ASH_NICKEL_DESKTOP_RENAME_TITLE": {
+  "en": "Rename",
+  "t": "Ailenwi"
+ },
+ "IDS_ASH_NICKEL_DESKTOP_SHOW_IN_FILES": {
+  "en": "Show in Files",
+  "t": "Dangos yn Files"
+ },
+ "IDS_ASH_PCIE_PERIPHERAL_NOTIFICATION_DEVICE_BLOCKED_BODY": {
+  "en": "Only approved Thunderbolt devices are compatible with your NickelOS device",
+  "t": "Dim ond dyfeisiau Thunderbolt cymeradwy sy'n gydnaws â'ch dyfais NickelOS"
+ },
+ "IDS_ASH_SHELF_OS_INSTALL_BUTTON": {
+  "en": "Install NickelOS",
+  "t": "Gosod NickelOS"
+ },
+ "IDS_ASH_STATUS_TRAY_AUDIO_NBS_MESSAGE": {
+  "en": "Your NickelOS device or Bluetooth device is using an older version of Bluetooth. Use the internal microphone for better audio quality.",
+  "t": "Mae eich dyfais NickelOS neu Bluetooth yn defnyddio fersiwn hŷn o Bluetooth. Defnyddiwch y meicroffon mewnol ar gyfer gwell ansawdd sain."
+ },
+ "IDS_ASH_STATUS_TRAY_CAST_ZERO_STATE_SUBTITLE": {
+  "en": "Make sure your NickelOS device is on the same Wi-Fi network as your Chromecast device.",
+  "t": "Sicrhewch fod eich dyfais NickelOS ar yr un rhwydwaith Wi-Fi â'ch dyfais Chromecast."
+ },
+ "IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT": {
+  "en": "Open the NickelOS guide",
+  "t": "Agor canllaw NickelOS"
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT": {
+  "en": "Take a quick tour of your PRODUCT_NAME: where your apps are, how to get more, and the Linux underneath. 7 steps.",
+  "t": "Ewch ar daith gyflym o amgylch eich PRODUCT_NAME: ble mae'ch apiau, sut i gael rhagor, a'r Linux sydd oddi tano. 7 cam."
+ },
+ "IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT": {
+  "en": "Hi there. Welcome to your PRODUCT_NAME.",
+  "t": "Helo. Croeso i'ch PRODUCT_NAME."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Cam STEP o TOTAL_STEPS y daith. Gallwch ddod o hyd i'r ap Files yn Lansiwr. Cartref yw eich ffolder cartref Linux: mae apiau Linux a'r ap Files yn gweld yr un ffeiliau, ac mae storfa cwmwl rydych yn ei hychwanegu yn y Gosodiadau yn ymddangos yma hefyd."
+ },
+ "IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT": {
+  "en": "Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.",
+  "t": "Cartref yw eich ffolder cartref Linux: mae apiau Linux a'r ap Files yn gweld yr un ffeiliau, ac mae storfa cwmwl rydych yn ei hychwanegu yn y Gosodiadau yn ymddangos yma hefyd."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Cam STEP o TOTAL_STEPS y daith. Mae Waydroid yn rhedeg apiau Android, pob un yn ei ffenestr ei hun. Gosodwch ef yn y Gosodiadau, o dan Apiau, yna Apiau Android. Ar ôl hynny, mae agor ffeil APK yn gosod yr ap, ac mae apiau Android yn ymddangos yn Lansiwr."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_BODY_TEXT": {
+  "en": "Waydroid runs Android apps, each in a window of its own. Set it up in Settings > Apps > Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.",
+  "t": "Mae Waydroid yn rhedeg apiau Android, pob un yn ei ffenestr ei hun. Gosodwch ef yn Gosodiadau > Apiau > Apiau Android. Ar ôl hynny, mae agor ffeil APK yn gosod yr ap, ac mae apiau Android yn ymddangos yn Lansiwr."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Cam STEP o TOTAL_STEPS y daith. Mynnwch ragor o apiau yn Bazaar: apiau Linux o Flathub, wedi'u gosod fel Flatpaks. Maen nhw'n ymddangos yn Lansiwr fel unrhyw ap arall."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT": {
+  "en": "Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.",
+  "t": "Mynnwch ragor o apiau yn Bazaar: apiau Linux o Flathub, wedi'u gosod fel Flatpaks. Maen nhw'n ymddangos yn Lansiwr fel unrhyw ap arall."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Cam STEP o TOTAL_STEPS y daith. Mae'r ap Terfynell yn gragen Linux go iawn, gyda sudo. Mae NickelOS yn seiliedig ar Gentoo: mae eix yn dod o hyd i becynnau ac mae sudo emerge yn eu gosod, fel ar unrhyw Gentoo."
+ },
+ "IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT": {
+  "en": "The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.",
+  "t": "Mae'r ap Terfynell yn gragen Linux go iawn, gyda sudo. Mae NickelOS yn seiliedig ar Gentoo: mae eix yn dod o hyd i becynnau ac mae sudo emerge yn eu gosod, fel ar unrhyw Gentoo."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. Once Launcher is activated, you’ll get a search bar. Start typing to search your PRODUCT_NAME for apps, files and settings.",
+  "t": "Cam STEP o TOTAL_STEPS y daith. Unwaith y bydd Lansiwr wedi'i weithredu, byddwch yn cael bar chwilio. Dechreuwch deipio i chwilio'ch PRODUCT_NAME am apiau, ffeiliau a gosodiadau."
+ },
+ "IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT": {
+  "en": "Search your PRODUCT_NAME for apps, files and settings from the Launcher.",
+  "t": "Chwiliwch eich PRODUCT_NAME am apiau, ffeiliau a gosodiadau o'r Lansiwr."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME": {
+  "en": "Tour step STEP of TOTAL_STEPS. You can find your device Settings in Launcher. Customize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Cam STEP o TOTAL_STEPS y daith. Gallwch ddod o hyd i Osodiadau eich dyfais yn Lansiwr. Addaswch eich PRODUCT_NAME yn y Gosodiadau: eich papur wal, modd tywyll neu olau, sgriniau a rhagor. Dyna'r daith! Mae rhagor yng nghanllaw NickelOS."
+ },
+ "IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT": {
+  "en": "Customize and personalize your PRODUCT_NAME in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.",
+  "t": "Addaswch a phersonoleiddiwch eich PRODUCT_NAME yn y Gosodiadau: eich papur wal, modd tywyll neu olau, sgriniau a rhagor. Dyna'r daith! Mae rhagor yng nghanllaw NickelOS."
+ },
+ "IDS_AUTH_FACTOR_LABEL_UNLOCK_METHOD_SELECTION": {
+  "en": "To unlock your NickelOS device, use your fingerprint or unlock your phone",
+  "t": "I ddatgloi eich dyfais NickelOS, defnyddiwch eich olion bysedd neu datglowch eich ffôn"
+ },
+ "IDS_BLUETOOTH_PAIRING_DESCRIPTION": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device.",
+  "t": "Gwnewch yn siŵr bod eich dyfais Bluetooth yn y modd paru a gerllaw. Parwch gyda dyfeisiau rydych yn ymddiried ynddynt yn unig. Mae dyfeisiau sydd wedi'u paru yn weladwy i bob cyfrif ar y ddyfais NickelOS hon."
+ },
+ "IDS_BLUETOOTH_PAIRING_LEARN_MORE": {
+  "en": "Make sure your Bluetooth device is in pairing mode and nearby. Only pair with devices you trust. Paired devices are visible to all accounts on this NickelOS device. BEGIN_LINK_LEARN_MORELearn moreEND_LINK_LEARN_MORE",
+  "t": "Gwnewch yn siŵr bod eich dyfais Bluetooth yn y modd paru a gerllaw. Parwch gyda dyfeisiau rydych yn ymddiried ynddynt yn unig. Mae dyfeisiau sydd wedi'u paru yn weladwy i bob cyfrif ar y ddyfais NickelOS hon. BEGIN_LINK_LEARN_MOREDysgu rhagorEND_LINK_LEARN_MORE"
+ },
+ "IDS_BROWSER_SETTINGS_SYNC_FEATURE_LABEL": {
+  "en": "Your data will be synced across all Chrome browsers where you have turned on sync for this account. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Bydd eich data yn cael eu cysoni ar draws yr holl borwyr Chrome lle rydych wedi troi cysoni ymlaen ar gyfer y cyfrif hwn. Am opsiynau cysoni NickelOS, ewch i LINK_BEGINOsodiadau NickelOSLINK_END."
+ },
+ "IDS_CHROMEVOX_CHROME_KEYBOARD_SHORTCUTS": {
+  "en": "Keyboard shortcuts",
+  "t": "Llwybrau byr bysellfwrdd"
+ },
+ "IDS_CHROMEVOX_TOUCHSCREEN_ACCESSIBILITY": {
+  "en": "Use touch screen accessibility features",
+  "t": "Defnyddio nodweddion hygyrchedd sgrîn gyffwrdd"
+ },
+ "IDS_CHROMEVOX_TUTORIAL_CHROMEBOOK_SEARCH": {
+  "en": "On most keyboards, the Search key is the Windows key, next to the left Alt key.",
+  "t": "Ar y rhan fwyaf o fysellfyrddau, y fysell Windows yw'r fysell Search, wrth ymyl y fysell Alt chwith."
+ },
+ "IDS_CONSUMER_UPDATE_PROGRESS_SUBTITLE": {
+  "en": "You’re getting the latest software update, with the newest security fixes and features.",
+  "t": "Rydych yn cael y diweddariad meddalwedd diweddaraf, gyda'r atebion diogelwch a'r nodweddion mwyaf newydd."
+ },
+ "IDS_ENABLE_DEBUGGING_HELP": {
+  "en": "BEGIN_H3Debugging FeaturesEND_H3\n          BR\n          You can enable the debugging features on your NickelOS device in order to install and test custom code on your device.  This will allow you to:BR\n          BEGIN_LIST\n            LIST_ITEMRemove rootfs verification so you can modify OS files\n            LIST_ITEMEnable SSH access to the device using the standard test keys so you can use tools such as BEGIN_CODE'cros flash'END_CODE to access the device\n            LIST_ITEMEnable booting from USB so you can install an OS image from a USB drive\n            LIST_ITEMSet both the dev and the system root login password to a custom value so you can manually SSH into the device\n          END_LIST\n          BR\n          Once enabled, most of the debugging features will remain enabled even after performing a powerwash or wiping the data on an enterprise managed device.  To fully disable all debugging features, reinstall NickelOS.\n          BR\n          BR\n          For more information about the debugging features see:BR\n          https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n          BR\n          BR\n          BEGIN_BOLDNote:END_BOLD  The system will reboot during the process.",
+  "t": "BEGIN_H3Nodweddion dadfygioEND_H3\n          BR\n          Gallwch alluogi'r nodweddion dadfygio ar eich dyfais NickelOS er mwyn gosod a phrofi cod personol ar eich dyfais.  Bydd hyn yn eich galluogi i:BR\n          BEGIN_LIST\n            LIST_ITEMDynnu dilysiad rootfs fel y gallwch addasu ffeiliau OS\n      LIST_ITEMGalluogi mynediad SSH at y ddyfais gan ddefnyddio bysellau profi safonol fel y gallwch ddefnyddio offer megis BEGIN_CODE'cros flash'END_CODE i gyrchu'r ddyfais\n      LIST_ITEMGalluogi cychwyn y ddyfais o USB fel y gallwch osod delwedd OS o yriant USB\n      LIST_ITEMGosod cyfrinair mewngofnodi gwraidd y ddyfais yn ogystal â'r system i werth personol fel y gallwch weithredu SSH i'r ddyfais yn bwrpasol\n          END_LIST\n          BR\n          Ar ôl eu galluogi, bydd y rhan fwyaf o'r nodweddion dadfygio yn parhau i fod wedi'u galluogi hyd yn oed ar ôl clirio'n gyfan gwbl neu ddileu'r data ar ddyfais sy'n cael ei rheoli gan sefydliad.  Er mwyn diffodd nodweddion dadfygio'n gyfan gwbl, gosodwch NickelOS eto.\n          BR\n          BR\n          Am ragor o wybodaeth am y nodweddion dadfygio, ewch i:BR\n    https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/debugging-features\n    BR\n    BR\n    BEGIN_BOLDSylwer:END_BOLD  Bydd y system yn ailgychwyn yn ystod y broses."
+ },
+ "IDS_FEEDBACK_TOOL_RESOURCES_EXPLORE_APP_DESCRIPTION": {
+  "en": "Find help articles and answers to common questions",
+  "t": "Dewch o hyd i erthyglau cymorth ac atebion i gwestiynau cyffredin"
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_OFFLINE": {
+  "en": "Thanks for your feedback. It will be sent when you’re back online.",
+  "t": "Diolch am eich adborth. Bydd yn cael ei anfon pan fyddwch ar-lein eto."
+ },
+ "IDS_FEEDBACK_TOOL_THANK_YOU_NOTE_ONLINE": {
+  "en": "Thanks for your feedback.",
+  "t": "Diolch am eich adborth."
+ },
+ "IDS_FILE_BROWSER_MY_FILES_ROOT_LABEL": {
+  "en": "Home",
+  "t": "Cartref"
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_DMG": {
+  "en": "This file is designed for a computer using Macintosh software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Mae'r ffeil hon wedi'i dylunio ar gyfer cyfrifiadur sy'n defnyddio meddalwedd Macintosh. Nid yw hyn yn gydnaws â'ch dyfais sy'n rhedeg NickelOS. BEGIN_LINK_HELPDysgu rhagorEND_LINK_HELP am agor ffeiliau ar NickelOS."
+ },
+ "IDS_FILE_BROWSER_NO_TASK_FOR_EXECUTABLE": {
+  "en": "This file is designed for a PC using Windows software. This is not compatible with your device which runs NickelOS. BEGIN_LINK_HELPLearn MoreEND_LINK_HELP about opening files on NickelOS.",
+  "t": "Mae'r ffeil hon wedi'i dylunio ar gyfer cyfrifiadur personol sy'n defnyddio meddalwedd Windows. Nid yw hyn yn gydnaws â'ch dyfais sy'n rhedeg NickelOS. BEGIN_LINK_HELPDysgu rhagorEND_LINK_HELP am agor ffeiliau ar NickelOS."
+ },
+ "IDS_FROZEN_UPDATE_NOTIFICATION_FROZEN_UPDATE": {
+  "en": "Your device will stop receiving updates soon.",
+  "t": "Bydd eich dyfais yn stopio derbyn diweddariadau yn fuan."
+ },
+ "IDS_LOGIN_QUICK_START_BLUETOOTH_DIALOG_CONTENT": {
+  "en": "To set up with your Android phone, your NickelOS device's Bluetooth needs to be on",
+  "t": "Er mwyn gosod gyda'ch ffôn Android, mae angen i Bluetooth eich dyfais NickelOS fod ymlaen"
+ },
+ "IDS_MANAGEMENT_DESK_SYNC_DESCRIPTION": {
+  "en": "Your administrator enabled the following to be synced between your previous and current sessions across your NickelOS devices:",
+  "t": "Mae eich gweinyddwr wedi galluogi cysoni'r canlynol rhwng eich sesiynau blaenorol a chyfredol ar draws eich dyfeisiau NickelOS:"
+ },
+ "IDS_NICKEL_ACCESS_ALLOW": {
+  "en": "Allow",
+  "t": "Caniatáu"
+ },
+ "IDS_NICKEL_ACCESS_DENY": {
+  "en": "Don't allow",
+  "t": "Peidio â chaniatáu"
+ },
+ "IDS_NICKEL_ACCESS_NOT_NOW": {
+  "en": "Not now",
+  "t": "Nid nawr"
+ },
+ "IDS_NICKEL_ADMIN_AUTH_OTHER_ADMIN": {
+  "en": "Enter the password of NAME, an administrator of this computer.",
+  "t": "Rhowch gyfrinair NAME, un o weinyddwyr y cyfrifiadur hwn."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to use this device's camera. Your answer is remembered for this app.",
+  "t": "Mae APP_NAME eisiau defnyddio camera'r ddyfais hon. Caiff eich ateb ei gofio ar gyfer yr ap hwn."
+ },
+ "IDS_NICKEL_CAMERA_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use the camera?",
+  "t": "Caniatáu i'r ap APP_NAME ddefnyddio'r camera?"
+ },
+ "IDS_NICKEL_CAMERA_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use the camera. To let it, turn on camera access in Privacy controls.",
+  "t": "Mae APP_NAME eisiau defnyddio'r camera. I ganiatáu hyn, trowch fynediad at y camera ymlaen yn Rheolyddion preifatrwydd."
+ },
+ "IDS_NICKEL_CAMERA_OFF_SETTINGS": {
+  "en": "Open settings",
+  "t": "Agor y gosodiadau"
+ },
+ "IDS_NICKEL_CAMERA_OFF_TITLE": {
+  "en": "Camera access is off",
+  "t": "Mae mynediad at y camera wedi'i ddiffodd"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_ALLOW": {
+  "en": "Allow",
+  "t": "Caniatáu"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_DENY": {
+  "en": "Don't allow",
+  "t": "Peidio â chaniatáu"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_HINT": {
+  "en": "To change a shortcut, select its keys and press new ones. Backspace removes it.",
+  "t": "I newid llwybr byr, dewiswch ei fysellau a phwyswch rai newydd. Mae Backspace yn ei ddileu."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_MESSAGE": {
+  "en": "APP_NAME wants these shortcuts to work while you use other apps too. It learns only when you press them, not what else you type.",
+  "t": "Mae APP_NAME eisiau i'r llwybrau byr hyn weithio tra byddwch yn defnyddio apiau eraill hefyd. Dim ond pan fyddwch yn eu pwyso y bydd yn gwybod, nid beth arall rydych yn ei deipio."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NEEDS_MODIFIER": {
+  "en": "Use Ctrl, Alt or Search with the key, or a function key.",
+  "t": "Defnyddiwch Ctrl, Alt neu'r fysell Search gyda'r fysell, neu fysell swyddogaeth."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_NONE": {
+  "en": "Not set",
+  "t": "Heb ei osod"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_PRESS": {
+  "en": "Press keys…",
+  "t": "Pwyswch fysellau…"
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TAKEN": {
+  "en": "Those keys are already in use. Try others.",
+  "t": "Mae'r bysellau hynny'n cael eu defnyddio eisoes. Rhowch gynnig ar rai eraill."
+ },
+ "IDS_NICKEL_GLOBAL_SHORTCUTS_TITLE": {
+  "en": "Allow keyboard shortcuts?",
+  "t": "Caniatáu llwybrau byr bysellfwrdd?"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CHANGE_PICTURE": {
+  "en": "Change",
+  "t": "Newid"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_DESKTOP": {
+  "en": "Desktop",
+  "t": "Cyfrifiadur bwrdd gwaith"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_GENERIC": {
+  "en": "Computer",
+  "t": "Cyfrifiadur"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_LAPTOP": {
+  "en": "Laptop",
+  "t": "Gliniadur"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_NAME_DEFAULT": {
+  "en": "NAME's DEVICE",
+  "t": "DEVICE NAME"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_COMPUTER_TABLET": {
+  "en": "Tablet",
+  "t": "Tabled"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CONFIRM": {
+  "en": "Confirm password",
+  "t": "Cadarnhau'r cyfrinair"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_CREATING": {
+  "en": "Creating your account...",
+  "t": "Yn creu eich cyfrif..."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED": {
+  "en": "Could not create the account.",
+  "t": "Methu â chreu'r cyfrif."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL": {
+  "en": "Could not create the account: DETAIL.",
+  "t": "Methu â chreu'r cyfrif: DETAIL."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_NO_PASSWORD": {
+  "en": "Choose a password.",
+  "t": "Dewiswch gyfrinair."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_SIGN_IN": {
+  "en": "Could not set up the account: DETAIL",
+  "t": "Methu â gosod y cyfrif: DETAIL"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN": {
+  "en": "That username is taken.",
+  "t": "Mae'r enw defnyddiwr hwnnw wedi'i gymryd."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TOO_LONG": {
+  "en": "Creating the account took too long. Try again.",
+  "t": "Cymerodd creu'r cyfrif ormod o amser. Rhowch gynnig arall arni."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_ERROR_USERNAME": {
+  "en": "Usernames start with a lowercase letter and use only lowercase letters, digits, - and _ (up to 32).",
+  "t": "Mae enwau defnyddwyr yn dechrau gyda llythyren fach ac yn defnyddio llythrennau bach, digidau, - a _ yn unig (hyd at 32)."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_MISMATCH": {
+  "en": "The passwords don't match",
+  "t": "Nid yw'r cyfrineiriau'n cyfateb"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_NAME": {
+  "en": "Your name",
+  "t": "Eich enw"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PASSWORD": {
+  "en": "Password",
+  "t": "Cyfrinair"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE": {
+  "en": "Your picture",
+  "t": "Eich llun"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_SUBTITLE": {
+  "en": "It shows on the sign-in screen and in the system tray. To use a photo of your own, go to Settings later.",
+  "t": "Mae'n ymddangos ar y sgrîn mewngofnodi ac yn yr hambwrdd system. I ddefnyddio un o'ch lluniau eich hun, ewch i'r Gosodiadau yn nes ymlaen."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_PICTURE_TITLE": {
+  "en": "Choose a picture",
+  "t": "Dewiswch lun"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_SUBTITLE": {
+  "en": "Your account and its files live on this device, encrypted with your password. Without a Google account there is no way to recover them if you forget it.",
+  "t": "Mae eich cyfrif a'i ffeiliau'n cael eu cadw ar y ddyfais hon, wedi'u hamgryptio gyda'ch cyfrinair. Heb Gyfrif Google, does dim modd eu hadfer os byddwch yn ei anghofio."
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_TITLE": {
+  "en": "Create your account",
+  "t": "Creu eich cyfrif"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME": {
+  "en": "Username",
+  "t": "Enw defnyddiwr"
+ },
+ "IDS_NICKEL_LOCAL_ACCOUNT_USERNAME_ERROR": {
+  "en": "Start with a lowercase letter; use lowercase letters, digits, - and _ (up to 32)",
+  "t": "Dechreuwch gyda llythyren fach; defnyddiwch lythrennau bach, digidau, - a _ (hyd at 32)"
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_MESSAGE": {
+  "en": "APP_NAME wants to know where this device is, found from nearby Wi-Fi networks and its internet address. Your answer is remembered for this app.",
+  "t": "Mae APP_NAME eisiau gwybod ble mae'r ddyfais hon, ar sail rhwydweithiau Wi-Fi cyfagos a'i chyfeiriad rhyngrwyd. Caiff eich ateb ei gofio ar gyfer yr ap hwn."
+ },
+ "IDS_NICKEL_LOCATION_ACCESS_TITLE": {
+  "en": "Allow APP_NAME to use your location?",
+  "t": "Caniatáu i'r ap APP_NAME ddefnyddio'ch lleoliad?"
+ },
+ "IDS_NICKEL_LOCATION_OFF_MESSAGE": {
+  "en": "APP_NAME wants to use your location. To let it, turn on location access in Privacy controls.",
+  "t": "Mae APP_NAME eisiau defnyddio'ch lleoliad. I ganiatáu hyn, trowch fynediad at leoliad ymlaen yn Rheolyddion preifatrwydd."
+ },
+ "IDS_NICKEL_LOCATION_OFF_TITLE": {
+  "en": "Location access is off",
+  "t": "Mae mynediad at leoliad wedi'i ddiffodd"
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_MESSAGE": {
+  "en": "APP_NAME wants to control this device's keyboard and pointer. Allow it only if you trust whoever is connecting.",
+  "t": "Mae APP_NAME eisiau rheoli bysellfwrdd a phwyntydd y ddyfais hon. Dim ond os ydych yn ymddiried yn y sawl sy'n cysylltu y dylech ganiatáu hyn."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_NOTIFICATION": {
+  "en": "APP_NAME is controlling this device.",
+  "t": "Mae APP_NAME yn rheoli'r ddyfais hon."
+ },
+ "IDS_NICKEL_REMOTE_CONTROL_TITLE": {
+  "en": "Allow remote control?",
+  "t": "Caniatáu rheolaeth o bell?"
+ },
+ "IDS_NICKEL_SEARCH_ENGINE_CHOICE_INFO_DIALOG_BODY_FIRST_PARAGRAPH": {
+  "en": "You chose Minimal when you set up NickelOS, so no search engine was picked for you. These search engines are popular in your region and are shown in random order.",
+  "t": "Fe wnaethoch ddewis \"Lleiafsymiol\" wrth osod NickelOS, felly ni ddewiswyd peiriant chwilio ar eich cyfer. Mae'r peiriannau chwilio hyn yn boblogaidd yn eich ardal, ac maen nhw'n cael eu dangos mewn trefn ar hap."
+ },
+ "IDS_NICKEL_SETUP_EITHER_WAY": {
+  "en": "Either way, you get Bazaar to find more apps, and apps to open your photos, videos, music and documents.",
+  "t": "Y naill ffordd neu'r llall, byddwch yn cael Bazaar i ddod o hyd i ragor o apiau, ac apiau i agor eich lluniau, fideos, cerddoriaeth a dogfennau."
+ },
+ "IDS_NICKEL_SETUP_FULL": {
+  "en": "Full experience",
+  "t": "Profiad llawn"
+ },
+ "IDS_NICKEL_SETUP_FULL_DESCRIPTION": {
+  "en": "Everything ready to go, and private. DuckDuckGo searches the web from the browser and the launcher, uBlock Origin blocks ads and trackers in the browser, Proton's private apps (Mail, Calendar, Drive, Pass and more) are installed, and free, open-source apps come with it: LibreOffice, OBS Studio, GIMP, Kdenlive and more.",
+  "t": "Popeth yn barod i fynd, ac yn breifat. Mae DuckDuckGo yn chwilio'r we o'r porwr a'r lansiwr, mae uBlock Origin yn rhwystro hysbysebion a thracwyr yn y porwr, mae apiau preifat Proton (Mail, Calendar, Drive, Pass a rhagor) yn cael eu gosod, ac mae apiau cod agored am ddim yn dod gydag ef: LibreOffice, OBS Studio, GIMP, Kdenlive a rhagor."
+ },
+ "IDS_NICKEL_SETUP_MINIMAL": {
+  "en": "Minimal",
+  "t": "Lleiafsymiol"
+ },
+ "IDS_NICKEL_SETUP_MINIMAL_DESCRIPTION": {
+  "en": "Just the basics. The launcher searches only this computer, and nothing else is set up for you.",
+  "t": "Y pethau sylfaenol yn unig. Mae'r lansiwr yn chwilio'r cyfrifiadur hwn yn unig, a does dim byd arall yn cael ei osod i chi."
+ },
+ "IDS_NICKEL_SETUP_SUBTITLE": {
+  "en": "You can change all of this later in Settings.",
+  "t": "Gallwch newid hyn i gyd yn nes ymlaen yn y Gosodiadau."
+ },
+ "IDS_NICKEL_SETUP_TITLE": {
+  "en": "How would you like to start?",
+  "t": "Sut hoffech chi ddechrau?"
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_CONTENT_0": {
+  "en": "Before starting, make sure you have a backup of your data. Installing DEVICE_OS will overwrite the disk you choose.",
+  "t": "Cyn cychwyn, gwnewch yn siŵr bod gennych gopi wrth gefn o'ch data. Bydd gosod DEVICE_OS yn trosysgrifo'r ddisg rydych yn ei dewis."
+ },
+ "IDS_OS_INSTALL_SCREEN_INTRO_FOOTER": {
+  "en": "DEVICE_OS is free software provided as is: it may not work on every computer, and its authors are not responsible for any data loss.",
+  "t": "Mae DEVICE_OS yn feddalwedd rydd a ddarperir fel y mae: mae'n bosib na fydd yn gweithio ar bob cyfrifiadur, ac nid yw ei awduron yn gyfrifol am unrhyw golled data."
+ },
+ "IDS_OS_SETTINGS_ABOUT_CHROMEOS_MENU_ITEM_DESCRIPTION": {
+  "en": "Updates, developer options",
+  "t": "Diweddariadau, dewisiadau datblygwr"
+ },
+ "IDS_OS_SETTINGS_ENABLE_SUGGESTED_CONTENT_DESCRIPTION": {
+  "en": "See suggestions for new apps and web content in Launcher and search results. Sends statistics to improve suggestions only if you have chosen to send crash reports and diagnostics and usage data to NickelOS.",
+  "t": "Gweld awgrymiadau ar gyfer apiau a chynnwys gwe newydd yn Launcher a chanlyniadau chwilio. Yn anfon ystadegau i wella awgrymiadau dim ond os ydych wedi dewis anfon adroddiadau toriadau a data diagnostig a defnydd at NickelOS."
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION": {
+  "en": "Phones, Nearby Share",
+  "t": "Ffonau, Rhannu Gerllaw"
+ },
+ "IDS_OS_SETTINGS_MULTIDEVICE_MENU_ITEM_DESCRIPTION_PH": {
+  "en": "Phones, FEATURE_NAME",
+  "t": "Ffonau, FEATURE_NAME"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD": {
+  "en": "Cloud storage",
+  "t": "Storfa cwmwl"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT1": {
+  "en": "Google Drive",
+  "t": "Google Drive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT2": {
+  "en": "OneDrive",
+  "t": "OneDrive"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT3": {
+  "en": "Dropbox",
+  "t": "Dropbox"
+ },
+ "IDS_OS_SETTINGS_TAG_NICKEL_CLOUD_ALT4": {
+  "en": "Add cloud account",
+  "t": "Ychwanegu cyfrif cwmwl"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_OWN_PICTURES_TOGGLE": {
+  "en": "Your own pictures",
+  "t": "Eich lluniau eich hun"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION": {
+  "en": "When your screen is idle, show your pictures, time, and media info",
+  "t": "Pan fydd eich sgrîn yn segur, dangoswch eich lluniau, yr amser a gwybodaeth am y cyfryngau"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC": {
+  "en": "Your own pictures",
+  "t": "Eich lluniau eich hun"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT": {
+  "en": "The screen saver shows the pictures in your Pictures folder and the folders in it. Add at least 2.",
+  "t": "Mae'r arbedydd sgrîn yn dangos y lluniau yn eich ffolder Pictures a'r ffolderi sydd ynddo. Ychwanegwch o leiaf 2."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE": {
+  "en": "Pictures folder",
+  "t": "Ffolder Pictures"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_DESC": {
+  "en": "Pictures that come with NickelOS",
+  "t": "Lluniau sy'n dod gyda NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_HINT": {
+  "en": "The screen saver shows NickelOS's wallpapers. Turn this on to show the pictures in My files > Pictures instead.",
+  "t": "Mae'r arbedydd sgrîn yn dangos papurau wal NickelOS. Trowch hwn ymlaen i ddangos y lluniau yn Fy ffeiliau > Pictures yn lle hynny."
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WALLPAPERS_TITLE": {
+  "en": "NickelOS wallpapers",
+  "t": "Papurau wal NickelOS"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE": {
+  "en": "From Open-Meteo, for your approximate location, which beaconDB works out from your internet address",
+  "t": "Gan Open-Meteo, ar gyfer eich lleoliad bras, y mae beaconDB yn ei gyfrifo o'ch cyfeiriad IP"
+ },
+ "IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE": {
+  "en": "Show the weather",
+  "t": "Dangos y tywydd"
+ },
+ "IDS_PRINT_PREVIEW_PRINTER_SETUP_INFO_MESSAGE_DETAIL_PRINTER_OFFLINE_TEXT": {
+  "en": "Make sure your printer is turned on and connected to the same network as your NickelOS device or use a USB cable",
+  "t": "Sicrhewch fod eich argraffydd wedi'i droi ymlaen a'i gysylltu â'r un rhwydwaith â'ch dyfais NickelOS neu defnyddiwch gebl USB"
+ },
+ "IDS_SCANNING_APP_MY_FILES_SELECT_OPTION": {
+  "en": "Home",
+  "t": "Cartref"
+ },
+ "IDS_SETTINGS_ACCOUNT_BODY_CHROMEOS": {
+  "en": "When on, data is saved in your Google Account and can be used on all your devices. When off, data is saved only to this device. For NickelOS sync options, go to LINK_BEGINNickelOS settingsLINK_END.",
+  "t": "Pan fydd ymlaen, caiff data eu cadw yn eich Cyfrif Google a gellir eu ddefnyddio ar eich holl ddyfeisiau. Pan fydd wedi'i ddiffodd, dim ond i'r ddyfais hon y caiff data eu cadw. Am opsiynau cysoni NickelOS, ewch i LINK_BEGINOsodiadau NickelOSLINK_END."
+ },
+ "IDS_SETTINGS_APPS_ARC_VM_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device. Permission will be requested each time you plug in a USB device. Individual Android apps will ask for additional permissions.",
+  "t": "Rhoi rheolaeth i apiau Android dros ddyfeisiau USB ar y ddyfais NickelOS hon. Gofynnir am ganiatâd bob tro y byddwch yn plygio dyfais USB i mewn. Bydd apiau Android unigol yn gofyn am ganiatâd ychwanegol."
+ },
+ "IDS_SETTINGS_CERTIFICATE_MANAGER_V2_PLATFORM_CERTS_VIEW_LINK": {
+  "en": "View imported certificates from NickelOS",
+  "t": "Gweld tystysgrifau a fewnforiwyd o NickelOS"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Nid yw eich dyfais bellach yn derbyn diweddariadau diogelwch a meddalwedd."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_NO_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Nid yw'r ddyfais hon yn cael diweddariadau mwyach"
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_MESSAGE": {
+  "en": "Your device is no longer receiving security and software updates.",
+  "t": "Nid yw eich dyfais bellach yn derbyn diweddariadau diogelwch a meddalwedd."
+ },
+ "IDS_SETTINGS_END_OF_LIFE_INCENTIVE_OFFER_TITLE": {
+  "en": "This device no longer gets updates",
+  "t": "Nid yw'r ddyfais hon yn cael diweddariadau mwyach"
+ },
+ "IDS_SETTINGS_GUEST_OS_SHARED_USB_DEVICES_DESCRIPTION": {
+  "en": "Give Android apps control over USB devices on this NickelOS device",
+  "t": "Rhoi rheolaeth i apiau Android dros ddyfeisiau USB ar y ddyfais NickelOS hon"
+ },
+ "IDS_SETTINGS_NEARBY_SHARE_DATA_USAGE_MOBILE_DATA_TOOLTIP": {
+  "en": "This option applies to NickelOS devices with a data plan or mobile network dongle, or when tethering to a portable hotspot",
+  "t": "Mae'r dewis hwn yn berthnasol i ddyfeisiau NickelOS â chynllun data neu ddongl rhwydwaith symudol, neu pan fyddwch yn rhannu cysylltiad â phoethfan cludadwy"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON": {
+  "en": "Add person",
+  "t": "Ychwanegu person"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADD_PERSON_BODY": {
+  "en": "You'll be signed out. On the sign-in screen, the new person chooses a name, a username and a password.",
+  "t": "Byddwch yn cael eich allgofnodi. Ar y sgrîn mewngofnodi, bydd y person newydd yn dewis enw, enw defnyddiwr a chyfrinair."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMINISTRATOR": {
+  "en": "Administrator",
+  "t": "Gweinyddwr"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_ADMIN_BODY": {
+  "en": "Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Gall gweinyddwyr osod meddalwedd i bawb, newid y system a rheoli cyfrifon."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CHANGE_PASSWORD": {
+  "en": "Change password",
+  "t": "Newid cyfrinair"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM": {
+  "en": "Confirm",
+  "t": "Cadarnhau"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CONFIRM_PASSWORD": {
+  "en": "Confirm new password",
+  "t": "Cadarnhau'r cyfrinair newydd"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_CURRENT_PASSWORD": {
+  "en": "Current password",
+  "t": "Cyfrinair cyfredol"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_EMPTY_PASSWORD": {
+  "en": "Choose a new password",
+  "t": "Dewiswch gyfrinair newydd"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Aeth rhywbeth o'i le. Rhowch gynnig arall arni."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_LAST_ADMIN": {
+  "en": "This device needs at least one administrator",
+  "t": "Mae angen o leiaf un gweinyddwr ar y ddyfais hon"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_MAKE_ADMIN_TITLE": {
+  "en": "Make NAME an administrator?",
+  "t": "Gwneud NAME yn weinyddwr?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NEW_PASSWORD": {
+  "en": "New password",
+  "t": "Cyfrinair newydd"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_NO_OTHER_PEOPLE": {
+  "en": "No one else has an account on this device.",
+  "t": "Does gan neb arall gyfrif ar y ddyfais hon."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE": {
+  "en": "Other people on this device",
+  "t": "Pobl eraill ar y ddyfais hon"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OTHER_PEOPLE_DESCRIPTION": {
+  "en": "Everyone has their own account and files. Administrators can install software for everyone, change the system and manage accounts.",
+  "t": "Mae gan bawb eu cyfrif a'u ffeiliau eu hunain. Gall gweinyddwyr osod meddalwedd i bawb, newid y system a rheoli cyfrifon."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_OWNER": {
+  "en": "Owner, administrator",
+  "t": "Perchennog, gweinyddwr"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_PASSWORDS_DONT_MATCH": {
+  "en": "The new passwords don't match",
+  "t": "Nid yw'r cyfrineiriau newydd yn cyfateb"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE": {
+  "en": "Remove",
+  "t": "Dileu"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_ADMIN_TITLE": {
+  "en": "Make NAME a standard user?",
+  "t": "Gwneud NAME yn ddefnyddiwr safonol?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_BODY": {
+  "en": "Their account and all their files are deleted from this device. This can't be undone.",
+  "t": "Caiff eu cyfrif a'u holl ffeiliau eu dileu o'r ddyfais hon. Does dim modd dadwneud hyn."
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_REMOVE_TITLE": {
+  "en": "Remove NAME?",
+  "t": "Dileu NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_SIGN_OUT": {
+  "en": "Sign out",
+  "t": "Allgofnodi"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_STANDARD": {
+  "en": "Standard",
+  "t": "Safonol"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_WRONG_PASSWORD": {
+  "en": "That password isn't right",
+  "t": "Nid yw'r cyfrinair hwnnw'n gywir"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_ACCOUNT": {
+  "en": "Your account",
+  "t": "Eich cyfrif"
+ },
+ "IDS_SETTINGS_NICKEL_ACCOUNTS_YOUR_PASSWORD": {
+  "en": "Your password",
+  "t": "Eich cyfrinair"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ADMIN_ONLY": {
+  "en": "Only an administrator of this device can change these.",
+  "t": "Dim ond gweinyddwr y ddyfais hon sy'n gallu newid y rhain."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DESCRIPTION": {
+  "en": "For apps built only for the ARM processors phones use, many games among them. Proprietary software, downloaded when you turn it on.",
+  "t": "Ar gyfer apiau a adeiladwyd ar gyfer y proseswyr ARM a ddefnyddir gan ffonau yn unig, gan gynnwys llawer o gemau. Meddalwedd berchnogol, sy'n cael ei lawrlwytho pan fyddwch yn troi hyn ymlaen."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_1": {
+  "en": "Many Android apps, games especially, are built only for the ARM processors phones use. To run them on this computer, Android needs a translator. NickelOS doesn't make or include one: turning this on downloads TRANSLATOR from GitHub, the same copy the Waydroid community's waydroid_script installs.",
+  "t": "Mae llawer o apiau Android, yn enwedig gemau, wedi'u hadeiladu ar gyfer y proseswyr ARM a ddefnyddir gan ffonau yn unig. I'w rhedeg ar y cyfrifiadur hwn, mae angen cyfieithydd ar Android. Nid yw NickelOS yn creu nac yn cynnwys un: mae troi hyn ymlaen yn lawrlwytho TRANSLATOR o GitHub, yr un copi ag y mae waydroid_script cymuned Waydroid yn ei osod."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_BODY_2": {
+  "en": "It's proprietary software, under its owner's terms, and you're the one installing it. Some apps may run slowly or not at all. Android restarts to use it.",
+  "t": "Meddalwedd berchnogol yw hon, o dan delerau ei pherchennog, a chi sy'n ei gosod. Gall rhai apiau redeg yn araf neu ddim o gwbl. Mae Android yn ailgychwyn er mwyn ei defnyddio."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_CONFIRM": {
+  "en": "Agree and turn on",
+  "t": "Cytuno a throi ymlaen"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_DIALOG_TITLE": {
+  "en": "Turn on ARM app support?",
+  "t": "Troi cymorth ar gyfer apiau ARM ymlaen?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_LABEL": {
+  "en": "ARM app support",
+  "t": "Cymorth ar gyfer apiau ARM"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_OFF": {
+  "en": "Removing...",
+  "t": "Yn dileu..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ARM_TURNING_ON": {
+  "en": "Downloading and installing...",
+  "t": "Yn lawrlwytho ac yn gosod..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_DOWNLOADING": {
+  "en": "Downloading Android",
+  "t": "Yn lawrlwytho Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_DOWNLOAD": {
+  "en": "The download didn't finish. Check your connection, then try again.",
+  "t": "Ni orffennodd y lawrlwythiad. Gwiriwch eich cysylltiad, yna rhowch gynnig arall arni."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_ERROR_FAILED": {
+  "en": "Something went wrong. Try again.",
+  "t": "Aeth rhywbeth o'i le. Rhowch gynnig arall arni."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_OPEN_SETTINGS": {
+  "en": "Android settings",
+  "t": "Gosodiadau Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_PREPARING": {
+  "en": "Setting up Android...",
+  "t": "Yn gosod Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE": {
+  "en": "Remove",
+  "t": "Dileu"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DESCRIPTION": {
+  "en": "Deletes Android, your Android apps and their data",
+  "t": "Yn dileu Android, eich apiau Android a'u data"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_BODY": {
+  "en": "Android, your Android apps and their data are deleted from this device. Other people who use it keep their Android data, but can't open their Android apps until Android is set up again.",
+  "t": "Caiff Android, eich apiau Android a'u data eu dileu o'r ddyfais hon. Bydd pobl eraill sy'n ei defnyddio yn cadw eu data Android, ond ni fyddan nhw'n gallu agor eu hapiau Android nes bod Android wedi'i osod eto."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_DIALOG_TITLE": {
+  "en": "Remove Android?",
+  "t": "Dileu Android?"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVE_LABEL": {
+  "en": "Remove Android",
+  "t": "Dileu Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_REMOVING": {
+  "en": "Removing Android...",
+  "t": "Yn dileu Android..."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP": {
+  "en": "Set up",
+  "t": "Gosod"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_DESCRIPTION": {
+  "en": "Android apps open in their own windows, next to your other apps. Setting up downloads Android (LineageOS, from the Waydroid project): about 1 GB, and 2.5 GB on this device.",
+  "t": "Mae apiau Android yn agor yn eu ffenestri eu hunain, wrth ymyl eich apiau eraill. Mae'r gosod yn lawrlwytho Android (LineageOS, o brosiect Waydroid): tua 1 GB, a 2.5 GB ar y ddyfais hon."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_SET_UP_LABEL": {
+  "en": "Run Android apps",
+  "t": "Rhedeg apiau Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TITLE": {
+  "en": "Android apps",
+  "t": "Apiau Android"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_HOUDINI": {
+  "en": "Intel's Houdini",
+  "t": "Houdini gan Intel"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_TRANSLATOR_NDK": {
+  "en": "Google's NDK translation",
+  "t": "Cyfieithu NDK gan Google"
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_UNAVAILABLE": {
+  "en": "Android apps aren't available right now.",
+  "t": "Nid yw apiau Android ar gael ar hyn o bryd."
+ },
+ "IDS_SETTINGS_NICKEL_ANDROID_USES": {
+  "en": "Android uses SIZE on this device",
+  "t": "Mae Android yn defnyddio SIZE ar y ddyfais hon"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ACCESS_KEY": {
+  "en": "Access key ID",
+  "t": "ID yr allwedd mynediad"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ADD": {
+  "en": "Add account",
+  "t": "Ychwanegu cyfrif"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_BACK": {
+  "en": "Back",
+  "t": "Nôl"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_ID": {
+  "en": "Client ID",
+  "t": "ID cleient"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CLIENT_SECRET": {
+  "en": "Client secret",
+  "t": "Cyfrinach cleient"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECT": {
+  "en": "Connect",
+  "t": "Cysylltu"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_CONNECTING": {
+  "en": "Connecting…",
+  "t": "Yn cysylltu…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DESCRIPTION": {
+  "en": "See Google Drive, OneDrive, Dropbox and other cloud storage in Files",
+  "t": "Gweld Google Drive, OneDrive, Dropbox a storfeydd cwmwl eraill yn Files"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DIALOG_TITLE": {
+  "en": "Add cloud storage",
+  "t": "Ychwanegu storfa cwmwl"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DONE": {
+  "en": "ACCOUNT_NAME is in Files now.",
+  "t": "Mae ACCOUNT_NAME yn Files nawr."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_DRIVE_HELP": {
+  "en": "Google Drive needs your own client ID and secret from the Google Cloud console.",
+  "t": "Mae Google Drive angen eich ID cleient a'ch cyfrinach eich hun o gonsol Google Cloud."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_EMAIL": {
+  "en": "Email or username",
+  "t": "E-bost neu enw defnyddiwr"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_ENDPOINT": {
+  "en": "Endpoint (empty for Amazon S3)",
+  "t": "Pwynt terfyn (gwag ar gyfer Amazon S3)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FAILED": {
+  "en": "Couldn't connect. Check the details and try again.",
+  "t": "Methu â chysylltu. Gwiriwch y manylion a rhowch gynnig arall arni."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_FINISH": {
+  "en": "Done",
+  "t": "Wedi gorffen"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_HOW": {
+  "en": "How to make them",
+  "t": "Sut i'w creu"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_IN_FILES": {
+  "en": "In Files",
+  "t": "Yn Files"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NAME": {
+  "en": "Name",
+  "t": "Enw"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NEXT": {
+  "en": "Next",
+  "t": "Nesaf"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_NOT_CONNECTED": {
+  "en": "Not connected",
+  "t": "Heb gysylltu"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_PASSWORD": {
+  "en": "Password",
+  "t": "Cyfrinair"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_RCLONE": {
+  "en": "NickelOS uses rclone to show your cloud storage in Files, so your files are easy to reach. Choose a service to sign in to.",
+  "t": "Mae NickelOS yn defnyddio rclone i ddangos eich storfa cwmwl yn Files, fel bod eich ffeiliau'n hawdd eu cyrraedd. Dewiswch wasanaeth i fewngofnodi iddo."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REGION": {
+  "en": "Region (optional)",
+  "t": "Rhanbarth (dewisol)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE": {
+  "en": "Remove",
+  "t": "Dileu"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_BODY": {
+  "en": "Files stops showing this account. Your files stay in the cloud, and you can add the account again later.",
+  "t": "Bydd Files yn stopio dangos y cyfrif hwn. Bydd eich ffeiliau'n aros yn y cwmwl, a gallwch ychwanegu'r cyfrif eto yn nes ymlaen."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVE_TITLE": {
+  "en": "Remove ACCOUNT_NAME?",
+  "t": "Dileu ACCOUNT_NAME?"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_REMOVING": {
+  "en": "Removing…",
+  "t": "Yn dileu…"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_S3": {
+  "en": "Amazon S3 or compatible",
+  "t": "Amazon S3 neu gydnaws"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SECRET_KEY": {
+  "en": "Secret access key",
+  "t": "Allwedd mynediad gyfrinachol"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVER": {
+  "en": "Server address",
+  "t": "Cyfeiriad y gweinydd"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SERVICE": {
+  "en": "Service",
+  "t": "Gwasanaeth"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGNING_IN": {
+  "en": "Finish signing in on the page that opened in your browser.",
+  "t": "Gorffennwch fewngofnodi ar y dudalen a agorodd yn eich porwr."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_SIGN_IN_NOTE": {
+  "en": "When you connect, the service's sign-in page opens in your browser.",
+  "t": "Pan fyddwch yn cysylltu, bydd tudalen mewngofnodi'r gwasanaeth yn agor yn eich porwr."
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TITLE": {
+  "en": "Cloud storage",
+  "t": "Storfa cwmwl"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_TWO_FACTOR": {
+  "en": "2-step verification code (if you use one)",
+  "t": "Cod dilysu dau gam (os ydych yn defnyddio un)"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_USERNAME": {
+  "en": "Username",
+  "t": "Enw defnyddiwr"
+ },
+ "IDS_SETTINGS_NICKEL_CLOUD_WEBDAV": {
+  "en": "Nextcloud or WebDAV",
+  "t": "Nextcloud neu WebDAV"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_ADMIN_ONLY": {
+  "en": "Only an administrator of this computer can change its name.",
+  "t": "Dim ond gweinyddwr y cyfrifiadur hwn sy'n gallu newid ei enw."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_CHANGE": {
+  "en": "Change",
+  "t": "Newid"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_BODY": {
+  "en": "Other devices see this name on your network and over Bluetooth, and the Terminal and Linux apps show it.",
+  "t": "Mae dyfeisiau eraill yn gweld yr enw hwn ar eich rhwydwaith a thros Bluetooth, ac mae'r ap Terfynell ac apiau Linux yn ei ddangos."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_DIALOG_TITLE": {
+  "en": "Change the computer's name",
+  "t": "Newid enw'r cyfrifiadur"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_FAILED": {
+  "en": "The name couldn't be changed. Try again.",
+  "t": "Methu â newid yr enw. Rhowch gynnig arall arni."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_INVALID": {
+  "en": "Use at least one letter from A to Z or a number.",
+  "t": "Defnyddiwch o leiaf un llythyren o A i Z neu rif."
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_LABEL": {
+  "en": "Computer name",
+  "t": "Enw'r cyfrifiadur"
+ },
+ "IDS_SETTINGS_NICKEL_COMPUTER_NAME_TERMINAL": {
+  "en": "In the Terminal: HOSTNAME",
+  "t": "Yn yr ap Terfynell: HOSTNAME"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DESCRIPTION": {
+  "en": "The apps that open each kind of file, from Files and from Linux apps",
+  "t": "Yr apiau sy'n agor pob math o ffeil, o Files ac o apiau Linux"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_DOCUMENTS": {
+  "en": "Documents",
+  "t": "Dogfennau"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_EMAIL": {
+  "en": "Email",
+  "t": "E-bost"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_IMAGES": {
+  "en": "Images",
+  "t": "Delweddau"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_MUSIC": {
+  "en": "Music",
+  "t": "Cerddoriaeth"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NONE": {
+  "en": "No app opens these",
+  "t": "Does dim ap yn agor y rhain"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_NOT_SET": {
+  "en": "Not set",
+  "t": "Heb ei osod"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PDF": {
+  "en": "PDF documents",
+  "t": "Dogfennau PDF"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_PRESENTATIONS": {
+  "en": "Presentations",
+  "t": "Cyflwyniadau"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREENSHOTS": {
+  "en": "Screenshots (Print Screen)",
+  "t": "Sgrinluniau (Print Screen)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SCREEN_CAPTURE": {
+  "en": "Screen capture (built in)",
+  "t": "Tynnu sgrinlun (adeiledig)"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_SPREADSHEETS": {
+  "en": "Spreadsheets",
+  "t": "Taenlenni"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TEXT": {
+  "en": "Text files",
+  "t": "Ffeiliau testun"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_TITLE": {
+  "en": "Default apps",
+  "t": "Apiau diofyn"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_VIDEOS": {
+  "en": "Videos",
+  "t": "Fideos"
+ },
+ "IDS_SETTINGS_NICKEL_DEFAULT_APPS_WEBSITE": {
+  "en": "DOMAIN (website)",
+  "t": "DOMAIN (gwefan)"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION": {
+  "en": "Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.",
+  "t": "Gyriannau y tu mewn i'r ddyfais hon ar wahân i'r un sydd â NickelOS. Mae'r gyriant sy'n dal Windows yn agor yn ddarllen-yn-unig, fel bod Windows yn aros yn gyfan."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVES_TITLE": {
+  "en": "Other drives",
+  "t": "Gyriannau eraill"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES": {
+  "en": "Allow changes",
+  "t": "Caniatáu newidiadau"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION": {
+  "en": "Windows is on this drive. It's read-only unless you allow changes.",
+  "t": "Mae Windows ar y gyriant hwn. Mae'n ddarllen-yn-unig oni bai eich bod yn caniatáu newidiadau."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY": {
+  "en": "With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.",
+  "t": "Pan fydd y nodwedd Cychwyn Cyflym ymlaen, nid yw Windows yn cau i lawr yn llwyr, a gall newidiadau a wneir yma gael eu colli neu niweidio ffeiliau pan fydd Windows yn cychwyn eto. Diffoddwch y nodwedd Cychwyn Cyflym yn Windows, neu daliwch Shift wrth i chi gau Windows i lawr, cyn i chi wneud newidiadau."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE": {
+  "en": "Allow changes to the Windows drive?",
+  "t": "Caniatáu newidiadau i'r gyriant Windows?"
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED": {
+  "en": "Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.",
+  "t": "Ni wnaeth Windows gau i lawr yn llwyr, felly mae'r gyriant yn aros yn ddarllen-yn-unig. Caewch Windows i lawr yn llwyr i wneud newidiadau."
+ },
+ "IDS_SETTINGS_NICKEL_DRIVE_SHOW": {
+  "en": "Show in Files",
+  "t": "Dangos yn Files"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY": {
+  "en": "Get help from people",
+  "t": "Cael help gan bobl"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_COMMUNITY_DESCRIPTION": {
+  "en": "The forum, Discord and GitHub, on nickelos.dev",
+  "t": "Y fforwm, Discord a GitHub, ar nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO": {
+  "en": "Learning Gentoo",
+  "t": "Dysgu Gentoo"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GENTOO_DESCRIPTION": {
+  "en": "Portage and emerge from the start, with pacman and apt commands side by side",
+  "t": "Portage ac emerge o'r dechrau, gyda gorchmynion pacman ac apt ochr yn ochr"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE": {
+  "en": "NickelOS guide",
+  "t": "Canllaw NickelOS"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_GUIDE_DESCRIPTION": {
+  "en": "How NickelOS works. This copy came with your version of NickelOS and works offline.",
+  "t": "Sut mae NickelOS yn gweithio. Daeth y copi hwn gyda'ch fersiwn chi o NickelOS ac mae'n gweithio all-lein."
+ },
+ "IDS_SETTINGS_NICKEL_HELP_MENU_ITEM_DESCRIPTION": {
+  "en": "Guide, learning Gentoo, troubleshooting",
+  "t": "Canllaw, dysgu Gentoo, datrys problemau"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE": {
+  "en": "The guide online",
+  "t": "Y canllaw ar-lein"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_ONLINE_DESCRIPTION": {
+  "en": "The newest version, on nickelos.dev",
+  "t": "Y fersiwn diweddaraf, ar nickelos.dev"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TITLE": {
+  "en": "Help",
+  "t": "Help"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING": {
+  "en": "Troubleshooting",
+  "t": "Datrys problemau"
+ },
+ "IDS_SETTINGS_NICKEL_HELP_TROUBLESHOOTING_DESCRIPTION": {
+  "en": "Logs, crash reports, and the usual problems and their fixes",
+  "t": "Logiau, adroddiadau chwalu, a'r problemau arferol a sut i'w trwsio"
+ },
+ "IDS_SETTINGS_NICKEL_LINUX_APPS_TITLE": {
+  "en": "Linux apps",
+  "t": "Apiau Linux"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_ACCEPT": {
+  "en": "Accept",
+  "t": "Derbyn"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_AVAILABLE": {
+  "en": "Available to pair",
+  "t": "Ar gael i'w baru"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CANCEL": {
+  "en": "Cancel",
+  "t": "Canslo"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED": {
+  "en": "Connected",
+  "t": "Wedi cysylltu"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_BATTERY": {
+  "en": "Connected · Battery PERCENT%",
+  "t": "Wedi cysylltu · Batri PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_CONNECTED_CHARGING": {
+  "en": "Connected · Charging, PERCENT%",
+  "t": "Wedi cysylltu · Yn gwefru, PERCENT%"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_DESCRIPTION": {
+  "en": "With the KDE Connect app on Android or iPhone, on the same Wi‑Fi network",
+  "t": "Gyda'r ap KDE Connect ar Android neu iPhone, ar yr un rhwydwaith Wi-Fi"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_MORE": {
+  "en": "More for DEVICE_NAME",
+  "t": "Rhagor ar gyfer DEVICE_NAME"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NONE": {
+  "en": "No phones or tablets yet. Install KDE Connect from Google Play, F‑Droid or the App Store, open it on the same Wi‑Fi network, then pair from either device.",
+  "t": "Dim ffonau na thabledi eto. Gosodwch KDE Connect o Google Play, F‑Droid neu'r App Store, agorwch ef ar yr un rhwydwaith Wi-Fi, ac yna parwch o'r naill ddyfais neu'r llall."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_NOT_RUNNING": {
+  "en": "The phone connection isn't running. Sign out and back in to start it.",
+  "t": "Nid yw'r cysylltiad â ffonau'n rhedeg. Allgofnodwch a mewngofnodwch eto i'w gychwyn."
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_OPEN_VALENT": {
+  "en": "Open Valent",
+  "t": "Agor Valent"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR": {
+  "en": "Pair",
+  "t": "Paru"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIRED_NOT_CONNECTED": {
+  "en": "Paired · Not connected",
+  "t": "Wedi paru · Heb gysylltu"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_PAIR_REQUESTED": {
+  "en": "Waiting for it to accept",
+  "t": "Yn aros iddo dderbyn"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_REJECT": {
+  "en": "Reject",
+  "t": "Gwrthod"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_RING": {
+  "en": "Ring",
+  "t": "Canu"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES": {
+  "en": "Send files",
+  "t": "Anfon ffeiliau"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_SEND_FILES_TITLE": {
+  "en": "Send files",
+  "t": "Anfon ffeiliau"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_TITLE": {
+  "en": "Phones and tablets",
+  "t": "Ffonau a thabledi"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_UNPAIR": {
+  "en": "Unpair",
+  "t": "Dadbaru"
+ },
+ "IDS_SETTINGS_NICKEL_PHONES_WANTS_TO_PAIR": {
+  "en": "Wants to pair with this device",
+  "t": "Eisiau paru gyda'r ddyfais hon"
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION": {
+  "en": "Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.",
+  "t": "Mae'n gadael i apiau fel Discord ddefnyddio pwyso-i-siarad tra byddwch mewn ffenestri eraill. Maen nhw'n gweld bysellau a bwysir gyda Ctrl, Alt neu Search a bysellau swyddogaeth, byth yr hyn rydych yn ei deipio."
+ },
+ "IDS_SETTINGS_NICKEL_X11_KEYS_LABEL": {
+  "en": "Shortcut keys for older Linux apps",
+  "t": "Bysellau llwybr byr ar gyfer apiau Linux hŷn"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_HELP_SECTION_DESCRIPTION": {
+  "en": "Make sure your printer is connected to the same Wi-Fi network as your NickelOS device or use a USB cable. LINK_BEGINLearn more about compatibilityLINK_END",
+  "t": "Sicrhewch fod eich argraffydd wedi'i gysylltu â'r un rhwydwaith Wi-Fi â'ch dyfais NickelOS neu defnyddiwch gebl USB. LINK_BEGINDysgu rhagor am gydnawseddLINK_END"
+ },
+ "IDS_SETTINGS_PRINTING_CUPS_PRINTER_ADDED_PRINTER_PRINTER_UNREACHABLE_MESSAGE": {
+  "en": "Can’t connect to printer. Check that the printer is turned on and is connected to your NickelOS device by Wi-Fi or USB.",
+  "t": "Methu â chysylltu â'r argraffydd. Gwiriwch fod yr argraffydd wedi'i droi ymlaen a'i fod wedi'i gysylltu â'ch dyfais NickelOS gan Wi-Fi neu USB."
+ },
+ "IDS_SETTINGS_STORAGE_ITEM_MY_FILES": {
+  "en": "Home",
+  "t": "Cartref"
+ },
+ "IDS_SETTINGS_SWITCH_ACCESS_SETUP_INTRO_BODY": {
+  "en": "To get started, please make sure your USB or Bluetooth switch is connected to your NickelOS device. You can also use keyboard keys.",
+  "t": "I gychwyn arni, gwnewch yn siŵr bod eich switsh USB neu Bluetooth wedi'i gysylltu â'ch dyfais NickelOS. Gallwch hefyd ddefnyddio bysellau bysellfwrdd."
+ },
+ "IDS_SMART_LOCK_LABEL_LOOKING_FOR_PHONE": {
+  "en": "To unlock your NickelOS device, make sure your phone's Bluetooth is on",
+  "t": "I ddatgloi eich dyfais NickelOS, gwnewch yn siŵr bod Bluetooth eich ffôn ymlaen"
+ },
+ "IDS_SMART_LOCK_LABEL_NO_BLUETOOTH": {
+  "en": "Your NickelOS device’s Bluetooth is off. To unlock your NickelOS device, enter password.",
+  "t": "Mae Bluetooth eich dyfais NickelOS wedi'i ddiffodd. I ddatgloi eich dyfais NickelOS, rhowch eich cyfrinair."
+ },
+ "IDS_SMART_LOCK_LABEL_NO_PHONE_LOCK_SCREEN": {
+  "en": "Your phone doesn’t have a lock screen. To unlock your NickelOS device, enter password.",
+  "t": "Nid oes clo sgrîn ar eich ffôn. I ddatgloi eich dyfais NickelOS, rhowch eich cyfrinair."
+ },
+ "IDS_SMART_LOCK_LABEL_PHONE_LOCKED": {
+  "en": "To unlock your NickelOS device, first unlock your phone",
+  "t": "I ddatgloi eich dyfais NickelOS, datglowch eich ffôn yn gyntaf"
+ },
+ "IDS_SMART_PRIVACY_PROTECTION_CONTENT": {
+  "en": "Your device uses a built-in sensor to detect people in front of it. All data is processed on your device immediately and then deleted. Sensor data is never sent to Google.",
+  "t": "Mae'ch dyfais yn defnyddio synhwyrydd integredig i ganfod pobl o'i blaen. Mae data i gyd yn cael eu prosesu ar eich dyfais ar unwaith ac yna yn cael eu dileu. Ni anfonir data synhwyrydd byth at Google."
+ },
+ "IDS_SUPPORT_TOOL_CHROMEOS_FLEX_LOGS": {
+  "en": "NickelOS Logs",
+  "t": "Logiau NickelOS"
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TEXT": {
+  "en": "You’ll sign in to your device with your own account, and everyone who uses it can have one.",
+  "t": "Byddwch yn mewngofnodi i'ch dyfais gyda'ch cyfrif eich hun, a gall pawb sy'n ei defnyddio gael un."
+ },
+ "IDS_UPDATE_SLIDE_ACCOUNT_TITLE": {
+  "en": "Your own account on your device",
+  "t": "Eich cyfrif eich hun ar eich dyfais"
+ },
+ "IDS_UPDATE_SLIDE_ANTIVIRUS_TEXT": {
+  "en": "NickelOS is designed with security in mind, and it keeps itself up to date automatically.",
+  "t": "Mae NickelOS wedi'i ddylunio gyda diogelwch mewn golwg, ac mae'n diweddaru ei hun yn awtomatig."
+ },
+ "IDS_UPDATE_SLIDE_APPS_TEXT": {
+  "en": "NickelOS runs web apps and Linux apps side by side. Get apps for productivity, entertainment, and more.",
+  "t": "Mae NickelOS yn rhedeg apiau gwe ac apiau Linux ochr yn ochr. Cael apiau ar gyfer cynhyrchiant, adloniant, a rhagor."
+ },
+ "IDS_USER_INSTALLED_CHROME_APP_DEPRECATION_BLOCKED_LAUNCH_DIALOG_MESSAGE": {
+  "en": "Chrome apps don’t run on NickelOS. Consider an alternative app.",
+  "t": "Nid yw apiau Chrome yn rhedeg ar NickelOS. Ystyriwch ap arall."
+ }
+}

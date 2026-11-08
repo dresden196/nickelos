@@ -1,0 +1,437 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the clipboard of remote desktop sessions
+
+Remote desktop apps (RustDesk, AnyDesk, Deskflow) share the clipboard with
+the other computer through xdg-desktop-portal's Clipboard portal, part of
+their RemoteDesktop session (0023). The NickelOS backend
+(xdg-desktop-portal-nickel) reaches ChromeOS's clipboard through
+VmApplicationsService, with the session's control token: only while the
+user lets the app control the device, so no other process reads the
+clipboard through here.
+
+- NickelClipboardFormats(token) -> (state, MIME types): the clipboard's
+  sequence token (new with every change; the backend watches it once a
+  second) and what it holds: text (text/plain;charset=utf-8, text/plain,
+  UTF8_STRING, STRING, TEXT), text/html, image/png.
+- NickelClipboardRead(token, MIME type) -> (found, data): text or HTML in
+  UTF-8, or the PNG.
+- NickelClipboardWrite(token, MIME type, data) -> (done): text or HTML.
+  Pictures are not taken: decoding another computer's images in Chrome's
+  browser process is not worth the risk.
+- NickelRemoteDesktop::IsActive(token).
+
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index e442ea883f44b..e87b1f1219d4a 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -8,6 +8,8 @@ static_library("vm") {
+   sources = [
+     "nickel_access.cc",
+     "nickel_access.h",
++    "nickel_clipboard.cc",
++    "nickel_clipboard.h",
+     "nickel_desktop_tools.cc",
+     "nickel_desktop_tools.h",
+     "nickel_global_shortcuts.cc",
+@@ -86,6 +88,7 @@ static_library("vm") {
+     "//components/tabs:public",
+     "//components/user_manager",
+     "//media/capture:capture_lib",
++    "//ui/base/clipboard",
+     "//ui/base/clipboard:file_info",
+     "//ui/base/data_transfer_policy",
+     "//ui/chromeos/strings:strings_grit",
+diff --git a/chrome/browser/ash/dbus/vm/nickel_clipboard.cc b/chrome/browser/ash/dbus/vm/nickel_clipboard.cc
+new file mode 100644
+index 0000000000000..ec1e4312458d0
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_clipboard.cc
+@@ -0,0 +1,135 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/dbus/vm/nickel_clipboard.h"
++
++#include <utility>
++
++#include "base/functional/bind.h"
++#include "base/strings/string_util.h"
++#include "base/strings/utf_string_conversions.h"
++#include "chrome/browser/ash/dbus/vm/nickel_remote_desktop.h"
++#include "ui/base/clipboard/clipboard.h"
++#include "ui/base/clipboard/clipboard_buffer.h"
++#include "ui/base/clipboard/scoped_clipboard_writer.h"
++#include "url/gurl.h"
++
++namespace ash {
++
++namespace {
++
++constexpr ui::ClipboardBuffer kBuffer = ui::ClipboardBuffer::kCopyPaste;
++// The names text goes by for X11 and Wayland apps.
++constexpr const char* kTextTypes[] = {"text/plain;charset=utf-8", "text/plain",
++                                      "UTF8_STRING", "STRING", "TEXT"};
++constexpr char kHtml[] = "text/html";
++constexpr char kPng[] = "image/png";
++
++bool IsText(const std::string& mime_type) {
++  for (const char* type : kTextTypes) {
++    if (mime_type == type) {
++      return true;
++    }
++  }
++  return false;
++}
++
++std::vector<uint8_t> Bytes(const std::u16string& text) {
++  const std::string utf8 = base::UTF16ToUTF8(text);
++  return std::vector<uint8_t>(utf8.begin(), utf8.end());
++}
++
++}  // namespace
++
++// static
++void NickelClipboard::Formats(const std::string& token,
++                              FormatsCallback callback) {
++  if (!NickelRemoteDesktop::IsActive(token)) {
++    std::move(callback).Run(std::string(), {});
++    return;
++  }
++  ui::Clipboard* clipboard = ui::Clipboard::GetForCurrentThread();
++  const std::string state = clipboard->GetSequenceNumber(kBuffer).ToString();
++  clipboard->ReadAvailableTypes(
++      kBuffer, std::nullopt,
++      base::BindOnce(
++          [](FormatsCallback callback, const std::string& state,
++             std::vector<std::u16string> types) {
++            std::vector<std::string> mime_types;
++            for (const std::u16string& type : types) {
++              const std::string mime_type = base::UTF16ToUTF8(type);
++              if (mime_type == "text/plain") {
++                mime_types.insert(mime_types.end(), std::begin(kTextTypes),
++                                  std::end(kTextTypes));
++              } else if (mime_type == kHtml || mime_type == kPng) {
++                mime_types.push_back(mime_type);
++              }
++            }
++            std::move(callback).Run(state, mime_types);
++          },
++          std::move(callback), state));
++}
++
++// static
++void NickelClipboard::Read(const std::string& token,
++                           const std::string& mime_type,
++                           ReadCallback callback) {
++  if (!NickelRemoteDesktop::IsActive(token)) {
++    std::move(callback).Run(std::nullopt);
++    return;
++  }
++  ui::Clipboard* clipboard = ui::Clipboard::GetForCurrentThread();
++  if (IsText(mime_type)) {
++    clipboard->ReadText(kBuffer, std::nullopt,
++                        base::BindOnce(
++                            [](ReadCallback callback, std::u16string text) {
++                              std::move(callback).Run(Bytes(text));
++                            },
++                            std::move(callback)));
++  } else if (mime_type == kHtml) {
++    clipboard->ReadHTML(
++        kBuffer, std::nullopt,
++        base::BindOnce(
++            [](ReadCallback callback, std::u16string markup, GURL, uint32_t,
++               uint32_t) { std::move(callback).Run(Bytes(markup)); },
++            std::move(callback)));
++  } else if (mime_type == kPng) {
++    clipboard->ReadPng(kBuffer, std::nullopt,
++                       base::BindOnce(
++                           [](ReadCallback callback,
++                              const std::vector<uint8_t>& png) {
++                             if (png.empty()) {
++                               std::move(callback).Run(std::nullopt);
++                             } else {
++                               std::move(callback).Run(png);
++                             }
++                           },
++                           std::move(callback)));
++  } else {
++    std::move(callback).Run(std::nullopt);
++  }
++}
++
++// static
++bool NickelClipboard::Write(const std::string& token,
++                            const std::string& mime_type,
++                            const std::vector<uint8_t>& data) {
++  if (!NickelRemoteDesktop::IsActive(token) ||
++      (!IsText(mime_type) && mime_type != kHtml)) {
++    return false;
++  }
++  const std::string utf8(data.begin(), data.end());
++  if (!base::IsStringUTF8(utf8)) {
++    return false;
++  }
++  ui::ScopedClipboardWriter writer(kBuffer);
++  if (mime_type == kHtml) {
++    writer.WriteHTML(base::UTF8ToUTF16(utf8), std::string());
++  } else {
++    writer.WriteText(base::UTF8ToUTF16(utf8));
++  }
++  return true;
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_clipboard.h b/chrome/browser/ash/dbus/vm/nickel_clipboard.h
+new file mode 100644
+index 0000000000000..a9bc9471efdf6
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_clipboard.h
+@@ -0,0 +1,51 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_DBUS_VM_NICKEL_CLIPBOARD_H_
++#define CHROME_BROWSER_ASH_DBUS_VM_NICKEL_CLIPBOARD_H_
++
++#include <cstdint>
++#include <optional>
++#include <string>
++#include <vector>
++
++#include "base/functional/callback.h"
++
++namespace ash {
++
++// NickelOS: the clipboard for the Clipboard portal of remote desktop sessions
++// (RustDesk, AnyDesk, Deskflow), for the NickelOS portal backend
++// (xdg-desktop-portal-nickel) through VmApplicationsService: what the other
++// computer copies reaches this one's clipboard, and the other way round.
++// Only during a session the user allowed (a NickelRemoteDesktop token);
++// otherwise nothing, so no other process reads the clipboard through here.
++class NickelClipboard {
++ public:
++  // The clipboard's state (a token, new with every change) and its MIME
++  // types: text as text/plain;charset=utf-8, text/plain, UTF8_STRING, STRING
++  // and TEXT (what X11 and Wayland apps ask for), text/html, image/png.
++  using FormatsCallback =
++      base::OnceCallback<void(const std::string& state,
++                              const std::vector<std::string>& mime_types)>;
++  static void Formats(const std::string& token, FormatsCallback callback);
++
++  // The clipboard's text (UTF-8), HTML (UTF-8) or PNG, as `mime_type` asks;
++  // nothing if it has none.
++  using ReadCallback =
++      base::OnceCallback<void(std::optional<std::vector<uint8_t>> data)>;
++  static void Read(const std::string& token,
++                   const std::string& mime_type,
++                   ReadCallback callback);
++
++  // Puts text or HTML (UTF-8) on the clipboard. Pictures are not taken:
++  // decoding another computer's images here, in Chrome's browser process,
++  // is not worth the risk.
++  static bool Write(const std::string& token,
++                    const std::string& mime_type,
++                    const std::vector<uint8_t>& data);
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_ASH_DBUS_VM_NICKEL_CLIPBOARD_H_
+diff --git a/chrome/browser/ash/dbus/vm/nickel_remote_desktop.cc b/chrome/browser/ash/dbus/vm/nickel_remote_desktop.cc
+index 23e56ad76bd32..c4fbf515b2d1d 100644
+--- a/chrome/browser/ash/dbus/vm/nickel_remote_desktop.cc
++++ b/chrome/browser/ash/dbus/vm/nickel_remote_desktop.cc
+@@ -102,6 +102,11 @@ void NickelRemoteDesktop::Ask(
+ }
+ 
+ // static
++// static
++bool NickelRemoteDesktop::IsActive(const std::string& token) {
++  return !token.empty() && Controls().count(token);
++}
++
+ void NickelRemoteDesktop::End(const std::string& token) {
+   Controls().erase(token);
+ }
+diff --git a/chrome/browser/ash/dbus/vm/nickel_remote_desktop.h b/chrome/browser/ash/dbus/vm/nickel_remote_desktop.h
+index 1d60f52405548..83d404c7a6e8b 100644
+--- a/chrome/browser/ash/dbus/vm/nickel_remote_desktop.h
++++ b/chrome/browser/ash/dbus/vm/nickel_remote_desktop.h
+@@ -24,6 +24,9 @@ class NickelRemoteDesktop {
+   static void Ask(const std::string& app_name,
+                   base::OnceCallback<void(const std::string& token)> callback);
+   static void End(const std::string& token);
++  // NickelOS: whether |token|'s session is still on (the clipboard of
++  // remote desktop sessions, NickelClipboard, asks).
++  static bool IsActive(const std::string& token);
+ 
+   // Each returns false once the session has ended (the user stopped it).
+   // Pointer positions are in the pixels of |source_id| (a screen or window
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index 91b8f20838e5e..b9a6130753780 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -23,6 +23,7 @@
+ #include "chrome/browser/ash/crostini/crostini_features.h"
+ #include "chrome/browser/ash/crostini/crostini_util.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_access.h"
++#include "chrome/browser/ash/dbus/vm/nickel_clipboard.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_desktop_tools.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_inhibit.h"
+@@ -184,6 +185,11 @@ constexpr char kNickelX11KeysConnectMethod[] = "NickelX11KeysConnect";
+ // (NickelDesktopTools).
+ constexpr char kNickelPickColorMethod[] = "NickelPickColor";
+ constexpr char kNickelSetWallpaperMethod[] = "NickelSetWallpaper";
++// NickelOS: called by the Clipboard portal's backend for remote desktop
++// sessions (NickelClipboard).
++constexpr char kNickelClipboardFormatsMethod[] = "NickelClipboardFormats";
++constexpr char kNickelClipboardReadMethod[] = "NickelClipboardRead";
++constexpr char kNickelClipboardWriteMethod[] = "NickelClipboardWrite";
+ 
+ }  // namespace
+ 
+@@ -350,6 +356,29 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelClipboardFormatsMethod,
++      base::BindRepeating(
++          &VmApplicationsServiceProvider::NickelClipboardFormats,
++          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelClipboardReadMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelClipboardRead,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelClipboardWriteMethod,
++      base::BindRepeating(
++          &VmApplicationsServiceProvider::NickelClipboardWrite,
++          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+ }
+ 
+ void VmApplicationsServiceProvider::OnExported(
+@@ -885,6 +914,91 @@ void VmApplicationsServiceProvider::NickelPickColor(
+       method_call, std::move(response_sender)));
+ }
+ 
++// NickelOS: the clipboard of remote desktop sessions (NickelClipboard):
++// (token) -> (state, MIME types).
++void VmApplicationsServiceProvider::NickelClipboardFormats(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string token;
++  if (!reader.PopString(&token)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS, "Expected a token"));
++    return;
++  }
++  NickelClipboard::Formats(
++      token,
++      base::BindOnce(
++          [](dbus::MethodCall* method_call,
++             dbus::ExportedObject::ResponseSender response_sender,
++             const std::string& state,
++             const std::vector<std::string>& mime_types) {
++            std::unique_ptr<dbus::Response> response =
++                dbus::Response::FromMethodCall(method_call);
++            dbus::MessageWriter writer(response.get());
++            writer.AppendString(state);
++            writer.AppendArrayOfStrings(mime_types);
++            std::move(response_sender).Run(std::move(response));
++          },
++          method_call, std::move(response_sender)));
++}
++
++// (token, MIME type) -> (found, data).
++void VmApplicationsServiceProvider::NickelClipboardRead(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string token;
++  std::string mime_type;
++  if (!reader.PopString(&token) || !reader.PopString(&mime_type)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected a token and a MIME type"));
++    return;
++  }
++  NickelClipboard::Read(
++      token, mime_type,
++      base::BindOnce(
++          [](dbus::MethodCall* method_call,
++             dbus::ExportedObject::ResponseSender response_sender,
++             std::optional<std::vector<uint8_t>> data) {
++            std::unique_ptr<dbus::Response> response =
++                dbus::Response::FromMethodCall(method_call);
++            dbus::MessageWriter writer(response.get());
++            writer.AppendBool(data.has_value());
++            const std::vector<uint8_t> empty;
++            writer.AppendArrayOfBytes(data ? *data : empty);
++            std::move(response_sender).Run(std::move(response));
++          },
++          method_call, std::move(response_sender)));
++}
++
++// (token, MIME type, data) -> (done).
++void VmApplicationsServiceProvider::NickelClipboardWrite(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string token;
++  std::string mime_type;
++  base::span<const uint8_t> data;
++  if (!reader.PopString(&token) || !reader.PopString(&mime_type) ||
++      !reader.PopArrayOfBytes(&data)) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected a token, a MIME type and data"));
++    return;
++  }
++  const bool done = NickelClipboard::Write(
++      token, mime_type, std::vector<uint8_t>(data.begin(), data.end()));
++  std::unique_ptr<dbus::Response> response =
++      dbus::Response::FromMethodCall(method_call);
++  dbus::MessageWriter(response.get()).AppendBool(done);
++  std::move(response_sender).Run(std::move(response));
++}
++
+ // NickelOS: the Wallpaper portal (NickelDesktopTools::SetWallpaper):
+ // (path, "" for the default) -> (done).
+ void VmApplicationsServiceProvider::NickelSetWallpaper(
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index ac3eed76631e6..e6fb7b0686bc5 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -112,6 +112,15 @@ class VmApplicationsServiceProvider
+   void NickelSetWallpaper(
+       dbus::MethodCall* method_call,
+       dbus::ExportedObject::ResponseSender response_sender);
++  void NickelClipboardFormats(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
++  void NickelClipboardRead(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
++  void NickelClipboardWrite(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
+ 
+   // Exposed in the header so unit tests can call it.
+   static void ParseSelectFileDialogFileTypes(

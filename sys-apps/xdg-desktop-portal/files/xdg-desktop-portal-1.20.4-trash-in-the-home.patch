@@ -1,0 +1,83 @@
+NickelOS: trashing files in the home, from any app.
+
+1. The Trash portal skipped any mount that GLib counts as a system one
+   before trying the home trash, and GLib counts a bind mount as one (its
+   root is not the file system's). NickelOS's home is My files
+   bind-mounted at /home/<name>, so every file there failed to trash ("No
+   suitable trash directory found"). The home trash only needs to be on the
+   file's mount, which get_trash_dir_home() checks: try it first.
+2. A sandboxed app's fd is on its own mounts, copies of the host's with
+   mount IDs of their own, so open_parent() never matched it and every
+   file a Flatpak app trashed failed ("Failed getting the parent fd"). Go
+   on with the host's view of the file once it is the same file.
+
+--- a/src/trash.c
++++ b/src/trash.c
+@@ -460,6 +460,16 @@
+   if (!get_mnt (target_fd, parent_fd, &mnt_fd, &mnt_id, error))
+     return FALSE;
+ 
++  /* First choice is always the home trash. It needs no more than being on
++   * the file's mount, so it comes before the check of the mount, which would
++   * skip a home that is a bind mount (GLib takes a bind mount for a system
++   * one), as on NickelOS. */
++  if (get_trash_dir_home (mnt_id, trash_fd_out, &local_error))
++    return TRUE;
++
++  g_debug ("Skipping home dir trash: %s", local_error->message);
++  g_clear_error (&local_error);
++
+   if (ignore_trash_mount_fd (app_info, mnt_fd))
+     {
+       g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_INVAL,
+@@ -467,13 +477,6 @@
+       return FALSE;
+     }
+ 
+-  /* First choice is always the home trash. */
+-  if (get_trash_dir_home (mnt_id, trash_fd_out, &local_error))
+-    return TRUE;
+-
+-  g_debug ("Skipping home dir trash: %s", local_error->message);
+-  g_clear_error (&local_error);
+-
+   if (get_trash_dir_topdir_sticky (mnt_fd, trash_fd_out, &local_error))
+     {
+       if (topdir_fd_out)
+@@ -565,6 +568,7 @@
+             XdpAppInfo  *app_info,
+             GError     **error)
+ {
++  g_autofd int host_target_fd = -1;
+   g_autofree char *target_path = NULL;
+   g_autofd int parent_fd = -1;
+   g_autofd int trash_fd = -1;
+@@ -575,6 +579,28 @@
+   if (!target_path)
+     return FALSE;
+ 
++  /* A sandboxed app's fd is on its own mounts, copies of the host's with
++   * mount IDs of their own, so open_parent() never matched it and trashing
++   * from a sandboxed app failed ("Failed getting the parent fd"). Go on with
++   * the host's view of the file once it is the same file (device and
++   * inode). */
++  {
++    struct glnx_statx app_stx;
++    struct glnx_statx host_stx;
++
++    host_target_fd = glnx_chaseat (AT_FDCWD, target_path,
++                                   GLNX_CHASE_NOFOLLOW, NULL);
++    if (host_target_fd >= 0 &&
++        glnx_statx (target_fd, "", AT_EMPTY_PATH | AT_SYMLINK_NOFOLLOW,
++                    GLNX_STATX_INO, &app_stx, NULL) &&
++        glnx_statx (host_target_fd, "", AT_EMPTY_PATH | AT_SYMLINK_NOFOLLOW,
++                    GLNX_STATX_INO, &host_stx, NULL) &&
++        app_stx.stx_ino == host_stx.stx_ino &&
++        app_stx.stx_dev_major == host_stx.stx_dev_major &&
++        app_stx.stx_dev_minor == host_stx.stx_dev_minor)
++      target_fd = host_target_fd;
++  }
++
+   parent_fd = open_parent (target_fd, target_path, error);
+   if (parent_fd < 0)
+     return FALSE;

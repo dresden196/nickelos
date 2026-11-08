@@ -1,0 +1,1298 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the screen saver's weather (Open-Meteo, off until
+ turned on), and the Pictures slideshow for every account
+
+The screen saver's weather on ChromeOS comes from Google's servers, with
+the user's Google account (Backdrop: Google's own builds only), so on
+NickelOS there was none. Now it's the user's choice, off until turned on:
+Wallpaper and style > Screen saver > Weather > "Show the weather".
+
+- Where: beaconDB's position for the request's internet address (an empty
+  request: no Wi-Fi or other data; about a city, enough for the weather),
+  at most once an hour. The weather there: Open-Meteo's current
+  temperature and conditions, for the place rounded to about a kilometre,
+  at most every 15 minutes, and only while the screen saver shows
+  (AmbientWeatherController's refresher, now also in the slideshow of a
+  folder's pictures). Both free, without keys or accounts.
+  AmbientClient::FetchNickelWeather (AmbientClientImpl) does both;
+  NickelAmbientBackendController asks it only while the user's pref
+  (nickel.screen_saver.weather) is on.
+- ChromeOS's location switch still decides: AmbientWeatherController asks
+  only while Privacy controls allow the location for the system, and the
+  page shows ChromeOS's notice with its button when they don't.
+- The icon: drawn from the system's emoji font for the WMO weather code
+  ("nickel-weather:<kind>"), nothing downloaded. No weather (off, or none
+  to be had): none shown, rather than the last.
+- The unit: the page's Fahrenheit/Celsius (nickel.screen_saver.celsius),
+  kept now (it lived for the session); Fahrenheit where the language is
+  American English, else Celsius.
+- The page: the switch on top of the Weather section, with where the
+  weather comes from; the unit and the location notice while it's on
+  (personalization_app.mojom: SetNickelWeatherEnabled,
+  OnNickelWeatherEnabledChanged).
+
+Every account's screen saver is now the Pictures folder's slideshow,
+Google accounts' too: NickelOS's Chrome has none of Google's screen saver
+backend, so a Google account's Google Photos and Art gallery came up
+empty, and picking Feel the Breeze or Float on By (whose Google-internal
+animations Chromium builds as a stub that stops the session) would have
+ended the session. Guests, kiosks and public sessions have no screen
+saver, as before. The Google account checks go.
+
+---
+diff --git a/ash/ambient/ambient_controller.cc b/ash/ambient/ambient_controller.cc
+index f3e0750..ec01cd3 100644
+--- a/ash/ambient/ambient_controller.cc
++++ b/ash/ambient/ambient_controller.cc
+@@ -24,6 +24,9 @@
+ #include "ash/ambient/metrics/ambient_session_metrics_recorder.h"
+ #include "ash/ambient/metrics/managed_screensaver_metrics.h"
+ #include "ash/ambient/nickel_ambient_backend_controller.h"
++#include "ash/constants/nickel_pref_names.h"
++#include "base/i18n/rtl.h"
++#include "base/strings/string_util.h"
+ #include "ash/ambient/model/ambient_animation_photo_config.h"
+ #include "ash/ambient/model/ambient_photo_config.h"
+ #include "ash/ambient/model/ambient_slideshow_photo_config.h"
+@@ -199,6 +202,15 @@ class AmbientWidgetDelegate : public views::WidgetDelegate {
+ 
+ // static
+ void AmbientController::RegisterProfilePrefs(PrefRegistrySimple* registry) {
++  // NickelOS: the screen saver's weather (NickelAmbientBackendController):
++  // off until turned on; Fahrenheit where the language is American English,
++  // as on Google's servers, else Celsius.
++  registry->RegisterBooleanPref(prefs::kNickelScreenSaverWeather, false);
++  const std::string locale = base::i18n::GetConfiguredLocale();
++  registry->RegisterBooleanPref(
++      prefs::kNickelScreenSaverCelsius,
++      !base::EndsWith(locale, "-US") && !base::EndsWith(locale, "_US"));
++
+   registry->RegisterStringPref(ash::ambient::prefs::kAmbientBackdropClientId,
+                                std::string());
+ 
+diff --git a/ash/ambient/ambient_managed_slideshow_ui_launcher.cc b/ash/ambient/ambient_managed_slideshow_ui_launcher.cc
+index 9cf91d7..9dcb466 100644
+--- a/ash/ambient/ambient_managed_slideshow_ui_launcher.cc
++++ b/ash/ambient/ambient_managed_slideshow_ui_launcher.cc
+@@ -6,6 +6,7 @@
+ 
+ #include <vector>
+ 
++#include "ash/ambient/ambient_controller.h"
+ #include "ash/ambient/ambient_managed_photo_controller.h"
+ #include "ash/ambient/ambient_photo_controller.h"
+ #include "ash/ambient/ambient_view_delegate_impl.h"
+@@ -14,6 +15,7 @@
+ #include "ash/ambient/model/ambient_slideshow_photo_config.h"
+ #include "ash/ambient/ui/photo_view.h"
+ #include "ash/login/ui/lock_screen.h"
++#include "ash/shell.h"
+ #include "base/check.h"
+ #include "base/functional/callback.h"
+ #include "base/memory/weak_ptr.h"
+@@ -57,6 +59,12 @@ void AmbientManagedSlideshowUiLauncher::OnLockStateChanged(bool locked) {
+ void AmbientManagedSlideshowUiLauncher::Initialize(
+     InitializationCallback on_done) {
+   initialization_callback_ = std::move(on_done);
++  if (!screensaver_images_policy_handler_->folder().empty()) {
++    weather_refresher_ = Shell::Get()
++                             ->ambient_controller()
++                             ->ambient_weather_controller()
++                             ->CreateScopedRefresher();
++  }
+   // TODO(b/281056480): Remove this line and add the login screen visible method
+   // to session observer. This is required because if we compute the ready state
+   // in the constructor, some of the login screen tests fail as there is no
+@@ -94,6 +102,7 @@ std::unique_ptr<views::View> AmbientManagedSlideshowUiLauncher::CreateView() {
+ 
+ void AmbientManagedSlideshowUiLauncher::Finalize() {
+   photo_controller_.StopScreenUpdate();
++  weather_refresher_.reset();
+ }
+ 
+ AmbientBackendModel*
+diff --git a/ash/ambient/ambient_managed_slideshow_ui_launcher.h b/ash/ambient/ambient_managed_slideshow_ui_launcher.h
+index e01c758..ff56f49 100644
+--- a/ash/ambient/ambient_managed_slideshow_ui_launcher.h
++++ b/ash/ambient/ambient_managed_slideshow_ui_launcher.h
+@@ -11,6 +11,7 @@
+ #include "ash/ambient/ambient_photo_controller.h"
+ #include "ash/ambient/ambient_ui_launcher.h"
+ #include "ash/ambient/ambient_view_delegate_impl.h"
++#include "ash/ambient/ambient_weather_controller.h"
+ #include "ash/ambient/managed/screensaver_images_policy_handler.h"
+ #include "ash/ambient/model/ambient_backend_model_observer.h"
+ #include "ash/public/cpp/session/session_observer.h"
+@@ -69,6 +70,9 @@ class AmbientManagedSlideshowUiLauncher
+   base::ScopedObservation<AmbientBackendModel, AmbientBackendModelObserver>
+       ambient_backend_model_observer_{this};
+   ScopedSessionObserver session_observer_{this};
++  // NickelOS: the weather while a folder's pictures show (it is fetched only
++  // when the user turned it on).
++  std::unique_ptr<AmbientWeatherController::ScopedRefresher> weather_refresher_;
+ 
+   const raw_ptr<ScreensaverImagesPolicyHandler>
+       screensaver_images_policy_handler_;
+diff --git a/ash/ambient/ambient_weather_controller.cc b/ash/ambient/ambient_weather_controller.cc
+index b12b332..f08c8b2 100644
+--- a/ash/ambient/ambient_weather_controller.cc
++++ b/ash/ambient/ambient_weather_controller.cc
+@@ -4,8 +4,10 @@
+ 
+ #include "ash/ambient/ambient_weather_controller.h"
+ 
++#include <cstring>
+ #include <memory>
+ #include <optional>
++#include <string_view>
+ #include <utility>
+ 
+ #include "ash/ambient/ambient_constants.h"
+@@ -18,6 +20,10 @@
+ #include "ash/session/session_controller_impl.h"
+ #include "ash/shell.h"
+ #include "base/check.h"
++#include "base/strings/string_util.h"
++#include "ui/gfx/canvas.h"
++#include "ui/gfx/font_list.h"
++#include "ui/gfx/image/canvas_image_source.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback.h"
+ #include "base/location.h"
+@@ -75,6 +81,61 @@ PrefService* GetPrefService() {
+   return Shell::Get()->session_controller()->GetLastActiveUserPrefService();
+ }
+ 
++// NickelOS: the weather's icon (AmbientClient::FetchNickelWeather names one,
++// "nickel-weather:<kind>"), drawn from the system's emoji font: nothing to
++// download, and colours as the rest of the system shows the weather.
++constexpr char kNickelWeatherPrefix[] = "nickel-weather:";
++constexpr int kNickelWeatherIconDip = 32;
++
++class NickelWeatherIconSource : public gfx::CanvasImageSource {
++ public:
++  explicit NickelWeatherIconSource(std::u16string emoji)
++      : gfx::CanvasImageSource(
++            gfx::Size(kNickelWeatherIconDip, kNickelWeatherIconDip)),
++        emoji_(std::move(emoji)) {}
++
++  // gfx::CanvasImageSource:
++  void Draw(gfx::Canvas* canvas) override {
++    const gfx::FontList font({"Noto Color Emoji"}, gfx::Font::NORMAL,
++                             kNickelWeatherIconDip * 3 / 4,
++                             gfx::Font::Weight::NORMAL);
++    canvas->DrawStringRectWithFlags(emoji_, font, SK_ColorWHITE,
++                                    gfx::Rect(size()),
++                                    gfx::Canvas::TEXT_ALIGN_CENTER);
++  }
++
++ private:
++  const std::u16string emoji_;
++};
++
++gfx::ImageSkia NickelWeatherIcon(std::string_view kind) {
++  static constexpr struct {
++    const char* kind;
++    const char16_t* emoji;
++  } kIcons[] = {
++      {"clear-day", u"\u2600\uFE0F"},
++      {"clear-night", u"\U0001F319"},
++      {"mostly-clear-day", u"\U0001F324\uFE0F"},
++      {"partly-cloudy-day", u"\u26C5"},
++      {"partly-cloudy-night", u"\u2601\uFE0F"},
++      {"cloudy", u"\u2601\uFE0F"},
++      {"fog", u"\U0001F32B\uFE0F"},
++      {"drizzle", u"\U0001F327\uFE0F"},
++      {"rain", u"\U0001F327\uFE0F"},
++      {"showers-day", u"\U0001F326\uFE0F"},
++      {"snow", u"\U0001F328\uFE0F"},
++      {"thunderstorm", u"\u26C8\uFE0F"},
++  };
++  for (const auto& icon : kIcons) {
++    if (kind == icon.kind) {
++      const gfx::Size size(kNickelWeatherIconDip, kNickelWeatherIconDip);
++      return gfx::ImageSkia(
++          std::make_unique<NickelWeatherIconSource>(icon.emoji), size);
++    }
++  }
++  return gfx::ImageSkia();
++}
++
+ }  // namespace
+ 
+ AmbientWeatherController::ScopedRefresher::ScopedRefresher(
+@@ -143,6 +204,9 @@ void AmbientWeatherController::StartDownloadingWeatherConditionIcon(
+     const std::optional<WeatherInfo>& weather_info) {
+   if (!weather_info) {
+     LOG(WARNING) << "No weather info included in the response.";
++    // NickelOS: none (turned off, or nothing to be had): none shown, rather
++    // than what there was before.
++    ClearAmbientWeatherModel();
+     return;
+   }
+ 
+@@ -157,6 +221,15 @@ void AmbientWeatherController::StartDownloadingWeatherConditionIcon(
+     return;
+   }
+ 
++  const std::string& icon_url = weather_info->condition_icon_url.value();
++  if (base::StartsWith(icon_url, kNickelWeatherPrefix)) {
++    OnWeatherConditionIconDownloaded(
++        weather_info->temp_f.value(), weather_info->show_celsius,
++        NickelWeatherIcon(
++            std::string_view(icon_url).substr(strlen(kNickelWeatherPrefix))));
++    return;
++  }
++
+   // Ideally we should avoid downloading from the same url again to reduce the
+   // overhead, as it's unlikely that the weather condition is changing
+   // frequently during the day.
+diff --git a/ash/ambient/nickel_ambient_backend_controller.cc b/ash/ambient/nickel_ambient_backend_controller.cc
+index 58ba5a0..85b2cb6 100644
+--- a/ash/ambient/nickel_ambient_backend_controller.cc
++++ b/ash/ambient/nickel_ambient_backend_controller.cc
+@@ -7,9 +7,14 @@
+ #include <utility>
+ #include <vector>
+ 
++#include "ash/constants/nickel_pref_names.h"
++#include "ash/public/cpp/ambient/ambient_client.h"
++#include "ash/session/session_controller_impl.h"
++#include "ash/shell.h"
+ #include "base/functional/bind.h"
+ #include "base/functional/callback.h"
+ #include "base/task/sequenced_task_runner.h"
++#include "components/prefs/pref_service.h"
+ #include "url/gurl.h"
+ 
+ namespace ash {
+@@ -19,6 +24,10 @@ namespace {
+ // No server: nothing to download, ever.
+ constexpr std::array<const char*, 2> kNoUrls = {"", ""};
+ 
++PrefService* GetPrefs() {
++  return Shell::Get()->session_controller()->GetPrimaryUserPrefService();
++}
++
+ }  // namespace
+ 
+ NickelAmbientBackendController::NickelAmbientBackendController() = default;
+@@ -46,6 +55,11 @@ void NickelAmbientBackendController::UpdateSettings(
+     const AmbientSettings settings,
+     UpdateSettingsCallback callback) {
+   settings_ = settings;
++  if (PrefService* prefs = GetPrefs()) {
++    prefs->SetBoolean(
++        prefs::kNickelScreenSaverCelsius,
++        settings.temperature_unit == AmbientModeTemperatureUnit::kCelsius);
++  }
+   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+       FROM_HERE, base::BindOnce(std::move(callback), /*success=*/true,
+                                 settings_));
+@@ -56,6 +70,12 @@ void NickelAmbientBackendController::FetchSettingsAndAlbums(
+     int banner_height,
+     int num_albums,
+     OnSettingsAndAlbumsFetchedCallback callback) {
++  if (PrefService* prefs = GetPrefs()) {
++    settings_.temperature_unit =
++        prefs->GetBoolean(prefs::kNickelScreenSaverCelsius)
++            ? AmbientModeTemperatureUnit::kCelsius
++            : AmbientModeTemperatureUnit::kFahrenheit;
++  }
+   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+       FROM_HERE,
+       base::BindOnce(std::move(callback),
+@@ -66,9 +86,25 @@ void NickelAmbientBackendController::FetchSettingsAndAlbums(
+ void NickelAmbientBackendController::FetchWeather(
+     std::optional<std::string> weather_client_id,
+     FetchWeatherCallback callback) {
+-  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+-      FROM_HERE,
+-      base::BindOnce(std::move(callback), std::optional<WeatherInfo>()));
++  PrefService* prefs = GetPrefs();
++  if (!prefs || !prefs->GetBoolean(prefs::kNickelScreenSaverWeather) ||
++      !AmbientClient::Get()) {
++    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
++        FROM_HERE,
++        base::BindOnce(std::move(callback), std::optional<WeatherInfo>()));
++    return;
++  }
++  const bool celsius = prefs->GetBoolean(prefs::kNickelScreenSaverCelsius);
++  AmbientClient::Get()->FetchNickelWeather(base::BindOnce(
++      [](bool celsius, FetchWeatherCallback callback,
++         const std::optional<WeatherInfo>& weather) {
++        std::optional<WeatherInfo> shown = weather;
++        if (shown) {
++          shown->show_celsius = celsius;
++        }
++        std::move(callback).Run(shown);
++      },
++      celsius, std::move(callback)));
+ }
+ 
+ const std::array<const char*, 2>&
+diff --git a/ash/ambient/nickel_ambient_backend_controller.h b/ash/ambient/nickel_ambient_backend_controller.h
+index f17caba..0cc2eb8 100644
+--- a/ash/ambient/nickel_ambient_backend_controller.h
++++ b/ash/ambient/nickel_ambient_backend_controller.h
+@@ -18,10 +18,12 @@ namespace ash {
+ // keeps them with the user's Google account (Backdrop, compiled into
+ // Google's own builds only); NickelOS's screen saver is a slideshow of the
+ // pictures in the user's My files > Pictures (AmbientController), so there
+-// is nothing to fetch. The settings live here for the session, and there are
+-// no albums, previews, weather or backup photos, and no address of any
+-// server. In place of FakeAmbientBackendControllerImpl, a test stand-in that
+-// never answers the Settings page and hands out made-up addresses.
++// is nothing to fetch: no albums, previews or backup photos, and no address
++// of any server here. The temperature unit is a pref of the profile. The
++// weather, when the user turned it on (kNickelScreenSaverWeather), comes
++// through AmbientClient::FetchNickelWeather (Open-Meteo). In place of
++// FakeAmbientBackendControllerImpl, a test stand-in that never answers the
++// Settings page and hands out made-up addresses.
+ class ASH_EXPORT NickelAmbientBackendController
+     : public AmbientBackendController {
+  public:
+diff --git a/ash/constants/nickel_pref_names.h b/ash/constants/nickel_pref_names.h
+index 0cc122a..cc19d7f 100644
+--- a/ash/constants/nickel_pref_names.h
++++ b/ash/constants/nickel_pref_names.h
+@@ -33,6 +33,14 @@ inline constexpr char kNickelScreenshotTool[] = "nickel.tools.screenshot";
+ // handlers keep that one).
+ inline constexpr char kNickelMailApp[] = "nickel.default_apps.mailto";
+ 
++// Profile: whether the screen saver shows the weather (Settings > Wallpaper
++// and style > Screen saver; off until the user turns it on), and in Celsius
++// (else Fahrenheit).
++inline constexpr char kNickelScreenSaverWeather[] =
++    "nickel.screen_saver.weather";
++inline constexpr char kNickelScreenSaverCelsius[] =
++    "nickel.screen_saver.celsius";
++
+ }  // namespace ash::prefs
+ 
+ #endif  // ASH_CONSTANTS_NICKEL_PREF_NAMES_H_
+diff --git a/ash/public/cpp/ambient/ambient_client.cc b/ash/public/cpp/ambient/ambient_client.cc
+index 74f5e46..7fcf3a8 100644
+--- a/ash/public/cpp/ambient/ambient_client.cc
++++ b/ash/public/cpp/ambient/ambient_client.cc
+@@ -5,6 +5,7 @@
+ #include "ash/public/cpp/ambient/ambient_client.h"
+ 
+ #include "base/check_op.h"
++#include "base/functional/callback.h"
+ 
+ namespace ash {
+ 
+@@ -33,4 +34,8 @@ base::FilePath AmbientClient::GetNickelPicturesFolder() {
+   return base::FilePath();
+ }
+ 
++void AmbientClient::FetchNickelWeather(NickelWeatherCallback callback) {
++  std::move(callback).Run(std::nullopt);
++}
++
+ }  // namespace ash
+diff --git a/ash/public/cpp/ambient/ambient_client.h b/ash/public/cpp/ambient/ambient_client.h
+index de03b61..f76f53c 100644
+--- a/ash/public/cpp/ambient/ambient_client.h
++++ b/ash/public/cpp/ambient/ambient_client.h
+@@ -8,6 +8,7 @@
+ #include <memory>
+ #include <string>
+ 
++#include "ash/public/cpp/ambient/weather_info.h"
+ #include "ash/public/cpp/ash_public_export.h"
+ #include "ash/public/cpp/image_downloader.h"
+ #include "base/files/file_path.h"
+@@ -75,6 +76,16 @@ class ASH_PUBLIC_EXPORT AmbientClient {
+   // local account: the screen saver is ChromeOS's own.
+   virtual base::FilePath GetNickelPicturesFolder();
+ 
++  // NickelOS: the weather where the device is, for the screen saver (when
++  // the user turned it on): the approximate location from beaconDB (from
++  // the internet address alone), the weather there from Open-Meteo.
++  // condition_icon_url names an icon ash draws itself
++  // ("nickel-weather:<kind>", AmbientWeatherController); std::nullopt when
++  // there is none.
++  using NickelWeatherCallback =
++      base::OnceCallback<void(const std::optional<WeatherInfo>& weather)>;
++  virtual void FetchNickelWeather(NickelWeatherCallback callback);
++
+  protected:
+   AmbientClient();
+   virtual ~AmbientClient();
+diff --git a/ash/webui/personalization_app/mojom/personalization_app.mojom b/ash/webui/personalization_app/mojom/personalization_app.mojom
+index da3eb73..07b28c7 100644
+--- a/ash/webui/personalization_app/mojom/personalization_app.mojom
++++ b/ash/webui/personalization_app/mojom/personalization_app.mojom
+@@ -687,6 +687,10 @@ interface AmbientObserver {
+ 
+   // Notifies the JS side about the ambient theme preview images.
+   OnAmbientThemePreviewImagesChanged(map<AmbientTheme, url.mojom.Url> previews);
++
++  // NickelOS: whether the screen saver shows the weather (off until the user
++  // turns it on).
++  OnNickelWeatherEnabledChanged(bool enabled);
+ };
+ 
+ // Provides APIs to expose Ambient mode settings.
+@@ -744,6 +748,9 @@ interface AmbientProvider {
+ 
+   // Sets the system geolocation permission to "Only allowed for system".
+   EnableGeolocationForSystemServices();
++
++  // NickelOS: shows the weather on the screen saver, or not.
++  SetNickelWeatherEnabled(bool enabled);
+ };
+ 
+ // The supported preset colors for keyboard backlight.
+diff --git a/ash/webui/personalization_app/personalization_app_ui.cc b/ash/webui/personalization_app/personalization_app_ui.cc
+index 671f3c6..d484e0c 100644
+--- a/ash/webui/personalization_app/personalization_app_ui.cc
++++ b/ash/webui/personalization_app/personalization_app_ui.cc
+@@ -239,6 +239,10 @@ void AddStrings(content::WebUIDataSource* source) {
+        IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_DESC},
+       {"ambientModeNickelPicturesHint",
+        IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_HINT},
++      {"ambientModeNickelWeatherToggle",
++       IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE},
++      {"ambientModeNickelWeatherSource",
++       IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE},
+       {"ambientModeTopicSourceGooglePhotos",
+        IDS_PERSONALIZATION_APP_AMBIENT_MODE_TOPIC_SOURCE_GOOGLE_PHOTOS},
+       {"ambientModeTopicSourceGooglePhotosDescription",
+@@ -379,8 +383,8 @@ void AddStrings(content::WebUIDataSource* source) {
+        IDS_PERSONALIZATION_APP_TIME_OF_DAY_WALLPAPER_DIALOG_CONFIRM_BUTTON}};
+ 
+   source->AddLocalizedStrings(kLocalizedStrings);
+-  // NickelOS: a local account's screen saver shows its own pictures and the
+-  // time, no weather (that is Google's).
++  // NickelOS: the screen saver shows the account's own pictures and the time
++  // (the weather only when the user turns it on).
+   if (ash::AmbientClient::Get() &&
+       !ash::AmbientClient::Get()->GetNickelPicturesFolder().empty()) {
+     source->AddLocalizedString(
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_actions.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_actions.ts
+index fa92603..93eed10 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_actions.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_actions.ts
+@@ -27,6 +27,7 @@ export enum AmbientActionName {
+   SET_SHOULD_SHOW_TIME_OF_DAY_BANNER = 'set_should_show_time_of_day_banner',
+   SET_GEOLOCATION_PERMISSION_ENABLED = 'set_geolocation_permission_enabled',
+   SET_GEOLOCATION_IS_USER_MODIFIABLE = 'set_geolocation_is_user_modifiable',
++  SET_NICKEL_WEATHER_ENABLED = 'set_nickel_weather_enabled',
+ }
+ 
+ export type AmbientActions =
+@@ -34,7 +35,8 @@ export type AmbientActions =
+     SetAmbientThemeAction|SetAmbientThemePreviewsAction|SetPreviewsAction|
+     SetScreenSaverDurationAction|SetTopicSourceAction|SetTemperatureUnitAction|
+     SetAmbientUiVisibilityAction|SetShouldShowTimeOfDayBannerAction|
+-    SetGeolocationPermissionEnabledAction|SetGeolocationIsUserModifiableAction;
++    SetGeolocationPermissionEnabledAction|SetGeolocationIsUserModifiableAction|
++    SetNickelWeatherEnabledAction;
+ 
+ export interface SetAlbumsAction extends Action {
+   name: AmbientActionName.SET_ALBUMS;
+@@ -110,6 +112,12 @@ export interface SetGeolocationIsUserModifiableAction extends Action {
+   isUserModifiable: boolean;
+ }
+ 
++// NickelOS: whether the screen saver shows the weather.
++export interface SetNickelWeatherEnabledAction extends Action {
++  name: AmbientActionName.SET_NICKEL_WEATHER_ENABLED;
++  enabled: boolean;
++}
++
+ 
+ /**
+  * Sets the current value of the albums.
+@@ -201,6 +209,11 @@ export function setGeolocationPermissionEnabledAction(enabled: boolean):
+   return {name: AmbientActionName.SET_GEOLOCATION_PERMISSION_ENABLED, enabled};
+ }
+ 
++export function setNickelWeatherEnabledAction(enabled: boolean):
++    SetNickelWeatherEnabledAction {
++  return {name: AmbientActionName.SET_NICKEL_WEATHER_ENABLED, enabled};
++}
++
+ export function setGeolocationIsUserModifiableAction(isUserModifiable: boolean):
+     SetGeolocationIsUserModifiableAction {
+   return {
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_controller.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_controller.ts
+index f29a08f..d791761 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_controller.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_controller.ts
+@@ -7,7 +7,7 @@ import {assert} from 'chrome://resources/js/assert.js';
+ import type {AmbientModeAlbum, AmbientProviderInterface, AmbientTheme, TemperatureUnit, TopicSource} from '../../personalization_app.mojom-webui.js';
+ import type {PersonalizationStore} from '../personalization_store.js';
+ 
+-import {setAlbumSelectedAction, setAmbientModeEnabledAction, setAmbientThemeAction, setGeolocationIsUserModifiableAction, setGeolocationPermissionEnabledAction, setScreenSaverDurationAction, setShouldShowTimeOfDayBannerAction, setTemperatureUnitAction, setTopicSourceAction} from './ambient_actions.js';
++import {setAlbumSelectedAction, setAmbientModeEnabledAction, setAmbientThemeAction, setGeolocationIsUserModifiableAction, setGeolocationPermissionEnabledAction, setNickelWeatherEnabledAction, setScreenSaverDurationAction, setShouldShowTimeOfDayBannerAction, setTemperatureUnitAction, setTopicSourceAction} from './ambient_actions.js';
+ import {getAmbientProvider} from './ambient_interface_provider.js';
+ import {isValidTopicSourceAndTheme} from './utils.js';
+ 
+@@ -75,6 +75,14 @@ export function setTopicSource(
+   store.dispatch(setTopicSourceAction(topicSource));
+ }
+ 
++// NickelOS: show the weather on the screen saver, or not.
++export function setNickelWeatherEnabled(
++    enabled: boolean, provider: AmbientProviderInterface,
++    store: PersonalizationStore): void {
++  store.dispatch(setNickelWeatherEnabledAction(enabled));
++  provider.setNickelWeatherEnabled(enabled);
++}
++
+ // Set ambient mode temperature unit.
+ export function setTemperatureUnit(
+     temperatureUnit: TemperatureUnit, provider: AmbientProviderInterface,
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_observer.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_observer.ts
+index 7a862d7..b634f7a 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_observer.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_observer.ts
+@@ -13,7 +13,7 @@ import {Paths} from '../personalization_router_element.js';
+ import {PersonalizationStore} from '../personalization_store.js';
+ import {isRecentHighlightsAlbum} from '../utils.js';
+ 
+-import {setAlbumsAction, setAmbientModeEnabledAction, setAmbientThemeAction, setAmbientThemePreviewsAction, setAmbientUiVisibilityAction, setGeolocationIsUserModifiableAction, setGeolocationPermissionEnabledAction, setPreviewsAction, setScreenSaverDurationAction, setTemperatureUnitAction, setTopicSourceAction} from './ambient_actions.js';
++import {setAlbumsAction, setAmbientModeEnabledAction, setAmbientThemeAction, setAmbientThemePreviewsAction, setAmbientUiVisibilityAction, setGeolocationIsUserModifiableAction, setGeolocationPermissionEnabledAction, setNickelWeatherEnabledAction, setPreviewsAction, setScreenSaverDurationAction, setTemperatureUnitAction, setTopicSourceAction} from './ambient_actions.js';
+ import {getAmbientProvider} from './ambient_interface_provider.js';
+ import {AmbientThemePreviewMap} from './utils.js';
+ 
+@@ -150,4 +150,9 @@ export class AmbientObserver implements AmbientObserverInterface {
+     store.dispatch(setGeolocationIsUserModifiableAction(isUserModifiable));
+     store.endBatchUpdate();
+   }
++
++  onNickelWeatherEnabledChanged(enabled: boolean): void {
++    const store = PersonalizationStore.getInstance();
++    store.dispatch(setNickelWeatherEnabledAction(enabled));
++  }
+ }
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_reducers.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_reducers.ts
+index 6ddaf96..a6fdd03 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_reducers.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_reducers.ts
+@@ -149,6 +149,17 @@ export function geolocationIsUserModifiableReducer(
+ }
+ 
+ 
++export function nickelWeatherEnabledReducer(
++    state: AmbientState['nickelWeatherEnabled'], action: Actions,
++    _: PersonalizationState): AmbientState['nickelWeatherEnabled'] {
++  switch (action.name) {
++    case AmbientActionName.SET_NICKEL_WEATHER_ENABLED:
++      return action.enabled;
++    default:
++      return state;
++  }
++}
++
+ export const ambientReducers:
+     {[K in keyof AmbientState]: ReducerFunction<AmbientState[K]>} = {
+       albums: albumsReducer,
+@@ -163,4 +174,5 @@ export const ambientReducers:
+       shouldShowTimeOfDayBanner: shouldShowTimeOfDayBannerReducer,
+       geolocationPermissionEnabled: geolocationPermissionEnabledReducer,
+       geolocationIsUserModifiable: geolocationIsUserModifiableReducer,
++      nickelWeatherEnabled: nickelWeatherEnabledReducer,
+     };
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_state.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_state.ts
+index d9c1a12..bf9ca44 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_state.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_state.ts
+@@ -25,6 +25,8 @@ export interface AmbientState {
+   shouldShowTimeOfDayBanner: boolean;
+   geolocationPermissionEnabled: boolean|null;
+   geolocationIsUserModifiable: boolean|null;
++  // NickelOS: whether the screen saver shows the weather.
++  nickelWeatherEnabled: boolean|null;
+ }
+ 
+ export function emptyState(): AmbientState {
+@@ -41,5 +43,6 @@ export function emptyState(): AmbientState {
+     shouldShowTimeOfDayBanner: false,
+     geolocationPermissionEnabled: null,
+     geolocationIsUserModifiable: null,
++    nickelWeatherEnabled: null,
+   };
+ }
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html b/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html
+index 7b668f3..cfed919 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_subpage_element.html
+@@ -196,8 +196,8 @@
+           <ambient-theme-list
+               selected-ambient-theme="[[ambientTheme_]]">
+           </ambient-theme-list>
+-          <!-- NickelOS: a local account's pictures, the one image source,
+-               and no weather. -->
++          <!-- NickelOS: the account's pictures, the one image source; the
++               weather (in ambient-weather-unit) off until turned on. -->
+           <template is="dom-if" if="[[isNickelPictures_]]">
+             <div id="nickelPictures">
+               <h3 id="nickelPicturesTitle" class="ambient-subpage-element-title">
+@@ -218,10 +218,10 @@
+                 selected-ambient-theme="[[ambientTheme_]]"
+                 has-google-photos-albums="[[hasGooglePhotosAlbums_(albums_)]]">
+             </topic-source-list>
+-            <ambient-weather-unit
+-                selected-temperature-unit="[[temperatureUnitToString_(temperatureUnit_)]]">
+-            </ambient-weather-unit>
+           </template>
++          <ambient-weather-unit
++              selected-temperature-unit="[[temperatureUnitToString_(temperatureUnit_)]]">
++          </ambient-weather-unit>
+         </template>
+       </template>
+     </div>
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_weather_element.html b/ash/webui/personalization_app/resources/js/ambient/ambient_weather_element.html
+index 0a5fc4b..96c86d6 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_weather_element.html
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_weather_element.html
+@@ -20,6 +20,23 @@
+     color: var(--cros-text-color-secondary);
+   }
+ 
++  #nickelWeatherRow {
++    align-items: center;
++    display: flex;
++    margin: 0 10px;
++    padding: 12px 14px;
++  }
++
++  #nickelWeatherText {
++    flex: 1;
++    margin-inline-end: 16px;
++  }
++
++  #nickelWeatherText .primary-text {
++    color: var(--cros-text-color-primary);
++    font: var(--cros-body-2-font);
++  }
++
+   #policyIcon {
+     margin-inline-start: auto;
+     margin-inline-end: 10px;
+@@ -29,6 +46,24 @@
+   <h3 id="weatherTitle" class="ambient-subpage-element-title">
+     $i18n{ambientModeWeatherTitle}
+   </h3>
++  <!-- NickelOS: the weather is the user's choice, off until turned on. -->
++  <template is="dom-if" if="[[isNickelPictures_]]" restamp>
++    <div id="nickelWeatherRow">
++      <div id="nickelWeatherText" aria-hidden="true">
++        <div class="primary-text">$i18n{ambientModeNickelWeatherToggle}</div>
++        <div class="cr-secondary-text">$i18n{ambientModeNickelWeatherSource}</div>
++      </div>
++      <cr-toggle id="nickelWeatherToggle" class="clickable"
++          checked="[[nickelWeatherEnabled_]]"
++          aria-label="$i18n{ambientModeNickelWeatherToggle}"
++          aria-description="$i18n{ambientModeNickelWeatherSource}"
++          on-change="onNickelWeatherToggled_">
++      </cr-toggle>
++    </div>
++  </template>
++  <template is="dom-if"
++      if="[[showWeatherSettings_(isNickelPictures_, nickelWeatherEnabled_)]]"
++      restamp>
+   <template is="dom-if" if="[[shouldShowGeolocationWarningText]]" restamp>
+     <div id="geolocationWarningDiv">
+       <template is="dom-if" if="[[geolocationIsUserModifiable]]" restamp>
+@@ -67,6 +102,7 @@
+       </cr-radio-group>
+     </div>
+   </template>
++  </template>
+ </div>
+ 
+ <template is="dom-if" if="[[shouldShowGeolocationDialog]]" restamp>
+diff --git a/ash/webui/personalization_app/resources/js/ambient/ambient_weather_element.ts b/ash/webui/personalization_app/resources/js/ambient/ambient_weather_element.ts
+index bca71f9..f8b2e3f 100644
+--- a/ash/webui/personalization_app/resources/js/ambient/ambient_weather_element.ts
++++ b/ash/webui/personalization_app/resources/js/ambient/ambient_weather_element.ts
+@@ -10,17 +10,20 @@
+ import 'chrome://resources/ash/common/personalization/common.css.js';
+ import 'chrome://resources/ash/common/cr_elements/cr_radio_button/cr_radio_button.js';
+ import 'chrome://resources/ash/common/cr_elements/cr_radio_group/cr_radio_group.js';
++import 'chrome://resources/ash/common/cr_elements/cr_toggle/cr_toggle.js';
+ import 'chrome://resources/ash/common/cr_elements/policy/cr_policy_indicator.js';
+ import 'chrome://resources/ash/common/cr_elements/cr_shared_style.css.js';
+ import 'chrome://resources/ash/common/cr_elements/localized_link/localized_link.js';
+ import '../geolocation_dialog.js';
+ 
++import type {CrToggleElement} from 'chrome://resources/ash/common/cr_elements/cr_toggle/cr_toggle.js';
++
+ import {TemperatureUnit} from '../../personalization_app.mojom-webui.js';
+-import {isCrosPrivacyHubLocationEnabled} from '../load_time_booleans.js';
++import {isCrosPrivacyHubLocationEnabled, isNickelPicturesScreenSaver} from '../load_time_booleans.js';
+ import {WithPersonalizationStore} from '../personalization_store.js';
+ import {inBetween} from '../utils.js';
+ 
+-import {enableGeolocationForSystemServices, initializeData, setTemperatureUnit} from './ambient_controller.js';
++import {enableGeolocationForSystemServices, initializeData, setNickelWeatherEnabled, setTemperatureUnit} from './ambient_controller.js';
+ import {getAmbientProvider} from './ambient_interface_provider.js';
+ import {AmbientObserver} from './ambient_observer.js';
+ import {getTemplate} from './ambient_weather_element.html.js';
+@@ -64,6 +67,18 @@ export class AmbientWeatherUnitElement extends WithPersonalizationStore {
+         value: false,
+       },
+ 
++      isNickelPictures_: {
++        type: Boolean,
++        value() {
++          return isNickelPicturesScreenSaver();
++        },
++      },
++
++      nickelWeatherEnabled_: {
++        type: Boolean,
++        value: false,
++      },
++
+       shouldShowGeolocationWarningText: {
+         type: Boolean,
+         computed: 'computeShouldShowGeolocationWarningText_(' +
+@@ -79,6 +94,8 @@ export class AmbientWeatherUnitElement extends WithPersonalizationStore {
+   declare protected geolocationIsUserModifiable: boolean|null;
+   declare protected shouldShowGeolocationDialog: boolean;
+   declare protected shouldShowGeolocationWarningText: boolean;
++  declare protected isNickelPictures_: boolean;
++  declare protected nickelWeatherEnabled_: boolean;
+ 
+   override connectedCallback() {
+     super.connectedCallback();
+@@ -90,6 +107,9 @@ export class AmbientWeatherUnitElement extends WithPersonalizationStore {
+     this.watch<AmbientWeatherUnitElement['geolocationIsUserModifiable']>(
+         'geolocationIsUserModifiable',
+         state => state.ambient.geolocationIsUserModifiable);
++    this.watch<AmbientWeatherUnitElement['nickelWeatherEnabled_']>(
++        'nickelWeatherEnabled_',
++        state => !!state.ambient.nickelWeatherEnabled);
+     this.updateFromStore();
+ 
+     initializeData(getAmbientProvider(), this.getStore());
+@@ -106,6 +126,18 @@ export class AmbientWeatherUnitElement extends WithPersonalizationStore {
+         num as TemperatureUnit, getAmbientProvider(), this.getStore());
+   }
+ 
++  // NickelOS: the unit and the location notice, while the weather is on.
++  private showWeatherSettings_(
++      isNickelPictures: boolean, nickelWeatherEnabled: boolean): boolean {
++    return !isNickelPictures || nickelWeatherEnabled;
++  }
++
++  private onNickelWeatherToggled_(e: Event) {
++    setNickelWeatherEnabled(
++        (e.target as CrToggleElement).checked, getAmbientProvider(),
++        this.getStore());
++  }
++
+   private computeShouldShowGeolocationWarningText_(): boolean {
+     // Warning text should be guarded with the Privacy Hub feature flag.
+     return isCrosPrivacyHubLocationEnabled() &&
+diff --git a/chrome/browser/ash/ambient/ambient_client_impl.cc b/chrome/browser/ash/ambient/ambient_client_impl.cc
+index 1c417f6..306c53a 100644
+--- a/chrome/browser/ash/ambient/ambient_client_impl.cc
++++ b/chrome/browser/ash/ambient/ambient_client_impl.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "chrome/browser/ash/ambient/ambient_client_impl.h"
+ 
++#include <cmath>
+ #include <string>
+ #include <utility>
+ 
+@@ -13,6 +14,9 @@
+ #include "base/check.h"
+ #include "base/check_deref.h"
+ #include "base/functional/callback.h"
++#include "base/json/json_reader.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/strings/strcat.h"
+ #include "chrome/browser/ash/profiles/profile_helper.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chromeos/ash/components/browser_context_helper/browser_context_helper.h"
+@@ -27,7 +31,6 @@
+ #include "components/signin/public/identity_manager/access_token_info.h"
+ #include "components/signin/public/identity_manager/account_info.h"
+ #include "components/signin/public/identity_manager/identity_manager.h"
+-#include "components/user_manager/nickel_local_account.h"
+ #include "components/user_manager/user.h"
+ #include "components/user_manager/user_manager.h"
+ #include "components/version_info/channel.h"
+@@ -37,7 +40,10 @@
+ #include "google_apis/gaia/gaia_id.h"
+ #include "google_apis/gaia/google_service_auth_error.h"
+ #include "net/http/http_request_headers.h"
++#include "services/network/public/cpp/resource_request.h"
+ #include "services/network/public/cpp/shared_url_loader_factory.h"
++#include "services/network/public/cpp/simple_url_loader.h"
++#include "services/network/public/mojom/fetch_api.mojom-shared.h"
+ 
+ namespace {
+ 
+@@ -45,6 +51,17 @@ const user_manager::User* GetActiveUser() {
+   return user_manager::UserManager::Get()->GetActiveUser();
+ }
+ 
++// NickelOS: every account's screen saver (local accounts' and Google
++// accounts') is a slideshow of the pictures in its own My files > Pictures
++// (GetNickelPicturesFolder): NickelOS's Chrome has none of Google's screen
++// saver backend (Google Photos, the Art gallery, the animations), so the
++// Google account checks are not for it. Not guests, kiosks or public
++// sessions, which have no folder of their own.
++bool HasNickelPictures(const user_manager::User* user) {
++  return user && (user->GetType() == user_manager::UserType::kRegular ||
++                  user->GetType() == user_manager::UserType::kChild);
++}
++
+ const user_manager::User* GetPrimaryUser() {
+   return user_manager::UserManager::Get()->GetPrimaryUser();
+ }
+@@ -84,28 +101,122 @@ bool IsPrimaryUser() {
+   return GetActiveUser() == GetPrimaryUser();
+ }
+ 
+-bool HasPrimaryAccount(const AccountId& account_id) {
+-  if (!CHECK_DEREF(user_manager::UserManager::Get()->FindUser(account_id))
+-           .is_profile_created()) {
+-    return false;
+-  }
++// NickelOS: the screen saver's weather, when the user turned it on in its
++// settings (off until then) and Privacy controls allow ChromeOS the location
++// (AmbientWeatherController asks only then). Where: beaconDB's position for
++// the request's internet address (no Wi-Fi or other data sent; a city or
++// so, enough for the weather), at most once an hour. The weather there:
++// Open-Meteo's current temperature and conditions, for the place rounded to
++// about a kilometre, at most every 15 minutes (it updates them as often).
++// Both free, without keys or accounts, made for projects like NickelOS.
++constexpr net::NetworkTrafficAnnotationTag kNickelLocationTag =
++    net::DefineNetworkTrafficAnnotation("nickel_screen_saver_location", R"(
++        semantics {
++          sender: "NickelOS screen saver weather"
++          description:
++            "The device's approximate location (about a city), for the "
++            "weather on the screen saver. beaconDB works it out from the "
++            "request's internet address alone."
++          trigger:
++            "The screen saver showing, with its weather turned on by the "
++            "user and the location allowed for the system; at most once an "
++            "hour."
++          data: "None: the request is empty."
++          destination: OTHER
++          destination_other: "beaconDB, at api.beacondb.net"
++        }
++        policy {
++         cookies_allowed: NO
++         setting:
++           "Wallpaper and style > Screen saver > Show the weather (off until "
++           "the user turns it on), and the location in Privacy controls."
++         policy_exception_justification: "Not implemented."
++        })");
+ 
+-  auto* identity_manager = ash::IdentityManagerProvider::Get().Find(account_id);
+-  if (!identity_manager)
+-    return false;
++constexpr net::NetworkTrafficAnnotationTag kNickelWeatherTag =
++    net::DefineNetworkTrafficAnnotation("nickel_screen_saver_weather", R"(
++        semantics {
++          sender: "NickelOS screen saver weather"
++          description:
++            "The current temperature and weather for the screen saver."
++          trigger:
++            "The screen saver showing, with its weather turned on by the "
++            "user and the location allowed for the system; at most every 15 "
++            "minutes."
++          data: "The approximate location, rounded to about a kilometre."
++          destination: OTHER
++          destination_other: "Open-Meteo, at api.open-meteo.com"
++        }
++        policy {
++         cookies_allowed: NO
++         setting:
++           "Wallpaper and style > Screen saver > Show the weather (off until "
++           "the user turns it on), and the location in Privacy controls."
++         policy_exception_justification: "Not implemented."
++        })");
+ 
+-  return identity_manager->HasPrimaryAccount(signin::ConsentLevel::kSignin);
++constexpr char kNickelLocationUrl[] = "https://api.beacondb.net/v1/geolocate";
++constexpr char kNickelForecastUrl[] = "https://api.open-meteo.com/v1/forecast";
++constexpr base::TimeDelta kNickelLocationMaxAge = base::Hours(1);
++constexpr base::TimeDelta kNickelWeatherMaxAge = base::Minutes(15);
++constexpr size_t kNickelMaxResponseBytes = 64 * 1024;
++
++// The icon (AmbientWeatherController's "nickel-weather:<kind>") for a WMO
++// weather code, as Open-Meteo gives it.
++const char* NickelWeatherKind(int code, bool day) {
++  switch (code) {
++    case 0:
++      return day ? "clear-day" : "clear-night";
++    case 1:
++      return day ? "mostly-clear-day" : "clear-night";
++    case 2:
++      return day ? "partly-cloudy-day" : "partly-cloudy-night";
++    case 45:
++    case 48:
++      return "fog";
++    case 51:
++    case 53:
++    case 55:
++    case 56:
++    case 57:
++      return "drizzle";
++    case 61:
++    case 63:
++    case 65:
++    case 66:
++    case 67:
++      return "rain";
++    case 71:
++    case 73:
++    case 75:
++    case 77:
++    case 85:
++    case 86:
++      return "snow";
++    case 80:
++    case 81:
++    case 82:
++      return day ? "showers-day" : "rain";
++    case 95:
++    case 96:
++    case 99:
++      return "thunderstorm";
++    default:
++      return "cloudy";
++  }
+ }
+ 
+-bool IsEmailDomainSupported(const user_manager::User* user) {
+-  const std::string email = user->GetAccountId().GetUserEmail();
+-  CHECK(!email.empty(), base::NotFatalUntil::M160);
+-
+-  constexpr char kGmailDomain[] = "gmail.com";
+-  constexpr char kGooglemailDomain[] = "googlemail.com";
+-  return (gaia::ExtractDomainName(email) == kGmailDomain ||
+-          gaia::ExtractDomainName(email) == kGooglemailDomain ||
+-          gaia::IsGoogleInternalAccountEmail(email));
++std::unique_ptr<network::SimpleURLLoader> NickelLoader(
++    const GURL& url,
++    const std::string& method,
++    const net::NetworkTrafficAnnotationTag& tag) {
++  auto request = std::make_unique<network::ResourceRequest>();
++  request->url = url;
++  request->method = method;
++  request->credentials_mode = network::mojom::CredentialsMode::kOmit;
++  auto loader = network::SimpleURLLoader::Create(std::move(request), tag);
++  loader->SetTimeoutDuration(base::Seconds(30));
++  return loader;
+ }
+ 
+ }  // namespace
+@@ -124,15 +235,7 @@ bool AmbientClientImpl::IsAmbientModeAllowed() {
+   }
+ 
+   const user_manager::User* const active_user = GetActiveUser();
+-  if (!active_user) {
+-    return false;
+-  }
+-  // NickelOS: a local account has no Google account, and its screen saver is
+-  // the pictures in its own My files > Pictures (GetNickelPicturesFolder),
+-  // nothing from Google's servers: the Google account checks are not for it.
+-  const bool nickel_local =
+-      user_manager::IsNickelLocalAccount(active_user->GetAccountId());
+-  if (!nickel_local && !active_user->HasGaiaAccount()) {
++  if (!HasNickelPictures(active_user)) {
+     return false;
+   }
+ 
+@@ -140,18 +243,6 @@ bool AmbientClientImpl::IsAmbientModeAllowed() {
+     return false;
+   }
+ 
+-  // When this check is removed to start supporting enterprise users,
+-  // please update kAmbientClientNetworkTag and network annotation tags
+-  // in ash/ambient package to reflect that this is an enterprise feature.
+-  if (!nickel_local && !IsEmailDomainSupported(active_user)) {
+-    return false;
+-  }
+-
+-  // Primary account might be missing during unittests.
+-  if (!nickel_local && !HasPrimaryAccount(active_user->GetAccountId())) {
+-    return false;
+-  }
+-
+   auto* profile = GetProfileForActiveUser();
+   if (!profile) {
+     return false;
+@@ -171,8 +262,8 @@ void AmbientClientImpl::RequestAccessToken(GetAccessTokenCallback callback) {
+   const user_manager::User* const active_user = GetActiveUser();
+   CHECK(active_user, base::NotFatalUntil::M160);
+ 
+-  // NickelOS: a local account has no Google account to ask a token of.
+-  if (user_manager::IsNickelLocalAccount(active_user->GetAccountId())) {
++  // NickelOS: nothing asks Google with a token (HasNickelPictures).
++  if (HasNickelPictures(active_user)) {
+     std::move(callback).Run(GaiaId(), std::string(), base::Time());
+     return;
+   }
+@@ -251,8 +342,7 @@ bool AmbientClientImpl::ShouldUseProdServer() {
+ 
+ base::FilePath AmbientClientImpl::GetNickelPicturesFolder() {
+   const user_manager::User* const active_user = GetActiveUser();
+-  if (!active_user ||
+-      !user_manager::IsNickelLocalAccount(active_user->GetAccountId())) {
++  if (!HasNickelPictures(active_user)) {
+     return base::FilePath();
+   }
+   Profile* profile = GetProfileForActiveUser();
+@@ -283,3 +373,97 @@ void AmbientClientImpl::OnGetAccessToken(
+ 
+   token_fetchers_.erase(fetcher_id);
+ }
++
++void AmbientClientImpl::FetchNickelWeather(NickelWeatherCallback callback) {
++  const base::Time now = base::Time::Now();
++  if (nickel_weather_ && now - nickel_weather_time_ < kNickelWeatherMaxAge) {
++    std::move(callback).Run(nickel_weather_);
++    return;
++  }
++  if (nickel_loader_) {
++    // One at a time (the screen saver asks every few minutes).
++    std::move(callback).Run(nickel_weather_);
++    return;
++  }
++  nickel_weather_callback_ = std::move(callback);
++  if (nickel_location_ && now - nickel_location_time_ < kNickelLocationMaxAge) {
++    FetchNickelForecast();
++    return;
++  }
++  nickel_loader_ = NickelLoader(GURL(kNickelLocationUrl), "POST",
++                                kNickelLocationTag);
++  nickel_loader_->AttachStringForUpload("{}", "application/json");
++  nickel_loader_->DownloadToString(
++      GetURLLoaderFactory().get(),
++      base::BindOnce(&AmbientClientImpl::OnNickelLocation,
++                     weak_factory_.GetWeakPtr()),
++      kNickelMaxResponseBytes);
++}
++
++void AmbientClientImpl::OnNickelLocation(std::optional<std::string> body) {
++  nickel_loader_.reset();
++  auto reply = body ? base::JSONReader::ReadDict(*body, base::JSON_PARSE_RFC)
++                    : std::nullopt;
++  const base::DictValue* location =
++      reply ? reply->FindDict("location") : nullptr;
++  const std::optional<double> lat =
++      location ? location->FindDouble("lat") : std::nullopt;
++  const std::optional<double> lng =
++      location ? location->FindDouble("lng") : std::nullopt;
++  if (!lat || !lng) {
++    LOG(WARNING) << "nickel: no location for the screen saver's weather";
++    FinishNickelWeather(std::nullopt);
++    return;
++  }
++  // About a kilometre: all the weather needs.
++  nickel_location_ = std::make_pair(std::round(*lat * 100) / 100,
++                                    std::round(*lng * 100) / 100);
++  nickel_location_time_ = base::Time::Now();
++  FetchNickelForecast();
++}
++
++void AmbientClientImpl::FetchNickelForecast() {
++  const GURL url(base::StrCat(
++      {kNickelForecastUrl,
++       "?latitude=", base::NumberToString(nickel_location_->first),
++       "&longitude=", base::NumberToString(nickel_location_->second),
++       "&current=temperature_2m,weather_code,is_day"
++       "&temperature_unit=fahrenheit"}));
++  nickel_loader_ = NickelLoader(url, "GET", kNickelWeatherTag);
++  nickel_loader_->DownloadToString(
++      GetURLLoaderFactory().get(),
++      base::BindOnce(&AmbientClientImpl::OnNickelForecast,
++                     weak_factory_.GetWeakPtr()),
++      kNickelMaxResponseBytes);
++}
++
++void AmbientClientImpl::OnNickelForecast(std::optional<std::string> body) {
++  nickel_loader_.reset();
++  auto reply = body ? base::JSONReader::ReadDict(*body, base::JSON_PARSE_RFC)
++                    : std::nullopt;
++  const base::DictValue* current = reply ? reply->FindDict("current") : nullptr;
++  const std::optional<double> temp_f =
++      current ? current->FindDouble("temperature_2m") : std::nullopt;
++  const std::optional<int> code =
++      current ? current->FindInt("weather_code") : std::nullopt;
++  if (!temp_f || !code) {
++    LOG(WARNING) << "nickel: no weather for the screen saver";
++    FinishNickelWeather(std::nullopt);
++    return;
++  }
++  const bool day = current->FindInt("is_day").value_or(1) != 0;
++  ash::WeatherInfo weather;
++  weather.temp_f = static_cast<float>(*temp_f);
++  weather.condition_icon_url =
++      base::StrCat({"nickel-weather:", NickelWeatherKind(*code, day)});
++  nickel_weather_ = weather;
++  nickel_weather_time_ = base::Time::Now();
++  FinishNickelWeather(weather);
++}
++
++void AmbientClientImpl::FinishNickelWeather(
++    const std::optional<ash::WeatherInfo>& weather) {
++  if (nickel_weather_callback_) {
++    std::move(nickel_weather_callback_).Run(weather);
++  }
++}
+diff --git a/chrome/browser/ash/ambient/ambient_client_impl.h b/chrome/browser/ash/ambient/ambient_client_impl.h
+index 781be13..0262418 100644
+--- a/chrome/browser/ash/ambient/ambient_client_impl.h
++++ b/chrome/browser/ash/ambient/ambient_client_impl.h
+@@ -8,10 +8,12 @@
+ #include <memory>
+ #include <optional>
+ #include <string>
++#include <utility>
+ 
+ #include "ash/public/cpp/ambient/ambient_client.h"
+ #include "ash/public/cpp/image_downloader.h"
+ #include "base/memory/weak_ptr.h"
++#include "base/time/time.h"
+ #include "base/unguessable_token.h"
+ 
+ class GoogleServiceAuthError;
+@@ -21,6 +23,10 @@ class AccessTokenFetcher;
+ struct AccessTokenInfo;
+ }  // namespace signin
+ 
++namespace network {
++class SimpleURLLoader;
++}  // namespace network
++
+ // Class to provide profile related info.
+ class AmbientClientImpl : public ash::AmbientClient {
+  public:
+@@ -41,6 +47,7 @@ class AmbientClientImpl : public ash::AmbientClient {
+       mojo::PendingReceiver<device::mojom::WakeLockProvider> receiver) override;
+   bool ShouldUseProdServer() override;
+   base::FilePath GetNickelPicturesFolder() override;
++  void FetchNickelWeather(NickelWeatherCallback callback) override;
+ 
+   const std::map<base::UnguessableToken,
+                  std::unique_ptr<signin::AccessTokenFetcher>>&
+@@ -55,8 +62,20 @@ class AmbientClientImpl : public ash::AmbientClient {
+                         GoogleServiceAuthError error,
+                         signin::AccessTokenInfo access_token_info);
+ 
++  // NickelOS: the screen saver's weather (FetchNickelWeather).
++  void OnNickelLocation(std::optional<std::string> body);
++  void FetchNickelForecast();
++  void OnNickelForecast(std::optional<std::string> body);
++  void FinishNickelWeather(const std::optional<ash::WeatherInfo>& weather);
++
+   std::map<base::UnguessableToken, std::unique_ptr<signin::AccessTokenFetcher>>
+       token_fetchers_;
++  std::unique_ptr<network::SimpleURLLoader> nickel_loader_;
++  NickelWeatherCallback nickel_weather_callback_;
++  std::optional<std::pair<double, double>> nickel_location_;
++  base::Time nickel_location_time_;
++  std::optional<ash::WeatherInfo> nickel_weather_;
++  base::Time nickel_weather_time_;
+   std::optional<bool> is_allowed_for_testing_;
+   base::WeakPtrFactory<AmbientClientImpl> weak_factory_{this};
+ };
+diff --git a/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.cc b/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.cc
+index 0d480e9..0aa58a7 100644
+--- a/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.cc
++++ b/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.cc
+@@ -18,6 +18,7 @@
+ #include "ash/constants/ash_features.h"
+ #include "ash/constants/ash_pref_names.h"
+ #include "ash/constants/geolocation_access_level.h"
++#include "ash/constants/nickel_pref_names.h"
+ #include "ash/controls/contextual_tooltip.h"
+ #include "ash/public/cpp/ambient/ambient_backend_controller.h"
+ #include "ash/public/cpp/ambient/ambient_client.h"
+@@ -87,6 +88,11 @@ PersonalizationAppAmbientProviderImpl::PersonalizationAppAmbientProviderImpl(
+       base::BindRepeating(
+           &PersonalizationAppAmbientProviderImpl::OnAmbientUiSettingsChanged,
+           base::Unretained(this)));
++  pref_change_registrar_.Add(
++      ash::prefs::kNickelScreenSaverWeather,
++      base::BindRepeating(&PersonalizationAppAmbientProviderImpl::
++                              OnNickelWeatherEnabledChanged,
++                          base::Unretained(this)));
+   pref_change_registrar_.Add(
+       ash::prefs::kUserGeolocationAccessLevel,
+       base::BindRepeating(&PersonalizationAppAmbientProviderImpl::
+@@ -171,6 +177,9 @@ void PersonalizationAppAmbientProviderImpl::SetAmbientObserver(
+   // Call it once to get the current ambient duration settings.
+   OnScreenSaverDurationChanged();
+ 
++  // NickelOS: and whether the screen saver shows the weather.
++  OnNickelWeatherEnabledChanged();
++
+   ResetLocalSettings();
+ }
+ 
+@@ -251,6 +260,20 @@ void PersonalizationAppAmbientProviderImpl::SetScreenSaverDuration(
+   OnScreenSaverDurationChanged();
+ }
+ 
++void PersonalizationAppAmbientProviderImpl::SetNickelWeatherEnabled(
++    bool enabled) {
++  profile_->GetPrefs()->SetBoolean(ash::prefs::kNickelScreenSaverWeather,
++                                   enabled);
++}
++
++void PersonalizationAppAmbientProviderImpl::OnNickelWeatherEnabledChanged() {
++  if (!ambient_observer_remote_.is_bound()) {
++    return;
++  }
++  ambient_observer_remote_->OnNickelWeatherEnabledChanged(
++      profile_->GetPrefs()->GetBoolean(ash::prefs::kNickelScreenSaverWeather));
++}
++
+ void PersonalizationAppAmbientProviderImpl::SetTemperatureUnit(
+     ash::AmbientModeTemperatureUnit temperature_unit) {
+   if (settings_->temperature_unit != temperature_unit) {
+diff --git a/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.h b/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.h
+index 71839b3..1f2505a 100644
+--- a/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.h
++++ b/chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_app_ambient_provider_impl.h
+@@ -56,6 +56,7 @@ class PersonalizationAppAmbientProviderImpl
+   void SetAmbientTheme(mojom::AmbientTheme ambient_theme) override;
+   void SetScreenSaverDuration(int minutes) override;
+   void SetTopicSource(mojom::TopicSource topic_source) override;
++  void SetNickelWeatherEnabled(bool enabled) override;
+   void SetTemperatureUnit(
+       ash::AmbientModeTemperatureUnit temperature_unit) override;
+   void SetAlbumSelected(const std::string& id,
+@@ -77,6 +78,7 @@ class PersonalizationAppAmbientProviderImpl
+   void OnAmbientUiSettingsChanged();
+   void OnScreenSaverDurationChanged();
+   void OnTemperatureUnitChanged();
++  void OnNickelWeatherEnabledChanged();
+   void OnTopicSourceChanged();
+   void OnAlbumsChanged();
+   void OnRecentHighlightsPreviewsChanged();
+diff --git a/chromeos/chromeos_strings.grd b/chromeos/chromeos_strings.grd
+index a2e8768..0a0d627 100644
+--- a/chromeos/chromeos_strings.grd
++++ b/chromeos/chromeos_strings.grd
+@@ -2779,6 +2779,12 @@
+         <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PAGE_DESCRIPTION" desc="NickelOS: the screen saver settings page's description for a local account, whose screen saver is a slideshow of the user's own pictures with the time (no weather).">
+           When your screen is idle, show your pictures, time, and media info
+         </message>
++        <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_TOGGLE" desc="NickelOS: the switch in the screen saver settings' weather section that shows the current weather on the screen saver. Off until the user turns it on.">
++          Show the weather
++        </message>
++        <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_WEATHER_SOURCE" desc="NickelOS: under the switch that shows the weather on the screen saver: where the weather comes from. Open-Meteo is a free weather service, beaconDB a free location service; both names stay as they are.">
++          From Open-Meteo, for your approximate location, which beaconDB works out from your internet address
++        </message>
+         <message name="IDS_PERSONALIZATION_APP_AMBIENT_MODE_NICKEL_PICTURES_TITLE" desc="NickelOS: where the screen saver's pictures come from for a local account, the Pictures folder in the user's home. Shown as the image source in the screen saver settings and its preview.">
+           Pictures folder
+         </message>

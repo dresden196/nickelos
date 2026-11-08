@@ -1,0 +1,683 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: settings for the device's other drives
+
+cros-disks (NickelOS patch 0002) mounts the volume that holds Windows read-
+only and hides other systems' own partitions. This lets the user choose,
+per drive of the device's other internal disks (by filesystem UUID), in
+Settings > Device > Storage management > Other drives:
+
+- Show in Files: off keeps the drive unmounted, now and at every sign-in
+  (pref nickel.drives_not_shown).
+- Allow changes, for an NTFS drive that came up read-only (Windows' own
+  volume, or one Windows left hibernated): after a dialog about Windows'
+  Fast Startup, the volume is mounted again writable, now and at every
+  sign-in (pref nickel.windows_drives_writable; VolumeManager passes the
+  mount option nickel-windows-writable, which cros-disks takes out). A
+  volume Windows left hibernated stays read-only, as ntfs-3g decides, and
+  the setting says why.
+
+StorageHandler sends the drives (onNickelDrivesUpdated) with their mount
+state, as cros-disks reported it, so Chrome never looks into a drive.
+
+diff --git a/chrome/browser/ash/file_manager/volume_manager.cc b/chrome/browser/ash/file_manager/volume_manager.cc
+index 2670bd62d9aab..3540ce5b99e21 100644
+--- a/chrome/browser/ash/file_manager/volume_manager.cc
++++ b/chrome/browser/ash/file_manager/volume_manager.cc
+@@ -37,6 +37,7 @@
+ #include "chrome/browser/ash/file_manager/snapshot_manager.h"
+ #include "chrome/browser/ash/file_manager/volume_manager_factory.h"
+ #include "chrome/browser/ash/file_manager/volume_manager_observer.h"
++#include "chrome/browser/ash/guest_os/guest_os_pref_names.h"
+ #include "chrome/browser/ash/policy/skyvault/local_files_migration_manager.h"
+ #include "chrome/browser/ash/policy/skyvault/policy_utils.h"
+ #include "chrome/browser/ash/profiles/profile_helper.h"
+@@ -202,6 +203,28 @@ ash::MountAccessMode GetExternalStorageAccessMode(
+              : ash::MountAccessMode::kReadWrite;
+ }
+ 
++// NickelOS: whether the list pref |name| holds |uuid|.
++bool NickelListPrefHas(const PrefService& prefs,
++                       const char* name,
++                       const std::string& uuid) {
++  if (uuid.empty()) {
++    return false;
++  }
++  for (const base::Value& value : prefs.GetList(name)) {
++    if (value.is_string() && value.GetString() == uuid) {
++      return true;
++    }
++  }
++  return false;
++}
++
++// NickelOS: a drive the user's drive settings are for: a volume of one of
++// the device's other internal disks (not removable, not NickelOS's own).
++bool IsNickelDrive(const ash::disks::Disk& disk) {
++  return !disk.on_removable_device() && !disk.on_boot_device() &&
++         !disk.is_hidden() && !disk.fs_uuid().empty();
++}
++
+ void RecordDownloadsDiskUsageStats(base::FilePath downloads_path) {
+   constexpr int64_t kOneMiB = 1024 * 1024;
+   // For now assume a maximum bucket size of 512GB, which exceeds all current
+@@ -389,6 +412,18 @@ void VolumeManager::Initialize() {
+       disks::prefs::kExternalStorageAllowlist,
+       base::BindRepeating(&VolumeManager::OnExternalStorageAllowlistChanged,
+                           weak_ptr_factory_.GetWeakPtr()));
++  for (const char* pref : {guest_os::prefs::kNickelDrivesNotShown,
++                           guest_os::prefs::kNickelWindowsDrivesWritable}) {
++    pref_change_registrar_.Add(
++        pref, base::BindRepeating(&VolumeManager::OnNickelDrivesChanged,
++                                  weak_ptr_factory_.GetWeakPtr()));
++  }
++  for (const base::Value& value : profile_->GetPrefs()->GetList(
++           guest_os::prefs::kNickelWindowsDrivesWritable)) {
++    if (value.is_string()) {
++      nickel_writable_drives_.insert(value.GetString());
++    }
++  }
+ 
+   // Subscribe to storage monitor for MTP notifications.
+   if (storage_monitor::StorageMonitor::GetInstance()) {
+@@ -712,7 +747,8 @@ void VolumeManager::OnAutoMountableDiskEvent(
+       }
+ 
+       bool mounting = false;
+-      if (disk.mount_path().empty() && disk.has_media()) {
++      if (disk.mount_path().empty() && disk.has_media() &&
++          !IsNickelDriveNotShown(disk)) {
+         const auto device_id = policy::DeviceId::FromDisk(&disk);
+         if (policy::ExternalStoragePolicyController::IsDeviceDisabled(
+                 CHECK_DEREF(profile_->GetPrefs()), device_id)) {
+@@ -725,8 +761,8 @@ void VolumeManager::OnAutoMountableDiskEvent(
+         // Initiate disk mount operation. MountPath auto-detects the filesystem
+         // format if the second argument is empty.
+         disk_mount_manager_->MountPath(
+-            disk.device_path(), {}, disk.device_label(), {},
+-            ash::MountType::kDevice,
++            disk.device_path(), {}, disk.device_label(),
++            NickelMountOptions(disk), ash::MountType::kDevice,
+             GetExternalStorageAccessMode(profile_, device_id),
+             base::DoNothing());
+         mounting = true;
+@@ -1141,6 +1177,89 @@ void VolumeManager::OnExternalStorageAllowlistChanged() {
+   OnExternalStorageReadOnlyChanged();
+ }
+ 
++bool VolumeManager::IsNickelDriveNotShown(const ash::disks::Disk& disk) const {
++  return IsNickelDrive(disk) &&
++         NickelListPrefHas(CHECK_DEREF(profile_->GetPrefs()),
++                           guest_os::prefs::kNickelDrivesNotShown,
++                           disk.fs_uuid());
++}
++
++std::vector<std::string> VolumeManager::NickelMountOptions(
++    const ash::disks::Disk& disk) const {
++  // cros-disks mounts Windows' own volume read-only unless this says the
++  // user allowed changes to it (cros-disks takes the option out).
++  if (IsNickelDrive(disk) &&
++      NickelListPrefHas(CHECK_DEREF(profile_->GetPrefs()),
++                        guest_os::prefs::kNickelWindowsDrivesWritable,
++                        disk.fs_uuid())) {
++    return {"nickel-windows-writable"};
++  }
++  return {};
++}
++
++void VolumeManager::OnNickelDrivesChanged() {
++  std::set<std::string> writable;
++  for (const base::Value& value : profile_->GetPrefs()->GetList(
++           guest_os::prefs::kNickelWindowsDrivesWritable)) {
++    if (value.is_string()) {
++      writable.insert(value.GetString());
++    }
++  }
++  for (const auto& disk : disk_mount_manager_->disks()) {
++    if (!IsNickelDrive(*disk)) {
++      continue;
++    }
++    const bool mounted = !disk->mount_path().empty();
++    if (IsNickelDriveNotShown(*disk)) {
++      if (mounted) {
++        disk_mount_manager_->UnmountPath(disk->mount_path(),
++                                         base::DoNothing());
++      }
++      continue;
++    }
++    if (!mounted) {
++      if (disk->has_media()) {
++        MountNickelDrive(disk->device_path(), ash::MountError::kSuccess);
++      }
++      continue;
++    }
++    // Whether a volume is writable is settled when cros-disks mounts it
++    // (it starts ntfs-3g read-only or not): it is mounted again.
++    const std::string& uuid = disk->fs_uuid();
++    if (writable.contains(uuid) != nickel_writable_drives_.contains(uuid)) {
++      disk_mount_manager_->UnmountPath(
++          disk->mount_path(),
++          base::BindOnce(&VolumeManager::MountNickelDrive,
++                         weak_ptr_factory_.GetWeakPtr(), disk->device_path()));
++    }
++  }
++  nickel_writable_drives_ = std::move(writable);
++  // Written now rather than with the next batch of pref writes: taking
++  // back changes to Windows' drive must hold even if the session does not
++  // end cleanly (a restart lost it in testing).
++  profile_->GetPrefs()->CommitPendingWrite();
++}
++
++void VolumeManager::MountNickelDrive(const std::string& device_path,
++                                     ash::MountError error) {
++  if (error != ash::MountError::kSuccess) {
++    LOG(ERROR) << "Cannot unmount " << device_path << " to mount it again: "
++               << error;
++    return;
++  }
++  const ash::disks::Disk* const disk =
++      disk_mount_manager_->FindDiskBySourcePath(device_path);
++  if (!disk || !disk->mount_path().empty() || IsNickelDriveNotShown(*disk)) {
++    return;
++  }
++  disk_mount_manager_->MountPath(
++      device_path, {}, disk->device_label(), NickelMountOptions(*disk),
++      ash::MountType::kDevice,
++      GetExternalStorageAccessMode(profile_,
++                                   policy::DeviceId::FromDisk(disk)),
++      base::DoNothing());
++}
++
+ void VolumeManager::OnRemovableStorageAttached(
+     const storage_monitor::StorageInfo& info) {
+   if (!storage_monitor::StorageInfo::IsMTPDevice(info.device_id())) {
+diff --git a/chrome/browser/ash/file_manager/volume_manager.h b/chrome/browser/ash/file_manager/volume_manager.h
+index b4b72fe4d132c..2118ac433ef6f 100644
+--- a/chrome/browser/ash/file_manager/volume_manager.h
++++ b/chrome/browser/ash/file_manager/volume_manager.h
+@@ -249,6 +249,14 @@ class VolumeManager
+   // Called on change to kExternalStorageAllowlist pref.
+   void OnExternalStorageAllowlistChanged();
+ 
++  // NickelOS: the user's choices for the device's other drives
++  // (guest_os::prefs::kNickelDrivesNotShown, kNickelWindowsDrivesWritable).
++  bool IsNickelDriveNotShown(const ash::disks::Disk& disk) const;
++  std::vector<std::string> NickelMountOptions(
++      const ash::disks::Disk& disk) const;
++  void OnNickelDrivesChanged();
++  void MountNickelDrive(const std::string& device_path, ash::MountError error);
++
+   // RemovableStorageObserver overrides.
+   void OnRemovableStorageAttached(
+       const storage_monitor::StorageInfo& info) override;
+@@ -405,6 +413,9 @@ class VolumeManager
+       file_system_provider_service_;
+ 
+   PrefChangeRegistrar pref_change_registrar_;
++  // NickelOS: the Windows volumes allowed changes when the pref was last
++  // looked at, to tell which drives a change concerns.
++  std::set<std::string> nickel_writable_drives_;
+   base::ObserverList<VolumeManagerObserver>::Unchecked observers_;
+   GetMtpStorageInfoCallback get_mtp_storage_info_callback_;
+   Volumes mounted_volumes_;
+diff --git a/chrome/browser/ash/guest_os/guest_os_pref_names.cc b/chrome/browser/ash/guest_os/guest_os_pref_names.cc
+index f2ccf2ccb703e..d3fba17556ac1 100644
+--- a/chrome/browser/ash/guest_os/guest_os_pref_names.cc
++++ b/chrome/browser/ash/guest_os/guest_os_pref_names.cc
+@@ -15,6 +15,8 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+   registry->RegisterDictionaryPref(kGuestOsRegistry);
+   registry->RegisterDictionaryPref(kNickelGlobalShortcuts);
+   registry->RegisterBooleanPref(kNickelX11KeyForwarding, true);
++  registry->RegisterListPref(kNickelDrivesNotShown);
++  registry->RegisterListPref(kNickelWindowsDrivesWritable);
+   registry->RegisterListPref(kGuestOsContainers);
+   registry->RegisterDictionaryPref(
+       kGuestOsTerminalSettings,
+diff --git a/chrome/browser/ash/guest_os/guest_os_pref_names.h b/chrome/browser/ash/guest_os/guest_os_pref_names.h
+index f9afa521bfb13..8f08ece5ec35c 100644
+--- a/chrome/browser/ash/guest_os/guest_os_pref_names.h
++++ b/chrome/browser/ash/guest_os/guest_os_pref_names.h
+@@ -36,6 +36,16 @@ inline constexpr char kNickelGlobalShortcuts[] = "nickel.global_shortcuts";
+ // (NickelX11Keys), as push-to-talk in the official Discord client needs.
+ inline constexpr char kNickelX11KeyForwarding[] = "nickel.x11_key_forwarding";
+ 
++// NickelOS: the user's choices for the device's other drives (internal disks
++// besides NickelOS's own, such as Windows' disk), by filesystem UUID
++// (file_manager::VolumeManager, Settings > Device > Storage management):
++// those not shown in Files (not mounted), and Windows volumes the user
++// allowed changes to (mounted writable; cros-disks mounts Windows' own
++// volume read-only otherwise).
++inline constexpr char kNickelDrivesNotShown[] = "nickel.drives_not_shown";
++inline constexpr char kNickelWindowsDrivesWritable[] =
++    "nickel.windows_drives_writable";
++
+ // Keys for the |kGuestOsRegistry| Dictionary stored in prefs for each app.
+ inline constexpr char kAppDesktopFileIdKey[] = "desktop_file_id";
+ inline constexpr char kAppExtensionsKey[] = "extensions";
+diff --git a/chrome/browser/extensions/api/settings_private/prefs_util.cc b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+index 7df1b4bb30731..6e21d16d6610a 100644
+--- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
++++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+@@ -946,6 +946,10 @@ const PrefsUtil::TypedPrefMap& PrefsUtil::GetAllowlistedKeys() {
+       settings_api::PrefType::kList;
+   (*s_allowlist)[guest_os::prefs::kNickelX11KeyForwarding] =
+       settings_api::PrefType::kBoolean;
++  (*s_allowlist)[guest_os::prefs::kNickelDrivesNotShown] =
++      settings_api::PrefType::kList;
++  (*s_allowlist)[guest_os::prefs::kNickelWindowsDrivesWritable] =
++      settings_api::PrefType::kList;
+   (*s_allowlist)[guest_os::prefs::kGuestOSPathsSharedToVms] =
+       settings_api::PrefType::kDictionary;
+ 
+diff --git a/chrome/browser/resources/ash/settings/device_page/storage.html b/chrome/browser/resources/ash/settings/device_page/storage.html
+index 1775e6bb6d397..029e9888fc0a0 100644
+--- a/chrome/browser/resources/ash/settings/device_page/storage.html
++++ b/chrome/browser/resources/ash/settings/device_page/storage.html
+@@ -24,6 +24,12 @@
+     background-color: var(--cros-icon-color-alert);
+   }
+ 
++  /* NickelOS: a drive's switches, under its name. */
++  .nickel-drive-option {
++    padding-inline-start: calc(var(--cr-section-padding) +
++                               var(--cr-section-indent-padding));
++  }
++
+   iron-icon {
+     --iron-icon-fill-color: var(--cros-icon-color-warning);
+     --iron-icon-height: 32px;
+@@ -259,3 +265,59 @@
+       role-description="$i18n{subpageArrowRoleDescription}">
+   </cr-link-row>
+ </template>
++<!-- NickelOS: the device's other drives (StorageHandler::UpdateNickelDrives):
++     whether Files shows each, and changes to the drive that holds Windows. -->
++<template is="dom-if" if="[[nickelDrives_.length]]">
++  <div class="settings-box two-line hr">
++    <div class="start">
++      <div>$i18n{nickelDrivesTitle}</div>
++      <div class="secondary">$i18n{nickelDrivesDescription}</div>
++    </div>
++  </div>
++  <template is="dom-repeat" items="[[nickelDrives_]]">
++    <div class="settings-box two-line">
++      <div class="start">
++        <div>[[item.label]]</div>
++        <div class="secondary">[[item.size]]</div>
++      </div>
++    </div>
++    <div class="settings-box continuation nickel-drive-option">
++      <div class="start" id="nickelDriveShow[[index]]" aria-hidden="true">
++        $i18n{nickelDriveShow}
++      </div>
++      <cr-toggle on-change="onNickelDriveShowChange_"
++          checked="[[isNickelDriveShown_(item,
++              prefs.nickel.drives_not_shown.value.*)]]"
++          aria-labelledby$="nickelDriveShow[[index]]">
++      </cr-toggle>
++    </div>
++    <template is="dom-if" if="[[canAllowNickelDriveChanges_(item,
++        prefs.nickel.drives_not_shown.value.*,
++        prefs.nickel.windows_drives_writable.value.*)]]" restamp>
++      <div class="settings-box continuation two-line nickel-drive-option">
++        <div class="start" aria-hidden="true">
++          <div id="nickelDriveAllow[[index]]">$i18n{nickelDriveAllowChanges}</div>
++          <div class="secondary">[[nickelDriveAllowSubLabel_(item,
++              prefs.nickel.windows_drives_writable.value.*)]]</div>
++        </div>
++        <cr-toggle on-change="onNickelDriveAllowChange_"
++            checked="[[isNickelDriveWritable_(item,
++                prefs.nickel.windows_drives_writable.value.*)]]"
++            aria-labelledby$="nickelDriveAllow[[index]]">
++        </cr-toggle>
++      </div>
++    </template>
++  </template>
++</template>
++<cr-dialog id="nickelDriveDialog" on-cancel="onNickelDriveDialogCancel_">
++  <div slot="title">$i18n{nickelDriveDialogTitle}</div>
++  <div slot="body">$i18n{nickelDriveDialogBody}</div>
++  <div slot="button-container">
++    <cr-button class="cancel-button" on-click="onNickelDriveDialogCancel_">
++      $i18n{cancel}
++    </cr-button>
++    <cr-button class="action-button" on-click="onNickelDriveDialogConfirm_">
++      $i18n{nickelDriveAllowChanges}
++    </cr-button>
++  </div>
++</cr-dialog>
+diff --git a/chrome/browser/resources/ash/settings/device_page/storage.ts b/chrome/browser/resources/ash/settings/device_page/storage.ts
+index a4dabcbfd6493..e71340efcd7b9 100644
+--- a/chrome/browser/resources/ash/settings/device_page/storage.ts
++++ b/chrome/browser/resources/ash/settings/device_page/storage.ts
+@@ -2,7 +2,10 @@
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
+ 
++import 'chrome://resources/ash/common/cr_elements/cr_button/cr_button.js';
++import 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
+ import 'chrome://resources/ash/common/cr_elements/cr_icon_button/cr_icon_button.js';
++import 'chrome://resources/ash/common/cr_elements/cr_toggle/cr_toggle.js';
+ import 'chrome://resources/ash/common/cr_elements/cr_link_row/cr_link_row.js';
+ import 'chrome://resources/ash/common/cr_elements/cr_shared_vars.css.js';
+ import 'chrome://resources/ash/common/cr_elements/icons.html.js';
+@@ -11,10 +14,13 @@ import '../settings_shared.css.js';
+ import './storage_external.js';
+ 
+ import {PrefsMixin} from '/shared/settings/prefs/prefs_mixin.js';
++import type {CrDialogElement} from 'chrome://resources/ash/common/cr_elements/cr_dialog/cr_dialog.js';
+ import type {CrLinkRowElement} from 'chrome://resources/ash/common/cr_elements/cr_link_row/cr_link_row.js';
++import type {CrToggleElement} from 'chrome://resources/ash/common/cr_elements/cr_toggle/cr_toggle.js';
+ import {I18nMixin} from 'chrome://resources/ash/common/cr_elements/i18n_mixin.js';
+ import {WebUiListenerMixin} from 'chrome://resources/ash/common/cr_elements/web_ui_listener_mixin.js';
+ import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
++import type {DomRepeatEvent} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
+ import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
+ 
+ import {isCrostiniSupported, isExternalStorageEnabled, isSkyVaultEnabled} from '../common/load_time_booleans.js';
+@@ -41,6 +47,19 @@ export interface SettingsStorageElement {
+   };
+ }
+ 
++/**
++ * NickelOS: one of the device's other drives, as
++ * StorageHandler::UpdateNickelDrives sends it.
++ */
++interface NickelDrive {
++  uuid: string;
++  label: string;
++  size: string;
++  fileSystem: string;
++  mounted: boolean;
++  readOnly: boolean;
++}
++
+ const SettingsStorageElementBase =
+     I18nMixin(PrefsMixin(RouteOriginMixin(WebUiListenerMixin(PolymerElement))));
+ 
+@@ -55,6 +74,13 @@ export class SettingsStorageElement extends SettingsStorageElementBase {
+ 
+   static get properties() {
+     return {
++      nickelDrives_: {
++        type: Array,
++        value() {
++          return [];
++        },
++      },
++
+       showCrostiniStorage_: {
+         type: Boolean,
+         value: false,
+@@ -137,6 +163,8 @@ export class SettingsStorageElement extends SettingsStorageElementBase {
+   declare private myFilesSizeSubLabel_: string;
+   declare private storageEncryptionSubLabel_: string;
+   declare private readonly isSkyVaultEnabled_: boolean;
++  declare private nickelDrives_: NickelDrive[];
++  private nickelDriveToAllow_: NickelDrive|null = null;
+ 
+   constructor() {
+     super();
+@@ -155,6 +183,11 @@ export class SettingsStorageElement extends SettingsStorageElementBase {
+   override connectedCallback(): void {
+     super.connectedCallback();
+ 
++    this.addWebUiListener('onNickelDrivesUpdated', (drives: NickelDrive[]) => {
++      this.nickelDrives_ = drives;
++    });
++    chrome.send('updateNickelDrives');
++
+     this.addWebUiListener(
+         'storage-size-stat-changed',
+         (sizeStat: StorageSizeStat) => this.handleSizeStatChanged_(sizeStat));
+@@ -450,6 +483,81 @@ export class SettingsStorageElement extends SettingsStorageElementBase {
+     // If SkyVault is disabled, we don't care about the pref value.
+     return !this.isSkyVaultEnabled_ || prefValue;
+   }
++
++  // NickelOS: the device's other drives. A drive's UUID in
++  // nickel.drives_not_shown keeps it out of Files; in
++  // nickel.windows_drives_writable, the volume that holds Windows is
++  // mounted writable (file_manager::VolumeManager).
++  private nickelDriveList_(pref: string): string[] {
++    return this.getPref<string[]>(pref).value;
++  }
++
++  private isNickelDriveShown_(drive: NickelDrive): boolean {
++    return !this.nickelDriveList_('nickel.drives_not_shown')
++                .includes(drive.uuid);
++  }
++
++  private isNickelDriveWritable_(drive: NickelDrive): boolean {
++    return this.nickelDriveList_('nickel.windows_drives_writable')
++        .includes(drive.uuid);
++  }
++
++  // cros-disks mounts Windows' own volume read-only, so an NTFS drive that
++  // came up read-only holds Windows (or Windows did not shut down fully).
++  private canAllowNickelDriveChanges_(drive: NickelDrive): boolean {
++    return drive.fileSystem === 'ntfs' && this.isNickelDriveShown_(drive) &&
++        ((drive.mounted && drive.readOnly) ||
++         this.isNickelDriveWritable_(drive));
++  }
++
++  private nickelDriveAllowSubLabel_(drive: NickelDrive): string {
++    return this.isNickelDriveWritable_(drive) && drive.readOnly ?
++        this.i18n('nickelDriveHibernated') :
++        this.i18n('nickelDriveAllowChangesDescription');
++  }
++
++  private onNickelDriveShowChange_(e: DomRepeatEvent<NickelDrive>): void {
++    const pref = 'nickel.drives_not_shown';
++    if ((e.target as CrToggleElement).checked) {
++      this.deletePrefListItem(pref, e.model.item.uuid);
++    } else {
++      this.appendPrefListItem(pref, e.model.item.uuid);
++    }
++  }
++
++  // Changes to Windows' drive are allowed only after the dialog: the toggle
++  // stays off until then.
++  private onNickelDriveAllowChange_(e: DomRepeatEvent<NickelDrive>): void {
++    const toggle = e.target as CrToggleElement;
++    if (!toggle.checked) {
++      this.deletePrefListItem(
++          'nickel.windows_drives_writable', e.model.item.uuid);
++      return;
++    }
++    toggle.checked = false;
++    this.nickelDriveToAllow_ = e.model.item;
++    this.shadowRoot!.querySelector<CrDialogElement>(
++                        '#nickelDriveDialog')!.showModal();
++  }
++
++  private onNickelDriveDialogConfirm_(): void {
++    if (this.nickelDriveToAllow_) {
++      this.appendPrefListItem(
++          'nickel.windows_drives_writable', this.nickelDriveToAllow_.uuid);
++    }
++    this.nickelDriveToAllow_ = null;
++    this.shadowRoot!.querySelector<CrDialogElement>(
++                        '#nickelDriveDialog')!.close();
++  }
++
++  private onNickelDriveDialogCancel_(): void {
++    this.nickelDriveToAllow_ = null;
++    const dialog =
++        this.shadowRoot!.querySelector<CrDialogElement>('#nickelDriveDialog')!;
++    if (dialog.open) {
++      dialog.close();
++    }
++  }
+ }
+ 
+ declare global {
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/storage/BUILD.gn b/chrome/browser/ui/webui/ash/settings/pages/storage/BUILD.gn
+index 64a1645490c34..5368bc95d3d6e 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/storage/BUILD.gn
++++ b/chrome/browser/ui/webui/ash/settings/pages/storage/BUILD.gn
+@@ -40,6 +40,7 @@ static_library("storage") {
+     "//components/user_manager",
+     "//content/public/browser",
+     "//ui/base",
++    "//ui/chromeos/strings:strings_grit",
+   ]
+ 
+   allow_circular_includes_from =
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/storage/device_storage_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/storage/device_storage_handler.cc
+index fd8a2e865f9d0..3161882d06cd5 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/storage/device_storage_handler.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/storage/device_storage_handler.cc
+@@ -106,6 +106,10 @@ void StorageHandler::RegisterMessages() {
+       "updateExternalStorages",
+       base::BindRepeating(&StorageHandler::HandleUpdateExternalStorages,
+                           base::Unretained(this)));
++  web_ui()->RegisterMessageCallback(
++      "updateNickelDrives",
++      base::BindRepeating(&StorageHandler::HandleUpdateNickelDrives,
++                          base::Unretained(this)));
+   web_ui()->RegisterMessageCallback(
+       "openBrowsingDataSettings",
+       base::BindRepeating(&StorageHandler::HandleOpenBrowsingDataSettings,
+@@ -251,6 +255,46 @@ void StorageHandler::UpdateExternalStorages() {
+   FireWebUIListener("onExternalStoragesUpdated", devices);
+ }
+ 
++void StorageHandler::HandleUpdateNickelDrives(
++    const base::ListValue& unused_args) {
++  AllowJavascript();
++  UpdateNickelDrives();
++}
++
++void StorageHandler::UpdateNickelDrives() {
++  const DiskMountManager* const manager = DiskMountManager::GetInstance();
++  base::ListValue drives;
++  for (const auto& disk : manager->disks()) {
++    // The volumes of internal disks other than NickelOS's own; cros-disks
++    // hides other systems' own partitions (EFI, recovery, ...).
++    if (disk->on_removable_device() || disk->on_boot_device() ||
++        disk->is_hidden() || disk->fs_uuid().empty()) {
++      continue;
++    }
++    bool read_only = false;
++    const bool mounted = !disk->mount_path().empty();
++    if (mounted) {
++      const auto it = manager->mount_points().find(disk->mount_path());
++      read_only = it != manager->mount_points().end() && it->read_only;
++    }
++    std::string label = disk->device_label();
++    if (label.empty()) {
++      label = disk->drive_label().empty() ? disk->fs_uuid()
++                                          : disk->drive_label();
++    }
++    base::DictValue drive;
++    drive.Set("uuid", disk->fs_uuid());
++    drive.Set("label", label);
++    drive.Set("size",
++              ui::FormatBytes(base::ByteSize(disk->total_size_in_bytes())));
++    drive.Set("fileSystem", disk->file_system_type());
++    drive.Set("mounted", mounted);
++    drive.Set("readOnly", read_only);
++    drives.Append(std::move(drive));
++  }
++  FireWebUIListener("onNickelDrivesUpdated", drives);
++}
++
+ void StorageHandler::OnArcPlayStoreEnabledChanged(bool enabled) {
+   base::DictValue update;
+   update.Set(kIsExternalStorageEnabled, IsExternalStorageEnabled(profile_));
+@@ -265,6 +309,8 @@ void StorageHandler::OnMountEvent(
+     return;
+   }
+ 
++  UpdateNickelDrives();
++
+   if (!IsEligibleForAndroidStorage(mount_point)) {
+     return;
+   }
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/storage/device_storage_handler.h b/chrome/browser/ui/webui/ash/settings/pages/storage/device_storage_handler.h
+index cb2449f87d780..71bc28dcf0bda 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/storage/device_storage_handler.h
++++ b/chrome/browser/ui/webui/ash/settings/pages/storage/device_storage_handler.h
+@@ -82,6 +82,7 @@ class StorageHandler : public content::WebUIMessageHandler,
+   void HandleUpdateStorageInfo(const base::ListValue& unused_args);
+   void HandleOpenMyFiles(const base::ListValue& unused_args);
+   void HandleUpdateExternalStorages(const base::ListValue& unused_args);
++  void HandleUpdateNickelDrives(const base::ListValue& unused_args);
+   void HandleOpenBrowsingDataSettings(const base::ListValue& unused_args);
+   void HandleGetStorageEncryption(const base::ListValue& args);
+ 
+@@ -99,6 +100,10 @@ class StorageHandler : public content::WebUIMessageHandler,
+   // Updates list of external storages.
+   void UpdateExternalStorages();
+ 
++  // NickelOS: sends the device's other drives (internal disks besides
++  // NickelOS's own, such as Windows'), for their settings.
++  void UpdateNickelDrives();
++
+   // Returns true if the volume from |mount_point| can be used as Android
+   // storage.
+   bool IsEligibleForAndroidStorage(const MountPoint& mount_point);
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/storage/storage_section.cc b/chrome/browser/ui/webui/ash/settings/pages/storage/storage_section.cc
+index e7be9f6970d2d..f3ea76269e54a 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/storage/storage_section.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/storage/storage_section.cc
+@@ -15,6 +15,7 @@
+ #include "content/public/browser/web_ui.h"
+ #include "content/public/browser/web_ui_data_source.h"
+ #include "ui/base/l10n/l10n_util.h"
++#include "ui/chromeos/strings/grit/ui_chromeos_strings.h"
+ 
+ namespace ash::settings {
+ 
+@@ -105,6 +106,15 @@ void StorageSection::AddLoadTimeData(content::WebUIDataSource* html_source) {
+       {"storageSpaceLowMessageTitle",
+        IDS_SETTINGS_STORAGE_SPACE_LOW_MESSAGE_TITLE},
+       {"storageTitle", IDS_SETTINGS_STORAGE_TITLE},
++      {"nickelDrivesTitle", IDS_SETTINGS_NICKEL_DRIVES_TITLE},
++      {"nickelDrivesDescription", IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION},
++      {"nickelDriveShow", IDS_SETTINGS_NICKEL_DRIVE_SHOW},
++      {"nickelDriveAllowChanges", IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES},
++      {"nickelDriveAllowChangesDescription",
++       IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION},
++      {"nickelDriveHibernated", IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED},
++      {"nickelDriveDialogTitle", IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE},
++      {"nickelDriveDialogBody", IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY},
+   };
+   html_source->AddLocalizedStrings(kStorageStrings);
+ 
+diff --git a/ui/chromeos/ui_chromeos_strings.grd b/ui/chromeos/ui_chromeos_strings.grd
+index 61d5df8700019..0586fa8a9587e 100644
+--- a/ui/chromeos/ui_chromeos_strings.grd
++++ b/ui/chromeos/ui_chromeos_strings.grd
+@@ -2007,6 +2007,31 @@
+       <message name="IDS_SETTINGS_NICKEL_X11_KEYS_DESCRIPTION" desc="NickelOS: under the switch that lets older (X11) Linux apps see shortcut keys while other windows have the focus: what it is for and what those apps see.">
+         Lets apps such as Discord use push-to-talk while you're in other windows. They see keys pressed with Ctrl, Alt or Search and function keys, never what you type.
+       </message>
++      <!-- NickelOS: Settings > Device > Storage management, the device's other drives. -->
++      <message name="IDS_SETTINGS_NICKEL_DRIVES_TITLE" desc="NickelOS: in Settings > Device > Storage management, the heading over the device's other internal drives (such as a disk that holds Windows).">
++        Other drives
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_DRIVES_DESCRIPTION" desc="NickelOS: under the heading over the device's other internal drives: what is shown and how Windows' drive is treated.">
++        Drives inside this device besides the one with NickelOS. The drive that holds Windows opens read-only, so Windows stays intact.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_DRIVE_SHOW" desc="NickelOS: the switch that shows one of the device's other drives in the Files app (and opens it at every sign-in).">
++        Show in Files
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES" desc="NickelOS: the switch that lets the user change files on the drive that holds Windows, which is read-only otherwise.">
++        Allow changes
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_DRIVE_ALLOW_CHANGES_DESCRIPTION" desc="NickelOS: under the switch that allows changes to the drive that holds Windows: why it is read-only.">
++        Windows is on this drive. It's read-only unless you allow changes.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_DRIVE_HIBERNATED" desc="NickelOS: under the switch that allows changes to the drive that holds Windows, when changes are allowed but the drive is still read-only because Windows did not shut down fully (Fast Startup or hibernation).">
++        Windows didn't shut down fully, so the drive stays read-only. Shut down Windows fully to make changes.
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_DRIVE_DIALOG_TITLE" desc="NickelOS: the title of the dialog that asks before the user may change files on the drive that holds Windows.">
++        Allow changes to the Windows drive?
++      </message>
++      <message name="IDS_SETTINGS_NICKEL_DRIVE_DIALOG_BODY" desc="NickelOS: in the dialog that asks before the user may change files on the drive that holds Windows: the risk of Windows' Fast Startup and how to avoid it.">
++        With Fast Startup, Windows doesn't fully shut down, and changes made here can be lost or damage files when Windows starts again. Turn off Fast Startup in Windows, or hold Shift while you shut Windows down, before you make changes.
++      </message>
+     </messages>
+   </release>
+ </grit>

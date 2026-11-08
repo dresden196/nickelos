@@ -1,0 +1,15 @@
+#!/bin/bash
+# Wait until the guest screen changes from what it was, then stops changing
+# (two identical frames 1.5s apart), then save it. Software-rendered OOBE
+# transitions take several seconds, so a fixed sleep often captures mid-fade.
+#   nickel-vmsettle OUT.png [timeout_s]   (uses NICKEL_VMTEST_DIR like nickel-vmctl)
+D=${NICKEL_VMTEST_DIR:-/srv/nickel/vmtest}; OUT=$1; T=${2:-40}
+h() { nickel-vmctl shot "$D/.settle.png" >/dev/null; md5sum < "$D/.settle.png" | cut -c1-32; }
+start=$(cat "$D/.last_hash" 2>/dev/null); prev=""; end=$((SECONDS+T)); changed=0
+while [ $SECONDS -lt $end ]; do
+  cur=$(h); [ "$cur" != "$start" ] && changed=1
+  [ $changed = 1 ] && [ "$cur" = "$prev" ] && break
+  prev=$cur; sleep 1.5
+done
+cp "$D/.settle.png" "$OUT"; echo "$cur" > "$D/.last_hash"
+[ $changed = 1 ] && echo "$OUT" || echo "$OUT (screen did not change within ${T}s)"

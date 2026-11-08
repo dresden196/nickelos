@@ -1,0 +1,72 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: no version line on setup and sign-in on Stable
+ and Beta
+
+Setup's screens and the sign-in screen showed the platform version in
+their top right corner on release images ("NickelOS 157.0.8103.31
+(Platform 16852.17.16 (Developer Build - root) stable-channel nickel)
+SN:..."). ChromeOS shows that line on channels other than Stable and Beta,
+asking ash::GetChannel(), which reads the image's channel only in
+Google-branded builds: NickelOS's Chrome always got UNKNOWN. Both places
+now read the image's channel (CHROMEOS_RELEASE_TRACK) themselves. Test
+images (testimage-channel) and Dev still show it; Alt+V still toggles it;
+ash::GetChannel()'s other callers are unchanged.
+
+---
+diff --git a/chrome/browser/ash/login/mojo_system_info_dispatcher.cc b/chrome/browser/ash/login/mojo_system_info_dispatcher.cc
+index dbc1b21..c318601 100644
+--- a/chrome/browser/ash/login/mojo_system_info_dispatcher.cc
++++ b/chrome/browser/ash/login/mojo_system_info_dispatcher.cc
+@@ -8,6 +8,7 @@
+ #include "ash/public/cpp/login_screen.h"
+ #include "ash/public/cpp/login_screen_model.h"
+ #include "base/strings/utf_string_conversions.h"
++#include "base/system/sys_info.h"
+ #include "build/branding_buildflags.h"
+ #include "chromeos/ash/components/channel/channel_info.h"
+ #include "components/version_info/channel.h"
+@@ -64,9 +65,13 @@ void MojoSystemInfoDispatcher::OnSystemInfoUpdated() {
+   if (enforced) {
+     show = policy_show.value();
+   } else {
+-    version_info::Channel channel = ash::GetChannel();
+-    show = channel != version_info::Channel::STABLE &&
+-           channel != version_info::Channel::BETA;
++    // NickelOS: its Chrome isn't Google-branded, so ash::GetChannel() is
++    // always UNKNOWN and the version showed on every channel. The image's
++    // own channel decides instead, as on ChromeOS (test images, on
++    // testimage-channel, still show it).
++    std::string track;
++    base::SysInfo::GetLsbReleaseValue("CHROMEOS_RELEASE_TRACK", &track);
++    show = track != "stable-channel" && track != "beta-channel";
+   }
+   LoginScreen::Get()->GetModel()->SetSystemInfo(
+       show, enforced, os_version_label_text_, enterprise_info_, bluetooth_name_,
+diff --git a/chrome/browser/ash/login/screens/core_oobe.cc b/chrome/browser/ash/login/screens/core_oobe.cc
+index ddc4695..b2f6617 100644
+--- a/chrome/browser/ash/login/screens/core_oobe.cc
++++ b/chrome/browser/ash/login/screens/core_oobe.cc
+@@ -8,6 +8,7 @@
+ #include "ash/public/cpp/shelf_config.h"
+ #include "ash/shell.h"
+ #include "base/functional/bind.h"
++#include "base/system/sys_info.h"
+ #include "build/branding_buildflags.h"
+ #include "chrome/browser/ash/login/configuration_keys.h"
+ #include "chrome/browser/ash/system/input_device_settings.h"
+@@ -46,9 +47,12 @@ CoreOobe::CoreOobe(
+   UpdateClientAreaSize(display::Screen::Get()->GetPrimaryDisplay().size());
+ 
+   // Don't show version label on the stable and beta channels by default.
+-  version_info::Channel channel = ash::GetChannel();
+-  if (channel != version_info::Channel::STABLE &&
+-      channel != version_info::Channel::BETA) {
++  // NickelOS: its Chrome isn't Google-branded, so ash::GetChannel() is
++  // always UNKNOWN and setup showed the version on every channel; the
++  // image's own channel decides instead (test images still show it).
++  std::string track;
++  base::SysInfo::GetLsbReleaseValue("CHROMEOS_RELEASE_TRACK", &track);
++  if (track != "stable-channel" && track != "beta-channel") {
+     if (view_) {
+       view_->ToggleSystemInfo();
+     }

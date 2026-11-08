@@ -1,0 +1,102 @@
+#!/bin/bash
+# Runs on Dresden's laptop, with the production payload key on his
+# removable media (docs/updates.md, "Keys"). The key never leaves it: only
+# two 32-byte hashes come here, and two signatures go back.
+#
+#   nickel-update-sign KEY [HOST:]PENDING_DIR [--finish]
+#       sign the payload waiting in PENDING_DIR (nickel-update-publish
+#       --unsigned prints it), on HOST over ssh or here; --finish then runs
+#       nickel-update-publish --finish there
+#   nickel-update-sign --new-key DIR
+#       once: make the key pair in DIR (the removable media): the private
+#       key, encrypted with a passphrase you choose, and its public half for
+#       chromeos-base/nickel-update/files/update-payload-key.pub.pem
+#
+# Signing is RSA PKCS#1 v1.5 over the SHA-256 hashes, as ChromeOS's own
+# signer does it (vboot_reference sign_official_build.sh update_payload).
+# Before signing it shows the version and channel and asks; it refuses a key
+# whose public half isn't the one in the image, and checks each signature
+# before sending it.
+set -euo pipefail
+
+if [ "${1:-}" = --new-key ]; then
+	dir=${2:?the directory on the removable media}
+	[ -d "$dir" ] || { echo "$dir doesn't exist" >&2; exit 1; }
+	key=$dir/nickelos-update-key.pem
+	[ -e "$key" ] && { echo "$key already exists: not overwriting it" >&2; exit 1; }
+	echo "The private key, encrypted with a passphrase (asked twice):"
+	openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -aes-256-cbc -out "$key"
+	chmod 600 "$key"
+	openssl pkey -in "$key" -pubout -out "$dir/nickelos-update-key.pub.pem"
+	echo "made: $key (keep it only on this media, and a backup copy)"
+	echo "      $dir/nickelos-update-key.pub.pem: copy it to the overlay as"
+	echo "      chromeos-base/nickel-update/files/update-payload-key.pub.pem (revbump"
+	echo "      nickel-update), then rebuild: images from then on take only payloads"
+	echo "      signed with this key"
+	exit 0
+fi
+
+KEY=${1:?the private key (on the removable media)}
+SPEC=${2:?[HOST:]PENDING_DIR}
+FINISH=${3:-}
+[ -r "$KEY" ] || { echo "can't read $KEY" >&2; exit 1; }
+t=$(mktemp -d); trap 'rm -rf "$t"' EXIT
+if [[ $SPEC == *:* ]]; then
+	HOST=${SPEC%%:*}; DIR=${SPEC#*:}
+	scp -q "$HOST:$DIR/payload.hash" "$HOST:$DIR/metadata.hash" "$HOST:$DIR/key.pub.pem" "$HOST:$DIR/meta.env" "$t/"
+else
+	HOST=; DIR=$SPEC
+	cp "$DIR/payload.hash" "$DIR/metadata.hash" "$DIR/key.pub.pem" "$DIR/meta.env" "$t/"
+fi
+for f in payload.hash metadata.hash; do
+	[ "$(stat -c %s "$t/$f")" = 32 ] || { echo "$f isn't a SHA-256 hash" >&2; exit 1; }
+done
+VERSION=$(sed -n 's/^VERSION=//p' "$t/meta.env"); CHANNEL=$(sed -n 's/^CHANNEL=//p' "$t/meta.env")
+NAME=$(basename "$DIR")
+echo "To sign: $NAME (NickelOS $VERSION for the $CHANNEL channel)"
+echo "  payload hash:  $(xxd -p -c 64 "$t/payload.hash")"
+echo "  metadata hash: $(xxd -p -c 64 "$t/metadata.hash")"
+
+# The image carries a public key; this key must be its other half, or the
+# PCs would refuse the update.
+pass=()
+if grep -q ENCRYPTED "$KEY"; then
+	# The update key's own passphrase (made 2026-10-12), not the Secure
+	# Boot key's. Three tries.
+	for try in 1 2 3; do
+		read -r -s -p "Passphrase for the update key ($KEY): " NICKEL_PASS; echo
+		export NICKEL_PASS
+		pass=(-passin env:NICKEL_PASS)
+		openssl pkey -in "$KEY" "${pass[@]}" -noout 2>/dev/null && break
+		echo "wrong passphrase for $KEY"
+		[ "$try" = 3 ] && exit 1
+	done
+fi
+if [ "$(openssl pkey -in "$KEY" "${pass[@]}" -pubout -outform DER | base64 -w0)" != \
+     "$(openssl pkey -pubin -in "$t/key.pub.pem" -outform DER | base64 -w0)" ]; then
+	echo "this key isn't the one the image carries: not signing" >&2
+	exit 1
+fi
+read -r -p "Sign it? [y/N] " ok
+[ "$ok" = y ] || [ "$ok" = Y ] || { echo "not signed"; exit 1; }
+for h in payload metadata; do
+	openssl pkeyutl -sign -inkey "$KEY" "${pass[@]}" -pkeyopt rsa_padding_mode:pkcs1 \
+		-pkeyopt digest:sha256 -in "$t/$h.hash" -out "$t/$h.sig"
+	openssl pkeyutl -verify -pubin -inkey "$t/key.pub.pem" -pkeyopt rsa_padding_mode:pkcs1 \
+		-pkeyopt digest:sha256 -in "$t/$h.hash" -sigfile "$t/$h.sig" >/dev/null ||
+		{ echo "the $h signature doesn't verify" >&2; exit 1; }
+done
+unset NICKEL_PASS
+if [ -n "$HOST" ]; then
+	scp -q "$t/payload.sig" "$t/metadata.sig" "$HOST:$DIR/"
+else
+	cp "$t/payload.sig" "$t/metadata.sig" "$DIR/"
+fi
+echo "signed: $NAME"
+ROOT=$(dirname "$(dirname "$DIR")")
+if [ "$FINISH" = --finish ]; then
+	cmd="/srv/nickel/src/src/overlays/overlay-nickel/scripts/update/nickel-update-publish --finish $NAME $ROOT"
+	if [ -n "$HOST" ]; then ssh "$HOST" "$cmd"; else $cmd; fi
+else
+	echo "next, on the build host: nickel-update-publish --finish $NAME $ROOT"
+fi

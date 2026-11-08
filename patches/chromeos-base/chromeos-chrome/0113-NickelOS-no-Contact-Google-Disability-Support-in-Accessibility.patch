@@ -1,0 +1,29 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: no "Contact Google Disability Support" in
+ Accessibility
+
+Settings > Accessibility ended with "Contact Google Disability Support",
+a link to Google's help center, where Google's support team helps people
+with ChromeOS on Chromebooks. NickelOS isn't Google's to support, so the
+row is gone.
+
+---
+diff --git a/chrome/browser/resources/ash/settings/os_a11y_page/os_a11y_page.html b/chrome/browser/resources/ash/settings/os_a11y_page/os_a11y_page.html
+--- a/chrome/browser/resources/ash/settings/os_a11y_page/os_a11y_page.html
++++ b/chrome/browser/resources/ash/settings/os_a11y_page/os_a11y_page.html
+@@ -77,13 +77,8 @@
+             external>
+         </cr-link-row>
+       </template>
+-      <cr-link-row
+-          id="disabilitySupportLink" class="hr"
+-          start-icon="os-settings:a11y-contact-support"
+-          label="$i18n{disabilitySupportTitle}"
+-          on-click="onDisabilitySupportClick_"
+-          external>
+-      </cr-link-row>
++      <!-- NickelOS: no "Contact Google Disability Support" (Google's help
++           center, for ChromeOS on Chromebooks). -->
+     </settings-card>
+   </div>
+ 

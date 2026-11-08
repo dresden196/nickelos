@@ -1,0 +1,29 @@
+#!/bin/sh
+# Distributed under the terms of the GNU General Public License v2
+#
+# NickelOS: where Linux apps put downloads, documents, pictures and the like
+# (the XDG user directories). The home is My files (one home), so these are
+# the usual folders in it, the ones Files shows: Downloads is ChromeOS's own,
+# Desktop, Documents, Music, Pictures and Videos are made here. Without this
+# file GLib and others know no Downloads folder at all; files from phones
+# (Valent), browsers' downloads and file choosers' shortcuts go there.
+# "$HOME/" turns templates and public share off. Run as the session user
+# when the session starts (nickel-session.conf); written once, the user's
+# own changes are kept, except a file from before one home, whose folders
+# were in ~/MyFiles.
+f="${XDG_CONFIG_HOME:-${HOME}/.config}/user-dirs.dirs"
+[ -e "${f}" ] && ! grep -q '"$HOME/MyFiles' "${f}" && exit 0
+mkdir -p "${f%/*}"
+cat > "${f}.new" <<'DIRS'
+XDG_DESKTOP_DIR="$HOME/Desktop"
+XDG_DOWNLOAD_DIR="$HOME/Downloads"
+XDG_DOCUMENTS_DIR="$HOME/Documents"
+XDG_MUSIC_DIR="$HOME/Music"
+XDG_PICTURES_DIR="$HOME/Pictures"
+XDG_VIDEOS_DIR="$HOME/Videos"
+XDG_TEMPLATES_DIR="$HOME/"
+XDG_PUBLICSHARE_DIR="$HOME/"
+DIRS
+mv -f "${f}.new" "${f}"
+mkdir -p "${HOME}/Desktop" "${HOME}/Documents" "${HOME}/Music" \
+  "${HOME}/Pictures" "${HOME}/Videos"

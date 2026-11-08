@@ -1,0 +1,56 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Chrome lives on when the Linux session's D-Bus goes
+
+Chrome talks to the Linux session's D-Bus (nickel-session's, at
+/run/user/<uid>/bus) for KDE Connect (0028) and cloud storage (0050), on
+private connections. That bus ends when the session does, at sign-out,
+before Chrome has exited; and dbus::Bus aborts the whole process when any
+of its connections is lost ("D-Bus connection was disconnected.
+Aborting."), as it should for the system's buses. So every sign-out
+crashed Chrome: a crash report each time, and at the next sign-in
+"Chromium didn't shut down correctly" with a browser window it reopened.
+
+The KDE Connect and cloud storage connections give dbus::Bus a
+disconnected_callback (Chrome 157: "dbus: Let desktop Linux end the
+session instead of crashing when a bus is lost"): a lost connection is
+logged and its calls fail from then on. Up to Chrome 156 this patch added
+its own Options::abort_on_disconnect to dbus::Bus.
+
+diff --git a/chrome/browser/ash/file_manager/nickel_cloud_client.cc b/chrome/browser/ash/file_manager/nickel_cloud_client.cc
+index bb3437af40e78..4b9bf621fcf3c 100644
+--- a/chrome/browser/ash/file_manager/nickel_cloud_client.cc
++++ b/chrome/browser/ash/file_manager/nickel_cloud_client.cc
+@@ -78,6 +78,10 @@ void NickelCloudClient::Connect() {
+   options.address = base::StringPrintf("unix:path=/run/user/%u/bus",
+                                        static_cast<unsigned>(getuid()));
+   options.connection_type = dbus::Bus::PRIVATE;
++  // It ends at sign-out, before Chrome does: logged, and its calls fail
++  // from then on (without a callback, dbus::Bus aborts Chrome).
++  options.disconnected_callback = base::BindOnce(
++      [] { LOG(WARNING) << "the Linux session's D-Bus is gone"; });
+   options.dbus_task_runner = DBusThread()->task_runner();
+   bus_ = base::MakeRefCounted<dbus::Bus>(std::move(options));
+   bus_->GetDBusTaskRunner()->PostTaskAndReplyWithResult(
+diff --git a/chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.cc b/chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.cc
+index bd4284bc62836..fff60459cbe08 100644
+--- a/chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.cc
++++ b/chrome/browser/ui/webui/ash/settings/pages/multidevice/nickel_phones_handler.cc
+@@ -16,6 +16,7 @@
+ #include "base/containers/fixed_flat_set.h"
+ #include "base/files/file_path.h"
+ #include "base/functional/bind.h"
++#include "base/logging.h"
+ #include "base/message_loop/message_pump_type.h"
+ #include "base/no_destructor.h"
+ #include "base/strings/stringprintf.h"
+@@ -68,6 +69,10 @@ dbus::Bus* SessionBus() {
+     options.address = base::StringPrintf("unix:path=/run/user/%u/bus",
+                                          static_cast<unsigned>(getuid()));
+     options.connection_type = dbus::Bus::PRIVATE;
++    // It ends at sign-out, before Chrome does: logged, and its calls fail
++    // from then on (without a callback, dbus::Bus aborts Chrome).
++    options.disconnected_callback = base::BindOnce(
++        [] { LOG(WARNING) << "the Linux session's D-Bus is gone"; });
+     options.dbus_task_runner = thread->task_runner();
+     *bus = base::MakeRefCounted<dbus::Bus>(std::move(options));
+   }

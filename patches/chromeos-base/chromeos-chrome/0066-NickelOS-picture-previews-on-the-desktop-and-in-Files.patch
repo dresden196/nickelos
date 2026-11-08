@@ -1,0 +1,844 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: picture previews on the desktop and in Files
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Files already shows previews of the pictures and videos Chrome can decode
+(its image loader extension: JPEG, PNG, GIF, WebP, AVIF, RAW photos, PDFs,
+H.264/VP9/AV1 video). What it can't decode got a plain icon: HEIC/HEIF
+photos (what phones take) and video in codecs it has no decoder for (H.265
+without a hardware decoder). The desktop's icons (0057) had no previews
+at all.
+
+- Files: HEIC/HEIF are pictures (file_types.json5). Its image loader asks
+  the system's thumbnailers for them, and for a video it can't play:
+  imageLoaderPrivate.getNickelThumbnail(url, width, height), which asks
+  nickel-appd (org.nickelos.Apps.Thumbnail(path, size) -> PNG; sandboxed
+  libheif and ffmpegthumbnailer, cached in ~/.cache/thumbnails under the
+  path Linux apps know the file by).
+- ash::ThumbnailLoader takes HEIC/HEIF, and can keep a picture's
+  proportions (ThumbnailRequest's crop false: the image loader's
+  maxWidth/maxHeight) instead of cutting it to a square.
+- The desktop: NickelDesktopClient::LoadThumbnail, through that loader;
+  pictures, RAW photos, videos and PDFs show their preview in place of
+  the tile, in proportion, with rounded corners, a thin edge and a play
+  badge on videos.
+- The image loader is version 0.6 with its service worker renamed
+  (service_worker_20261012.js): a profile keeps the old worker script
+  otherwise (Chrome's service worker script cache), which has no
+  getNickelThumbnail; the old one reloads the extension on a version it
+  doesn't know (Chromium's own mechanism, the § in its sources).
+
+diff --git a/ash/nickel/desktop/nickel_desktop_view.cc b/ash/nickel/desktop/nickel_desktop_view.cc
+index 10f78562ec7fb..04c15b31f8477 100644
+--- a/ash/nickel/desktop/nickel_desktop_view.cc
++++ b/ash/nickel/desktop/nickel_desktop_view.cc
+@@ -5,6 +5,8 @@
+ #include "ash/nickel/desktop/nickel_desktop_view.h"
+ 
+ #include <algorithm>
++#include <initializer_list>
++#include <string>
+ #include <utility>
+ 
+ #include "ash/nickel/desktop/nickel_desktop_controller.h"
+@@ -18,6 +20,7 @@
+ #include "base/files/file_util.h"
+ #include "base/pickle.h"
+ #include "base/functional/bind.h"
++#include "base/memory/weak_ptr.h"
+ #include "base/strings/string_split.h"
+ #include "base/strings/string_util.h"
+ #include "base/strings/strcat.h"
+@@ -29,6 +32,10 @@
+ #include "chromeos/ui/base/file_icon_util.h"
+ #include "components/prefs/pref_service.h"
+ #include "components/prefs/scoped_user_pref_update.h"
++#include "third_party/skia/include/core/SkBitmap.h"
++#include "third_party/skia/include/core/SkPath.h"
++#include "third_party/skia/include/core/SkPathBuilder.h"
++#include "third_party/skia/include/core/SkRRect.h"
+ #include "ui/accessibility/ax_enums.mojom.h"
+ #include "ui/aura/window.h"
+ #include "ui/base/clipboard/clipboard_format_type.h"
+@@ -53,7 +60,11 @@
+ #include "ui/events/event.h"
+ #include "ui/gfx/canvas.h"
+ #include "ui/gfx/geometry/rect_f.h"
++#include "ui/gfx/geometry/size_conversions.h"
++#include "ui/gfx/geometry/skia_conversions.h"
++#include "ui/gfx/image/image_skia.h"
+ #include "ui/gfx/range/range.h"
++#include "ui/gfx/scoped_canvas.h"
+ #include "ui/gfx/shadow_value.h"
+ #include "ui/strings/grit/ui_strings.h"
+ #include "ui/views/accessibility/view_accessibility.h"
+@@ -87,6 +98,38 @@ constexpr int kHighlightRadius = 12;
+ // The name's pill: around the text, as wide as its longest line.
+ constexpr auto kLabelPadding = gfx::Insets::VH(1, 5);
+ constexpr int kLabelRadius = 7;
++// A picture's, video's or PDF's preview: in proportion, at most this big,
++// where the tile would be; fetched at twice the size for HiDPI screens.
++constexpr int kThumbnailWidth = 68;
++constexpr int kThumbnailHeight = 58;
++constexpr float kThumbnailRadius = 6;
++constexpr float kThumbnailScale = 2;
++
++// The files that get a preview, as in Files: pictures (HEIC/HEIF through the
++// system's thumbnailers), RAW photos, videos and PDFs.
++bool HasExtension(const base::FilePath& path,
++                  std::initializer_list<const char*> extensions) {
++  const std::string extension = base::ToLowerASCII(path.FinalExtension());
++  for (const char* candidate : extensions) {
++    if (extension == candidate) {
++      return true;
++    }
++  }
++  return false;
++}
++
++bool IsVideo(const base::FilePath& path) {
++  return HasExtension(path, {".mp4", ".m4v", ".mov", ".mkv", ".webm", ".avi",
++                             ".3gp", ".3gpp", ".ogv", ".mpg", ".mpeg"});
++}
++
++bool HasPreview(const base::FilePath& path) {
++  return IsVideo(path) ||
++         HasExtension(path, {".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif",
++                             ".bmp", ".ico", ".tif", ".tiff", ".svg", ".heic",
++                             ".heif", ".arw", ".cr2", ".dng", ".nef", ".nrw",
++                             ".orf", ".raf", ".rw2", ".pdf"});
++}
+ 
+ // Menu commands. The shelf's (shelf position, autohide, wallpaper) start at
+ // ShelfContextMenuModel::MENU_ASH_START.
+@@ -159,6 +202,9 @@ class NickelDesktopIconView : public views::View {
+         is_directory_(entry.is_directory) {
+     image_view_ = AddChildView(std::make_unique<views::ImageView>());
+     UpdateImage();
++    if (!is_directory_ && HasPreview(path_)) {
++      LoadThumbnail();
++    }
+ 
+     const std::u16string name = entry.path.BaseName().LossyDisplayName();
+     label_ = AddChildView(std::make_unique<views::Label>(name));
+@@ -253,6 +299,10 @@ class NickelDesktopIconView : public views::View {
+       canvas->DrawRoundRect(gfx::RectF(GetLocalBounds()), kHighlightRadius,
+                             flags);
+     }
++    if (!thumbnail_.isNull()) {
++      PaintThumbnail(canvas);
++      return;
++    }
+     // The tile is the system's raised surface (as menus and bubbles are),
+     // light or dark with the theme, as the file type icons are.
+     flags.setColor(SkColorSetA(
+@@ -307,6 +357,76 @@ class NickelDesktopIconView : public views::View {
+     image_view_->SetImage(ui::ImageModel::FromImageSkia(image_));
+   }
+ 
++  void LoadThumbnail() {
++    NickelDesktopClient* client = NickelDesktopClient::Get();
++    if (!client) {
++      return;
++    }
++    is_video_ = IsVideo(path_);
++    client->LoadThumbnail(
++        path_, kThumbnailWidth * kThumbnailScale,
++        base::BindOnce(&NickelDesktopIconView::OnThumbnail,
++                       weak_factory_.GetWeakPtr()));
++  }
++
++  void OnThumbnail(const SkBitmap& bitmap) {
++    if (bitmap.drawsNothing()) {
++      return;
++    }
++    thumbnail_ = gfx::ImageSkia::CreateFromBitmap(bitmap, kThumbnailScale);
++    image_view_->SetVisible(false);
++    SchedulePaint();
++  }
++
++  // The preview, in proportion, centred where the tile would be (a small
++  // picture no bigger than it is), with a thin edge that shows on any
++  // wallpaper, and a play badge on videos.
++  void PaintThumbnail(gfx::Canvas* canvas) {
++    const gfx::Rect tile = GetTileBounds();
++    const float scale =
++        std::min({kThumbnailWidth / static_cast<float>(thumbnail_.width()),
++                  kThumbnailHeight / static_cast<float>(thumbnail_.height()),
++                  kThumbnailScale});
++    const gfx::Size size = gfx::ToRoundedSize(
++        gfx::ScaleSize(gfx::SizeF(thumbnail_.size()), scale));
++    const gfx::Rect rect(tile.CenterPoint().x() - size.width() / 2,
++                         tile.CenterPoint().y() - size.height() / 2,
++                         size.width(), size.height());
++    {
++      gfx::ScopedCanvas scoped_canvas(canvas);
++      canvas->ClipPath(SkPath::RRect(SkRRect::MakeRectXY(
++                           gfx::RectToSkRect(rect), kThumbnailRadius,
++                           kThumbnailRadius)),
++                       /*do_anti_alias=*/true);
++      canvas->DrawImageInt(thumbnail_, 0, 0, thumbnail_.width(),
++                           thumbnail_.height(), rect.x(), rect.y(),
++                           rect.width(), rect.height(), /*filter=*/true);
++    }
++    cc::PaintFlags edge;
++    edge.setAntiAlias(true);
++    edge.setStyle(cc::PaintFlags::kStroke_Style);
++    edge.setStrokeWidth(1);
++    edge.setColor(SkColorSetA(SK_ColorBLACK, 0x40));
++    gfx::RectF edge_rect(rect);
++    edge_rect.Inset(0.5f);
++    canvas->DrawRoundRect(edge_rect, kThumbnailRadius - 0.5f, edge);
++    if (!is_video_) {
++      return;
++    }
++    const gfx::PointF center(rect.right() - 11, rect.bottom() - 11);
++    cc::PaintFlags badge;
++    badge.setAntiAlias(true);
++    badge.setColor(SkColorSetA(SK_ColorBLACK, 0x99));
++    canvas->DrawCircle(center, 8, badge);
++    badge.setColor(SK_ColorWHITE);
++    SkPathBuilder play;
++    play.moveTo(center.x() - 2.5f, center.y() - 4);
++    play.lineTo(center.x() + 4.5f, center.y());
++    play.lineTo(center.x() - 2.5f, center.y() + 4);
++    play.close();
++    canvas->DrawPath(play.detach(), badge);
++  }
++
+   gfx::Rect GetTileBounds() const {
+     return gfx::Rect((width() - kTileSize) / 2, kTileTop, kTileSize,
+                      kTileSize);
+@@ -320,6 +440,10 @@ class NickelDesktopIconView : public views::View {
+   raw_ptr<views::Label> label_;
+   bool selected_ = false;
+   bool hovered_ = false;
++  // The preview, once there is one.
++  gfx::ImageSkia thumbnail_;
++  bool is_video_ = false;
++  base::WeakPtrFactory<NickelDesktopIconView> weak_factory_{this};
+ };
+ 
+ BEGIN_METADATA(NickelDesktopIconView)
+diff --git a/ash/public/cpp/nickel_desktop_client.h b/ash/public/cpp/nickel_desktop_client.h
+index e1376712b8f8b..3ea5064d1fd21 100644
+--- a/ash/public/cpp/nickel_desktop_client.h
++++ b/ash/public/cpp/nickel_desktop_client.h
+@@ -8,8 +8,10 @@
+ #include <vector>
+ 
+ #include "ash/public/cpp/ash_public_export.h"
++#include "base/functional/callback.h"
+ 
+ class GURL;
++class SkBitmap;
+ 
+ namespace base {
+ class FilePath;
+@@ -55,6 +57,14 @@ class ASH_PUBLIC_EXPORT NickelDesktopClient {
+   // is what dragging does in Files.
+   virtual bool IsInMyFiles(const base::FilePath& path) = 0;
+ 
++  // A preview of the picture, video or PDF at `path`, as Files makes them,
++  // at most `size` pixels on its longer side and in proportion; a null
++  // bitmap when there is none.
++  using ThumbnailCallback = base::OnceCallback<void(const SkBitmap& bitmap)>;
++  virtual void LoadThumbnail(const base::FilePath& path,
++                             int size,
++                             ThumbnailCallback callback) = 0;
++
+  protected:
+   NickelDesktopClient();
+   virtual ~NickelDesktopClient();
+diff --git a/chrome/browser/ash/extensions/file_manager/BUILD.gn b/chrome/browser/ash/extensions/file_manager/BUILD.gn
+index 4c57d107a5ec4..0ef44aa33cbf9 100644
+--- a/chrome/browser/ash/extensions/file_manager/BUILD.gn
++++ b/chrome/browser/ash/extensions/file_manager/BUILD.gn
+@@ -117,6 +117,7 @@ static_library("file_manager") {
+     "//chrome/services/pdf/public/mojom",
+     "//chromeos/ash/components/browser_context_helper",
+     "//chromeos/ash/components/browser_delegate",
++    "//chromeos/ash/components/dbus",
+     "//chromeos/ash/components/dbus/cros_disks",
+     "//chromeos/ash/components/disks",
+     "//chromeos/ash/components/drivefs",
+@@ -148,6 +149,7 @@ static_library("file_manager") {
+     "//components/zoom",
+     "//content/public/browser",
+     "//content/public/common",
++    "//dbus",
+     "//extensions/browser",
+     "//google_apis/drive",
+     "//mojo/public/cpp/bindings",
+diff --git a/chrome/browser/ash/extensions/file_manager/image_loader_private_api.cc b/chrome/browser/ash/extensions/file_manager/image_loader_private_api.cc
+index 3ab2c3c9b5f6a..648ac5717c8c1 100644
+--- a/chrome/browser/ash/extensions/file_manager/image_loader_private_api.cc
++++ b/chrome/browser/ash/extensions/file_manager/image_loader_private_api.cc
+@@ -15,6 +15,7 @@
+ #include "base/task/thread_pool.h"
+ #include "chrome/browser/ash/arc/fileapi/arc_documents_provider_root_map.h"
+ #include "chrome/browser/ash/arc/fileapi/arc_file_system_operation_runner.h"
++#include "chrome/browser/ash/crostini/crostini_util.h"
+ #include "chrome/browser/ash/drive/drive_integration_service.h"
+ #include "chrome/browser/ash/drive/drive_integration_service_factory.h"
+ #include "chrome/browser/ash/extensions/file_manager/private_api_util.h"
+@@ -25,10 +26,15 @@
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/services/pdf/public/mojom/pdf_service.mojom.h"
+ #include "chromeos/ash/experiences/extensions/common/api/image_loader_private.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
+ #include "components/prefs/pref_service.h"
+ #include "components/signin/public/base/consent_level.h"
+ #include "content/public/browser/browser_task_traits.h"
+ #include "content/public/browser/browser_thread.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_path.h"
++#include "dbus/object_proxy.h"
+ #include "mojo/public/cpp/bindings/callback_helpers.h"
+ #include "net/base/mime_sniffer.h"
+ #include "net/base/mime_util.h"
+@@ -71,6 +77,44 @@ std::string ConvertAndEncode(const SkBitmap& bitmap) {
+                                           skia::as_byte_span(*png_data));
+ }
+ 
++// NickelOS: thumbnails can wait behind others nickel-appd is making.
++constexpr int kNickelThumbnailTimeoutMs = 120 * 1000;
++
++// nickel-appd's Thumbnail(path, size) -> (png).
++void GetNickelThumbnail(
++    const base::FilePath& path,
++    int size,
++    base::OnceCallback<void(std::optional<std::vector<uint8_t>>)> callback) {
++  dbus::ObjectProxy* proxy =
++      ash::DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++          crostini::kNickelAppsServiceName,
++          dbus::ObjectPath(crostini::kNickelAppsServicePath));
++  dbus::MethodCall method_call(crostini::kNickelAppsServiceInterface,
++                               "Thumbnail");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(path.value());
++  writer.AppendUint32(static_cast<uint32_t>(size));
++  proxy->CallMethod(
++      &method_call, kNickelThumbnailTimeoutMs,
++      base::BindOnce(
++          [](base::OnceCallback<void(std::optional<std::vector<uint8_t>>)>
++                 callback,
++             dbus::Response* response) {
++            if (!response) {
++              std::move(callback).Run(std::nullopt);
++              return;
++            }
++            dbus::MessageReader reader(response);
++            base::span<const uint8_t> png;
++            if (!reader.PopArrayOfBytes(&png) || png.empty()) {
++              std::move(callback).Run(std::nullopt);
++              return;
++            }
++            std::move(callback).Run(std::vector<uint8_t>(png.begin(), png.end()));
++          },
++          std::move(callback)));
++}
++
+ // The maximum size of the input PDF file for which thumbnails are generated.
+ constexpr uint32_t kMaxPdfSizeInBytes = 1024u * 1024u;
+ 
+@@ -282,6 +326,60 @@ void ImageLoaderPrivateGetPdfThumbnailFunction::GotThumbnail(
+           this));
+ }
+ 
++ImageLoaderPrivateGetNickelThumbnailFunction::
++    ImageLoaderPrivateGetNickelThumbnailFunction() = default;
++
++ImageLoaderPrivateGetNickelThumbnailFunction::
++    ~ImageLoaderPrivateGetNickelThumbnailFunction() = default;
++
++ExtensionFunction::ResponseAction
++ImageLoaderPrivateGetNickelThumbnailFunction::Run() {
++  using extensions::api::image_loader_private::GetNickelThumbnail::Params;
++  const std::optional<Params> params = Params::Create(args());
++  EXTENSION_FUNCTION_VALIDATE(params);
++
++  Profile* profile = Profile::FromBrowserContext(browser_context());
++  scoped_refptr<storage::FileSystemContext> file_system_context =
++      file_manager::util::GetFileManagerFileSystemContext(profile);
++  const GURL url = GURL(params->url);
++  const storage::FileSystemURL file_system_url =
++      file_system_context->CrackURLInFirstPartyContext(url);
++  if (file_system_url.type() != storage::kFileSystemTypeLocal) {
++    return RespondNow(Error("Expected a native local URL"));
++  }
++  const base::FilePath path =
++      file_manager::util::GetLocalPathFromURL(file_system_context, url);
++  if (path.empty()) {
++    return RespondNow(Error("Expected a native local URL"));
++  }
++  // As Linux apps know it (in the home, not My files): the thumbnail's
++  // name in ~/.cache/thumbnails, which file managers share, comes from it.
++  GetNickelThumbnail(
++      crostini::NickelPathForLinuxApps(profile, path),
++      std::max(params->width, params->height),
++      base::BindOnce(
++          &ImageLoaderPrivateGetNickelThumbnailFunction::GotThumbnail, this));
++  return RespondLater();
++}
++
++void ImageLoaderPrivateGetNickelThumbnailFunction::GotThumbnail(
++    std::optional<std::vector<uint8_t>> png) {
++  if (!png) {
++    Respond(Error("No thumbnail"));
++    return;
++  }
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE,
++      base::BindOnce(
++          [](std::vector<uint8_t> png) {
++            return MakeThumbnailDataUrlOnThreadPool(kMimeTypeImagePng, png);
++          },
++          std::move(*png)),
++      base::BindOnce(
++          &ImageLoaderPrivateGetNickelThumbnailFunction::SendEncodedThumbnail,
++          this));
++}
++
+ ImageLoaderPrivateGetArcDocumentsProviderThumbnailFunction::
+     ImageLoaderPrivateGetArcDocumentsProviderThumbnailFunction() = default;
+ 
+diff --git a/chrome/browser/ash/extensions/file_manager/image_loader_private_api.h b/chrome/browser/ash/extensions/file_manager/image_loader_private_api.h
+index 8dece02c7bd13..0e42d3439b220 100644
+--- a/chrome/browser/ash/extensions/file_manager/image_loader_private_api.h
++++ b/chrome/browser/ash/extensions/file_manager/image_loader_private_api.h
+@@ -94,6 +94,28 @@ class ImageLoaderPrivateGetPdfThumbnailFunction
+   constexpr static int kDpi = 30;
+ };
+ 
++// NickelOS: a thumbnail of a local file Chrome can't decode itself (HEIC/HEIF
++// photos, videos in a codec it has no decoder for), made by the system's
++// thumbnailers: nickel-appd's Thumbnail(path, size), over D-Bus.
++class ImageLoaderPrivateGetNickelThumbnailFunction
++    : public ImageLoaderPrivateGetThumbnailFunction {
++ public:
++  DECLARE_EXTENSION_FUNCTION("imageLoaderPrivate.getNickelThumbnail",
++                             IMAGELOADERPRIVATE_GETNICKELTHUMBNAIL)
++
++  ImageLoaderPrivateGetNickelThumbnailFunction();
++
++ protected:
++  ~ImageLoaderPrivateGetNickelThumbnailFunction() override;
++
++  // ExtensionFunction overrides.
++  ResponseAction Run() override;
++
++ private:
++  // nickel-appd's answer: a PNG, or none.
++  void GotThumbnail(std::optional<std::vector<uint8_t>> png);
++};
++
+ class ImageLoaderPrivateGetArcDocumentsProviderThumbnailFunction
+     : public ImageLoaderPrivateGetThumbnailFunction {
+  public:
+diff --git a/chrome/browser/ui/ash/nickel_desktop/BUILD.gn b/chrome/browser/ui/ash/nickel_desktop/BUILD.gn
+index 673e3ac64f832..a7dafe7504c53 100644
+--- a/chrome/browser/ui/ash/nickel_desktop/BUILD.gn
++++ b/chrome/browser/ui/ash/nickel_desktop/BUILD.gn
+@@ -18,8 +18,11 @@ static_library("nickel_desktop") {
+     "//base",
+     "//chrome/browser/ash/file_manager",
+     "//chrome/browser/profiles:profile",
++    "//chrome/browser/ui/ash/thumbnail_loader",
+     "//components/user_manager",
++    "//skia",
+     "//storage/browser",
++    "//ui/gfx/geometry",
+     "//url",
+   ]
+ }
+diff --git a/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.cc b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.cc
+index f97ef7ff9b99a..e4fa478550999 100644
+--- a/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.cc
++++ b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.cc
+@@ -20,9 +20,12 @@
+ #include "chrome/browser/platform_util.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/profiles/profile_manager.h"
++#include "chrome/browser/ui/ash/thumbnail_loader/thumbnail_loader.h"
+ #include "components/user_manager/user_manager.h"
+ #include "storage/browser/file_system/file_system_context.h"
+ #include "storage/browser/file_system/file_system_url.h"
++#include "third_party/skia/include/core/SkBitmap.h"
++#include "ui/gfx/geometry/size.h"
+ #include "url/gurl.h"
+ 
+ namespace {
+@@ -147,3 +150,28 @@ bool NickelDesktopClientImpl::IsInMyFiles(const base::FilePath& path) {
+       file_manager::util::GetMyFilesFolderForProfile(profile);
+   return my_files == path || my_files.IsParent(path);
+ }
++
++void NickelDesktopClientImpl::LoadThumbnail(const base::FilePath& path,
++                                            int size,
++                                            ThumbnailCallback callback) {
++  Profile* profile = GetProfile();
++  if (!profile) {
++    std::move(callback).Run(SkBitmap());
++    return;
++  }
++  if (!thumbnail_loader_ || thumbnail_profile_ != profile) {
++    thumbnail_loader_ = std::make_unique<ash::ThumbnailLoader>(profile);
++    thumbnail_profile_ = profile;
++  }
++  // The whole picture, as macOS and Windows show them (Files' grid cuts
++  // them to squares).
++  thumbnail_loader_->Load(
++      ash::ThumbnailLoader::ThumbnailRequest(path, gfx::Size(size, size),
++                                             /*crop=*/false),
++      base::BindOnce(
++          [](ThumbnailCallback callback, const SkBitmap* bitmap,
++             base::File::Error) {
++            std::move(callback).Run(bitmap ? *bitmap : SkBitmap());
++          },
++          std::move(callback)));
++}
+diff --git a/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h
+index a7b53de618182..de5467656b4a0 100644
+--- a/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h
++++ b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h
+@@ -5,9 +5,15 @@
+ #ifndef CHROME_BROWSER_UI_ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_CLIENT_IMPL_H_
+ #define CHROME_BROWSER_UI_ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_CLIENT_IMPL_H_
+ 
++#include <memory>
+ #include <vector>
+ 
+ #include "ash/public/cpp/nickel_desktop_client.h"
++#include "base/memory/raw_ptr.h"
++
++namespace ash {
++class ThumbnailLoader;
++}  // namespace ash
+ 
+ class Profile;
+ 
+@@ -29,10 +35,18 @@ class NickelDesktopClientImpl : public ash::NickelDesktopClient {
+                            bool move) override;
+   base::FilePath CrackFileSystemUrl(const GURL& url) override;
+   bool IsInMyFiles(const base::FilePath& path) override;
++  void LoadThumbnail(const base::FilePath& path,
++                     int size,
++                     ThumbnailCallback callback) override;
+ 
+  private:
+   // The signed-in user's profile, or null.
+   Profile* GetProfile();
++
++  // Previews come from Files' image loader through this, for the profile it
++  // was made for.
++  std::unique_ptr<ash::ThumbnailLoader> thumbnail_loader_;
++  raw_ptr<Profile, DanglingUntriaged> thumbnail_profile_ = nullptr;
+ };
+ 
+ #endif  // CHROME_BROWSER_UI_ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_CLIENT_IMPL_H_
+diff --git a/chrome/browser/ui/ash/thumbnail_loader/thumbnail_loader.cc b/chrome/browser/ui/ash/thumbnail_loader/thumbnail_loader.cc
+index 550fd3311ad37..d55ac84962bd7 100644
+--- a/chrome/browser/ui/ash/thumbnail_loader/thumbnail_loader.cc
++++ b/chrome/browser/ui/ash/thumbnail_loader/thumbnail_loader.cc
+@@ -56,7 +56,7 @@ constexpr char kNativeMessageHostName[] = "com.google.ash_thumbnail_loader";
+ 
+ // Returns whether the given `file_path` is supported by the `ThumbnailLoader`.
+ bool IsSupported(const base::FilePath& file_path) {
+-  constexpr std::array<std::pair<const char*, const char*>, 25>
++  constexpr std::array<std::pair<const char*, const char*>, 26>
+       kFileMatchPatterns = {{
+           // Document types ----------------------------------------------------
+           {
+@@ -100,6 +100,11 @@ bool IsSupported(const base::FilePath& file_path) {
+               /*extension=*/"(?i)\\.avif$",
+               /*mime_type=*/"(?i)image\\/avif",
+           },
++          // NickelOS: phones' photos, from the system's thumbnailers.
++          {
++              /*extension=*/"(?i)\\.hei[cf]$",
++              /*mime_type=*/"(?i)image\\/hei[cf]",
++          },
+           // Raw types ---------------------------------------------------------
+           {
+               /*extension=*/"(?i)\\.arw$",
+@@ -289,8 +294,9 @@ ThumbnailLoader::~ThumbnailLoader() {
+ 
+ ThumbnailLoader::ThumbnailRequest::ThumbnailRequest(
+     const base::FilePath& file_path,
+-    const gfx::Size& size)
+-    : file_path(file_path), size(size) {}
++    const gfx::Size& size,
++    bool crop)
++    : file_path(file_path), size(size), crop(crop) {}
+ 
+ ThumbnailLoader::ThumbnailRequest::~ThumbnailRequest() = default;
+ 
+@@ -378,10 +384,16 @@ void ThumbnailLoader::LoadForFileWithMetadata(
+   request_dict.Set("timestamp", base::TimeToValue(file_info.last_modified));
+   // TODO(crbug.com/2650014) : Add an arg to set this to false for sharesheet.
+   request_dict.Set("cache", true);
+-  request_dict.Set("crop", true);
+   request_dict.Set("priority", base::Value(1));
+-  request_dict.Set("width", base::Value(size));
+-  request_dict.Set("height", base::Value(size));
++  if (request.crop) {
++    request_dict.Set("crop", true);
++    request_dict.Set("width", base::Value(size));
++    request_dict.Set("height", base::Value(size));
++  } else {
++    // NickelOS: at most `size`, in proportion.
++    request_dict.Set("maxWidth", base::Value(request.size.width()));
++    request_dict.Set("maxHeight", base::Value(request.size.height()));
++  }
+ 
+   std::string request_message = base::WriteJson(request_dict).value_or("");
+ 
+@@ -390,7 +402,9 @@ void ThumbnailLoader::LoadForFileWithMetadata(
+   auto native_message_host = std::make_unique<ThumbnailLoaderNativeMessageHost>(
+       request_id.ToString(), request_message,
+       base::BindOnce(&ThumbnailLoader::OnThumbnailLoaded,
+-                     weak_factory_.GetWeakPtr(), request_id, request.size));
++                     weak_factory_.GetWeakPtr(), request_id,
++                     // NickelOS: an empty size is not cut to.
++                     request.crop ? request.size : gfx::Size()));
+   const extensions::PortId port_id(
+       base::UnguessableToken::Create(), 1 /* port_number */,
+       true /* is_opener */, extensions::mojom::SerializationFormat::kJson);
+@@ -467,7 +481,7 @@ void ThumbnailLoader::RespondToRequest(const base::UnguessableToken& request_id,
+   // square image. If requested dimensions were non-square, we need to perform
+   // additional cropping on our end.
+   SkBitmap cropped_bitmap;
+-  if (bitmap) {
++  if (bitmap && !requested_size.IsEmpty()) {
+     gfx::Rect cropped_rect(0, 0, bitmap->width(), bitmap->height());
+     if (cropped_rect.size() != requested_size) {
+       cropped_bitmap = *bitmap;
+diff --git a/chrome/browser/ui/ash/thumbnail_loader/thumbnail_loader.h b/chrome/browser/ui/ash/thumbnail_loader/thumbnail_loader.h
+index 3950478c71b34..d519730a98b93 100644
+--- a/chrome/browser/ui/ash/thumbnail_loader/thumbnail_loader.h
++++ b/chrome/browser/ui/ash/thumbnail_loader/thumbnail_loader.h
+@@ -38,7 +38,11 @@ class ThumbnailLoader {
+ 
+   // Thumbnail request data that will be forwarded to the image loader.
+   struct ThumbnailRequest {
+-    ThumbnailRequest(const base::FilePath& file_path, const gfx::Size& size);
++    // NickelOS: |crop| false keeps the picture's proportions (at most |size|)
++    // instead of cutting it to |size|.
++    ThumbnailRequest(const base::FilePath& file_path,
++                     const gfx::Size& size,
++                     bool crop = true);
+     ~ThumbnailRequest();
+ 
+     // The absolute file path.
+@@ -46,6 +50,9 @@ class ThumbnailLoader {
+ 
+     // The desired bitmap size.
+     const gfx::Size size;
++
++    // NickelOS: whether the bitmap is cut to `size`.
++    const bool crop;
+   };
+ 
+   // Returns a weak pointer to this instance.
+diff --git a/chromeos/ash/experiences/extensions/common/api/image_loader_private.webidl b/chromeos/ash/experiences/extensions/common/api/image_loader_private.webidl
+index 8f3b462ea225e..162b54ecfe879 100644
+--- a/chromeos/ash/experiences/extensions/common/api/image_loader_private.webidl
++++ b/chromeos/ash/experiences/extensions/common/api/image_loader_private.webidl
+@@ -23,6 +23,12 @@ interface ImageLoaderPrivate {
+   static undefined getPdfThumbnail(DOMString url, long width, long height,
+                                    GetThumbnailCallback callback);
+ 
++  // NickelOS: for a local file Chrome can't decode itself (HEIC/HEIF photos,
++  // videos in a codec it has no decoder for), a thumbnail of at most |width|
++  // x |height| from the system's thumbnailers (nickel-appd).
++  static undefined getNickelThumbnail(DOMString url, long width, long height,
++                                      GetThumbnailCallback callback);
++
+   // Retrieves a thumbnail of an ARC DocumentsProvider file, closely matching
+   // the hinted size specified by |widthHint| and |heightHint|, but not
+   // necessarily the exact size. |callback| is called with thumbnail data
+diff --git a/extensions/browser/extension_function_histogram_value.h b/extensions/browser/extension_function_histogram_value.h
+index 1a54c2b5e970c..df8727709c827 100644
+--- a/extensions/browser/extension_function_histogram_value.h
++++ b/extensions/browser/extension_function_histogram_value.h
+@@ -2055,6 +2055,8 @@ enum HistogramValue {
+   AUTOFILLPRIVATE_GETDETAILSFORUPSERTPASS = 1990,
+   AUTOFILLPRIVATE_PRELOADDETAILSFORUPSERTPASS = 1991,
+   EXPERIMENTALAIDATA_GETAPCSNAPSHOT = 1992,
++  // NickelOS.
++  IMAGELOADERPRIVATE_GETNICKELTHUMBNAIL = 1993,
+   // Last entry: Add new entries above, then run:
+   // tools/metrics/histograms/update_extension_histograms.py
+   ENUM_BOUNDARY
+diff --git a/ui/file_manager/BUILD.gn b/ui/file_manager/BUILD.gn
+index dd9d6bb3f968b..5829db278f1f3 100644
+--- a/ui/file_manager/BUILD.gn
++++ b/ui/file_manager/BUILD.gn
+@@ -270,7 +270,8 @@ generated_grd = "$target_gen_dir/${grd_prefix}_resources.grd"
+ # Appending this suffix works around the Service Worker Script Cache serving
+ # old versions, by changing the cache key. The script itself now also has some
+ # runtime code to reload on a stale version. Look for § in the TS files.
+-image_loader_service_worker_version = "20241016"
++# NickelOS: a new name for its getNickelThumbnail (0066).
++image_loader_service_worker_version = "20261012"
+ 
+ generate_grd("build_grd") {
+   out_grd = generated_grd
+diff --git a/ui/file_manager/base/gn/file_types.json5 b/ui/file_manager/base/gn/file_types.json5
+index af61387c362d2..4aeadc401aafd 100644
+--- a/ui/file_manager/base/gn/file_types.json5
++++ b/ui/file_manager/base/gn/file_types.json5
+@@ -88,6 +88,15 @@
+     "extensions": [".avif"],
+     "mime": "image/avif"
+   },
++  // NickelOS: phones' photos. Chrome can't decode them; their thumbnails
++  // come from the system's thumbnailers (imageLoaderPrivate.getNickelThumbnail).
++  {
++    "type": "image",
++    "translationKey": "IMAGE_FILE_TYPE",
++    "subtype": "HEIF",
++    "extensions": [".heic", ".heif"],
++    "mime": "image/heif"
++  },
+   {
+     "type": "image",
+     "translationKey": "IMAGE_FILE_TYPE",
+diff --git a/ui/file_manager/image_loader/image_loader_private.d.ts b/ui/file_manager/image_loader/image_loader_private.d.ts
+index bd596b1b44059..b8f6831c092dd 100644
+--- a/ui/file_manager/image_loader/image_loader_private.d.ts
++++ b/ui/file_manager/image_loader/image_loader_private.d.ts
+@@ -23,6 +23,10 @@ declare namespace chrome {
+         url: string, width: number, height: number,
+         callback: (thumbnailDataUrl: string) => void): void;
+ 
++    export function getNickelThumbnail(
++        url: string, width: number, height: number,
++        callback: (thumbnailDataUrl: string) => void): void;
++
+     export function getArcDocumentsProviderThumbnail(
+         url: string, widthHint: number, heightHint: number,
+         callback: (thumbnailDataUrl: string) => void): void;
+diff --git a/ui/file_manager/image_loader/image_request_task.ts b/ui/file_manager/image_loader/image_request_task.ts
+index a2d44bd23ceeb..da131fb6931b2 100644
+--- a/ui/file_manager/image_loader/image_request_task.ts
++++ b/ui/file_manager/image_loader/image_request_task.ts
+@@ -349,6 +349,26 @@ export class ImageRequestTask {
+       return;
+     }
+ 
++    // NickelOS: the system's thumbnailers (nickel-appd), for what Chrome
++    // can't decode itself.
++    const nickelThumbnail = () => {
++      const {width, height} = this.targetThumbnailSize_();
++      return callImageLoaderPrivate({
++        apiMethod: 'getNickelThumbnail',
++        params: {
++          url: requestUrl,
++          width: this.request_.maxWidth || width,
++          height: this.request_.maxHeight || height,
++        },
++      });
++    };
++
++    // NickelOS: HEIC/HEIF photos.
++    if (/\.(heic|heif)$/i.test(requestUrl)) {
++      nickelThumbnail().then(onExternalThumbnail).catch(onFailure);
++      return;
++    }
++
+     // Load ARC DocumentsProvider thumbnail, if supported.
+     if (requestUrl.match(adpRegExp)) {
+       const {width, height} = this.targetThumbnailSize_();
+@@ -374,8 +394,12 @@ export class ImageRequestTask {
+             this.image_.src = url;
+           })
+           .catch((error) => {
+-            console.warn('Video thumbnail error: ', error);
+-            onFailure();
++            // NickelOS: a video Chrome can't decode (H.265 with no hardware
++            // decoder, and other codecs): the system's thumbnailers.
++            nickelThumbnail().then(onExternalThumbnail).catch(() => {
++              console.warn('Video thumbnail error: ', error);
++              onFailure();
++            });
+           });
+       return;
+     }
+diff --git a/ui/file_manager/image_loader/manifest.json b/ui/file_manager/image_loader/manifest.json
+index c044daf4be181..d4229344292ff 100644
+--- a/ui/file_manager/image_loader/manifest.json
++++ b/ui/file_manager/image_loader/manifest.json
+@@ -4,7 +4,8 @@
+   "name": "Image loader",
+   // When updating this "0.5" string, keep it synchronized with what's in
+   // service_worker.ts near the §.
+-  "version": "0.5",
++  // NickelOS: 0.6 for getNickelThumbnail (0066).
++  "version": "0.6",
+   "description": "Image loader",
+   "incognito" : "split",
+   "manifest_version": 3,
+@@ -17,7 +18,7 @@
+     "extension_pages": "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; frame-src 'self' blob: filesystem:; img-src 'self' blob: filesystem: data:; media-src 'self' blob: filesystem:; connect-src 'self' blob: filesystem:"
+   },
+   "background": {
+-    "service_worker": "service_worker_20241016.js",
++    "service_worker": "service_worker_20261012.js",
+     "type": "module"
+   },
+   "externally_connectable": {
+diff --git a/ui/file_manager/image_loader/service_worker.ts b/ui/file_manager/image_loader/service_worker.ts
+index fbe5af1914ada..026a5652ab4ca 100644
+--- a/ui/file_manager/image_loader/service_worker.ts
++++ b/ui/file_manager/image_loader/service_worker.ts
+@@ -81,7 +81,8 @@ async function sendToOffscreenDocument(
+ //
+ // When updating this '0.5' string, keep it synchronized with what's in
+ // manifest.json near the §.
+-if (chrome.runtime.getManifest().version !== '0.5') {
++// NickelOS: 0.6 for getNickelThumbnail (0066).
++if (chrome.runtime.getManifest().version !== '0.6') {
+   chrome.runtime.reload();
+ 
+ } else {
+@@ -114,6 +115,14 @@ if (chrome.runtime.getManifest().version !== '0.5') {
+               sendResponse,
+           );
+           return true;
++        } else if (msg.apiMethod === 'getNickelThumbnail') {
++          chrome.imageLoaderPrivate.getNickelThumbnail(
++              msg.params.url,
++              msg.params.width,
++              msg.params.height,
++              sendResponse,
++          );
++          return true;
+         }
+         return false;
+       });
+diff --git a/ui/file_manager/image_loader/sw_od_messages.ts b/ui/file_manager/image_loader/sw_od_messages.ts
+index 11e54b9fafe02..3637262d30cfb 100644
+--- a/ui/file_manager/image_loader/sw_od_messages.ts
++++ b/ui/file_manager/image_loader/sw_od_messages.ts
+@@ -37,5 +37,15 @@ export interface GetArcDocumentsProviderThumbnailPrivateApi {
+   };
+ }
+ 
++// NickelOS: a thumbnail from the system's thumbnailers (nickel-appd).
++export interface GetNickelThumbnailPrivateApi {
++  apiMethod: 'getNickelThumbnail';
++  params: {
++    url: string,
++    width: number,
++    height: number,
++  };
++}
++
+ export type PrivateApi = GetDriveThumbnailPrivateApi|GetPdfThumbnailPrivateApi|
+-    GetArcDocumentsProviderThumbnailPrivateApi;
++    GetArcDocumentsProviderThumbnailPrivateApi|GetNickelThumbnailPrivateApi;

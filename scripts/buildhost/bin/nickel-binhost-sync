@@ -1,0 +1,44 @@
+#!/bin/bash
+# Publish each board's PKGDIR under the release version of each of its
+# images:
+#   /srv/nickel/binhost/<board>/<CHROMEOS_RELEASE_VERSION>/packages -> PKGDIR
+# Symlinks only, so the server always reflects the board's current packages.
+# Every image directory counts, not only the latest: NickelOS's own fixes
+# (16836.3.1, .2, ...) come from the same packages, and a test VM on any of
+# them asks the binhost of its own version (dev_install, Portage).
+# nickel-build-stock runs this after each image.
+set -euo pipefail
+OUT=/srv/nickel/binhost
+SRC=/srv/nickel/src
+mkdir -p "$OUT"
+for dir in "$SRC"/src/build/images/*/R*-a1; do
+  [ -d "$dir" ] || continue
+  board=$(basename "$(dirname "$dir")")
+  pkgdir="$SRC/out/build/$board/packages"
+  [ -d "$pkgdir" ] || continue
+  # The version an image reports in /etc/lsb-release, e.g. 16836.3.0.
+  ver=$(basename "$dir" | sed -E 's/^R[0-9]+-([0-9.]+)-.*/\1/')
+  [ "$(readlink "$OUT/$board/$ver/packages" 2>/dev/null)" = "$pkgdir" ] && continue
+  mkdir -p "$OUT/$board/$ver"
+  ln -sfn "$pkgdir" "$OUT/$board/$ver/packages"
+  echo "published $board $ver -> $pkgdir"
+done
+
+# NickelOS (docs/unified.md): devices' own binhost, below Gentoo's,
+# carries the Unified Gentoo root's binary packages, built with the OS's
+# flags and patches: what Gentoo's binhost has at another version or with
+# other flags (the compiler at the first startup, for one) comes from here.
+#   /srv/nickel/binhost/gentoo/packages -> the root's PKGDIR
+UNIFIED_PKGDIR=${NICKEL_UNIFIED_PKGDIR:-/srv/nickel/unified/root/var/cache/uf-pkgs}
+if [ -f "$UNIFIED_PKGDIR/Packages" ]; then
+  # Root's Portage writes them for root only; the server runs as nickel.
+  sudo -n chmod -R a+rX "$UNIFIED_PKGDIR" 2>/dev/null || chmod -R a+rX "$UNIFIED_PKGDIR" 2>/dev/null || true
+  mkdir -p "$OUT/gentoo"
+  if [ -d "$OUT/gentoo/packages" ] && [ ! -L "$OUT/gentoo/packages" ]; then
+    mv "$OUT/gentoo/packages" "$OUT/gentoo/packages.two-world"
+  fi
+  if [ "$(readlink "$OUT/gentoo/packages" 2>/dev/null)" != "$UNIFIED_PKGDIR" ]; then
+    ln -sfn "$UNIFIED_PKGDIR" "$OUT/gentoo/packages"
+    echo "published gentoo/packages -> $UNIFIED_PKGDIR"
+  fi
+fi

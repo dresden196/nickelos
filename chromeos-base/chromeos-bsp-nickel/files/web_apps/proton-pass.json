@@ -1,0 +1,24 @@
+{
+  "app_url": "https://pass.proton.me/",
+  "launch_container": "window",
+  "user_type": [
+    "unmanaged"
+  ],
+  "feature_name": "NickelFullExperience",
+  "only_use_offline_manifest": true,
+  "offline_manifest": {
+    "name": "Proton Pass",
+    "start_url": "https://pass.proton.me/",
+    "scope": "https://pass.proton.me/",
+    "display": "standalone",
+    "icon_any_pngs": [
+      "icons/proton-pass-192.png",
+      "icons/proton-pass-512.png"
+    ],
+    "icon_maskable_pngs": [
+      "icons/proton-pass-maskable-192.png",
+      "icons/proton-pass-maskable-512.png"
+    ],
+    "theme_color_argb_hex": "FF1B1340"
+  }
+}

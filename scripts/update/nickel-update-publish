@@ -1,0 +1,212 @@
+#!/bin/bash
+# Turns a NickelOS image into a signed update payload offered on a channel
+# of the update server (nickel-update-server). Runs on a build host as root
+# (it mounts the image and runs the SDK as the build user). docs/updates.md,
+# "Publishing" and "Keys".
+#
+#   nickel-update-publish IMAGE CHANNEL [ROOT] [KEY]
+#       sign here with KEY (default the TEST key,
+#       /srv/nickel/keys/update-payload-test.pem) and publish
+#   nickel-update-publish --unsigned IMAGE CHANNEL [ROOT] [PUBKEY]
+#       for the production key, which never leaves Dresden's removable
+#       media: make the payload unsigned in ROOT/pending/<name>/ with the
+#       two hashes to sign; then nickel-update-sign (on the laptop), then
+#   nickel-update-publish --finish NAME [ROOT]
+#       put the signatures in, verify the payload against the image's key,
+#       publish
+#
+#   IMAGE    a NickelOS image (chromiumos_test_image.bin or a base image)
+#   CHANNEL  stable, beta or dev
+#   ROOT     the server's directory (default /srv/nickel/update)
+#   PUBKEY   the public key the image must carry (default this overlay's
+#            chromeos-base/nickel-update/files/update-payload-key.pub.pem)
+#
+# The image's version, app ID and payload key come from the image itself
+# (/etc/lsb-release, /usr/share/update_engine/update-payload-key.pub.pem).
+# It refuses an image whose payload key isn't the signing key's public half:
+# PCs running it could not verify the updates that follow.
+#
+# A PC's channel is the one written in its system image (update_engine reads
+# the current channel from the image's lsb-release only; Settings shows it),
+# so the image published on a channel must name that channel. If IMAGE
+# names another, the payload is made from a copy with the channel changed,
+# the way Google's signers do it per channel: promoting a build from Beta
+# to Stable is publishing the same image again on stable. (NickelOS images
+# are built without rootfs verification, so changing one file needs no new
+# hash tree.)
+#
+# The payload is ROOT/payloads/nickelos-<version>-<channel>-full.bin,
+# offered by ROOT/channels/<channel>/nickelos-<version>-<channel>-full.json.
+# nickel-update-channels lists the channels or takes a build off one.
+set -euo pipefail
+here=$(dirname "$(readlink -f "$0")")
+SRC=/srv/nickel/src
+MODE=sign
+case ${1:-} in
+--unsigned) MODE=unsigned; shift;;
+--finish) MODE=finish; shift;;
+esac
+
+sdk() { sudo -u nickel -H env PATH=/srv/nickel/src/chromite/bin:/usr/bin:/bin \
+	bash -c "cd $SRC && cros_sdk -- $*"; }
+in_sdk() { echo "/mnt/host/source/${1#"$SRC"/}"; }
+
+# Fills in what delta_generator can't know from a local image (the app ID,
+# the version, the public key as base64 of the PEM, as update_engine wants
+# it) and publishes: the payload first, then the file that offers it, each
+# renamed into place whole, so the server never sees half of either.
+#   publish DIR NAME CHANNEL ROOT   (DIR holds NAME.bin, props.json,
+#                                    key.pub.pem, meta.env)
+publish() {
+	local dir=$1 name=$2 channel=$3 root=$4
+	# shellcheck disable=SC1091
+	. "$dir/meta.env"
+	python3 - "$dir/props.json" "$dir/$name.json" "$APPID" "$VERSION" "$dir/key.pub.pem" "$name.bin" "$CHROME" "$channel-channel" <<'PY'
+import base64, json, sys
+src, dst, appid, version, pub, name, chrome, track = sys.argv[1:]
+p = json.load(open(src))
+p.update(appid=appid, target_version=version, name=name, chrome_version=f"{chrome}.0.0.0",
+         track=track, public_key=base64.b64encode(open(pub, "rb").read()).decode())
+if not p.get("metadata_signature"):
+    sys.exit("the payload isn't signed")
+json.dump(p, open(dst, "w"), indent=1)
+PY
+	install -d "$root/payloads" "$root/channels/$channel"
+	install -m 644 "$dir/$name.bin" "$root/payloads/.$name.bin.part"
+	mv -f "$root/payloads/.$name.bin.part" "$root/payloads/$name.bin"
+	install -m 644 "$dir/$name.json" "$root/channels/$channel/.$name.json.part"
+	mv -f "$root/channels/$channel/.$name.json.part" "$root/channels/$channel/$name.json"
+	echo "== published: $root/payloads/$name.bin ($(du -h "$root/payloads/$name.bin" | cut -f1)) on $channel"
+}
+
+if [ "$MODE" = finish ]; then
+	NAME=${1:?the pending payload name (nickelos-<version>-<channel>-full)}
+	ROOT=${2:-/srv/nickel/update}
+	dir=$ROOT/pending/$NAME
+	for f in "$NAME.unsigned.bin" payload.sig metadata.sig key.pub.pem meta.env; do
+		[ -s "$dir/$f" ] || { echo "$dir/$f is missing (signed yet? nickel-update-sign)" >&2; exit 1; }
+	done
+	# shellcheck disable=SC1091
+	. "$dir/meta.env"
+	work=$(mktemp -d "$SRC/.nickel/publish.XXXXXX")
+	trap 'rm -rf "$work"' EXIT
+	cp "$dir/$NAME.unsigned.bin" "$dir/payload.sig" "$dir/metadata.sig" "$dir/key.pub.pem" "$dir/meta.env" "$work/"
+	chown -R nickel:nickel "$work"
+	w=$(in_sdk "$work")
+	sdk delta_generator --in_file="$w/$NAME.unsigned.bin" --signature_size=256 \
+		--payload_signature_file="$w/payload.sig" --metadata_signature_file="$w/metadata.sig" \
+		--out_file="$w/$NAME.bin" >/dev/null 2>&1
+	[ -s "$work/$NAME.bin" ] || { echo "the signatures didn't go in" >&2; exit 1; }
+	# The whole payload checked against the key the image carries, as a PC
+	# would.
+	if ! sdk delta_generator --in_file="$w/$NAME.bin" --public_key="$w/key.pub.pem" >"$work/verify.log" 2>&1; then
+		echo "the signed payload does NOT verify against the image's key:" >&2
+		tail -3 "$work/verify.log" >&2
+		exit 1
+	fi
+	echo "== signature verified against the image's key"
+	sdk cros_generate_update_payload --payload "$w/$NAME.bin" --output "$w/props.json"
+	publish "$work" "$NAME" "$CHANNEL" "$ROOT"
+	rm -rf "$dir"
+	exit 0
+fi
+
+IMAGE=$(realpath "${1:?image}")
+CHANNEL=${2:?channel}
+ROOT=${3:-/srv/nickel/update}
+if [ "$MODE" = unsigned ]; then
+	PUBKEY=${4:-$here/../../chromeos-base/nickel-update/files/update-payload-key.pub.pem}
+	KEY=
+else
+	KEY=${4:-/srv/nickel/keys/update-payload-test.pem}
+	PUBKEY=
+fi
+case $CHANNEL in stable|beta|dev) ;; *) echo "channel: stable, beta or dev" >&2; exit 1;; esac
+[[ $IMAGE == "$SRC"/* ]] || { echo "the image must be under $SRC (the SDK sees it there)" >&2; exit 1; }
+
+mnt=$(mktemp -d); work=$(mktemp -d "$SRC/.nickel/publish.XXXXXX")
+loop=
+cleanup() {
+	mountpoint -q "$mnt" && umount "$mnt"
+	[ -n "$loop" ] && losetup -d "$loop"
+	rmdir "$mnt"; rm -rf "$work"
+}
+trap cleanup EXIT
+
+# The image's ROOT-A (partition 3), read-only here.
+loop=$(losetup -f --show -P -r "$IMAGE")
+mount -o ro "${loop}p3" "$mnt"
+lsb() { sed -n "s/^$1=//p" "$mnt/etc/lsb-release"; }
+VERSION=$(lsb CHROMEOS_RELEASE_VERSION)
+APPID=$(lsb CHROMEOS_RELEASE_APPID)
+CHROME=$(lsb CHROMEOS_RELEASE_CHROME_MILESTONE)
+TRACK=$(lsb CHROMEOS_RELEASE_TRACK)
+PUB=$mnt/usr/share/update_engine/update-payload-key.pub.pem
+[ -n "$VERSION" ] && [ -n "$APPID" ] || { echo "no version or app ID in the image" >&2; exit 1; }
+[ -f "$PUB" ] || { echo "the image has no payload key (nickel-update): refusing" >&2; exit 1; }
+if [ -n "$KEY" ]; then
+	expected=$(openssl pkey -in "$KEY" -pubout -outform DER | base64 -w0); what="$KEY's public half"
+else
+	expected=$(openssl pkey -pubin -in "$PUBKEY" -outform DER | base64 -w0); what=$PUBKEY
+fi
+if [ "$(openssl pkey -pubin -in "$PUB" -outform DER | base64 -w0)" != "$expected" ]; then
+	echo "the image's payload key isn't $what: refusing" >&2
+	exit 1
+fi
+cp "$PUB" "$work/key.pub.pem"
+umount "$mnt"; losetup -d "$loop"; loop=
+
+NAME=nickelos-$VERSION-$CHANNEL-full
+echo "== $NAME (app $APPID, Chrome $CHROME, image's channel $TRACK) -> $CHANNEL"
+printf 'APPID=%q\nVERSION=%q\nCHROME=%q\nCHANNEL=%q\n' "$APPID" "$VERSION" "$CHROME" "$CHANNEL" > "$work/meta.env"
+TARGET=$IMAGE
+# A test image stays on testimage-channel: it carries test root
+# certificates (/etc/fake_root_ca_certs.pem), and Chrome crashes on purpose
+# when they are on an image naming any other channel
+# (base::SysInfo::CrashIfChromeOSNonTestImage). update_engine reads
+# testimage-channel as stable, so a test PC on Beta shows "switching to
+# Beta" in Settings; release images carry the real channel.
+if [ "$TRACK" = testimage-channel ]; then
+	echo "== a test image: its channel stays testimage-channel"
+elif [ "$TRACK" != "$CHANNEL-channel" ]; then
+	echo "== a copy of the image, on $CHANNEL-channel"
+	TARGET=$work/image.bin
+	cp --sparse=always "$IMAGE" "$TARGET"
+	loop=$(losetup -f --show -P "$TARGET")
+	mount "${loop}p3" "$mnt"
+	sed -i -e "s/^CHROMEOS_RELEASE_TRACK=.*/CHROMEOS_RELEASE_TRACK=$CHANNEL-channel/" \
+		-e "/^CHROMEOS_RELEASE_DESCRIPTION=/s/ [a-z]*-channel / $CHANNEL-channel /" \
+		"$mnt/etc/lsb-release"
+	grep -E '^CHROMEOS_RELEASE_(TRACK|DESCRIPTION)=' "$mnt/etc/lsb-release"
+	umount "$mnt"; losetup -d "$loop"; loop=
+fi
+[ -n "$KEY" ] && install -m 600 -o nickel -g nickel "$KEY" "$work/key.pem"
+chown -R nickel:nickel "$work"
+w=$(in_sdk "$work")
+# Its main() returns the list of payloads it made, which sys.exit() prints
+# and turns into exit status 1 even when it worked: judge by the file.
+sdk cros_generate_update_payload --tgt-image "$(in_sdk "$TARGET")" \
+	--output "$w/$NAME.bin" ${KEY:+--private-key "$w/key.pem"} || true
+rm -f "$work/key.pem" "$work/image.bin"
+[ -s "$work/$NAME.bin" ] || { echo "no payload was made" >&2; exit 1; }
+
+if [ "$MODE" = unsigned ]; then
+	# The two SHA-256 hashes the key signs: the whole payload's and its
+	# metadata's (the signatures' room, 256 bytes for RSA-2048, is set aside).
+	sdk delta_generator --in_file="$w/$NAME.bin" --signature_size=256 \
+		--out_hash_file="$w/payload.hash" --out_metadata_hash_file="$w/metadata.hash" >/dev/null 2>&1
+	[ "$(stat -c %s "$work/payload.hash" 2>/dev/null)" = 32 ] &&
+		[ "$(stat -c %s "$work/metadata.hash" 2>/dev/null)" = 32 ] ||
+		{ echo "the hashes weren't made" >&2; exit 1; }
+	dir=$ROOT/pending/$NAME
+	rm -rf "$dir"; install -d -m 755 "$dir"
+	mv "$work/$NAME.bin" "$dir/$NAME.unsigned.bin"
+	cp "$work/payload.hash" "$work/metadata.hash" "$work/key.pub.pem" "$work/meta.env" "$dir/"
+	echo "== waiting for signatures: $dir"
+	echo "   on the laptop:     nickel-update-sign KEY $(hostname):$dir"
+	echo "   then, here:        nickel-update-publish --finish $NAME $ROOT"
+	exit 0
+fi
+
+sdk cros_generate_update_payload --payload "$w/$NAME.bin" --output "$w/props.json"
+publish "$work" "$NAME" "$CHANNEL" "$ROOT"

@@ -1,0 +1,50 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: no AI Mode, and Safe Browsing off by default
+
+What Chrome sent to Google with no one signed in (a net-export log at the
+sign-in screen, each request traced by its traffic annotation):
+
+- aim_eligibility_fetch: the omnibox's AI Mode asked www.google.com
+  whether this user may use it, at every start; reading the sign-in cookie
+  jar for that, it also asked accounts.google.com (gaia_auth_list_accounts).
+  AI Mode is off (kAimEnabled), so neither is sent.
+- safe_browsing_v4_update: Safe Browsing fetched its lists from
+  safebrowsing.googleapis.com, which refuses them without Google's API
+  keys, which NickelOS doesn't have: it protected nothing. Off by default;
+  Settings still shows the choice (and says there is no protection).
+
+The component updater (update.googleapis.com) stays: it brings security
+data such as the certificate revocation list.
+
+diff --git a/components/omnibox/browser/aim_eligibility_service_features.cc b/components/omnibox/browser/aim_eligibility_service_features.cc
+index c23cef8903ea8..1859914b9de4c 100644
+--- a/components/omnibox/browser/aim_eligibility_service_features.cc
++++ b/components/omnibox/browser/aim_eligibility_service_features.cc
+@@ -8,7 +8,9 @@
+ 
+ namespace omnibox {
+ 
+-BASE_FEATURE(kAimEnabled, base::FEATURE_ENABLED_BY_DEFAULT);
++// NickelOS: no AI Mode. Its eligibility service asked www.google.com at every
++// start (and, through the sign-in cookie jar, accounts.google.com).
++BASE_FEATURE(kAimEnabled, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kAimServerEligibilityEnabled, base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+diff --git a/components/safe_browsing/core/common/safe_browsing_prefs.cc b/components/safe_browsing/core/common/safe_browsing_prefs.cc
+index ed4747e5ffc10..3ea8fd16d82db 100644
+--- a/components/safe_browsing/core/common/safe_browsing_prefs.cc
++++ b/components/safe_browsing/core/common/safe_browsing_prefs.cc
+@@ -275,8 +275,11 @@ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+       prefs::kSafeBrowsingEsbProtegoPingWithTokenLastLogTime, base::Time());
+   registry->RegisterTimePref(
+       prefs::kSafeBrowsingEsbProtegoPingWithoutTokenLastLogTime, base::Time());
++  // NickelOS: off by default. Safe Browsing needs Google's API keys, which
++  // NickelOS doesn't have: on, it protected nothing and only fetched lists
++  // from safebrowsing.googleapis.com, which refused them.
+   registry->RegisterBooleanPref(
+-      prefs::kSafeBrowsingEnabled, true,
++      prefs::kSafeBrowsingEnabled, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+   if (base::FeatureList::IsEnabled(kEsbAsASyncedSetting)) {
+     registry->RegisterBooleanPref(

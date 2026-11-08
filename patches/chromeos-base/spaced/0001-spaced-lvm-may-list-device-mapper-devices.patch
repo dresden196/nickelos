@@ -1,0 +1,23 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] spaced: lvm may list device-mapper devices
+
+NickelOS Unified runs Gentoo's lvm2, whose pvs asks the device mapper for
+its device list (DM_LIST_DEVICES, ioctl 0xc138fd02) first. spaced runs pvs
+under its own seccomp policy, which allowed only Google's lvm2's calls:
+each pvs was killed (lvm-seccomp-violation-ioctl crash reports).
+
+---
+--- a/spaced/seccomp/spaced-seccomp-amd64.policy
++++ b/spaced/seccomp/spaced-seccomp-amd64.policy
+@@ -49,7 +49,10 @@
+ io_getevents: 1
+ io_setup: 1
+ io_submit: 1
+-ioctl: arg1 == 0xc138fd00 || arg1 == 0xc138fd07 || arg1 == 0xc138fd0c || \
++# NickelOS Unified: 0xc138fd02 (DM_LIST_DEVICES), which Gentoo's lvm2 2.03.3x
++# asks first (pvs, run by spaced).
++ioctl: arg1 == 0xc138fd00 || arg1 == 0xc138fd02 || arg1 == 0xc138fd07 || \
++       arg1 == 0xc138fd0c || \
+        arg1 == BLKGETSIZE64 || \
+        arg1 == FS_IOC_FSGETXATTR || arg1 == FS_IOC_FSSETXATTR || \
+        arg1 == FS_IOC_GETFLAGS || arg1 == FS_IOC_SETFLAGS

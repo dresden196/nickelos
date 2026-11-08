@@ -1,0 +1,825 @@
+diff --git a/chrome/browser/apps/app_service/publishers/BUILD.gn b/chrome/browser/apps/app_service/publishers/BUILD.gn
+index fe2e5d9fabfbc..abc7aabefe475 100644
+--- a/chrome/browser/apps/app_service/publishers/BUILD.gn
++++ b/chrome/browser/apps/app_service/publishers/BUILD.gn
+@@ -102,6 +102,7 @@ source_set("publishers") {
+       "//chrome/browser/ui/ash/multi_user",
+       "//chrome/browser/ui/ash/session",
+       "//chrome/browser/ui/ash/shelf",
++      "//chrome/browser/ash/dbus/vm:nickel_tray",
+       "//chromeos/ash/components/browser_context_helper",
+       "//chromeos/ash/components/policy/system_features_disable_list",
+       "//chromeos/ash/experiences/arc",
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc b/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
+index 0a262386471fd..bb934e35a9090 100644
+--- a/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
++++ b/chrome/browser/apps/app_service/publishers/nickel_host_apps.cc
+@@ -4,11 +4,14 @@
+ 
+ #include "chrome/browser/apps/app_service/publishers/nickel_host_apps.h"
+ 
++#include <optional>
+ #include <utility>
+ 
+ #include "ash/public/cpp/app_menu_constants.h"
+ #include "ash/shell.h"
+ #include "ash/strings/grit/ash_strings.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/values.h"
+ #include "chrome/browser/apps/app_service/app_service_proxy.h"
+ #include "chrome/browser/apps/app_service/menu_util.h"
+ #include "chrome/browser/apps/app_service/publishers/nickel_appearance_reporter.h"
+@@ -16,21 +19,27 @@
+ #include "chrome/grit/chrome_unscaled_resources.h"
+ #include "chrome/grit/generated_resources.h"
+ #include "chromeos/ash/components/dbus/dbus_thread_manager.h"
++#include "components/services/app_service/public/cpp/app_update.h"
+ #include "components/services/app_service/public/cpp/intent.h"
+ #include "dbus/bus.h"
+ #include "dbus/message.h"
+ #include "dbus/object_path.h"
+ #include "dbus/object_proxy.h"
++#include "ui/base/models/menu_separator_types.h"
+ #include "ui/display/types/display_constants.h"
++#include "ui/gfx/image/image_skia.h"
+ 
+ namespace apps {
+ 
+ NickelHostApps::NickelHostApps(AppServiceProxy* proxy) : GuestOSApps(proxy) {}
+ 
+-NickelHostApps::~NickelHostApps() = default;
++NickelHostApps::~NickelHostApps() {
++  ash::NickelTray::Get()->RemoveObserver(this);
++}
+ 
+ void NickelHostApps::Initialize() {
+   GuestOSApps::Initialize();
++  ash::NickelTray::Get()->AddObserver(this);
+   // This publisher exists exactly when host apps do, so it also keeps
+   // their appearance in step with the system's.
+   if (CouldBeAllowed() && ash::Shell::HasInstance()) {
+@@ -184,12 +193,97 @@ void NickelHostApps::GetMenuModel(
+     AddCommandItem(ash::LAUNCH_NEW, IDS_APP_CONTEXT_MENU_ACTIVATE_ARC,
+                    menu_items);
+   }
+-  if (ShouldAddCloseItem(app_id, menu_type, profile())) {
++  const ash::NickelTray::Item* tray = ash::NickelTray::Get()->ForApp(app_id);
++  // A tray app with no window still runs: Close quits it.
++  if (ShouldAddCloseItem(app_id, menu_type, profile()) ||
++      (tray && menu_type == MenuType::kShelf)) {
+     AddCommandItem(ash::MENU_CLOSE, IDS_SHELF_CONTEXT_MENU_CLOSE, menu_items);
+   }
++  // Its tray icon's menu, where ChromeOS puts an app's own shortcuts.
++  if (tray) {
++    int command_id = ash::LAUNCH_APP_SHORTCUT_FIRST;
++    bool first = true;
++    bool separate = true;
++    AddTrayMenu(tray->menu, std::string(), command_id, first, separate,
++                menu_items);
++  }
+   std::move(callback).Run(std::move(menu_items));
+ }
+ 
++// static
++void NickelHostApps::AddTrayMenu(const base::ListValue& menu,
++                                 const std::string& prefix,
++                                 int& command_id,
++                                 bool& first,
++                                 bool& separate,
++                                 MenuItems& menu_items) {
++  // Shortcut items are flat: a submenu's entries follow its name
++  // ("Friends > Online"), a checked entry has a check mark, disabled ones
++  // (headings, status lines) are left out.
++  for (const base::Value& value : menu) {
++    const base::DictValue* entry = value.GetIfDict();
++    if (!entry) {
++      continue;
++    }
++    if (entry->FindBool("separator").value_or(false)) {
++      separate = true;
++      continue;
++    }
++    const std::string* label = entry->FindString("label");
++    if (!label || label->empty()) {
++      continue;
++    }
++    const base::ListValue* children = entry->FindList("children");
++    if (children && !children->empty()) {
++      AddTrayMenu(*children, prefix + *label + " \u203a ", command_id, first,
++                  separate, menu_items);
++      continue;
++    }
++    const std::optional<int> id = entry->FindInt("id");
++    if (!id || !entry->FindBool("enabled").value_or(true) ||
++        command_id > ash::LAUNCH_APP_SHORTCUT_LAST) {
++      continue;
++    }
++    if (separate) {
++      AddSeparator(first ? ui::DOUBLE_SEPARATOR : ui::PADDED_SEPARATOR,
++                   menu_items);
++      first = false;
++      separate = false;
++    }
++    std::string text = prefix + *label;
++    if (entry->FindBool("checked").value_or(false)) {
++      text = "\u2713 " + text;
++    }
++    AddShortcutCommandItem(command_id++, base::NumberToString(*id), text,
++                           gfx::ImageSkia(), menu_items);
++  }
++}
++
++void NickelHostApps::ExecuteContextMenuCommand(const std::string& app_id,
++                                               int command_id,
++                                               const std::string& shortcut_id,
++                                               int64_t display_id) {
++  int item_id = 0;
++  if (base::StringToInt(shortcut_id, &item_id)) {
++    ash::NickelTray::Get()->MenuCommand(app_id, item_id);
++  }
++}
++
++void NickelHostApps::OnNickelTrayChanged(const std::string& app_id) {
++  bool known = false;
++  proxy()->AppRegistryCache().ForOneApp(
++      app_id, [&known](const AppUpdate& update) {
++        known = update.AppType() == AppType::kNickelHost;
++      });
++  if (!known) {
++    return;
++  }
++  const ash::NickelTray::Item* tray = ash::NickelTray::Get()->ForApp(app_id);
++  auto app = std::make_unique<App>(AppType::kNickelHost, app_id);
++  app->has_badge = tray && tray->attention;
++  AppPublisher::Publish(std::move(app));
++}
++
+ void NickelHostApps::CreateAppOverrides(
+     const guest_os::GuestOsRegistryService::Registration& registration,
+     App* app) {
+diff --git a/chrome/browser/apps/app_service/publishers/nickel_host_apps.h b/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
+index 1a3216dcee49d..dc1b934001d1b 100644
+--- a/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
++++ b/chrome/browser/apps/app_service/publishers/nickel_host_apps.h
+@@ -11,6 +11,7 @@
+ #include "chrome/browser/apps/app_service/app_service_proxy_forward.h"
+ #include "base/memory/weak_ptr.h"
+ #include "chrome/browser/apps/app_service/publishers/guest_os_apps.h"
++#include "chrome/browser/ash/dbus/vm/nickel_tray.h"
+ #include "chrome/browser/ash/guest_os/guest_os_registry_service.h"
+ #include "components/services/app_service/public/cpp/app_launch_util.h"
+ #include "components/services/app_service/public/cpp/app_types.h"
+@@ -28,7 +29,7 @@ namespace apps {
+ // with VM type NICKEL_HOST and starts them when they are launched.
+ class NickelAppearanceReporter;
+ 
+-class NickelHostApps : public GuestOSApps {
++class NickelHostApps : public GuestOSApps, public ash::NickelTray::Observer {
+  public:
+   explicit NickelHostApps(AppServiceProxy* proxy);
+   NickelHostApps(const NickelHostApps&) = delete;
+@@ -64,7 +65,22 @@ class NickelHostApps : public GuestOSApps {
+                     MenuType menu_type,
+                     int64_t display_id,
+                     base::OnceCallback<void(MenuItems)> callback) override;
+-
++  void ExecuteContextMenuCommand(const std::string& app_id,
++                                 int command_id,
++                                 const std::string& shortcut_id,
++                                 int64_t display_id) override;
++
++  // ash::NickelTray::Observer: the app's tray icon came, changed or went; its
++  // badge follows whether it needs attention.
++  void OnNickelTrayChanged(const std::string& app_id) override;
++
++  // Adds a tray icon's dbusmenu (NickelTray::Item::menu) as shortcut items.
++  static void AddTrayMenu(const base::ListValue& menu,
++                          const std::string& prefix,
++                          int& command_id,
++                          bool& first,
++                          bool& separate,
++                          MenuItems& menu_items);
+   void OnAppDetails(const std::string& app_id, dbus::Response* response);
+ 
+   // Whether nickel-appd can remove the app (it gave a package id: a
+diff --git a/chrome/browser/ash/dbus/vm/BUILD.gn b/chrome/browser/ash/dbus/vm/BUILD.gn
+index 46ba03daab5d4..50c4e721f46cf 100644
+--- a/chrome/browser/ash/dbus/vm/BUILD.gn
++++ b/chrome/browser/ash/dbus/vm/BUILD.gn
+@@ -74,6 +74,22 @@ static_library("vm") {
+     "//ui/display/types",
+     "//ui/message_center",
+   ]
++  deps += [ ":nickel_tray" ]
++}
++
++# NickelOS: Linux apps' tray icons, shared by the D-Bus service (this
++# directory), the shelf and the Linux apps' publisher.
++source_set("nickel_tray") {
++  sources = [
++    "nickel_tray.cc",
++    "nickel_tray.h",
++  ]
++  deps = [
++    "//base",
++    "//chromeos/ash/components/dbus",
++    "//components/exo/wayland",
++    "//dbus",
++  ]
+ }
+ 
+ source_set("unit_tests") {
+diff --git a/chrome/browser/ash/dbus/vm/nickel_tray.cc b/chrome/browser/ash/dbus/vm/nickel_tray.cc
+new file mode 100644
+index 0000000000000..051374dc08911
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_tray.cc
+@@ -0,0 +1,130 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ash/dbus/vm/nickel_tray.h"
++
++#include <utility>
++
++#include "base/functional/callback_helpers.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
++#include "components/exo/wayland/xdg_activation.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_path.h"
++#include "dbus/object_proxy.h"
++
++namespace ash {
++
++namespace {
++
++constexpr char kNickelAppsServiceName[] = "org.nickelos.Apps";
++constexpr char kNickelAppsServicePath[] = "/org/nickelos/Apps";
++constexpr char kNickelAppsServiceInterface[] = "org.nickelos.Apps";
++
++}  // namespace
++
++NickelTray::Item::Item() = default;
++NickelTray::Item::Item(Item&&) = default;
++NickelTray::Item& NickelTray::Item::operator=(Item&&) = default;
++NickelTray::Item::~Item() = default;
++
++NickelTray::NickelTray() = default;
++NickelTray::~NickelTray() = default;
++
++// static
++NickelTray* NickelTray::Get() {
++  static base::NoDestructor<NickelTray> tray;
++  return tray.get();
++}
++
++void NickelTray::Update(Item item) {
++  std::string old_app_id;
++  auto it = items_.find(item.key);
++  if (it != items_.end() && it->second.app_id != item.app_id) {
++    old_app_id = it->second.app_id;
++  }
++  const std::string app_id = item.app_id;
++  items_[item.key] = std::move(item);
++  if (!old_app_id.empty()) {
++    Notify(old_app_id);
++  }
++  Notify(app_id);
++}
++
++void NickelTray::Remove(const std::string& key) {
++  auto it = items_.find(key);
++  if (it == items_.end()) {
++    return;
++  }
++  const std::string app_id = it->second.app_id;
++  items_.erase(it);
++  Notify(app_id);
++}
++
++const NickelTray::Item* NickelTray::ForApp(const std::string& app_id) const {
++  for (const auto& [key, item] : items_) {
++    if (item.app_id == app_id) {
++      return &item;
++    }
++  }
++  return nullptr;
++}
++
++std::vector<std::string> NickelTray::AppIds() const {
++  std::vector<std::string> app_ids;
++  for (const auto& [key, item] : items_) {
++    app_ids.push_back(item.app_id);
++  }
++  return app_ids;
++}
++
++void NickelTray::Activate(const std::string& app_id) {
++  SendEvent(app_id, "activate", 0);
++}
++
++void NickelTray::MenuCommand(const std::string& app_id, int item_id) {
++  SendEvent(app_id, "menu", item_id);
++}
++
++void NickelTray::Quit(const std::string& app_id) {
++  SendEvent(app_id, "quit", 0);
++}
++
++void NickelTray::AddObserver(Observer* observer) {
++  observers_.AddObserver(observer);
++}
++
++void NickelTray::RemoveObserver(Observer* observer) {
++  observers_.RemoveObserver(observer);
++}
++
++void NickelTray::SendEvent(const std::string& app_id,
++                           const std::string& event,
++                           int item_id) {
++  const Item* item = ForApp(app_id);
++  if (!item) {
++    return;
++  }
++  dbus::ObjectProxy* proxy =
++      DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++          kNickelAppsServiceName, dbus::ObjectPath(kNickelAppsServicePath));
++  dbus::MethodCall method_call(kNickelAppsServiceInterface, "TrayEvent");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(item->key);
++  writer.AppendString(event);
++  writer.AppendInt32(item_id);
++  // The click hands the focus on: the app may bring a window forward.
++  writer.AppendString(event == "quit" ? std::string()
++                                      : exo::wayland::MakeActivationToken());
++  proxy->CallMethod(&method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
++                    base::DoNothing());
++}
++
++void NickelTray::Notify(const std::string& app_id) {
++  for (Observer& observer : observers_) {
++    observer.OnNickelTrayChanged(app_id);
++  }
++}
++
++}  // namespace ash
+diff --git a/chrome/browser/ash/dbus/vm/nickel_tray.h b/chrome/browser/ash/dbus/vm/nickel_tray.h
+new file mode 100644
+index 0000000000000..d5807d0cf1c62
+--- /dev/null
++++ b/chrome/browser/ash/dbus/vm/nickel_tray.h
+@@ -0,0 +1,93 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ASH_DBUS_VM_NICKEL_TRAY_H_
++#define CHROME_BROWSER_ASH_DBUS_VM_NICKEL_TRAY_H_
++
++#include <map>
++#include <string>
++#include <vector>
++
++#include "base/no_destructor.h"
++#include "base/observer_list.h"
++#include "base/observer_list_types.h"
++#include "base/values.h"
++
++namespace ash {
++
++// NickelOS: Linux apps' tray icons (StatusNotifierItem). Apps such as
++// Discord, Slack, Steam and Telegram keep running in the system tray when
++// their window closes; ChromeOS has no tray for apps, its shelf is where
++// running apps are. nickel-appd is the tray Linux apps register with and
++// reports each item (vm_applications' NickelTrayItem, NickelTrayItemRemoved).
++// While an app has one, the shelf keeps it, running, and a click asks it to
++// show itself (ChromeShelfController, NickelTrayShelfItemController); its
++// menu goes into the app's shelf and launcher menu and its badge shows when
++// it needs attention (NickelHostApps). What the user does goes back to
++// nickel-appd (TrayEvent).
++class NickelTray {
++ public:
++  struct Item {
++    Item();
++    Item(Item&&);
++    Item& operator=(Item&&);
++    ~Item();
++
++    std::string key;
++    std::string app_id;
++    std::string title;
++    bool attention = false;
++    // [{"id", "label", "separator", "enabled", "toggle", "checked",
++    // "children"}...], from the app's dbusmenu.
++    base::ListValue menu;
++  };
++
++  class Observer : public base::CheckedObserver {
++   public:
++    // |app_id| got, changed or lost its tray item.
++    virtual void OnNickelTrayChanged(const std::string& app_id) = 0;
++  };
++
++  static NickelTray* Get();
++
++  NickelTray(const NickelTray&) = delete;
++  NickelTray& operator=(const NickelTray&) = delete;
++
++  void Update(Item item);
++  void Remove(const std::string& key);
++
++  // The app's tray item (the first, should it have several), or null.
++  const Item* ForApp(const std::string& app_id) const;
++  // The apps that have one.
++  std::vector<std::string> AppIds() const;
++
++  // A click on the app's shelf icon while it has no window: the app shows
++  // itself.
++  void Activate(const std::string& app_id);
++  // A click on its menu entry |item_id|.
++  void MenuCommand(const std::string& app_id, int item_id);
++  // Close on the shelf: the app quits.
++  void Quit(const std::string& app_id);
++
++  void AddObserver(Observer* observer);
++  void RemoveObserver(Observer* observer);
++
++ private:
++  friend class base::NoDestructor<NickelTray>;
++
++  NickelTray();
++  ~NickelTray();
++
++  void SendEvent(const std::string& app_id,
++                 const std::string& event,
++                 int item_id);
++  void Notify(const std::string& app_id);
++
++  std::map<std::string, Item> items_;  // By key.
++  base::ObserverList<Observer> observers_;
++};
++
++}  // namespace ash
++
++#endif  // CHROME_BROWSER_ASH_DBUS_VM_NICKEL_TRAY_H_
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+index 0d0c68ee7be3f..d9b08150f691b 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.cc
+@@ -5,6 +5,7 @@
+ #include "chrome/browser/ash/dbus/vm/vm_applications_service_provider.h"
+ 
+ #include <memory>
++#include <optional>
+ #include <string>
+ #include <utility>
+ #include <vector>
+@@ -14,12 +15,14 @@
+ #include "base/memory/ptr_util.h"
+ #include "base/strings/string_split.h"
+ #include "base/strings/utf_string_conversions.h"
++#include "base/json/json_reader.h"
+ #include "base/values.h"
+ #include "chrome/browser/ash/borealis/borealis_features.h"
+ #include "chrome/browser/ash/borealis/borealis_service.h"
+ #include "chrome/browser/ash/crostini/crostini_features.h"
+ #include "chrome/browser/ash/crostini/crostini_util.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_notifications.h"
++#include "chrome/browser/ash/dbus/vm/nickel_tray.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_remote_desktop.h"
+ #include "chrome/browser/ash/dbus/vm/nickel_screen_cast.h"
+ #include "chrome/browser/ash/exo/chrome_security_delegate.h"
+@@ -152,6 +155,10 @@ constexpr char kNickelRemoteDesktopInputMethod[] = "NickelRemoteDesktopInput";
+ // NickelOS: called by the portal backend's notifications (NickelNotifications).
+ constexpr char kNickelNotifyMethod[] = "NickelNotify";
+ constexpr char kNickelNotifyCloseMethod[] = "NickelNotifyClose";
++// NickelOS: called by nickel-appd, the tray Linux apps register with
++// (NickelTray).
++constexpr char kNickelTrayItemMethod[] = "NickelTrayItem";
++constexpr char kNickelTrayItemRemovedMethod[] = "NickelTrayItemRemoved";
+ 
+ }  // namespace
+ 
+@@ -253,6 +260,19 @@ void VmApplicationsServiceProvider::Start(
+                           weak_ptr_factory_.GetWeakPtr()),
+       base::BindOnce(&VmApplicationsServiceProvider::OnExported,
+                      weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface, kNickelTrayItemMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelTrayItem,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
++  exported_object->ExportMethod(
++      vm_tools::apps::kVmApplicationsServiceInterface,
++      kNickelTrayItemRemovedMethod,
++      base::BindRepeating(&VmApplicationsServiceProvider::NickelTrayItemRemoved,
++                          weak_ptr_factory_.GetWeakPtr()),
++      base::BindOnce(&VmApplicationsServiceProvider::OnExported,
++                     weak_ptr_factory_.GetWeakPtr()));
+ }
+ 
+ void VmApplicationsServiceProvider::OnExported(
+@@ -537,6 +557,43 @@ void VmApplicationsServiceProvider::NickelNotifyClose(
+   std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
+ }
+ 
++// NickelTrayItem(key, app_id, title, attention, menu as JSON): a Linux app's
++// tray icon, new or changed (see NickelTray).
++void VmApplicationsServiceProvider::NickelTrayItem(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  NickelTray::Item item;
++  std::string menu;
++  if (!reader.PopString(&item.key) || !reader.PopString(&item.app_id) ||
++      !reader.PopString(&item.title) || !reader.PopBool(&item.attention) ||
++      !reader.PopString(&menu) || item.key.empty() || item.app_id.empty()) {
++    std::move(response_sender)
++        .Run(dbus::ErrorResponse::FromMethodCall(
++            method_call, DBUS_ERROR_INVALID_ARGS,
++            "Expected key, app_id, title, attention, menu"));
++    return;
++  }
++  std::optional<base::Value> parsed =
++      base::JSONReader::Read(menu, base::JSON_PARSE_RFC);
++  if (parsed && parsed->is_list()) {
++    item.menu = std::move(parsed->GetList());
++  }
++  NickelTray::Get()->Update(std::move(item));
++  std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
++}
++
++void VmApplicationsServiceProvider::NickelTrayItemRemoved(
++    dbus::MethodCall* method_call,
++    dbus::ExportedObject::ResponseSender response_sender) {
++  dbus::MessageReader reader(method_call);
++  std::string key;
++  if (reader.PopString(&key)) {
++    NickelTray::Get()->Remove(key);
++  }
++  std::move(response_sender).Run(dbus::Response::FromMethodCall(method_call));
++}
++
+ void VmApplicationsServiceProvider::LaunchTerminal(
+     dbus::MethodCall* method_call,
+     dbus::ExportedObject::ResponseSender response_sender) {
+diff --git a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+index 2374f6c38712e..c5a316efcb799 100644
+--- a/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
++++ b/chrome/browser/ash/dbus/vm/vm_applications_service_provider.h
+@@ -87,6 +87,11 @@ class VmApplicationsServiceProvider
+                     dbus::ExportedObject::ResponseSender response_sender);
+   void NickelNotifyClose(dbus::MethodCall* method_call,
+                          dbus::ExportedObject::ResponseSender response_sender);
++  void NickelTrayItem(dbus::MethodCall* method_call,
++                      dbus::ExportedObject::ResponseSender response_sender);
++  void NickelTrayItemRemoved(
++      dbus::MethodCall* method_call,
++      dbus::ExportedObject::ResponseSender response_sender);
+ 
+   // Exposed in the header so unit tests can call it.
+   static void ParseSelectFileDialogFileTypes(
+diff --git a/chrome/browser/ui/ash/shelf/BUILD.gn b/chrome/browser/ui/ash/shelf/BUILD.gn
+index 153ad51917da8..6cced95ad403c 100644
+--- a/chrome/browser/ui/ash/shelf/BUILD.gn
++++ b/chrome/browser/ui/ash/shelf/BUILD.gn
+@@ -10,6 +10,8 @@ static_library("shelf") {
+   sources = [
+     "app_shortcut_shelf_item_controller.cc",
+     "app_shortcut_shelf_item_controller.h",
++    "nickel_tray_shelf_item_controller.cc",
++    "nickel_tray_shelf_item_controller.h",
+     "app_window_base.cc",
+     "app_window_base.h",
+     "app_window_shelf_controller.cc",
+@@ -91,6 +93,7 @@ static_library("shelf") {
+     "//chrome/browser/ash/arc/fileapi",
+     "//chrome/browser/ash/arc/pip",
+     "//chrome/browser/ash/arc/session",
++    "//chrome/browser/ash/dbus/vm:nickel_tray",
+     "//chrome/browser/ash/crostini",
+     "//chrome/browser/ash/eche_app",
+     "//chrome/browser/ash/extensions",
+diff --git a/chrome/browser/ui/ash/shelf/chrome_shelf_controller.cc b/chrome/browser/ui/ash/shelf/chrome_shelf_controller.cc
+index 91b6aaf2a7bc0..4e4711990eddd 100644
+--- a/chrome/browser/ui/ash/shelf/chrome_shelf_controller.cc
++++ b/chrome/browser/ui/ash/shelf/chrome_shelf_controller.cc
+@@ -69,6 +69,7 @@
+ #include "chrome/browser/ui/ash/shelf/chrome_shelf_controller_util.h"
+ #include "chrome/browser/ui/ash/shelf/chrome_shelf_item_factory.h"
+ #include "chrome/browser/ui/ash/shelf/chrome_shelf_prefs.h"
++#include "chrome/browser/ui/ash/shelf/nickel_tray_shelf_item_controller.h"
+ #include "chrome/browser/ui/ash/shelf/shelf_controller_helper.h"
+ #include "chrome/browser/ui/ash/shelf/shelf_extension_app_updater.h"
+ #include "chrome/browser/ui/ash/shelf/shelf_spinner_controller.h"
+@@ -312,6 +313,7 @@ ChromeShelfController::ChromeShelfController(Profile* profile,
+   AttachProfile(profile);
+   DCHECK_EQ(profile, profile_);
+   model_->AddObserver(this);
++  ash::NickelTray::Get()->AddObserver(this);
+ 
+   shelf_spinner_controller_ = std::make_unique<ShelfSpinnerController>(this);
+ 
+@@ -347,6 +349,7 @@ ChromeShelfController::~ChromeShelfController() {
+   model_->DestroyItemDelegates();
+ 
+   model_->RemoveObserver(this);
++  ash::NickelTray::Get()->RemoveObserver(this);
+ 
+   g_instance = nullptr;
+ }
+@@ -374,6 +377,10 @@ void ChromeShelfController::Init() {
+   if (browser_status_monitor_) {
+     browser_status_monitor_->Initialize();
+   }
++  // NickelOS: Linux apps that were already in the tray.
++  for (const std::string& app_id : ash::NickelTray::Get()->AppIds()) {
++    OnNickelTrayChanged(app_id);
++  }
+   ReportInitShelfIconList(model_);
+ }
+ 
+@@ -429,6 +436,13 @@ void ChromeShelfController::SetItemTitle(const ash::ShelfID& id,
+ void ChromeShelfController::ReplaceWithAppShortcutOrRemove(
+     const ash::ShelfID& id) {
+   CHECK(!id.IsNull());
++  // NickelOS: a Linux app that runs on in its tray icon stays, running.
++  if (ash::NickelTray::Get()->ForApp(id.app_id)) {
++    model_->ReplaceShelfItemDelegate(
++        id, std::make_unique<NickelTrayShelfItemController>(id));
++    SetItemStatus(id, ash::STATUS_RUNNING);
++    return;
++  }
+   if (IsPinned(id)) {
+     // Create a new shortcut delegate.
+     SetItemStatus(id, ash::STATUS_CLOSED);
+@@ -439,6 +453,30 @@ void ChromeShelfController::ReplaceWithAppShortcutOrRemove(
+   }
+ }
+ 
++// NickelOS: while a Linux app has a tray icon (ash::NickelTray), the shelf
++// shows it running, also with no window: a click asks it to show itself
++// (NickelTrayShelfItemController). Its windows' item keeps it when they close
++// (ReplaceWithAppShortcutOrRemove).
++void ChromeShelfController::OnNickelTrayChanged(const std::string& app_id) {
++  const ash::ShelfID id(app_id);
++  if (model_->GetAppWindowShelfItemController(id)) {
++    return;
++  }
++  const ash::ShelfItem* item = GetItem(id);
++  if (ash::NickelTray::Get()->ForApp(app_id)) {
++    if (!item) {
++      CreateAppItem(std::make_unique<NickelTrayShelfItemController>(id),
++                    ash::STATUS_RUNNING, /*pinned=*/false);
++    } else if (!NickelTrayShelfItemController::IsTrayItem(id)) {
++      model_->ReplaceShelfItemDelegate(
++          id, std::make_unique<NickelTrayShelfItemController>(id));
++      SetItemStatus(id, ash::STATUS_RUNNING);
++    }
++  } else if (item && NickelTrayShelfItemController::IsTrayItem(id)) {
++    ReplaceWithAppShortcutOrRemove(id);
++  }
++}
++
+ void ChromeShelfController::UnpinShelfItemInternal(const ash::ShelfID& id) {
+   const ash::ShelfItem* item = GetItem(id);
+   if (item && item->status != ash::STATUS_CLOSED) {
+diff --git a/chrome/browser/ui/ash/shelf/chrome_shelf_controller.h b/chrome/browser/ui/ash/shelf/chrome_shelf_controller.h
+index 64c6580f5558b..3a2d95f1f9029 100644
+--- a/chrome/browser/ui/ash/shelf/chrome_shelf_controller.h
++++ b/chrome/browser/ui/ash/shelf/chrome_shelf_controller.h
+@@ -21,6 +21,7 @@
+ #include "base/scoped_observation.h"
+ #include "base/task/sequenced_task_runner.h"
+ #include "chrome/browser/ash/app_list/app_list_syncable_service.h"
++#include "chrome/browser/ash/dbus/vm/nickel_tray.h"
+ #include "chrome/browser/ui/ash/shelf/shelf_app_updater.h"
+ #include "components/account_id/account_id.h"
+ #include "components/app_icon_loader/app_icon_loader_delegate.h"
+@@ -73,7 +74,8 @@ class ChromeShelfController
+       public AppIconLoaderDelegate,
+       private ash::ShelfModelObserver,
+       private app_list::AppListSyncableService::Observer,
+-      private sync_preferences::PrefServiceSyncableObserver {
++      private sync_preferences::PrefServiceSyncableObserver,
++      private ash::NickelTray::Observer {
+  public:
+   // The value used for indicating that an index position doesn't exist.
+   static const int kInvalidIndex = -1;
+@@ -398,6 +400,9 @@ class ChromeShelfController
+   // app_list::AppListSyncableService::Observer:
+   void OnSyncModelUpdated() override;
+ 
++  // ash::NickelTray::Observer:
++  void OnNickelTrayChanged(const std::string& app_id) override;
++
+   // sync_preferences::PrefServiceSyncableObserver:
+   void OnIsSyncingChanged() override;
+ 
+diff --git a/chrome/browser/ui/ash/shelf/nickel_tray_shelf_item_controller.cc b/chrome/browser/ui/ash/shelf/nickel_tray_shelf_item_controller.cc
+new file mode 100644
+index 0000000000000..cce2ad5eb5596
+--- /dev/null
++++ b/chrome/browser/ui/ash/shelf/nickel_tray_shelf_item_controller.cc
+@@ -0,0 +1,56 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/ui/ash/shelf/nickel_tray_shelf_item_controller.h"
++
++#include <set>
++#include <utility>
++
++#include "base/no_destructor.h"
++#include "chrome/browser/ash/dbus/vm/nickel_tray.h"
++
++namespace {
++
++// The shelf ids these controllers stand for (ShelfItemDelegate has no type
++// to ask).
++std::multiset<ash::ShelfID>& TrayItems() {
++  static base::NoDestructor<std::multiset<ash::ShelfID>> items;
++  return *items;
++}
++
++}  // namespace
++
++NickelTrayShelfItemController::NickelTrayShelfItemController(
++    const ash::ShelfID& shelf_id)
++    : AppShortcutShelfItemController(shelf_id) {
++  TrayItems().insert(shelf_id);
++}
++
++NickelTrayShelfItemController::~NickelTrayShelfItemController() {
++  auto it = TrayItems().find(shelf_id());
++  if (it != TrayItems().end()) {
++    TrayItems().erase(it);
++  }
++}
++
++// static
++bool NickelTrayShelfItemController::IsTrayItem(const ash::ShelfID& shelf_id) {
++  return TrayItems().count(shelf_id) > 0;
++}
++
++void NickelTrayShelfItemController::ItemSelected(
++    std::unique_ptr<ui::Event> event,
++    int64_t display_id,
++    ash::ShelfLaunchSource source,
++    ItemSelectedCallback callback,
++    const ItemFilterPredicate& filter_predicate) {
++  // As a click on its tray icon: the app shows its window, which then takes
++  // over this item.
++  ash::NickelTray::Get()->Activate(shelf_id().app_id);
++  std::move(callback).Run(ash::SHELF_ACTION_NONE, {});
++}
++
++void NickelTrayShelfItemController::Close() {
++  ash::NickelTray::Get()->Quit(shelf_id().app_id);
++}
+diff --git a/chrome/browser/ui/ash/shelf/nickel_tray_shelf_item_controller.h b/chrome/browser/ui/ash/shelf/nickel_tray_shelf_item_controller.h
+new file mode 100644
+index 0000000000000..6fa4bebf3a7d9
+--- /dev/null
++++ b/chrome/browser/ui/ash/shelf/nickel_tray_shelf_item_controller.h
+@@ -0,0 +1,36 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_ASH_SHELF_NICKEL_TRAY_SHELF_ITEM_CONTROLLER_H_
++#define CHROME_BROWSER_UI_ASH_SHELF_NICKEL_TRAY_SHELF_ITEM_CONTROLLER_H_
++
++#include <memory>
++
++#include "chrome/browser/ui/ash/shelf/app_shortcut_shelf_item_controller.h"
++
++// NickelOS: the shelf item of a Linux app that runs on in its tray icon with
++// no window (ash::NickelTray): shown as running; a click asks the app to show
++// itself, Close quits it. Its menu is the app's (NickelHostApps adds the tray
++// menu). A window of the app replaces it with a window item.
++class NickelTrayShelfItemController : public AppShortcutShelfItemController {
++ public:
++  explicit NickelTrayShelfItemController(const ash::ShelfID& shelf_id);
++  NickelTrayShelfItemController(const NickelTrayShelfItemController&) = delete;
++  NickelTrayShelfItemController& operator=(
++      const NickelTrayShelfItemController&) = delete;
++  ~NickelTrayShelfItemController() override;
++
++  // Whether the item for |shelf_id| is one of these.
++  static bool IsTrayItem(const ash::ShelfID& shelf_id);
++
++  // ash::ShelfItemDelegate:
++  void ItemSelected(std::unique_ptr<ui::Event> event,
++                    int64_t display_id,
++                    ash::ShelfLaunchSource source,
++                    ItemSelectedCallback callback,
++                    const ItemFilterPredicate& filter_predicate) override;
++  void Close() override;
++};
++
++#endif  // CHROME_BROWSER_UI_ASH_SHELF_NICKEL_TRAY_SHELF_ITEM_CONTROLLER_H_

@@ -1,0 +1,78 @@
+# NickelOS: what ChromeOS needs of Gentoo packages the OS takes
+# (found by the image install, plan step 3).
+# libbrillo: sys-fs/lvm2[thin]
+sys-fs/lvm2 lvm thin
+# Kept small: what Gentoo's defaults pull in that ChromeOS doesn't use
+# (the image install, 2026-10-18): GCC through libb2's OpenMP, Qt through
+# poppler and avahi, ffmpeg through localsearch, speech-dispatcher through brltty.
+app-crypt/libb2 -openmp
+app-text/poppler -qt6
+net-dns/avahi -qt6
+app-misc/localsearch gstreamer
+app-accessibility/brltty -speech -X -python -tcl -ocamlopt -lua -java -emacs
+# The Terminal's vim (install.txt) without the desktop extras ChromeOS
+# doesn't have: gpm, libcanberra (sound), libsodium (encrypted files), the
+# X11 and Wayland clipboard; the Terminal runs in Chrome.
+app-editors/vim -X -crypt -gpm -pango -sound -wayland
+# SELinux where Google builds with it (ChromeOS's policy is enforcing: file
+# contexts kept and shown, chcon and runcon): Gentoo masks the flag outside
+# its SELinux profiles, so it is unmasked for these (profile/package.use.mask).
+# Not coreutils' multicall build (Google's): Gentoo's makes each command a
+# script that renames itself with prctl(PR_SET_MM), which ChromeOS's
+# sandboxes kill (the installer's chromeos-install, for one).
+app-arch/tar selinux
+sys-apps/coreutils selinux
+sys-apps/findutils selinux
+sys-process/lsof selinux
+sys-process/procps selinux
+# OpenRC runs your services (sshd, CUPS, Samba) under ChromeOS's init:
+# Upstart is init, and shill runs the network (docs/unified.md, OpenRC).
+sys-apps/openrc -sysvinit -netifrc
+# ecryptfs-utils without its GTK front-end, as Google builds it (it pulled in
+# GTK 2 and an at-spi2-core with introspection, which NickelOS's newer one
+# isn't). Its TPM key module (Google's tpm flag) doesn't build with GCC 16,
+# and cryptohome hands ecryptfs its own keys.
+sys-fs/ecryptfs-utils -gtk
+# perf without its GTK and terminal front-ends, closer to Google's (crypt
+# zlib): the GTK one pulled in GTK 2.
+dev-util/perf -gtk -slang
+# /bin/sh is dash, as ChromeOS's init scripts are written for: Gentoo's
+# app-alternatives/sh (in @system, so a world update installs it) points it
+# at bash by default.
+app-alternatives/sh -bash dash
+# One Mesa (vision decision 5), Gentoo's, for Chrome and Linux apps: VA-API
+# for Chrome's video decoding (AMD's comes from Mesa), virgl for the VM's GPU.
+media-libs/mesa vaapi video_cards_virgl
+# Where NickelOS keeps Gentoo's flag over Google's (zz-unified-google,
+# read before this, gives the OS's copies Google's flags):
+# - coreutils not multicall (above).
+# - Portage verifies Gentoo's tree when you sync it; ChromeOS never syncs.
+# - systemd-utils' udev: its 32-bit libudev is Steam's (the image's udev
+#   stays Google's sys-fs/udev).
+# - ecryptfs-utils' TPM module doesn't build with GCC 16 (above).
+# - Gentoo's ebuild needs a flag with one of Google's (REQUIRED_USE):
+#   iputils' filecaps needs caps; Gentoo's newer pango needs freetype's
+#   harfbuzz; ffmpeg's dvd (newer than Google's ebuild) needs gpl, and
+#   Google's ffmpeg is LGPL.
+# - Gentoo's other packages need them (the ones built for your binhost:
+#   GTK, Qt, WebKitGTK, fwupd's capsule splash, SELinux's Python tools,
+#   brltty): typelibs, Python bindings, libxkbcommon's X11 library,
+#   tiff's JPEG. Nothing a ChromeOS service runs.
+sys-apps/coreutils -multicall
+sys-apps/portage rsync-verify
+sys-apps/systemd-utils udev
+sys-fs/ecryptfs-utils -tpm
+net-misc/iputils caps
+media-libs/freetype harfbuzz
+media-video/ffmpeg -dvd
+media-libs/tiff jpeg
+x11-libs/gdk-pixbuf introspection
+x11-libs/pango introspection
+media-libs/harfbuzz icu introspection
+app-crypt/gnupg alternatives
+sys-libs/libselinux python
+sys-process/audit python
+dev-python/pygobject cairo
+dev-libs/json-glib introspection
+x11-libs/libxkbcommon X
+dev-libs/libpcre2 pcre32

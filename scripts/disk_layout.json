@@ -1,0 +1,73 @@
+{
+  "_comment": "NickelOS: disk_layout_v2 with ChromeOS Flex's partition sizes. KERN-A/B 64 MiB and EFI-SYSTEM 256 MiB (v2 default 32/64) leave room for bigger kernels and for crdyshim + crdyboot + the GRUB fallback in the ESP. Installed devices' ROOT-A/B partitions are 6 GiB (Dresden, 2026-10-18; v2: 4 GiB): NickelOS's root holds the OS with Gentoo's packages and Portage (docs/unified.md), and partition sizes can't change on installed devices, so the room is set before the first release. The root filesystem is 4800 MiB with one inode per 32 KiB (v2: 2300 MiB, one per 64 KiB; 4000 MiB until 2026-10-19, when Gentoo's Mesa and LLVM 22 came in for Chrome and Linux apps, vision decision 5); it grows inside the 6 GiB partitions with no repartitioning. The images' own ROOT partitions (usb, recovery) are 5 GiB, enough for the filesystem and its verity hashes. The factory installer keeps its own (460 MiB), which the common size would override.",
+  "parent": "disk_layout_v2.json",
+  "layouts": {
+    "common": [
+      {
+        "num": 2,
+        "size": "64 MiB"
+      },
+      {
+        "num": 4,
+        "size": "64 MiB"
+      },
+      {
+        "num": 12,
+        "size": "256 MiB"
+      },
+      {
+        "num": 5,
+        "size": "6 GiB"
+      },
+      {
+        "num": 3,
+        "fs_size": "4800 MiB",
+        "fs_options": {
+          "ext2": "-i 32768"
+        },
+        "size": "6 GiB"
+      }
+    ],
+    "usb": [
+      {
+        "num": 5,
+        "size": "2 MiB"
+      },
+      {
+        "num": 3,
+        "size": "5 GiB"
+      }
+    ],
+    "recovery": [
+      {
+        "num": 5,
+        "size": "2 MiB"
+      },
+      {
+        "num": 3,
+        "size": "5 GiB"
+      }
+    ],
+    "usb-updatable": [
+      {
+        "num": 5,
+        "size": "5 GiB"
+      },
+      {
+        "num": 3,
+        "size": "5 GiB"
+      }
+    ],
+    "factory_install": [
+      {
+        "num": 5,
+        "size": "1"
+      },
+      {
+        "num": 3,
+        "fs_size": "460 MiB",
+        "size": "480 MiB"
+      }
+    ]
+  }
+}

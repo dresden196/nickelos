@@ -1,0 +1,34 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the GPU sandbox lets drivers ask the scheduling
+ priority range
+
+NVIDIA's driver threads ask for the scheduling priority range with
+sched_get_priority_max/min as they start, as they do in the video decoder
+(0035). Since the GPU sandbox can read Gentoo's /usr/lib64 (0078), the
+libraries that start them load in the GPU process too, and the GPU policy
+didn't allow the two calls: SIGSYS at the GPU process's start, no GPU, and
+Chrome, with no software compositing, quit before the login screen
+(the NVIDIA test PC, build 23j, 2026-10-21). The renderer policy allows both; they
+only return two fixed numbers.
+
+diff --git a/sandbox/policy/linux/bpf_gpu_policy_linux.cc b/sandbox/policy/linux/bpf_gpu_policy_linux.cc
+index eb74abbdcb6d2..72c512c98a1df 100644
+--- a/sandbox/policy/linux/bpf_gpu_policy_linux.cc
++++ b/sandbox/policy/linux/bpf_gpu_policy_linux.cc
+@@ -50,6 +50,16 @@ ResultExpr GpuProcessPolicy::EvaluateSyscall(int sysno) const {
+   switch (sysno) {
+     case __NR_kcmp:
+       return Error(ENOSYS);
++    // NickelOS: NVIDIA's driver threads ask for the scheduling priority
++    // range as they start, as they do in the video decoder (0035). Since
++    // the sandbox can read Gentoo's /usr/lib64 (0078), the libraries that
++    // start them load in the GPU process too, which died at its start with
++    // SIGSYS: no GPU, and Chrome, with no software compositing, quit before
++    // the login screen (the NVIDIA test PC, build 23j, 2026-10-21). The answer is two
++    // fixed numbers.
++    case __NR_sched_get_priority_max:
++    case __NR_sched_get_priority_min:
++      return Allow();
+ #if !BUILDFLAG(IS_CHROMEOS)
+     case __NR_fallocate:
+       return Allow();

@@ -1,0 +1,32 @@
+#!/bin/bash
+# What the update server (nickel-update-server) offers on each channel, and
+# taking a build off one: a bad release stops reaching PCs that haven't
+# updated yet; ones that have keep it until a newer build is offered.
+#
+#   nickel-update-channels list [ROOT]
+#   nickel-update-channels pull VERSION CHANNEL [ROOT]
+#
+# ROOT defaults to /srv/nickel/update. Putting a build on a channel, or
+# promoting one (Dev -> Beta -> Stable), is nickel-update-publish IMAGE
+# CHANNEL: each channel's payload names its channel inside.
+set -euo pipefail
+case ${1:-} in
+list)
+	ROOT=${2:-/srv/nickel/update}
+	for d in "$ROOT"/channels/*/; do
+		[ -d "$d" ] || continue
+		echo "$(basename "$d"): $(ls "$d" | sed -n 's/^nickelos-\([0-9.]*\)-[a-z]*-full\.json$/\1/p' | sort -V | tr '\n' ' ')"
+	done
+	;;
+pull)
+	VERSION=${2:?version}; CHANNEL=${3:?channel}; ROOT=${4:-/srv/nickel/update}
+	f=$ROOT/channels/$CHANNEL/nickelos-$VERSION-$CHANNEL-full.json
+	[ -f "$f" ] || { echo "$VERSION isn't on $CHANNEL" >&2; exit 1; }
+	rm -f "$f"
+	echo "$VERSION taken off $CHANNEL (the payload stays in $ROOT/payloads)"
+	;;
+*)
+	sed -n '2,/^set /{/^set /d;s/^# \{0,1\}//;p}' "$0" >&2
+	exit 1
+	;;
+esac

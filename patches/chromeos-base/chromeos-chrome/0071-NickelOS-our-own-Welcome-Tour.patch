@@ -1,0 +1,422 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: our own Welcome Tour
+
+ChromeOS's Welcome Tour never ran on NickelOS (it needs Google Sync to
+say the account is new) and was Google's: it ended in the Explore app,
+which NickelOS does not have. Now it is NickelOS's, on ChromeOS's own
+tour machinery (the dimmed screen, help bubbles on the launcher's apps,
+Next and Back):
+
+1. the shelf, 2. the launcher, 3. search, 4. Files (My files is the Linux
+home; cloud storage shows up there), 5. Bazaar (Linux apps from Flathub),
+6. the Terminal (a real shell with sudo; Gentoo underneath, eix
+and emerge), 7. Settings. Its last button,
+"Open the NickelOS guide", opens nickelos.dev/help in the browser; saying
+no thanks opens nothing.
+
+Who gets it: each user once, until they finish it or say no thanks, in
+the Chrome that runs as their own Linux user (a sign-in starts in the
+login screen's Chrome, run as chronos: Chrome 0008), instead of Google
+Sync's "first sync ever". Bazaar and the Terminal get element identifiers
+in the launcher (kNickelBazaarAppElementId, kNickelTerminalAppElementId).
+Their help bubble ids and metrics steps are the Explore app's and the
+status area's, which this tour has no steps for.
+
+diff --git a/ash/ash_element_identifiers.cc b/ash/ash_element_identifiers.cc
+index 3f04af0daea24..33a51b5b10cdc 100644
+--- a/ash/ash_element_identifiers.cc
++++ b/ash/ash_element_identifiers.cc
+@@ -33,6 +33,8 @@ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kEnterpriseManagedView);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kExploreAppElementId);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kFaceGazeBubbleElementId);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kFilesAppElementId);
++DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kNickelBazaarAppElementId);
++DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kNickelTerminalAppElementId);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kHoldingSpaceTrayElementId);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kHomeButtonElementId);
+ DEFINE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(kHotspotDetailedViewToggleElementId);
+diff --git a/ash/ash_element_identifiers.h b/ash/ash_element_identifiers.h
+index 039a4b525b48f..f20392089ea5a 100644
+--- a/ash/ash_element_identifiers.h
++++ b/ash/ash_element_identifiers.h
+@@ -71,6 +71,13 @@ DECLARE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(ASH_EXPORT, kFaceGazeBubbleElementId);
+ // Uniquely identifies an element corresponding to the Files app.
+ DECLARE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(ASH_EXPORT, kFilesAppElementId);
+ 
++// NickelOS: Bazaar (the app store) and the Terminal app in the launcher, for
++// the Welcome Tour's NickelOS steps.
++DECLARE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(ASH_EXPORT,
++                                          kNickelBazaarAppElementId);
++DECLARE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(ASH_EXPORT,
++                                          kNickelTerminalAppElementId);
++
+ // Uniquely identifies the `HoldingSpaceTray`.
+ DECLARE_EXPORTED_ELEMENT_IDENTIFIER_VALUE(ASH_EXPORT,
+                                           kHoldingSpaceTrayElementId);
+diff --git a/ash/ash_strings.grd b/ash/ash_strings.grd
+index 70e16eef5fcc5..0cedd7e12cdef 100644
+--- a/ash/ash_strings.grd
++++ b/ash/ash_strings.grd
+@@ -7594,7 +7594,7 @@ To shut down the device, press and hold the power button on the device again.
+ 
+       <!-- Welcome Tour -->
+       <message name="IDS_ASH_WELCOME_TOUR_COMPLETE_BUTTON_TEXT" desc="Text shown on the button that completes the System UI Welcome Tour tutorial when triggered and opens the Explore app.">
+-       Open Explore
++        Open the NickelOS guide
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_DIALOG_ACCEPT_BUTTON_TEXT" desc="Text shown on the dialog's button that starts the System UI Welcome Tour tutorial when triggered.">
+         Quick tour
+@@ -7603,19 +7603,19 @@ To shut down the device, press and hold the power button on the device again.
+         No thanks
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT" desc="Text shown in the body of the dialog as part of the System UI Welcome Tour.">
+-        Take a quick tour to learn how to get around your <ph name="PRODUCT_NAME">$1<ex>Chromebook</ex></ph>. Get up and running in 5 steps.
++        Take a quick tour of your <ph name="PRODUCT_NAME">$1<ex>NickelOS device</ex></ph>: where your apps are, how to get more, and the Linux underneath. 7 steps.
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT" desc="Text shown as the Welcome Tour dialog title.">
+-        Hi there. <ph name="PRODUCT_NAME">$1<ex>Chromebook</ex></ph> is a little different.
++        Hi there. Welcome to your <ph name="PRODUCT_NAME">$1<ex>NickelOS device</ex></ph>.
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_EXPLORE_APP_BUBBLE_BODY_TEXT" desc="Text shown in the body of a help bubble anchored to the Explore app as part of the System UI Welcome Tour.">
+         Those were the basics! Continue in Explore, our built-in app for tips and help. You’ll find tips for getting started, special offers, and the newest <ph name="PRODUCT_NAME">$1<ex>Chromebook</ex></ph> features.
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_ACCNAME" desc="The accessible name of a help bubble anchored to the Files app as part of the System UI Welcome Tour.">
+-        Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>5</ex></ph>. You can find the Files app in Launcher. Manage your local files and your Google Drive files, all in the Files app.
++        Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>7</ex></ph>. You can find the Files app in Launcher. Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_FILES_APP_BUBBLE_BODY_TEXT" desc="Text shown in the body of a help bubble anchored to the Files app as part of the System UI Welcome Tour.">
+-        Manage your local files and your Google Drive files, all in the Files app.
++        Home is your Linux home folder: Linux apps and the Files app see the same files, and cloud storage you add in Settings shows up here too.
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_HOME_BUTTON_BUBBLE_ACCNAME" desc="The accessible name of a help bubble anchored to the home button as part of the System UI Welcome Tour.">
+         Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>5</ex></ph>. Use apps to do everything you need on your <ph name="PRODUCT_NAME">$3<ex>Chromebook</ex></ph>. You can find your apps in the Launcher. Press Alt + Shift + L to focus on the Launcher button.
+@@ -7626,20 +7626,32 @@ To shut down the device, press and hold the power button on the device again.
+       <message name="IDS_ASH_WELCOME_TOUR_HOME_BUTTON_BUBBLE_BODY_TEXT_OTHER_DEVICE_TYPES" desc="Text shown in the body of a help bubble anchored to the home button as part of the System UI Welcome Tour.">
+         Use apps to do everything you need on your <ph name="PRODUCT_NAME">$1<ex>Chromebox</ex></ph>. You can find your apps in the Launcher.
+       </message>
++      <message name="IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME" desc="NickelOS: the accessible name of a help bubble anchored to Bazaar, the app store, as part of the Welcome Tour.">
++        Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>7</ex></ph>. Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.
++      </message>
++      <message name="IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT" desc="NickelOS: text shown in the body of a help bubble anchored to Bazaar, the app store, as part of the Welcome Tour.">
++        Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.
++      </message>
++      <message name="IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME" desc="NickelOS: the accessible name of a help bubble anchored to the Terminal app as part of the Welcome Tour.">
++        Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>7</ex></ph>. The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.
++      </message>
++      <message name="IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT" desc="NickelOS: text shown in the body of a help bubble anchored to the Terminal app as part of the Welcome Tour.">
++        The Terminal is a real Linux shell, with sudo. NickelOS is Gentoo underneath: eix finds packages and sudo emerge installs them, as on any Gentoo.
++      </message>
+       <message name="IDS_ASH_WELCOME_TOUR_OVERRIDDEN_BUBBLE_BODY_TEXT" desc="Text which is overridden and so not shown in the body of a help bubble as part of the System UI Welcome Tour but which is still required to be provided to satisfy API requirements." translateable="false">
+         ''' '''
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_ACCNAME" desc="The accessible name of a help bubble anchored to the search box as part of the System UI Welcome Tour.">
+-        Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>5</ex></ph>. Once Launcher is activated, you’ll get an enhanced search bar. You can start typing to search for your files, apps, and more. You can also get answers to questions about your <ph name="PRODUCT_NAME">$3<ex>Chromebook</ex></ph>.
++        Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>7</ex></ph>. Once Launcher is activated, you’ll get a search bar. Start typing to search your <ph name="PRODUCT_NAME">$3<ex>NickelOS device</ex></ph> for apps, files and settings.
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_SEARCH_BOX_BUBBLE_BODY_TEXT" desc="Text shown in the body of a help bubble anchored to the search box as part of the System UI Welcome Tour.">
+-        Search for your files, apps, and more in the Launcher. You can also get answers to questions about your <ph name="PRODUCT_NAME">$1<ex>Chromebook</ex></ph>.
++        Search your <ph name="PRODUCT_NAME">$1<ex>NickelOS device</ex></ph> for apps, files and settings from the Launcher.
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_ACCNAME" desc="The accessible name of a help bubble anchored to the Settings app as part of the System UI Welcome Tour">
+-        Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>5</ex></ph>. You can find your device Settings in Launcher. Try customizing your <ph name="PRODUCT_NAME">$3<ex>Chromebook</ex></ph> in Settings like changing your wallpaper or setting a screen saver.
++        Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>7</ex></ph>. You can find your device Settings in Launcher. Customize your <ph name="PRODUCT_NAME">$3<ex>NickelOS device</ex></ph> in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT" desc="Text shown in the body of a help bubble anchored to the Settings app as part of the System UI Welcome Tour">
+-        Customize and personalize your <ph name="PRODUCT_NAME">$1<ex>Chromebook</ex></ph> in Settings. Try changing your wallpaper or setting a screen saver.
++        Customize and personalize your <ph name="PRODUCT_NAME">$1<ex>NickelOS device</ex></ph> in Settings: your wallpaper, dark or light mode, displays and more. That’s the tour! The NickelOS guide has more.
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_SHELF_BUBBLE_ACCNAME" desc="The accessible name of a help bubble anchored to the shelf as part of the System UI Welcome Tour.">
+         Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>5</ex></ph>. Your pinned and open apps are on the shelf located at the bottom of your screen. Press Alt + Shift + L then tab to focus on shelf items.
+diff --git a/ash/user_education/welcome_tour/welcome_tour_controller.cc b/ash/user_education/welcome_tour/welcome_tour_controller.cc
+index 895b44b70bf08..d1e85e60afbf4 100644
+--- a/ash/user_education/welcome_tour/welcome_tour_controller.cc
++++ b/ash/user_education/welcome_tour/welcome_tour_controller.cc
+@@ -4,6 +4,9 @@
+ 
+ #include "ash/user_education/welcome_tour/welcome_tour_controller.h"
+ 
++#include <pwd.h>
++#include <unistd.h>
++
+ #include <string>
+ #include <string_view>
+ #include <utility>
+@@ -13,6 +16,7 @@
+ #include "ash/ash_element_identifiers.h"
+ #include "ash/constants/ash_features.h"
+ #include "ash/public/cpp/app_list/app_list_metrics.h"
++#include "ash/public/cpp/new_window_delegate.h"
+ #include "ash/public/cpp/system/scoped_nudge_pause.h"
+ #include "ash/public/cpp/system/scoped_toast_pause.h"
+ #include "ash/public/cpp/system/system_nudge_pause_manager.h"
+@@ -29,6 +33,7 @@
+ #include "ash/user_education/welcome_tour/welcome_tour_dialog.h"
+ #include "ash/user_education/welcome_tour/welcome_tour_metrics.h"
+ #include "ash/user_education/welcome_tour/welcome_tour_notification_blocker.h"
++#include "ash/user_education/welcome_tour/welcome_tour_prefs.h"
+ #include "ash/user_education/welcome_tour/welcome_tour_scrim.h"
+ #include "ash/user_education/welcome_tour/welcome_tour_window_minimizer.h"
+ #include "base/check_is_test.h"
+@@ -54,6 +59,7 @@
+ #include "ui/base/ui_base_types.h"
+ #include "ui/chromeos/devicetype_utils.h"
+ #include "ui/display/display.h"
++#include "url/gurl.h"
+ #include "ui/display/screen.h"
+ #include "ui/display/tablet_state.h"
+ #include "ui/events/base_event_utils.h"
+@@ -68,7 +74,20 @@ namespace {
+ WelcomeTourController* g_instance = nullptr;
+ 
+ // Strings. V3 adds a Files app step, but removes the status area step.
+-constexpr char16_t kTotalSteps[] = u"5";
++// NickelOS: shelf, launcher, search, Files, Bazaar, Terminal, Settings.
++constexpr char16_t kTotalSteps[] = u"7";
++
++// NickelOS: where the tour's last button goes, instead of Google's Explore
++// app (which NickelOS does not have).
++constexpr char kNickelGuideUrl[] = "https://nickelos.dev/help";
++
++// NickelOS: a local account's session starts in the login screen's Chrome,
++// run as chronos, and goes on in a Chrome run as the account's Linux user
++// (Chrome 0008). The tour waits for that one.
++bool IsChronosChrome() {
++  const struct passwd* entry = getpwuid(getuid());
++  return entry && std::string_view(entry->pw_name) == "chronos";
++}
+ 
+ // Helpers ---------------------------------------------------------------------
+ 
+@@ -123,11 +142,6 @@ views::TrackedElementViews* GetMatchingElementInPrimaryRootWindow(
+       GetMatchingViewInPrimaryRootWindow(element_id));
+ }
+ 
+-void LaunchExploreAppAsync(UserEducationPrivateApiKey key) {
+-  UserEducationController::Get()->LaunchSystemWebAppAsync(
+-      key, ash::SystemWebAppType::HELP, apps::LaunchSource::kFromWelcomeTour,
+-      display::Screen::Get()->GetPrimaryDisplay().id());
+-}
+ 
+ user_education::TutorialDescription::NameElementsCallback
+ NameMatchingElementInPrimaryRootWindowCallback(ui::ElementIdentifier element_id,
+@@ -382,7 +396,7 @@ WelcomeTourController::GetTutorialDescription() const {
+             .AddCustomNextButton(DefaultNextButtonCallback().Then(
+                 base::BindRepeating(&WelcomeTourController::SetCurrentStep,
+                                     weak_ptr_factory_.GetMutableWeakPtr(),
+-                                    welcome_tour_metrics::Step::kSettingsApp)))
++                                    welcome_tour_metrics::Step::kExploreApp)))
+             .InSameContext());
+ 
+     // Wait for "Next" button click before proceeding to the next bubble step.
+@@ -391,9 +405,67 @@ WelcomeTourController::GetTutorialDescription() const {
+             user_education::kHelpBubbleNextButtonClickedEvent,
+             kFilesAppElementId)
+             .InSameContext());
++
++    // NickelOS: Bazaar, where Linux apps come from. (Its help bubble id and
++    // metrics step are the Explore app's, which NickelOS has no step for.)
++    tutorial_description.steps.emplace_back(
++        user_education::TutorialDescription::BubbleStep(
++            kNickelBazaarAppElementId)
++            .SetBubbleArrow(user_education::HelpBubbleArrow::kBottomLeft)
++            .SetBubbleBodyText(IDS_ASH_WELCOME_TOUR_OVERRIDDEN_BUBBLE_BODY_TEXT)
++            .SetExtendedProperties(CreateHelpBubbleExtendedProperties(
++                HelpBubbleId::kWelcomeTourExploreApp,
++                /*accessible_name=*/
++                l10n_util::GetStringFUTF8(
++                    IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME,
++                    base::NumberToString16(current_step++), kTotalSteps),
++                /*body_text=*/
++                l10n_util::GetStringUTF8(
++                    IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT)))
++            .AddCustomNextButton(DefaultNextButtonCallback().Then(
++                base::BindRepeating(&WelcomeTourController::SetCurrentStep,
++                                    weak_ptr_factory_.GetMutableWeakPtr(),
++                                    welcome_tour_metrics::Step::kStatusArea)))
++            .InSameContext());
++
++    tutorial_description.steps.emplace_back(
++        user_education::TutorialDescription::EventStep(
++            user_education::kHelpBubbleNextButtonClickedEvent,
++            kNickelBazaarAppElementId)
++            .InSameContext());
++
++    // NickelOS: the Terminal, a real Linux shell, and Gentoo's packages.
++    // (The status area's help bubble id and metrics step, unused in V3.)
++    tutorial_description.steps.emplace_back(
++        user_education::TutorialDescription::BubbleStep(
++            kNickelTerminalAppElementId)
++            .SetBubbleArrow(user_education::HelpBubbleArrow::kBottomLeft)
++            .SetBubbleBodyText(IDS_ASH_WELCOME_TOUR_OVERRIDDEN_BUBBLE_BODY_TEXT)
++            .SetExtendedProperties(CreateHelpBubbleExtendedProperties(
++                HelpBubbleId::kWelcomeTourStatusArea,
++                /*accessible_name=*/
++                l10n_util::GetStringFUTF8(
++                    IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_ACCNAME,
++                    base::NumberToString16(current_step++), kTotalSteps),
++                /*body_text=*/
++                l10n_util::GetStringUTF8(
++                    IDS_ASH_WELCOME_TOUR_NICKEL_TERMINAL_BUBBLE_BODY_TEXT)))
++            .AddCustomNextButton(DefaultNextButtonCallback().Then(
++                base::BindRepeating(&WelcomeTourController::SetCurrentStep,
++                                    weak_ptr_factory_.GetMutableWeakPtr(),
++                                    welcome_tour_metrics::Step::kSettingsApp)))
++            .InSameContext());
++
++    tutorial_description.steps.emplace_back(
++        user_education::TutorialDescription::EventStep(
++            user_education::kHelpBubbleNextButtonClickedEvent,
++            kNickelTerminalAppElementId)
++            .InSameContext());
+   }
+ 
+-  // Step 5: Settings app.
++  // Step 5 (NickelOS: 7, the last): Settings app. Its button completes the
++  // tour, which opens the NickelOS guide (OnWelcomeTourEnded()); there are no
++  // Explore app steps.
+   tutorial_description.steps.emplace_back(
+       user_education::TutorialDescription::BubbleStep(kSettingsAppElementId)
+           .SetBubbleArrow(user_education::HelpBubbleArrow::kBottomLeft)
+@@ -409,35 +481,8 @@ WelcomeTourController::GetTutorialDescription() const {
+               l10n_util::GetStringFUTF8(
+                   IDS_ASH_WELCOME_TOUR_SETTINGS_APP_BUBBLE_BODY_TEXT,
+                   product_name)))
+-          .AddCustomNextButton(DefaultNextButtonCallback().Then(
+-              base::BindRepeating(&WelcomeTourController::SetCurrentStep,
+-                                  weak_ptr_factory_.GetMutableWeakPtr(),
+-                                  welcome_tour_metrics::Step::kExploreApp)))
+           .InSameContext());
+ 
+-  // Wait for "Next" button click before proceeding to the next bubble step.
+-  tutorial_description.steps.emplace_back(
+-      user_education::TutorialDescription::EventStep(
+-          user_education::kHelpBubbleNextButtonClickedEvent,
+-          kSettingsAppElementId)
+-          .InSameContext());
+-
+-  // Step 6: Explore app.
+-  // NOTE: The accessible name is the same as the body text.
+-  tutorial_description.steps.emplace_back(
+-      user_education::TutorialDescription::BubbleStep(kExploreAppElementId)
+-          .SetBubbleArrow(user_education::HelpBubbleArrow::kBottomLeft)
+-          .SetBubbleBodyText(IDS_ASH_WELCOME_TOUR_OVERRIDDEN_BUBBLE_BODY_TEXT)
+-          .SetExtendedProperties(CreateHelpBubbleExtendedProperties(
+-              HelpBubbleId::kWelcomeTourExploreApp,
+-              /*body_text=*/l10n_util::GetStringFUTF8(
+-                  IDS_ASH_WELCOME_TOUR_EXPLORE_APP_BUBBLE_BODY_TEXT,
+-                  product_name)))
+-          .InSameContext());
+-
+-  // Step 7: Explore app window.
+-  // Implemented in `WelcomeTourController::OnWelcomeTourEnded()`.
+-
+   return tutorial_description;
+ }
+ 
+@@ -541,45 +586,21 @@ void WelcomeTourController::MaybeStartWelcomeTour() {
+       return;
+     }
+ 
+-    // The cross-device proxy for whether the user is "new" or "existing" is
+-    // untested out in the wild. For sanity, confirm that the user is also
+-    // considered "new" locally in case the proxy check proves to be erroneous.
+-    if (!session_controller->IsUserFirstLogin()) {
+-      welcome_tour_metrics::RecordTourPrevented(
+-          prefs, welcome_tour_metrics::PreventedReason::kUserNotNewLocally);
++    // NickelOS: accounts are local, so there is no Google Sync to say whether
++    // the user is new, and a first sign-in runs two Chromes (see
++    // IsChronosChrome()). Instead the tour is offered to each user once: until
++    // they have finished it or said no thanks (an attempt), in the Chrome
++    // that runs as their own user.
++    if (IsChronosChrome()) {
+       return;
+     }
+-
+-    const std::optional<bool>& is_new_user =
+-        UserEducationController::Get()->IsNewUser(UserEducationPrivateApiKey());
+-
+-    // If it is not known whether the user is "new" or "existing" when this code
+-    // is reached, the user is treated as "existing" since the Welcome Tour
+-    // cannot be delayed and we want to err on the side of being conservative.
+-    if (!is_new_user.has_value()) {
+-      welcome_tour_metrics::RecordTourPrevented(
+-          prefs,
+-          welcome_tour_metrics::PreventedReason::kUserNewnessNotAvailable);
+-      return;
+-    }
+-
+-    // Welcome Tour is not supported for "existing" users.
+-    if (!is_new_user.value()) {
++    if (welcome_tour_prefs::GetTimeOfFirstTourAttempt(prefs).has_value()) {
+       welcome_tour_metrics::RecordTourPrevented(
+-          prefs, welcome_tour_metrics::PreventedReason::kUserNotNewCrossDevice);
++          prefs, welcome_tour_metrics::PreventedReason::kUserNotNewLocally);
+       return;
+     }
+   }
+ 
+-  // We should attempt to launch the Explore app even if the Welcome Tour is
+-  // prevented provided that (a) the user is new, and (b) the device is not in
+-  // tablet mode. This is in keeping with existing first run behavior.
+-  absl::Cleanup maybe_launch_explore_app_async = [] {
+-    if (!display::Screen::Get()->InTabletMode()) {
+-      LaunchExploreAppAsync(UserEducationPrivateApiKey());
+-    }
+-  };
+-
+   // Welcome Tour is only conditionally supported with ChromeVox enabled.
+   if (Shell::Get()->accessibility_controller()->spoken_feedback().enabled() &&
+       !features::IsWelcomeTourChromeVoxSupported()) {
+@@ -604,9 +625,6 @@ void WelcomeTourController::MaybeStartWelcomeTour() {
+     return;
+   }
+ 
+-  // The Welcome Tour is not being prevented, so hold off on opening the Explore
+-  // app until the Welcome Tour is either completed or aborted.
+-  std::move(maybe_launch_explore_app_async).Cancel();
+ 
+   auto* const tutorial_controller = UserEducationTutorialController::Get();
+   if (!tutorial_controller->IsTutorialRegistered(TutorialId::kWelcomeTour)) {
+@@ -723,12 +741,13 @@ void WelcomeTourController::OnWelcomeTourEnded(
+     }
+   }
+ 
+-  // Attempt to launch the Explore app regardless of tour completion so long as
+-  // the device is not in tablet mode. This is in keeping with existing first
+-  // run behavior.
+-  if (!display::Screen::Get()->InTabletMode()) {
+-    LaunchExploreAppAsync(UserEducationPrivateApiKey());
+-    SetCurrentStep(welcome_tour_metrics::Step::kExploreAppWindow);
++  // NickelOS: the tour's last button opens the NickelOS guide in the browser,
++  // instead of Google's Explore app. Only then: no tab the user did not ask
++  // for when they said no thanks.
++  if (completed) {
++    NewWindowDelegate::GetInstance()->OpenUrl(
++        GURL(kNickelGuideUrl), NewWindowDelegate::OpenUrlFrom::kUserInteraction,
++        NewWindowDelegate::Disposition::kNewForegroundTab);
+   }
+ 
+   SetCurrentStep(std::nullopt);
+diff --git a/chrome/browser/ui/ash/user_education/chrome_user_education_delegate.cc b/chrome/browser/ui/ash/user_education/chrome_user_education_delegate.cc
+index 2f8aa5754b6d6..82c1e5ed098c2 100644
+--- a/chrome/browser/ui/ash/user_education/chrome_user_education_delegate.cc
++++ b/chrome/browser/ui/ash/user_education/chrome_user_education_delegate.cc
+@@ -79,6 +79,18 @@ ChromeUserEducationDelegate::~ChromeUserEducationDelegate() = default;
+ std::optional<ui::ElementIdentifier>
+ ChromeUserEducationDelegate::GetElementIdentifierForAppId(
+     const std::string& app_id) const {
++  // NickelOS: Bazaar (the host app io.github.kolunmi.Bazaar; its id as in
++  // default_pinned_apps.cc, Chrome 0004) and the Terminal app
++  // (guest_os::kTerminalSystemAppId), for the Welcome Tour's NickelOS steps.
++  static constexpr char kNickelBazaarAppId[] =
++      "nhgfgbachfmhdngmjnpllbcbjneihcij";
++  static constexpr char kTerminalAppId[] = "fhicihalidkgcimdmhpohldehjmcabcf";
++  if (app_id == kNickelBazaarAppId) {
++    return ash::kNickelBazaarAppElementId;
++  }
++  if (app_id == kTerminalAppId) {
++    return ash::kNickelTerminalAppElementId;
++  }
+   if (app_id == file_manager::kFileManagerSwaAppId) {
+     return ash::kFilesAppElementId;
+   }
