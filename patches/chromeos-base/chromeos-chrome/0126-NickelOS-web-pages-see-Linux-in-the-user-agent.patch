@@ -1,0 +1,91 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: web pages see Linux in the user agent
+
+Web pages are told NickelOS's browser runs on Linux, not ChromeOS: the
+user agent's platform is "X11; Linux x86_64" (the reduced user agent) or
+"Linux <cpu>" (the full one), and its client hints say platform "Linux",
+with no platform version, as Chrome on Linux does.
+
+Linux apps run natively on NickelOS, and sites that see ChromeOS send a
+Chromebook's choices. Dresden found it with Slack (2026-11-09): signing
+in from Slack's Linux app opens the browser, and Slack's sign-in page sent
+a ChromeOS browser to Slack's web client within a second, instead of
+back to the app (slack://), which works (ChromeOS's protocol prompt, then
+nickel-appd starts the app). "Open in app" links and download pages
+(Zoom, Teams, Discord) do the same.
+
+ChromeOS's own pages (Settings, setup, Files, the Terminal) are unaffected:
+WebUI decides it runs on ChromeOS when it is built
+(ui/webui/resources/js/platform.ts, <if expr="is_chromeos">); its isLinux,
+read from the user agent, is used by no ChromeOS page. navigator.platform
+already said "Linux x86_64".
+
+diff --git a/components/embedder_support/user_agent_utils.cc b/components/embedder_support/user_agent_utils.cc
+index bf4a896..b7fda1c 100644
+--- a/components/embedder_support/user_agent_utils.cc
++++ b/components/embedder_support/user_agent_utils.cc
+@@ -276,7 +276,7 @@ std::string GetUserAgentPlatform() {
+ }
+ 
+ std::string GetUnifiedPlatform() {
+-#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_CHROMEOS)
++#if BUILDFLAG(IS_ANDROID)
+   // This constant is only used on Android (desktop) and Linux.
+   constexpr char kUnifiedPlatformChromeOSX64[] = "X11; CrOS x86_64 14541.0.0";
+ 
+@@ -293,7 +293,8 @@ std::string GetUnifiedPlatform() {
+   }
+   return "Linux; Android 10; K";
+ #elif BUILDFLAG(IS_CHROMEOS)
+-  return kUnifiedPlatformChromeOSX64;
++  // NickelOS: web pages see Linux (see GetPlatformForUAMetadata()).
++  return "X11; Linux x86_64";
+ #elif BUILDFLAG(IS_MAC)
+   return "Macintosh; Intel Mac OS X 10_15_7";
+ #elif BUILDFLAG(IS_WIN)
+@@ -590,7 +591,8 @@ std::string GetPlatformVersion() {
+ 
+ #if BUILDFLAG(IS_WIN)
+   return GetWindowsPlatformVersion();
+-#elif BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_FUCHSIA)
++#elif BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_FUCHSIA) || BUILDFLAG(IS_CHROMEOS)
++  // NickelOS: no ChromeOS version for web pages, as on Linux.
+   return std::string();
+ #else
+ 
+@@ -619,14 +621,13 @@ std::string GetPlatformForUAMetadata() {
+   // "macOS" by default
+   return "macOS";
+ #elif BUILDFLAG(IS_CHROMEOS)
+-  // TODO(crbug.com/40846294): The branding change to remove the space caused a
+-  // regression that's solved here. Ideally, we would just use the new OS name
+-  // without the space here too, but that needs a launch plan.
+-#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+-  return "Chrome OS";
+-#else
+-  return "Chromium OS";
+-#endif
++  // NickelOS: web pages are told Linux. Linux apps run natively here, and
++  // sites that see ChromeOS send a Chromebook's choices: Slack's sign-in
++  // from its Linux app went to Slack's web client instead of back to the
++  // app, and "open in app" links and download pages offer Android apps or
++  // nothing. ChromeOS's own pages decide they're on ChromeOS when they are
++  // built (ui/webui/resources/js/platform.ts), not from the user agent.
++  return "Linux";
+ #else
+   return std::string(version_info::GetOSType());
+ #endif
+@@ -790,10 +791,9 @@ std::string BuildOSCpuInfoFromOSVersionAndCpuType(const std::string& os_version,
+ #if BUILDFLAG(IS_MAC)
+                       "%s Mac OS X %s", cpu_type.c_str(), os_version.c_str()
+ #elif BUILDFLAG(IS_CHROMEOS)
+-                      "CrOS "
+-                      "%s %s",
+-                      cpu_type.c_str(),  // e.g. i686
+-                      os_version.c_str()
++                      // NickelOS: Linux, as on Linux.
++                      "Linux %s",
++                      cpu_type.c_str()  // e.g. i686
+ #elif BUILDFLAG(IS_ANDROID)
+                       "Android %s", os_version.c_str()
+ #elif BUILDFLAG(IS_FUCHSIA)

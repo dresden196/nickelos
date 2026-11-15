@@ -2,13 +2,20 @@
 # Distributed under the terms of the GNU General Public License v2
 #
 # NickelOS: while the first boot installs the default apps (the Bazaar app
-# store and GNOME's apps for pictures, videos, music and PDFs,
-# nickel-flatpak-defaults), say so in a notification, and say again when they
-# are ready, or that it will try again at the next start if it could not.
-# Otherwise the apps are simply missing for the first half hour or so.
+# store and GNOME's apps for pictures, videos, music and PDFs, and the Full
+# experience's apps, nickel-flatpak-defaults), say so in a notification, and
+# say again when they are ready, or that it will try again at the next start
+# if it could not. Otherwise the apps just turn up, half an hour or so later.
 # Runs as the session user (nickel-apps-progress.conf); the notification
 # server is ChromeOS's, through nickel-portal.
+#
+# The notification shows as a popup again (a new one in its place) when an
+# app is ready and two minutes have passed since the last popup: the Welcome
+# Tour, which runs at the first sign-in too, holds back every popup while it
+# runs, and a popup shown once and missed left only an entry in the tray.
+# In between, the entry in the tray is updated in place.
 state=/run/nickel/flatpak-defaults
+repop=120
 
 notify() {  # REPLACES_ID SUMMARY BODY -> prints the notification's id
   gdbus call --session --dest org.freedesktop.Notifications \
@@ -18,27 +25,94 @@ notify() {  # REPLACES_ID SUMMARY BODY -> prints the notification's id
     sed -n 's/^(uint32 \([0-9]*\),)$/\1/p'
 }
 
+close() {  # ID
+  gdbus call --session --dest org.freedesktop.Notifications \
+    --object-path /org/freedesktop/Notifications \
+    --method org.freedesktop.Notifications.CloseNotification "$1" \
+    >/dev/null 2>&1
+}
+
 current() { cat "${state}" 2>/dev/null; }
 
+# nickel-flatpak-defaults starts with the session too (for setup's Full
+# experience), so a state left from the first boot's round ("done") may
+# still turn into a new round: wait two minutes for one.
+for _ in $(seq 24); do
+  case "$(current)" in
+    waiting|installing*) break ;;
+  esac
+  sleep 5
+done
 case "$(current)" in
-  waiting|installing) ;;
+  waiting|installing*) ;;
   *) exit 0 ;;  # nothing running (done, failed or never started)
 esac
 
-id=$(notify 0 "Installing your apps" \
-  "NickelOS is downloading its apps: Bazaar, the app store, and the apps that open pictures, videos, music and PDFs. They appear in the launcher when they are ready.")
-while :; do
-  case "$(current)" in
-    done)
-      notify "${id:-0}" "Your apps are ready" \
-        "They are in the launcher. Find and install more apps from Flathub in Bazaar." >/dev/null
-      exit 0
+# The notification server comes up with the session (nickel-portal).
+for _ in $(seq 30); do
+  gdbus introspect --session --dest org.freedesktop.Notifications \
+    --object-path /org/freedesktop/Notifications >/dev/null 2>&1 && break
+  sleep 2
+done
+
+body() {  # STATE...
+  case "$1" in
+    waiting)
+      echo "NickelOS downloads its apps as soon as it is online: Bazaar, the app store, and the apps that open pictures, videos, music and PDFs."
       ;;
-    failed)
-      notify "${id:-0}" "Apps could not be installed yet" \
-        "Some apps could not be downloaded. NickelOS tries again the next time it starts." >/dev/null
-      exit 0
+    installing)
+      # installing READY TOTAL NAME
+      local ready=$2 total=$3
+      shift 3
+      if [ "${ready}" = 0 ]; then
+        echo "Downloading ${*}, one of ${total} apps. Each one shows up in Launcher as soon as it is ready."
+      else
+        echo "${ready} of ${total} ready, in Launcher. Now downloading ${*}."
+      fi
       ;;
   esac
-  sleep 10
+}
+
+id=0
+shown=$(date +%s)
+last=
+ready_shown=0
+while :; do
+  s=$(current)
+  case "${s}" in
+    done|failed)
+      # A new notification, so it shows as a popup.
+      [ "${id}" != 0 ] && close "${id}"
+      if [ "${s}" = done ]; then
+        notify 0 "Your apps are ready" \
+          "They are in Launcher. Find and install more apps from Flathub in Bazaar." >/dev/null
+      else
+        notify 0 "Apps could not be installed yet" \
+          "Some apps could not be downloaded. NickelOS tries again the next time it starts." >/dev/null
+      fi
+      exit 0
+      ;;
+    "${last}") ;;
+    *)
+      last=${s}
+      # shellcheck disable=SC2086
+      set -- ${s}
+      ready=${2:-0}
+      now=$(date +%s)
+      if [ "${id}" = 0 ] ||
+          { [ "${ready}" -gt "${ready_shown}" ] &&
+            [ $((now - shown)) -ge "${repop}" ]; }; then
+        [ "${id}" != 0 ] && close "${id}"
+        id=$(notify 0 "Installing your apps" "$(body "$@")")
+        id=${id:-0}
+        shown=${now}
+        ready_shown=${ready}
+        # Not shown (the notification server isn't there): again next time.
+        [ "${id}" = 0 ] && last=
+      else
+        notify "${id}" "Installing your apps" "$(body "$@")" >/dev/null
+      fi
+      ;;
+  esac
+  sleep 5
 done

@@ -1,9 +1,13 @@
 #!/bin/sh
 # NickelOS's ISO: the initramfs's first process (scripts/iso/README.md).
-# Mounts what it needs, finds the NickelOS image on the boot medium (the
-# stick or disc, or an ISO file on a stick, as Ventoy keeps them), and
-# starts frecon, ChromeOS's console, whose terminal runs the installer
-# (/sbin/agetty, the program frecon starts there).
+# Mounts what it needs and finds the NickelOS image on the boot medium (the
+# stick or disc, or an ISO file on a stick, as Ventoy keeps them). Then, by
+# default, starts NickelOS itself from that image (the live session: setup,
+# with its installer and "try it first"), its writes kept in memory; with
+# nickelos.text on the kernel's command line (the GRUB menu's text-mode
+# entry), or if the live session can't be set up, starts frecon, ChromeOS's
+# console, whose terminal runs the text-mode installer (/sbin/agetty, the
+# program frecon starts there).
 /bin/busybox --install -s /bin
 export PATH=/sbin:/bin
 mkdir -p /proc /sys /dev /run /tmp /media /nickelos
@@ -21,7 +25,9 @@ if (: </dev/console) 2>/dev/null; then
 else
 	exec </dev/null >/dev/null 2>&1
 fi
-echo 1 > /proc/sys/kernel/printk 2>/dev/null
+# Quiet console for the menu; test builds (nickelos.debuglog) keep the
+# kernel's log on it (earlyprintk on a VM's serial line).
+grep -q nickelos.debuglog /proc/cmdline || echo 1 > /proc/sys/kernel/printk 2>/dev/null
 
 # Test builds only (nickelos.debuglog=DEVICE on the kernel's command line,
 # which only the test ISO's own GRUB menu sets): this kernel has no console
@@ -43,6 +49,7 @@ if [ -n "$dbg" ]; then
 		dd if=/run/debug.txt of="$dbg" bs=1M seek=$slot conv=notrunc,fsync 2>/dev/null
 		sleep 1
 	done ) &
+	dbg_pid=$!
 fi
 
 # Filesystems of boot media: modules the kernel doesn't build in.
@@ -72,7 +79,9 @@ find_media() {
 			l=$(losetup -f) && losetup -r "$l" "$iso" || continue
 			i=/media/iso$n; n=$((n + 1)); mkdir -p "$i"
 			if mount -o ro -t iso9660 "$l" "$i" 2>/dev/null && [ -f "$i/nickelos/image.sqfs" ]; then
-				echo "$dev $i file"
+				# The ISO file's name may have spaces: beside the result.
+				printf '%s\n' "${iso#"$m"/}" > /run/nickelos-iso
+				echo "$dev $i file $m"
 				return 0
 			fi
 			umount "$i" 2>/dev/null; losetup -d "$l"; rmdir "$i"
@@ -95,7 +104,137 @@ set -- $found
 echo "MEDIA_DEV=$1" > /run/nickelos-media
 echo "MEDIA_DIR=$2" >> /run/nickelos-media
 echo "MEDIA_KIND=$3" >> /run/nickelos-media
-mount -o ro -t squashfs "$2/nickelos/image.sqfs" /nickelos
+MEDIA_DEV=$1 MEDIA_DIR=$2 MEDIA_KIND=$3 MEDIA_FS_DIR=${4:-}
+MEDIA_ISO=$(cat /run/nickelos-iso 2>/dev/null)
+
+# The live session (the default). Each step that fails leaves it for the
+# text-mode installer below.
+#  - The medium again, through a device-mapper device named
+#    "nickelos-medium" (a linear map of the stick, disc or partition): the
+#    installer (os_install_service) never offers a disk that device holds,
+#    and nothing else can claim it while NickelOS runs from it.
+#  - The image (read-only, in the squashfs) under a device-mapper thin
+#    device whose writes go to memory: a sparse file on a tmpfs as the
+#    thin pool's data (memory is used only for what is written; ChromeOS's
+#    zram swap can take it), the image as its external origin.
+#  - That device's partitions (a loop device with -P): NickelOS's root is
+#    ROOT-A there and its data partition STATE, as on the USB image (rootdev
+#    and the installer take the loop device for the disk NickelOS runs
+#    from; is_running_from_installer says yes, as ROOT-B is the USB
+#    layout's stub).
+#  - switch_root into ROOT-A, with /dev as the kernel would have mounted it
+#    (DEVTMPFS_MOUNT): ChromeOS's init mounts the rest itself.
+# The kernel has the media's filesystems built in, so nothing here loads a
+# module: LoadPin then pins to NickelOS's own root, whose drivers load.
+export DM_DISABLE_UDEV=1
+dm() { dmsetup --noudevsync --noudevrules "$@"; }
+# util-linux's, by path: this busybox's shell runs its own applet for a bare
+# name even when PATH finds another program first, and busybox's losetup has
+# no --show or -j, its switch_root doesn't move /dev.
+LOSETUP=/sbin/losetup
+BLOCKDEV=/sbin/blockdev
+# To the kernel's log too, which the live session keeps (dmesg).
+log() { echo "nickelos-iso: $*" > /dev/kmsg 2>/dev/null; echo "$*"; }
+# A sparse file of SIZE kB.
+sparse() { dd if=/dev/null of="$1" bs=1k seek="$2" 2>/dev/null; }
+hold_medium() {
+	local sectors
+	if [ "$MEDIA_KIND" = file ]; then
+		umount "$MEDIA_DIR" || return 1
+		l=$($LOSETUP -j "$MEDIA_FS_DIR/$MEDIA_ISO" | cut -d: -f1)
+		[ -n "$l" ] && losetup -d "$l"
+		umount "$MEDIA_FS_DIR" || return 1
+	else
+		umount "$MEDIA_DIR" || return 1
+	fi
+	sectors=$($BLOCKDEV --getsz "$MEDIA_DEV") || return 1
+	dm create nickelos-medium --readonly --table "0 $sectors linear $MEDIA_DEV 0" || return 1
+	dm mknodes nickelos-medium
+	if [ "$MEDIA_KIND" = file ]; then
+		mount_any /dev/mapper/nickelos-medium "$MEDIA_FS_DIR" || return 1
+		l=$($LOSETUP -f --show -r "$MEDIA_FS_DIR/$MEDIA_ISO") || return 1
+		mount -o ro -t iso9660 "$l" "$MEDIA_DIR" || return 1
+	else
+		mount_any /dev/mapper/nickelos-medium "$MEDIA_DIR" || return 1
+	fi
+	[ -f "$MEDIA_DIR/nickelos/image.sqfs" ]
+}
+mount_any() {
+	for t in iso9660 vfat exfat ntfs3; do
+		mount -o ro -t "$t" "$1" "$2" 2>/dev/null && return 0
+	done
+	return 1
+}
+live_session() {
+	local img origin sectors mem_kb room_kb meta data data_sectors disk
+	hold_medium || { log "the medium could not be held"; return 1; }
+	mount -o ro -t squashfs "$MEDIA_DIR/nickelos/image.sqfs" /nickelos || return 1
+	img=$(ls /nickelos/chromiumos_image.bin /nickelos/*.bin 2>/dev/null | head -1)
+	origin=$($LOSETUP -f --show -r "$img") || return 1
+	sectors=$($BLOCKDEV --getsz "$origin") || return 1
+	mem_kb=$(sed -n 's/^MemTotal: *\([0-9]*\) kB/\1/p' /proc/meminfo)
+	room_kb=$((mem_kb * 3 / 4))
+	# Test builds: nickelos.livestore=DEVICE keeps the writes on that disk,
+	# from its second GiB on (the first holds nickelos.debuglog's slots),
+	# across restarts, so a session that ended can be read on the build
+	# host (the same thin pool over the image).
+	store=$(sed -n 's/.*nickelos\.livestore=\([^ ]*\).*/\1/p' /proc/cmdline)
+	if [ -n "$store" ] && [ -b "$store" ]; then
+		total=$($BLOCKDEV --getsz "$store")
+		dm create nickelos-live-meta --table "0 131072 linear $store 2097152" || return 1
+		dm create nickelos-live-data --table "0 $((total - 2228224)) linear $store 2228224" || return 1
+		dm mknodes
+		meta=/dev/mapper/nickelos-live-meta
+		data=/dev/mapper/nickelos-live-data
+		room_kb=$(( (total - 2228224) / 2 ))
+	else
+		mkdir -p /live
+		mount -t tmpfs -o "size=${room_kb}k,mode=700" nickelos-live /live || return 1
+		sparse /live/metadata 65536 && sparse /live/data "$room_kb" || return 1
+		meta=$($LOSETUP -f --show /live/metadata) || return 1
+		data=$($LOSETUP -f --show /live/data) || return 1
+	fi
+	data_sectors=$($BLOCKDEV --getsz "$data")
+	# 64 KiB blocks, no low-water mark, new blocks not zeroed first (each
+	# is written whole, or copied from the image before a partial write).
+	dm create nickelos-pool --table "0 $data_sectors thin-pool $meta $data 128 0 1 skip_block_zeroing" || return 1
+	# (A kept store has its thin device already.)
+	dm message nickelos-pool 0 "create_thin 0" || [ -n "$store" ] || return 1
+	dm create nickelos-live --table "0 $sectors thin /dev/mapper/nickelos-pool 0 $origin" || return 1
+	dm mknodes
+	disk=$($LOSETUP -f --show -P /dev/mapper/nickelos-live) || return 1
+	for _ in $(seq 20); do [ -b "${disk}p3" ] && break; sleep 0.1; done
+	mkdir -p /newroot
+	mount -o ro "${disk}p3" /newroot || return 1
+	[ -x /newroot/sbin/init ] || { umount /newroot; return 1; }
+	log "live session: $img on $disk, up to $(( room_kb / 1024 )) MB of memory for writes"
+	return 0
+}
+if ! grep -qw nickelos.text /proc/cmdline; then
+	if live_session; then
+		# The debug log's writer (test builds) stops here; nothing of
+		# this initramfs stays open, so /run and /tmp come off. In its
+		# place, one that goes on after switch_root, in a mount namespace
+		# of its own (which keeps this initramfs's /dev and /run): the
+		# kernel's log, where chromeos_startup writes its own, into the
+		# second half of this boot's slot, every second.
+		if [ -n "${dbg_pid:-}" ]; then
+			kill "$dbg_pid" 2>/dev/null
+			/usr/bin/unshare -m /bin/busybox sh -c "while :; do dmesg > /run/kernel.txt; dd if=/run/kernel.txt of=$dbg bs=1M seek=$((slot + 2)) conv=notrunc,fsync 2>/dev/null; sleep 1; done" </dev/null >/dev/null 2>&1 &
+		fi
+		exec </dev/null >/dev/null 2>&1
+		umount /dev/pts /dev/shm /tmp /run 2>/dev/null
+		umount /proc /sys 2>/dev/null
+		# util-linux's switch_root moves /dev (devtmpfs) into the new root.
+		exec /sbin/switch_root /newroot /sbin/init
+	fi
+	log "could not start NickelOS from the image; the text-mode installer instead"
+	# What the live session's set-up left: the installer below expects the
+	# medium as it was found (MEDIA_DEV) and mounted.
+	mountpoint -q /nickelos || mount -o ro -t squashfs "$MEDIA_DIR/nickelos/image.sqfs" /nickelos
+else
+	mount -o ro -t squashfs "$2/nickelos/image.sqfs" /nickelos
+fi
 
 # frecon draws on the first display (DRM: the GPU's driver, or the
 # firmware's framebuffer through simpledrm). --no-login: it starts no

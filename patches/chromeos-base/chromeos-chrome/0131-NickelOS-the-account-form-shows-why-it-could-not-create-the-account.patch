@@ -1,0 +1,39 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the account form shows why it could not create the account
+
+diff --git a/chrome/browser/ash/login/screens/local_account_creation_screen.cc b/chrome/browser/ash/login/screens/local_account_creation_screen.cc
+index 270ee4b..7a8d284 100644
+--- a/chrome/browser/ash/login/screens/local_account_creation_screen.cc
++++ b/chrome/browser/ash/login/screens/local_account_creation_screen.cc
+@@ -321,6 +321,13 @@ void LocalAccountCreationScreen::OnUserCreated(const std::string& username,
+     if (error) {
+       std::string detail;
+       dbus::MessageReader(error).PopString(&detail);
++      // nickel-accountsd also refuses the names of the system's own users
++      // and groups ("disk", "video", "games"...), which Chrome doesn't know:
++      // say so in the user's language rather than in accountsd's English.
++      if (detail == "username is taken") {
++        return ShowError(
++            l10n_util::GetStringUTF8(IDS_NICKEL_LOCAL_ACCOUNT_ERROR_TAKEN));
++      }
+       if (!detail.empty()) {
+         message = l10n_util::GetStringFUTF8(
+             IDS_NICKEL_LOCAL_ACCOUNT_ERROR_FAILED_DETAIL,
+diff --git a/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts b/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts
+index ecedd8f..02cd4a3 100644
+--- a/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts
++++ b/chrome/browser/resources/chromeos/login/screens/login/local_account_creation.ts
+@@ -145,6 +145,13 @@ export class LocalAccountCreation extends LocalAccountCreationBase {
+     this.password = '';
+     this.confirm = '';
+     this.setUIStep(LocalAccountCreationStep.FORM);
++    // The message is at the end of the form, below the fold on most
++    // screens: without this only the emptied passwords showed that
++    // something went wrong.
++    requestAnimationFrame(() => {
++      this.shadowRoot!.querySelector<HTMLElement>('#errorMessage')
++          ?.scrollIntoView({block: 'nearest'});
++    });
+   }
+ 
+   /**

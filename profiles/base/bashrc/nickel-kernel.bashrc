@@ -58,6 +58,13 @@
 #   firmware's framebuffer, on any GPU, before (or without) its driver: the
 #   ISO's installer draws there (scripts/iso). NickelOS itself starts with
 #   it off, as before (scripts/build_kernel_image.sh: initcall_blacklist).
+# CONFIG_ISO9660_FS, FAT_FS, VFAT_FS, EXFAT_FS, NTFS3_FS and the NLS tables
+#   they use (437, ISO 8859-1, UTF-8) =y: the ISO's start-up finds the
+#   medium on these (a disc or a stick written as it is, Rufus's FAT stick,
+#   Ventoy's exFAT or NTFS one), and a module loaded from its initramfs would
+#   pin LoadPin to the initramfs: the live session it starts could then load
+#   no module of its own (graphics, Wi-Fi, sound). Built in, the start-up
+#   loads none (scripts/iso).
 NICKEL_KERNEL_CONFIG=(
 	CONFIG_VIRTIO_BLK=y
 	CONFIG_HSA_AMD=y
@@ -72,6 +79,14 @@ NICKEL_KERNEL_CONFIG=(
 	CONFIG_ANDROID_BINDERFS=y
 	CONFIG_SYSFB_SIMPLEFB=y
 	CONFIG_DRM_SIMPLEDRM=y
+	CONFIG_ISO9660_FS=y
+	CONFIG_FAT_FS=y
+	CONFIG_VFAT_FS=y
+	CONFIG_EXFAT_FS=y
+	CONFIG_NTFS3_FS=y
+	CONFIG_NLS_CODEPAGE_437=y
+	CONFIG_NLS_ISO8859_1=y
+	CONFIG_NLS_UTF8=y
 )
 
 cros_post_src_configure_nickel_kernel_config() {

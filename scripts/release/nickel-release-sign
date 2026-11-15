@@ -73,7 +73,7 @@ read -r -p "Sign them? [y/N] " ok
 pass=()
 if grep -q ENCRYPTED "$SB_KEY"; then
 	for try in 1 2 3; do
-		read -r -s -p "Passphrase for the Secure Boot key: " NICKEL_SB_PASS; echo
+		IFS= read -r -s -p "Passphrase for the Secure Boot key: " NICKEL_SB_PASS; echo
 		export NICKEL_SB_PASS
 		pass=(-passin env:NICKEL_SB_PASS)
 		openssl pkey -in "$SB_KEY" "${pass[@]}" -noout 2>/dev/null && break

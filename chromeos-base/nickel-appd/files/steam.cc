@@ -20,6 +20,16 @@
 // game does. A game whose desktop file Steam wrote there itself (Steam from
 // Portage) gets none; the app list gives that one its window class.
 //
+// And a shortcut on the desktop for each game installed from then on, as
+// Steam makes one elsewhere (it asks xdg-user-dir where the desktop is, and
+// writes <name>.desktop there too; the Flatpak's sandbox can't): the same
+// launcher, named after the game, executable as Steam's are (the desktop
+// starts only those). Each game gets one once: a shortcut deleted stays
+// gone, and the games already installed when nickel-appd first did this
+// got none (~/.local/share/nickel-appd/steam-desktop lists the games
+// handled). It goes with the game, and a game installed again gets a new
+// one. A Steam that wrote its own shortcut there gets none from us.
+//
 // What is a game: an app Steam has fully installed (appmanifest_<id>.acf,
 // StateFlags with 4), in any of its libraries (libraryfolders.vdf), that
 // is not one of Steam's own tools (Proton, the Steam Linux Runtimes,
@@ -265,6 +275,152 @@ std::string DesktopFileFor(const Game& game, const std::string& id) {
   return text;
 }
 
+// The desktop folder (XDG_DESKTOP_DIR from ~/.config/user-dirs.dirs, as
+// xdg-user-dir answers), or "" if the user has none.
+std::string DesktopDir() {
+  const char* dir = g_get_user_special_dir(G_USER_DIRECTORY_DESKTOP);
+  if (!dir || g_strcmp0(dir, g_get_home_dir()) == 0) {
+    return "";
+  }
+  return dir;
+}
+
+// The games whose desktop shortcut was handled; whether the list existed.
+bool ReadHandled(const std::string& path, std::set<std::string>* handled) {
+  gchar* contents = nullptr;
+  if (!g_file_get_contents(path.c_str(), &contents, nullptr, nullptr)) {
+    return false;
+  }
+  gchar** lines = g_strsplit(contents, "\n", -1);
+  for (gchar** l = lines; *l; ++l) {
+    if (**l) {
+      handled->insert(*l);
+    }
+  }
+  g_strfreev(lines);
+  g_free(contents);
+  return true;
+}
+
+void WriteHandled(const std::string& path,
+                  const std::set<std::string>& handled) {
+  std::string text;
+  for (const std::string& id : handled) {
+    text += id + "\n";
+  }
+  gchar* dir = g_path_get_dirname(path.c_str());
+  g_mkdir_with_parents(dir, 0700);
+  g_free(dir);
+  if (ReadText(path) != text) {
+    g_file_set_contents(path.c_str(), text.data(), text.size(), nullptr);
+  }
+}
+
+// A file name for the game's shortcut: its name, without what a file name
+// can't hold.
+std::string ShortcutName(const std::string& name) {
+  std::string file;
+  for (char c : name) {
+    file += (c == '/' || c == '\\') ? '-' : c;
+  }
+  while (!file.empty() && (file[0] == '.' || file[0] == ' ')) {
+    file.erase(0, 1);
+  }
+  return file.empty() ? "" : file + ".desktop";
+}
+
+// The desktop shortcuts: ours by game (and where), and the games a Steam
+// put one there for itself.
+void ScanDesktop(const std::string& dir,
+                 std::map<std::string, std::string>* ours,
+                 std::set<std::string>* steams_own) {
+  GDir* d = g_dir_open(dir.c_str(), 0, nullptr);
+  const gchar* entry = nullptr;
+  while (d && (entry = g_dir_read_name(d))) {
+    if (!g_str_has_suffix(entry, ".desktop")) {
+      continue;
+    }
+    const std::string path = dir + "/" + entry;
+    GKeyFile* kf = g_key_file_new();
+    if (g_key_file_load_from_file(kf, path.c_str(), G_KEY_FILE_NONE,
+                                  nullptr)) {
+      if (gchar* id = g_key_file_get_string(kf, kDesktopGroup, kOurKey,
+                                            nullptr)) {
+        (*ours)[id] = path;
+        g_free(id);
+      } else if (gchar* exec = g_key_file_get_string(kf, kDesktopGroup, "Exec",
+                                                     nullptr)) {
+        const std::string game = SteamGameOfExec(exec);
+        if (!game.empty()) {
+          steams_own->insert(game);
+        }
+        g_free(exec);
+      }
+    }
+    g_key_file_free(kf);
+  }
+  if (d) {
+    g_dir_close(d);
+  }
+}
+
+// The desktop's shortcuts for the games: a new game gets one, a game that
+// is gone loses ours (see the top of this file).
+void SyncDesktop(const std::map<std::string, Game>& games) {
+  const std::string dir = DesktopDir();
+  if (dir.empty()) {
+    return;
+  }
+  const std::string list =
+      std::string(g_get_user_data_dir()) + "/nickel-appd/steam-desktop";
+  std::set<std::string> handled;
+  const bool first = !ReadHandled(list, &handled);
+  std::map<std::string, std::string> ours;
+  std::set<std::string> steams_own;
+  ScanDesktop(dir, &ours, &steams_own);
+
+  for (auto it = handled.begin(); it != handled.end();) {
+    if (games.count(*it)) {
+      ++it;
+      continue;
+    }
+    // Uninstalled: its shortcut goes, and installing it again makes one.
+    if (auto own = ours.find(*it); own != ours.end()) {
+      g_unlink(own->second.c_str());
+      syslog(LOG_INFO, "steam: removed %s", own->second.c_str());
+    }
+    it = handled.erase(it);
+  }
+  for (const auto& [id, game] : games) {
+    if (!handled.insert(id).second || first || steams_own.count(id) ||
+        ours.count(id)) {
+      continue;
+    }
+    const std::string name = ShortcutName(game.name);
+    if (name.empty()) {
+      continue;
+    }
+    const std::string path = dir + "/" + name;
+    if (g_file_test(path.c_str(), G_FILE_TEST_EXISTS)) {
+      continue;
+    }
+    const std::string text = DesktopFileFor(game, id);
+    g_mkdir_with_parents(dir.c_str(), 0755);
+    GError* error = nullptr;
+    if (!g_file_set_contents(path.c_str(), text.data(), text.size(), &error)) {
+      syslog(LOG_WARNING, "steam: cannot write %s: %s", path.c_str(),
+             error->message);
+      g_error_free(error);
+      continue;
+    }
+    // Executable, as Steam's own: the desktop starts only such launchers.
+    g_chmod(path.c_str(), 0755);
+    syslog(LOG_INFO, "steam: %s on the desktop (%s)", game.name.c_str(),
+           path.c_str());
+  }
+  WriteHandled(list, handled);
+}
+
 }  // namespace
 
 struct SteamGames {
@@ -395,6 +551,7 @@ void Sync(SteamGames* steam) {
       syslog(LOG_INFO, "steam: %s (%s)", game.name.c_str(), path.c_str());
     }
   }
+  SyncDesktop(games);
 }
 
 }  // namespace

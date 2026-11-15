@@ -22,11 +22,10 @@
       <span>NickelOS</span>
     </a>
     <nav aria-label="Site">
-      <a href="index.html">Guide</a>
+      <a href="index.html" aria-current="page">Guide</a>
       <a href="troubleshooting.html">Troubleshooting</a>
       <a href="community.html">Get help</a>
     </nav>
-    <span class="chip" title="NickelOS has not been released yet">Alpha</span>
   </div>
 </header>
 
@@ -69,6 +68,7 @@
 <p>Files and Linux apps share one Trash: <code>~/.local/share/Trash</code>, the standard freedesktop.org home trash. Delete something in a Linux app and it's in Files' Trash, and what you delete in Files is in the apps' Trash.</p>
 <h2 id="the-desktop">The desktop</h2>
 <p>The files and folders in <code>~/Desktop</code> are the icons on your wallpaper. Right-click the wallpaper for <strong>New folder</strong>. Right-click an icon to <strong>Open</strong> it, <strong>Show in Files</strong>, <strong>Rename</strong> it or <strong>Move to trash</strong>. Drag icons to arrange them, and they stay put. Files you drop on the desktop from the Files app are moved into <code>~/Desktop</code>.</p>
+<p>App launchers on the desktop (<code>.desktop</code> files, like the shortcuts Steam makes for your games and Wine makes for Windows programs) show the app's name and icon, and opening one starts the app. As on KDE, a launcher only starts if it's executable: one you downloaded or copied in shows as a plain file until you make it executable (<code>chmod +x</code>).</p>
 <h2 id="moving-files-between-files-and-apps">Moving files between Files and apps</h2>
 <ul><li><strong>Drag and drop</strong> works both ways. Drag from Files into an app and it gets the file. Drag a file out of an app into Files and it's copied there.</li><li><strong>Copy and paste</strong> files works both ways too.</li><li>An app in a sandbox (a Flatpak) can only hand over files it can see itself. NickelOS checks that against the app's own view of the file system, so a sandboxed app can't sneak out a file it was never given.</li></ul>
 <h2 id="the-file-picker">The file picker</h2>

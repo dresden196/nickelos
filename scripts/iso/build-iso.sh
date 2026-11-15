@@ -90,8 +90,8 @@ cat > "$W/iso/README.txt" <<TXT
 NickelOS $version
 
 Write this ISO to a USB stick (Rufus, Etcher, Ventoy, Stoke or dd) and start
-the computer from it. Then: install NickelOS on the computer, or make the
-stick a NickelOS stick to try it first. https://nickelos.dev
+the computer from it. NickelOS starts from the stick: setup installs it on
+the computer, or lets you try it first. https://nickelos.dev/help/install/
 TXT
 
 stage "the ISO"

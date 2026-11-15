@@ -1,0 +1,31 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] sepolicy: os_install_service may look for the ISO medium in sysfs
+
+os_install_service 0005 in the NickelOS overlay skips the disk NickelOS's
+ISO runs from: it lists the disk's sysfs directory for its partitions,
+then each one's holders, and reads a holder's device-mapper name
+(nickelos-medium). cros_os_install_service could do none of it (no read
+on sysfs directories, no getattr on sysfs files, nothing on sysfs_dm), so
+under SELinux enforcing setup offered the USB stick itself as a place to
+install NickelOS.
+
+---
+diff -ruN a/sepolicy/policy/chromeos/cros_os_install_service.te b/sepolicy/policy/chromeos/cros_os_install_service.te
+--- a/sepolicy/policy/chromeos/cros_os_install_service.te
++++ b/sepolicy/policy/chromeos/cros_os_install_service.te
+@@ -23,6 +23,15 @@
+ allow cros_os_install_service cros_os_install_service:capability sys_admin;
+ allow cros_os_install_service kernel:process setsched;
+ 
++# NickelOS: the medium NickelOS's ISO runs from is never offered as a place
++# to install (os_install_service 0005): it lists a disk's directory in sysfs
++# for its partitions ("partition" files), then each one's holders, and reads
++# a holder's device-mapper name ("nickelos-medium").
++allow cros_os_install_service sysfs:dir { open read };
++allow cros_os_install_service sysfs:file getattr;
++allow cros_os_install_service sysfs_dm:dir search;
++allow cros_os_install_service sysfs_dm:file r_file_perms;
++
+ # Create type for access to /tmp/, for copying the log to the new root.
+ tmp_file(cros_os_install_service, { dir file });
+ # Allow mounting the new root, creating a dir, and to copying the log over.

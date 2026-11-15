@@ -62,6 +62,15 @@
 //    can't decode itself (HEIC photos, H.265 videos), for the desktop's icons
 //    and Files' thumbnails, made by sandboxed thumbnailers and kept in
 //    ~/.cache/thumbnails (thumbnail.cc).
+//  - DesktopEntry(path) -> (launchable, name, icon) and
+//    LaunchDesktopFile(path): launchers on the desktop (a .desktop file in
+//    ~/Desktop, as Steam, Wine and "add to desktop" make them). The desktop
+//    shows a launchable one by its name (in the session's language) and
+//    the icon file found for it (PNG or SVG, "" if none), and starts it as
+//    the launcher starts apps. Launchable means KDE's rule: an application
+//    entry that only its owner (the user, or root) can change and that is
+//    executable, or that points into an applications folder of the XDG data
+//    dirs. One downloaded or copied without the executable bit stays a file.
 //  - GetAppDetails(desktop_file_id) -> (version, app_size, data_size), for
 //    Chrome's App Management page: a Flatpak's from `flatpak info` and its
 //    data in ~/.var/app/<id>, a Portage package's from the package database,
@@ -78,10 +87,12 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <syslog.h>
 #include <unistd.h>
 
+#include <cstdlib>
 #include <cstring>
 
 #include <string>
@@ -185,6 +196,15 @@ constexpr char kIntrospection[] =
     "      <arg type='s' name='path' direction='in'/>"
     "      <arg type='u' name='size' direction='in'/>"
     "      <arg type='ay' name='png' direction='out'/>"
+    "    </method>"
+    "    <method name='DesktopEntry'>"
+    "      <arg type='s' name='path' direction='in'/>"
+    "      <arg type='b' name='launchable' direction='out'/>"
+    "      <arg type='s' name='name' direction='out'/>"
+    "      <arg type='s' name='icon' direction='out'/>"
+    "    </method>"
+    "    <method name='LaunchDesktopFile'>"
+    "      <arg type='s' name='path' direction='in'/>"
     "    </method>"
     "  </interface>"
     "</node>";
@@ -1290,6 +1310,82 @@ void HandleSetAppearance(State* state,
   }
 }
 
+// A launcher on the desktop that may be started (see DesktopEntry at the
+// top), or null.
+GDesktopAppInfo* LaunchableDesktopFile(const char* path) {
+  if (!path || !g_path_is_absolute(path) ||
+      !g_str_has_suffix(path, ".desktop")) {
+    return nullptr;
+  }
+  g_autofree char* real = realpath(path, nullptr);
+  struct stat st;
+  if (!real || stat(real, &st) != 0 || !S_ISREG(st.st_mode) ||
+      (st.st_uid != getuid() && st.st_uid != 0) ||
+      (st.st_mode & (S_IWGRP | S_IWOTH))) {
+    return nullptr;
+  }
+  bool trusted = st.st_mode & S_IXUSR;
+  std::vector<std::string> dirs = {g_get_user_data_dir()};
+  for (const gchar* const* d = g_get_system_data_dirs(); *d; ++d) {
+    dirs.push_back(*d);
+  }
+  for (const std::string& dir : dirs) {
+    trusted = trusted || g_str_has_prefix(real, (dir + "/applications/").c_str());
+  }
+  if (!trusted) {
+    return nullptr;
+  }
+  GDesktopAppInfo* info = g_desktop_app_info_new_from_filename(real);
+  if (info && g_desktop_app_info_get_is_hidden(info)) {
+    g_clear_object(&info);
+  }
+  return info;
+}
+
+void HandleDesktopEntry(GDBusMethodInvocation* invocation,
+                        GVariant* parameters) {
+  const gchar* path = nullptr;
+  g_variant_get(parameters, "(&s)", &path);
+  GDesktopAppInfo* info = LaunchableDesktopFile(path);
+  if (!info) {
+    g_dbus_method_invocation_return_value(invocation,
+                                          g_variant_new("(bss)", FALSE, "", ""));
+    return;
+  }
+  const std::string icon = FindIconFile(g_app_info_get_icon(G_APP_INFO(info)));
+  g_dbus_method_invocation_return_value(
+      invocation, g_variant_new("(bss)", TRUE,
+                                g_app_info_get_name(G_APP_INFO(info)),
+                                icon.c_str()));
+  g_object_unref(info);
+}
+
+void HandleLaunchDesktopFile(GDBusMethodInvocation* invocation,
+                             GVariant* parameters) {
+  const gchar* path = nullptr;
+  g_variant_get(parameters, "(&s)", &path);
+  GDesktopAppInfo* info = LaunchableDesktopFile(path);
+  if (!info) {
+    g_dbus_method_invocation_return_error(
+        invocation, G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED,
+        "%s is not a launcher that may be started", path);
+    return;
+  }
+  GAppLaunchContext* context = g_app_launch_context_new();
+  GError* error = nullptr;
+  const gboolean launched =
+      g_app_info_launch(G_APP_INFO(info), nullptr, context, &error);
+  g_object_unref(context);
+  g_object_unref(info);
+  if (!launched) {
+    NICKEL_WARN("launching %s failed: %s", path, error->message);
+    g_dbus_method_invocation_take_error(invocation, error);
+    return;
+  }
+  NICKEL_INFO("launched %s", path);
+  g_dbus_method_invocation_return_value(invocation, nullptr);
+}
+
 bool IsSessionUser(GDBusConnection* bus, const char* sender) {
   GVariant* reply = g_dbus_connection_call_sync(
       bus, "org.freedesktop.DBus", "/org/freedesktop/DBus",
@@ -1405,6 +1501,14 @@ void OnMethodCall(GDBusConnection* bus,
   }
   if (g_strcmp0(method_name, "Thumbnail") == 0) {
     HandleThumbnail(state->thumbnails, invocation, parameters);
+    return;
+  }
+  if (g_strcmp0(method_name, "DesktopEntry") == 0) {
+    HandleDesktopEntry(invocation, parameters);
+    return;
+  }
+  if (g_strcmp0(method_name, "LaunchDesktopFile") == 0) {
+    HandleLaunchDesktopFile(invocation, parameters);
     return;
   }
   if (g_strcmp0(method_name, "GetAppearance") == 0) {

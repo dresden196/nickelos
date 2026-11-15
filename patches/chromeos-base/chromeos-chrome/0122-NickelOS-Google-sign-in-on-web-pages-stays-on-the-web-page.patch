@@ -1,0 +1,62 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Google sign-in on web pages stays on the web page
+
+Signing in with Google on a web page (a site's "Sign in with Google",
+or accounts.google.com itself) opened ChromeOS's own account dialog,
+which failed: ChromeOS sends Google's pages the X-Chrome-Connected header
+(account consistency "Mirror") for every regular user, and Google then
+hands the sign-in to ChromeOS's account manager, which needs Google's API
+keys and a Google account on the device. NickelOS's local accounts have
+neither (Chrome 0005).
+
+For a local account the profile's account consistency is now "disabled",
+as for guests: no header, so Google's sign-in stays in the page, as in
+any browser, and the account reconcilor no longer keeps the web's Google
+accounts in step with ChromeOS's (none).
+
+diff --git a/chrome/browser/signin/BUILD.gn b/chrome/browser/signin/BUILD.gn
+index 6fc138f..80a4034 100644
+--- a/chrome/browser/signin/BUILD.gn
++++ b/chrome/browser/signin/BUILD.gn
+@@ -378,6 +378,9 @@ source_set("impl") {
+       "//chromeos/ash/components/account_manager",
+       "//chromeos/ash/components/install_attributes",
+       "//chromeos/ash/components/network",
++
++      # NickelOS: account_consistency_mode_manager.cc (local accounts).
++      "//components/user_manager",
+     ]
+   } else {
+     sources += [
+diff --git a/chrome/browser/signin/account_consistency_mode_manager.cc b/chrome/browser/signin/account_consistency_mode_manager.cc
+index 7d4c893..d840da5 100644
+--- a/chrome/browser/signin/account_consistency_mode_manager.cc
++++ b/chrome/browser/signin/account_consistency_mode_manager.cc
+@@ -29,6 +29,9 @@
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+ #include "chrome/browser/ash/account_manager/account_manager_util.h"
++#include "chrome/browser/ash/profiles/profile_helper.h"
++#include "components/user_manager/nickel_local_account.h"
++#include "components/user_manager/user.h"
+ #endif
+ 
+ #if BUILDFLAG(ENABLE_DICE_SUPPORT) && BUILDFLAG(ENABLE_MIRROR)
+@@ -90,6 +93,17 @@ signin::AccountConsistencyMethod ComputeAccountConsistencyMethod(
+   if (!ash::IsAccountManagerAvailable(profile)) {
+     return AccountConsistencyMethod::kDisabled;
+   }
++  // NickelOS: a local account has no Google account in ChromeOS, so signing
++  // in to Google on a web page stays on the web page, as in any browser.
++  // With Mirror, Google's pages get the X-Chrome-Connected header and hand
++  // the sign-in to ChromeOS's own account dialog, which needs Google's API
++  // keys and fails; and the reconcilor would keep the web's Google accounts
++  // in step with ChromeOS's (none).
++  if (const user_manager::User* user =
++          ash::ProfileHelper::Get()->GetUserByProfile(profile);
++      user && user_manager::IsNickelLocalAccount(user->GetAccountId())) {
++    return AccountConsistencyMethod::kDisabled;
++  }
+ #endif
+ 
+ #if BUILDFLAG(ENABLE_MIRROR)

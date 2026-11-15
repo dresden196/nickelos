@@ -1,0 +1,250 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: GTK 3 windows get ChromeOS's frame, GTK 4 windows keep only theirs
+
+diff --git a/components/exo/wayland/nickel_server_decoration.cc b/components/exo/wayland/nickel_server_decoration.cc
+index 063490e..3aaaa66 100644
+--- a/components/exo/wayland/nickel_server_decoration.cc
++++ b/components/exo/wayland/nickel_server_decoration.cc
+@@ -10,7 +10,9 @@
+ 
+ #include <memory>
+ 
++#include "base/containers/flat_map.h"
+ #include "base/memory/raw_ptr.h"
++#include "base/no_destructor.h"
+ #include "components/exo/surface.h"
+ #include "components/exo/surface_observer.h"
+ #include "components/exo/wayland/server_util.h"
+@@ -20,15 +22,43 @@ namespace {
+ 
+ constexpr uint32_t kDefaultMode = ORG_KDE_KWIN_SERVER_DECORATION_MODE_SERVER;
+ 
++// The clients that bound the manager, with how many times.
++base::flat_map<const wl_client*, int>& ManagerClients() {
++  static base::NoDestructor<base::flat_map<const wl_client*, int>> clients;
++  return *clients;
++}
++
++void server_decoration_manager_destroy(wl_resource* resource) {
++  auto& clients = ManagerClients();
++  auto it = clients.find(wl_resource_get_client(resource));
++  if (it != clients.end() && --it->second <= 0) {
++    clients.erase(it);
++  }
++}
++
++SurfaceFrameType FrameFor(uint32_t mode) {
++  return mode == ORG_KDE_KWIN_SERVER_DECORATION_MODE_SERVER
++             ? SurfaceFrameType::NORMAL
++             : SurfaceFrameType::NONE;
++}
++
++class ServerDecoration;
++
++// The surfaces with a decoration, each with its latest.
++base::flat_map<const Surface*, ServerDecoration*>& Decorations() {
++  static base::NoDestructor<base::flat_map<const Surface*, ServerDecoration*>>
++      decorations;
++  return *decorations;
++}
++
+ // The decoration of one wl_surface: the frame of its shell surface (an
+ // xdg_toplevel's; popups keep theirs, see ShellSurfaceBase::OnSetFrame).
+-// The client asks for a mode before its toplevel's first commit, as Exo's
+-// frames need.
+ class ServerDecoration : public SurfaceObserver {
+  public:
+   ServerDecoration(wl_resource* resource, Surface* surface)
+       : resource_(resource), surface_(surface) {
+     surface_->AddSurfaceObserver(this);
++    Decorations()[surface_.get()] = this;
+   }
+ 
+   ServerDecoration(const ServerDecoration&) = delete;
+@@ -36,32 +66,81 @@ class ServerDecoration : public SurfaceObserver {
+ 
+   ~ServerDecoration() override {
+     if (surface_) {
++      Forget();
+       surface_->RemoveSurfaceObserver(this);
+     }
+   }
+ 
++  uint32_t mode() const { return mode_; }
++
+   void SetMode(uint32_t mode) {
+     // The protocol has no error for an unknown mode: the default.
+     if (mode > ORG_KDE_KWIN_SERVER_DECORATION_MODE_SERVER) {
+       mode = kDefaultMode;
+     }
++    mode_ = mode;
++    // Before the surface is a toplevel this reaches no shell surface:
++    // StartServerDecorationDefault() applies the mode then.
+     if (surface_) {
+-      surface_->SetFrame(mode == ORG_KDE_KWIN_SERVER_DECORATION_MODE_SERVER
+-                             ? SurfaceFrameType::NORMAL
+-                             : SurfaceFrameType::NONE);
++      surface_->SetFrame(FrameFor(mode));
+     }
+     org_kde_kwin_server_decoration_send_mode(resource_, mode);
+   }
+ 
+   // SurfaceObserver:
+   void OnSurfaceDestroying(Surface* surface) override {
++    Forget();
+     surface->RemoveSurfaceObserver(this);
+     surface_ = nullptr;
+   }
+ 
+  private:
++  void Forget() {
++    auto it = Decorations().find(surface_.get());
++    if (it != Decorations().end() && it->second == this) {
++      Decorations().erase(it);
++    }
++  }
++
+   const raw_ptr<wl_resource> resource_;
+   raw_ptr<Surface> surface_;
++  uint32_t mode_ = kDefaultMode;
++};
++
++// A new toplevel with the default mode's frame until its first buffer: if no
++// decoration was made for it by then, its client draws its own frame (GTK 4),
++// and the frame comes off before the window is shown (observers see a commit
++// before the shell surface does).
++class DefaultFrameWatcher : public SurfaceObserver {
++ public:
++  explicit DefaultFrameWatcher(Surface* surface) : surface_(surface) {
++    surface_->AddSurfaceObserver(this);
++  }
++
++  DefaultFrameWatcher(const DefaultFrameWatcher&) = delete;
++  DefaultFrameWatcher& operator=(const DefaultFrameWatcher&) = delete;
++
++  ~DefaultFrameWatcher() override = default;
++
++  // SurfaceObserver:
++  void OnCommit(Surface* surface) override {
++    if (!surface->HasPendingAttachedBuffer()) {
++      return;
++    }
++    if (!Decorations().contains(surface)) {
++      surface->SetFrame(SurfaceFrameType::NONE);
++    }
++    Stop();
++  }
++  void OnSurfaceDestroying(Surface* surface) override { Stop(); }
++
++ private:
++  void Stop() {
++    surface_->RemoveSurfaceObserver(this);
++    delete this;
++  }
++
++  raw_ptr<Surface> surface_;
+ };
+ 
+ void server_decoration_release(wl_client* client, wl_resource* resource) {
+@@ -91,14 +170,13 @@ void server_decoration_manager_create(wl_client* client,
+     wl_client_post_no_memory(client);
+     return;
+   }
+-  auto decoration = std::make_unique<ServerDecoration>(
+-      decoration_resource, GetUserDataAs<Surface>(surface_resource));
+-  ServerDecoration* decoration_ptr = decoration.get();
+   SetImplementation(decoration_resource, &server_decoration_implementation,
+-                    std::move(decoration));
+-  // As KWin: a new decoration is in the default mode until the client asks
+-  // for another.
+-  decoration_ptr->SetMode(kDefaultMode);
++                    std::make_unique<ServerDecoration>(
++                        decoration_resource,
++                        GetUserDataAs<Surface>(surface_resource)));
++  // As KWin, the default mode first; the toplevel already has its frame
++  // (xdg_shell.cc), and request_mode changes it.
++  org_kde_kwin_server_decoration_send_mode(decoration_resource, kDefaultMode);
+ }
+ 
+ const struct org_kde_kwin_server_decoration_manager_interface
+@@ -118,10 +196,25 @@ void bind_server_decoration_manager(wl_client* client,
+     wl_client_post_no_memory(client);
+     return;
+   }
+-  wl_resource_set_implementation(
+-      resource, &server_decoration_manager_implementation, data, nullptr);
++  wl_resource_set_implementation(resource,
++                                 &server_decoration_manager_implementation,
++                                 data, server_decoration_manager_destroy);
++  ++ManagerClients()[client];
+   org_kde_kwin_server_decoration_manager_send_default_mode(resource,
+                                                            kDefaultMode);
+ }
+ 
++void StartServerDecorationDefault(wl_client* client, Surface* surface) {
++  if (!surface || !ManagerClients().contains(client)) {
++    return;
++  }
++  auto it = Decorations().find(surface);
++  if (it != Decorations().end()) {
++    surface->SetFrame(FrameFor(it->second->mode()));
++    return;
++  }
++  surface->SetFrame(SurfaceFrameType::NORMAL);
++  new DefaultFrameWatcher(surface);  // Deletes itself.
++}
++
+ }  // namespace exo::wayland
+diff --git a/components/exo/wayland/nickel_server_decoration.h b/components/exo/wayland/nickel_server_decoration.h
+index 3d41d0e..565f1fb 100644
+--- a/components/exo/wayland/nickel_server_decoration.h
++++ b/components/exo/wayland/nickel_server_decoration.h
+@@ -9,6 +9,10 @@
+ 
+ struct wl_client;
+ 
++namespace exo {
++class Surface;
++}  // namespace exo
++
+ namespace exo::wayland {
+ 
+ // NickelOS: KDE's server decoration protocol
+@@ -24,6 +28,15 @@ void bind_server_decoration_manager(wl_client* client,
+                                     uint32_t version,
+                                     uint32_t id);
+ 
++// For a new xdg_toplevel of `client` (xdg_shell.cc). A client that bound the
++// manager gets the frame of the mode it asked for if its surface already has
++// a decoration, otherwise the default mode's: GTK 3 asks only after the
++// toplevel's first commit, which makes the window, and Exo can take a frame
++// off a window then but not put one on. If the surface's first buffer comes
++// and it still has no decoration, the frame comes off before the window is
++// shown: GTK 4 binds the manager but never makes one (it draws its own).
++void StartServerDecorationDefault(wl_client* client, Surface* surface);
++
+ }  // namespace exo::wayland
+ 
+ #endif  // COMPONENTS_EXO_WAYLAND_NICKEL_SERVER_DECORATION_H_
+diff --git a/components/exo/wayland/xdg_shell.cc b/components/exo/wayland/xdg_shell.cc
+index 9628838..824d611 100644
+--- a/components/exo/wayland/xdg_shell.cc
++++ b/components/exo/wayland/xdg_shell.cc
+@@ -20,6 +20,7 @@
+ #include "chromeos/ui/base/window_state_type.h"
+ #include "components/exo/display.h"
+ #include "components/exo/shell_surface_util.h"
++#include "components/exo/wayland/nickel_server_decoration.h"
+ #include "components/exo/wayland/serial_tracker.h"
+ #include "components/exo/wayland/server_util.h"
+ #include "components/exo/wayland/wayland_display_observer.h"
+@@ -650,6 +651,9 @@ void xdg_surface_get_toplevel(wl_client* client,
+ 
+   shell_surface_data->shell_surface->SetCanMinimize(true);
+   shell_surface_data->shell_surface->SetEnabled(true);
++  // NickelOS: KDE's server decoration (nickel_server_decoration.h).
++  StartServerDecorationDefault(client,
++                               shell_surface_data->shell_surface->root_surface());
+ 
+   wl_resource* xdg_toplevel_resource =
+       wl_resource_create(client, &xdg_toplevel_interface, 1, id);

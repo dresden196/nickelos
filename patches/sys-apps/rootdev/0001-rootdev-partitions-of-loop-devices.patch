@@ -1,0 +1,38 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] rootdev: partitions of loop devices
+
+rootdev finds the root's device by its device number under /sys/block,
+looking into a disk's partitions only when they share the disk's major
+number. A loop device's partitions (losetup -P, without loop.max_part)
+have extended device numbers (BLOCK_EXT_MAJOR, 259), not the loop major.
+NickelOS's ISO live session runs from one (its image, with writes in
+memory, as a partitioned loop device), and rootdev found nothing:
+chromeos_startup said "rootdev does not have stateful partition", its
+mounts failed, and it "repaired" itself at every start. (loop.max_part
+gives such partitions the loop major, but libbrillo's loop devices can't
+be opened then.)
+
+Now, for a root with an extended device number, loop devices' partitions
+are looked into too (the SELinux policy lets cros_rootdev list a loop
+device's sysfs directory: selinux-policy 0004).
+
+---
+--- a/rootdev.c
++++ b/rootdev.c
+@@ -172,8 +172,14 @@
+     if (depth > 5)
+       break;
+ 
+-    /* Recurse one level for devices that may have a matching partition. */
+-    if (major(found_devt) == major(*dev) && minor(*dev) > minor(found_devt)) {
++    /* Recurse one level for devices that may have a matching partition.
++     * A loop device's partitions (losetup -P) have extended device numbers
++     * (BLOCK_EXT_MAJOR, 259), not the loop major, without loop.max_part:
++     * NickelOS's ISO live session runs from one. Look into loop devices
++     * for those. */
++    if ((major(found_devt) == major(*dev) && minor(*dev) > minor(found_devt)) ||
++        (depth == 0 && major(*dev) == 259 &&
++         strncmp(entry->d_name, "loop", 4) == 0)) {
+       sprintf(working_path, "%s/%s", basedir, entry->d_name);
+       found = match_sysfs_device(name, name_len, working_path, dev, depth + 1);
+       if (found > 0)

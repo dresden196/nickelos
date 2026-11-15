@@ -23,7 +23,7 @@ Exo also speaks some private ChromeOS protocols, written for ChromeOS's own trus
 | `wl_compositor`, `wl_subcompositor`, `wl_shm`, `wl_output`, `wl_seat` | The core: surfaces, shared-memory buffers, displays, input |
 | `wl_data_device_manager` | Copy and paste, drag and drop |
 | `wl_shell`, `xdg_wm_base` | Windows (xdg-shell) |
-| `zxdg_decoration_manager_v1` | Who draws the title bar |
+| `zxdg_decoration_manager_v1`, `org_kde_kwin_server_decoration_manager` | Who draws the title bar (GTK 3 apps ask through KDE's protocol) |
 | `zxdg_output_manager_v1` | Display names and logical sizes |
 | `zwp_linux_dmabuf_v1` | GPU buffers |
 | `wp_presentation` | Frame timing |
@@ -38,10 +38,17 @@ Exo also speaks some private ChromeOS protocols, written for ChromeOS's own trus
 | `zwp_input_timestamps_manager_v1` | Exact input timing |
 | `zwp_text_input_manager_v1`, `zwp_text_input_manager_v3`, `zcr_text_input_extension_v1` | Input methods (Chinese, Japanese, Korean and the rest) |
 | `zwp_primary_selection_device_manager_v1` | Middle-click paste |
+| `ext_data_control_manager_v1`, `zwlr_data_control_manager_v1` | Clipboard access without a window, for password managers and `wl-copy` |
 
 `WAYLAND_DEBUG=1 some-app` prints what an app asks for, if you're curious or chasing a bug.
 
 We also hardened Exo against apps that misbehave. It survives bad drags, broken pipes, shared memory that shrinks under it, windows destroyed in odd orders and more. A Linux app can crash itself, but it shouldn't be able to take the desktop down with it.
+
+## Title bars
+
+Most Linux apps get ChromeOS's own title bar and window buttons, the same as a browser window: Qt and KDE apps, Electron apps such as 1Password and Slack, and GTK 3 apps. Apps built on GTK 4 and libadwaita (most GNOME apps) draw their own header bar on every desktop, and they do here too.
+
+Firefox normally puts its tabs in the title bar, with GTK's buttons. On NickelOS, Firefox from Flathub starts with ChromeOS's title bar instead and its tabs underneath. To get Firefox's own back, open its menu, then **More tools > Customize toolbar**, and uncheck **Title bar**.
 
 ## X11 apps
 
@@ -91,4 +98,4 @@ In the browser, `chrome://gpu` shows what Chrome itself is drawing with.
 
 ## Displays
 
-Display settings are ChromeOS's, in **Settings > Device > Displays**: resolution, display size, refresh rate, orientation, arrangement, mirroring and Night Light. Wayland apps get fractional scaling from Exo, so they stay sharp at any display size.
+Display settings are ChromeOS's, in **Settings > Device > Displays**: resolution, display size, refresh rate, orientation, arrangement, mirroring and Night Light. Most Wayland apps get fractional scaling from Exo, so they stay sharp at any display size. GTK 3 apps can't use it: they draw at twice the size and Exo shrinks them, which can look a little soft at sizes like 125%.

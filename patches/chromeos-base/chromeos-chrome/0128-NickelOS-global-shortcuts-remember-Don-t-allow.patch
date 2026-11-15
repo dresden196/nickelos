@@ -1,0 +1,119 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: global shortcuts remember Don't allow
+
+When a Linux app asks for global shortcuts (the GlobalShortcuts portal,
+Chrome 0046) and the user presses "Don't allow", that is remembered for
+the app with the shortcuts it asked for: the same request again is
+refused without asking. 1Password asks at every start, so its dialog came
+back each time (2026-11-09). A different request (the app's shortcut
+changed, often in its own settings) asks again; allowing replaces the
+refusal, as before. Closing the dialog any other way (the app quits) is
+not a refusal.
+
+diff --git a/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.cc b/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.cc
+index 86bcb26..ebafd3c 100644
+--- a/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.cc
++++ b/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.cc
+@@ -20,6 +20,7 @@
+ #include "base/posix/eintr_wrapper.h"
+ #include "base/strings/strcat.h"
+ #include "base/strings/string_number_conversions.h"
++#include "base/strings/stringprintf.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/values.h"
+ #include "chrome/browser/ash/guest_os/guest_os_pref_names.h"
+@@ -95,6 +96,21 @@ bool IsValid(const ui::Accelerator& accelerator) {
+ }
+ 
+ // The keys the app would like, as the portal backend sends them.
++// What an app asked for, as remembered when the user said "Don't allow":
++// each shortcut's id and preferred keys. The same request again is refused
++// without asking; a different one (the app's shortcut changed, often in its
++// own settings) asks again.
++constexpr char kRefusedKey[] = "nickel_refused";
++std::string RequestSignature(
++    const std::vector<NickelGlobalShortcuts::Shortcut>& shortcuts) {
++  std::string signature;
++  for (const NickelGlobalShortcuts::Shortcut& shortcut : shortcuts) {
++    signature += base::StringPrintf("%s=%u+%u;", shortcut.id.c_str(),
++                                    shortcut.modifiers, shortcut.evdev);
++  }
++  return signature;
++}
++
+ ui::Accelerator Preferred(const NickelGlobalShortcuts::Shortcut& shortcut) {
+   if (!shortcut.evdev) {
+     return ui::Accelerator();
+@@ -390,7 +406,16 @@ void NickelGlobalShortcuts::Bind(const std::string& app_id,
+   if (prefs && !app_id.empty()) {
+     remembered = prefs->GetDict(kPref).FindDict(app_id);
+   }
+-  bool ask = !remembered;
++  // Refused before, the same shortcuts: refused again, without asking
++  // (Dresden 2026-11-09: 1Password's dialog came back at every start).
++  if (remembered) {
++    const std::string* refused = remembered->FindString(kRefusedKey);
++    if (refused && *refused == RequestSignature(shortcuts)) {
++      std::move(pending->callback).Run(false, {});
++      return;
++    }
++  }
++  bool ask = !remembered || remembered->FindString(kRefusedKey);
+   for (const Shortcut& shortcut : shortcuts) {
+     const base::DictValue* entry =
+         remembered ? remembered->FindDict(shortcut.id) : nullptr;
+@@ -479,13 +504,14 @@ void NickelGlobalShortcuts::Ask(std::unique_ptr<Pending> pending) {
+               l10n_util::GetStringUTF16(IDS_NICKEL_GLOBAL_SHORTCUTS_DENY))
+           .SetAcceptCallback(base::BindOnce(
+               &NickelGlobalShortcuts::OnDialogDone, base::Unretained(this),
+-              serial, true))
++              serial, /*allowed=*/true, /*refused=*/false))
+           .SetCancelCallback(base::BindOnce(
+               &NickelGlobalShortcuts::OnDialogDone, base::Unretained(this),
+-              serial, false))
++              serial, /*allowed=*/false, /*refused=*/true))
+           .SetCloseCallback(base::BindOnce(&NickelGlobalShortcuts::OnDialogDone,
+                                            base::Unretained(this), serial,
+-                                           false))
++                                           /*allowed=*/false,
++                                           /*refused=*/false))
+           .SetModalType(ui::mojom::ModalType::kSystem)
+           .Build();
+   dialog->SetMiddleContentView(std::move(list));
+@@ -501,7 +527,9 @@ void NickelGlobalShortcuts::Ask(std::unique_ptr<Pending> pending) {
+   p->widget->Show();
+ }
+ 
+-void NickelGlobalShortcuts::OnDialogDone(int serial, bool allowed) {
++void NickelGlobalShortcuts::OnDialogDone(int serial,
++                                         bool allowed,
++                                         bool refused) {
+   auto it = pending_.find(serial);
+   if (it == pending_.end()) {
+     return;
+@@ -514,6 +542,11 @@ void NickelGlobalShortcuts::OnDialogDone(int serial, bool allowed) {
+   p->list = nullptr;
+   p->widget = nullptr;
+   p->watch.reset();
++  if (refused && Prefs() && !p->app_id.empty()) {
++    ScopedDictPrefUpdate update(Prefs(), kPref);
++    update->Set(p->app_id, base::DictValue().Set(
++                               kRefusedKey, RequestSignature(p->shortcuts)));
++  }
+   if (!allowed || !p->socket.is_valid()) {
+     std::move(p->callback).Run(false, {});
+     return;
+diff --git a/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h b/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h
+index db3ea97..6b11b1b 100644
+--- a/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h
++++ b/chrome/browser/ash/dbus/vm/nickel_global_shortcuts.h
+@@ -79,7 +79,8 @@ class NickelGlobalShortcuts : public ui::EventHandler {
+   struct Pending;
+ 
+   void Ask(std::unique_ptr<Pending> pending);
+-  void OnDialogDone(int serial, bool allowed);
++  // |refused|: the user pressed "Don't allow" (not a close).
++  void OnDialogDone(int serial, bool allowed, bool refused);
+   void OnPendingSocket(int serial);
+   void Add(std::unique_ptr<Binding> binding);
+   void OnSocket(int serial);

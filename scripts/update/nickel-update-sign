@@ -64,7 +64,7 @@ if grep -q ENCRYPTED "$KEY"; then
 	# The update key's own passphrase (made 2026-10-12), not the Secure
 	# Boot key's. Three tries.
 	for try in 1 2 3; do
-		read -r -s -p "Passphrase for the update key ($KEY): " NICKEL_PASS; echo
+		IFS= read -r -s -p "Passphrase for the update key ($KEY): " NICKEL_PASS; echo
 		export NICKEL_PASS
 		pass=(-passin env:NICKEL_PASS)
 		openssl pkey -in "$KEY" "${pass[@]}" -noout 2>/dev/null && break

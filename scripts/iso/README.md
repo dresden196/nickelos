@@ -20,8 +20,35 @@ What's on it (`build-iso.sh IMAGE OUT.iso [KEY CERT]`, on the build host):
   the key's certificate, for MokManager.
 
 At boot, `init` finds the medium (a filesystem with nickelos/image.sqfs, or
-an ISO file holding one, as Ventoy keeps them), mounts the image, starts
-frecon-lite and runs the installer once, on its VT1:
+an ISO file holding one, as Ventoy keeps them) and mounts the image. Then,
+by default (GRUB's "NickelOS" entry), the live session (2026-11-09,
+Dresden: "Why doesn't it boot into the UI to install like we did
+before?"): NickelOS itself, from the image, with setup and its installer
+(Install, or try it first) as on the USB image, from any of the three ways
+to boot the ISO:
+- the medium again through a device-mapper linear device named
+  `nickelos-medium`, which os_install_service checks (patch 0005): the
+  disk it holds is never offered to install to, and nothing else claims it;
+- the image (read-only, in the squashfs) as the external origin of a
+  device-mapper thin device whose pool's data is a sparse file on a tmpfs
+  (three quarters of the memory at most, used only as written): all writes
+  stay in memory;
+- that device's partitions through a loop device (`losetup -P`): ROOT-A is
+  the root, STATE the data partition, and rootdev, is_running_from_installer
+  (ROOT-B is the USB layout's stub) and chromeos-install take the loop
+  device for the disk NickelOS runs from;
+- `switch_root` into ROOT-A with only devtmpfs on /dev, as the kernel would
+  have mounted it: ChromeOS's init does the rest. Its messages are in the
+  kernel's log (`nickelos-iso:`).
+The kernel builds in the media's filesystems (ISO 9660, FAT, exFAT, NTFS3;
+`profiles/base/bashrc/nickel-kernel.bashrc`), so the initramfs loads no
+module: LoadPin pins to the first filesystem a module comes from, and an
+initramfs module would have left the live session without its drivers.
+The kernel's arguments are the installed system's, without root=.
+
+GRUB's second entry, "NickelOS: text-mode installer" (`nickelos.text`), and
+a live session that can't be set up, start frecon-lite and run the
+text-mode installer once, on its VT1:
 - **Install NickelOS on this computer**: a disk, "yes", and
   `chromeos-install --payload_image` (NickelOS's own installer, run from the
   image's system partition) writes the installed layout: two systems for

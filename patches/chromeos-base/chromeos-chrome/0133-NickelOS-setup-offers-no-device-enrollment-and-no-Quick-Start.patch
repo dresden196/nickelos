@@ -1,0 +1,86 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: setup offers no device enrollment and no Quick Start
+
+diff --git a/ash/shelf/login_shelf_view.cc b/ash/shelf/login_shelf_view.cc
+index 470e516..a2221af 100644
+--- a/ash/shelf/login_shelf_view.cc
++++ b/ash/shelf/login_shelf_view.cc
+@@ -787,19 +787,15 @@ bool LoginShelfView::ShouldShowGuestButton() const {
+ }
+ 
+ bool LoginShelfView::ShouldShowEnterpriseEnrollmentButton() const {
+-  const SessionState session_state =
+-      Shell::Get()->session_controller()->GetSessionState();
+-  return session_state == SessionState::OOBE &&
+-         dialog_state_ == OobeDialogState::USER_CREATION;
++  // NickelOS: enrollment registers the device with Google's device
++  // management, which needs a Chrome Enterprise or Education domain and
++  // Google's servers; NickelOS's accounts are its own.
++  return false;
+ }
+ 
+ bool LoginShelfView::ShouldShowSchoolEnrollmentButton() const {
+-  const SessionState session_state =
+-      Shell::Get()->session_controller()->GetSessionState();
+-
+-  return features::IsOobeSoftwareUpdateEnabled() &&
+-         session_state == SessionState::OOBE &&
+-         dialog_state_ == OobeDialogState::SETUP_CHILD;
++  // NickelOS: the same enrollment (see above), for schools.
++  return false;
+ }
+ 
+ bool LoginShelfView::ShouldShowSignInButton() const {
+diff --git a/chrome/browser/ash/login/quickstart_controller.cc b/chrome/browser/ash/login/quickstart_controller.cc
+index 331c4fd..1c5a861 100644
+--- a/chrome/browser/ash/login/quickstart_controller.cc
++++ b/chrome/browser/ash/login/quickstart_controller.cc
+@@ -74,6 +74,13 @@ std::string GetBluetoothStateString(BluetoothSystemState system_state) {
+   }
+ }
+ 
++// NickelOS: Quick Start sets a device up from an Android phone's Google
++// account; NickelOS's accounts are local, so setup never offers it (Dresden,
++// 2026-10-19).
++bool NickelOffersQuickStart() {
++  return false;
++}
++
+ std::optional<QuickStartController::EntryPoint> EntryPointFromScreen(
+     OobeScreenId screen) {
+   if (screen.name == WelcomeScreenHandler::kScreenId.name) {
+@@ -285,6 +292,11 @@ void QuickStartController::ForceEnableQuickStart() {
+ 
+ void QuickStartController::DetermineEntryPointVisibility(
+     EntryPointButtonVisibilityCallback callback) {
++  if (!NickelOffersQuickStart()) {
++    std::move(callback).Run(/*visible=*/false);
++    return;
++  }
++
+   // Bootstrap controller is only instantiated when the feature is enabled (also
+   // via the keyboard shortcut. See |ForceEnableQuickStart|.)
+   if (!bootstrap_controller_) {
+diff --git a/chrome/browser/ui/ash/login/login_display_host_common.cc b/chrome/browser/ui/ash/login/login_display_host_common.cc
+index 424cb2f..711f825 100644
+--- a/chrome/browser/ui/ash/login/login_display_host_common.cc
++++ b/chrome/browser/ui/ash/login/login_display_host_common.cc
+@@ -487,6 +487,18 @@ bool LoginDisplayHostCommon::HandleAccelerator(LoginAcceleratorAction action) {
+     return true;
+   }
+ 
++  // NickelOS: no enrollment into Google's device management (it needs a
++  // Chrome Enterprise or Education domain and Google's servers), nor its
++  // device requisition, nor Quick Start (an Android phone hands its Google
++  // account over): their keyboard shortcuts do nothing.
++  if (action == LoginAcceleratorAction::kStartEnrollment ||
++      action == LoginAcceleratorAction::kStartKioskEnrollment ||
++      action == LoginAcceleratorAction::kEditDeviceRequisition ||
++      action == LoginAcceleratorAction::kDeviceRequisitionRemora ||
++      action == LoginAcceleratorAction::kEnableQuickStart) {
++    return true;
++  }
++
+   if (action == LoginAcceleratorAction::kShowFeedback) {
+     login_feedback_ = std::make_unique<LoginFeedback>(
+         ProfileHelper::Get()->GetSigninProfile());

@@ -234,6 +234,14 @@ channel_dialog() {
   if ('$2' === 'change' && seen.change) { btn('#changeChannel').click(); seen.pressed = 'change'; }
   else { btn('#cancel').click(); seen.pressed = 'cancel'; }
   await sleep(2000);
+  // Settings asks update_engine for the channel again once the dialog
+  // closes, which can answer late while it starts a check (17.34's release
+  // check read stable after 2 s); whether the dialog is still up is noted.
+  seen.dialogOpen = !!deep(document, 'settings-channel-switcher-dialog')?.shadowRoot
+      ?.querySelector('cr-dialog')?.open;
+  for (let i = 0; i < 8 && '$2' === 'change' && seen.change &&
+       !(text(deep(document, '#currentlyOnChannelText')) || '').includes('$1'); i++)
+    await sleep(1000);
   seen.after = text(deep(document, '#currentlyOnChannelText'));
   return seen;"
 }

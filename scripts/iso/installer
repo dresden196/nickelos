@@ -65,13 +65,15 @@ choose_disk() {
 		b=${d##*/}
 		case $b in loop*|ram*|zram*|dm-*|sr*|mmcblk*boot*|mmcblk*rpmb) continue ;; esac
 		[ "$b" = "$MEDIA_DISK" ] && continue
-		[ "$(cat "$d/size")" -gt 0 ] 2>/dev/null || continue
+		# Too small for NickelOS: the same limit as setup's installer
+		# (os_install_service), 14 GiB.
+		[ $(( $(cat "$d/size") * 512 )) -ge 15032385536 ] 2>/dev/null || continue
 		n=$((n + 1))
 		u=; is_usb "$b" && u=" (USB)"
 		say "  $n  $(model "$b"), $(size_text "$b")$u   /dev/$b"
 		echo "$n $b" >> /run/disks
 	done
-	[ "$n" -gt 0 ] || { say "  No disk to install on was found."; return 1; }
+	[ "$n" -gt 0 ] || { say "  No disk to install on was found (NickelOS needs one of 15 GB or more)."; return 1; }
 	say ""
 	printf 'Disk number, or Enter to go back: '
 	read -r c

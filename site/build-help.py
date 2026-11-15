@@ -13,6 +13,8 @@ import os
 import re
 import sys
 
+from masthead import masthead
+
 here = os.path.dirname(os.path.abspath(__file__))
 src = os.path.join(here, "help-src")
 out = os.path.join(here, "help")
@@ -157,26 +159,13 @@ LAYOUT = """<!doctype html>
 <link rel="icon" href="/favicon.ico?v=3" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
 <link rel="preload" href="/assets/fonts/GoogleSansFlex-nickelos.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/site.css?v=3">
 </head>
 <body>
 
 <a class="skip" href="#main">Skip to the content</a>
 
-<header class="masthead">
-  <div class="wrap masthead-row">
-    <a class="brand" href="/" aria-label="NickelOS home">
-      <img src="/assets/img/nickelos-logo-v3.png" alt="" width="32" height="32">
-      <span>NickelOS</span>
-    </a>
-    <nav aria-label="Site">
-      <a href="/help/">Guide</a>
-      <a href="/help/troubleshooting/">Troubleshooting</a>
-      <a href="/help/community/">Get help</a>
-    </nav>
-    <span class="chip" title="NickelOS has not been released yet">Alpha</span>
-  </div>
-</header>
+{masthead}
 
 <main id="main" class="guide">
   <div class="wrap guide-layout">
@@ -230,6 +219,8 @@ def offline_links(page):
         return 'href="%s%s"' % ((key + ".html") if key else "index.html", frag)
     page = re.sub(r'href="/help/(?:([a-z0-9-]+)/)?(#[^"]*)?"', help_link, page)
     page = re.sub(r'(href|src)="/assets/', r'\1="assets/', page)
+    # The site's cache-busting ?v= on files read from disk.
+    page = re.sub(r'(href|src)="(assets/[^"?]+)\?v=\d+"', r'\1="\2"', page)
     page = re.sub(r'<link rel="(?:icon|apple-touch-icon)"[^>]*>\n', "", page)
     page = re.sub(r'href="/([^"]*)"', lambda m: 'href="%s/%s"' % (SITE, m.group(1)), page)
     return page.replace('<div class="small footer-notes">\n',
@@ -291,14 +282,16 @@ def main():
             body = body[:cut] + "\n" + toc_html + body[cut:]
             toc_html = ""
         title = meta["title"] if key == "index" else meta["title"] + " · NickelOS guide"
-        page = LAYOUT.format(title=html.escape(title),
-                             summary=html.escape(meta.get("summary", "")),
-                             nav=nav, toc=toc_html, body=body)
+        fields = dict(title=html.escape(title),
+                      summary=html.escape(meta.get("summary", "")),
+                      nav=nav, toc=toc_html, body=body)
+        page = LAYOUT.format(masthead=masthead("Guide"), **fields)
         dest = out if key == "index" else os.path.join(out, key)
         os.makedirs(dest, exist_ok=True)
         with open(os.path.join(dest, "index.html"), "w", encoding="utf-8") as f:
             f.write(page)
-        rendered.append((key, page))
+        # The copy NickelOS carries: the guide's own links, no Download.
+        rendered.append((key, LAYOUT.format(masthead=masthead("Guide", offline=True), **fields)))
     print("guide: %d pages" % len(pages))
     if offline_dir:
         write_offline(offline_dir, rendered)

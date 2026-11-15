@@ -21,6 +21,9 @@ app-editors/vim
 # man, for the man pages the image keeps (English; nickel-unify) and those
 # of what you install
 sys-apps/man-db
+# xdg-user-dir, which Steam and Wine (and other apps) ask where the desktop
+# folder is before they put a shortcut on it
+x11-misc/xdg-user-dirs
 # eix, the package search the Welcome Tour and the guide show (Gentoo's
 # eix-update runs after each emerge --sync, through Portage's hook)
 app-portage/eix

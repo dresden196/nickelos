@@ -76,3 +76,7 @@ dev-python/pygobject cairo
 dev-libs/json-glib introspection
 x11-libs/libxkbcommon X
 dev-libs/libpcre2 pcre32
+# xdg-user-dir, which Steam and other apps ask for the desktop folder; without
+# xdg-user-dirs-gtk, a dialog that offers to rename the folders after a
+# language change (NickelOS keeps them as they are: nickel-session).
+x11-misc/xdg-user-dirs -gtk

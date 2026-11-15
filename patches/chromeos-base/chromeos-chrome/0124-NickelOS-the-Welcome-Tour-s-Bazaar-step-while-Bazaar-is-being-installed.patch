@@ -1,0 +1,121 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: the Welcome Tour's Bazaar step while Bazaar is being installed
+
+On a new device the Welcome Tour starts at the first sign-in, while
+Bazaar is still being installed (nickel-flatpak-defaults downloads it
+from Flathub after setup). The tour's Bazaar step (Chrome 0071) waits
+for a help bubble on Bazaar in the launcher, which wasn't there: the
+tour stood still on its dimmed, gray screen, with no bubble and nothing
+to press, until it gave up after 15 seconds.
+
+The step is now conditional: with Bazaar in the launcher, the bubble is
+on Bazaar, as before; otherwise it is on the launcher's search box and
+says Bazaar is being installed and shows up in Launcher in a few
+minutes. The welcome dialog also counts the tour's steps right: eight
+since the Android apps step (Chrome 0073), not seven.
+
+diff --git a/ash/ash_strings.grd b/ash/ash_strings.grd
+index dcaf830..f17fbd1 100644
+--- a/ash/ash_strings.grd
++++ b/ash/ash_strings.grd
+@@ -7603,7 +7603,7 @@ To shut down the device, press and hold the power button on the device again.
+         No thanks
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_DIALOG_DESCRIPTION_TEXT" desc="Text shown in the body of the dialog as part of the System UI Welcome Tour.">
+-        Take a quick tour of your <ph name="PRODUCT_NAME">$1<ex>NickelOS device</ex></ph>: where your apps are, how to get more, and the Linux underneath. 7 steps.
++        Take a quick tour of your <ph name="PRODUCT_NAME">$1<ex>NickelOS device</ex></ph>: where your apps are, how to get more, and the Linux underneath. 8 steps.
+       </message>
+       <message name="IDS_ASH_WELCOME_TOUR_DIALOG_TITLE_TEXT" desc="Text shown as the Welcome Tour dialog title.">
+         Hi there. Welcome to your <ph name="PRODUCT_NAME">$1<ex>NickelOS device</ex></ph>.
+@@ -7632,6 +7632,12 @@ To shut down the device, press and hold the power button on the device again.
+       <message name="IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT" desc="NickelOS: text shown in the body of a help bubble anchored to Bazaar, the app store, as part of the Welcome Tour.">
+         Get more apps in Bazaar: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.
+       </message>
++      <message name="IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_INSTALLING_BUBBLE_ACCNAME" desc="NickelOS: the accessible name of a help bubble on the launcher's search box, as part of the Welcome Tour, while Bazaar, the app store, is still being installed on a new device.">
++        Tour step <ph name="STEP">$1<ex>5</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>8</ex></ph>. Bazaar, the app store, is being installed and shows up in Launcher in a few minutes. Get more apps there: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.
++      </message>
++      <message name="IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_INSTALLING_BUBBLE_BODY_TEXT" desc="NickelOS: text shown in a help bubble on the launcher's search box, as part of the Welcome Tour, while Bazaar, the app store, is still being installed on a new device.">
++        Bazaar, the app store, is being installed and shows up in Launcher in a few minutes. Get more apps there: Linux apps from Flathub, installed as Flatpaks. They show up in Launcher like any other app.
++      </message>
+       <message name="IDS_ASH_WELCOME_TOUR_NICKEL_ANDROID_BUBBLE_ACCNAME" desc="NickelOS: the accessible name of a help bubble anchored to Waydroid, which runs Android apps, as part of the Welcome Tour.">
+         Tour step <ph name="STEP">$1<ex>1</ex></ph> of <ph name="TOTAL_STEPS">$2<ex>8</ex></ph>. Waydroid runs Android apps, each in a window of its own. Set it up in Settings, under Apps, then Android apps. After that, opening an APK file installs the app, and Android’s apps show up in Launcher.
+       </message>
+diff --git a/ash/user_education/welcome_tour/welcome_tour_controller.cc b/ash/user_education/welcome_tour/welcome_tour_controller.cc
+index 9f3c2d4..a7e56c7 100644
+--- a/ash/user_education/welcome_tour/welcome_tour_controller.cc
++++ b/ash/user_education/welcome_tour/welcome_tour_controller.cc
+@@ -409,31 +409,50 @@ WelcomeTourController::GetTutorialDescription() const {
+ 
+     // NickelOS: Bazaar, where Linux apps come from. (Its help bubble id and
+     // metrics step are the Explore app's, which NickelOS has no step for.)
++    // On a new device Bazaar is still being installed at the first sign-in
++    // (nickel-flatpak-defaults), and a bubble anchored to an app that isn't
++    // in the launcher never shows: the tour stood still on its dimmed screen
++    // until it gave up. Then the bubble is on the search box and says Bazaar
++    // is on its way.
++    const std::string bazaar_step = base::NumberToString(current_step++);
++    auto bazaar_bubble = [&](ui::ElementIdentifier anchor,
++                             user_education::HelpBubbleArrow arrow,
++                             int accessible_name_id, int body_text_id) {
++      return user_education::TutorialDescription::Steps(
++          user_education::TutorialDescription::BubbleStep(anchor)
++              .SetBubbleArrow(arrow)
++              .SetBubbleBodyText(
++                  IDS_ASH_WELCOME_TOUR_OVERRIDDEN_BUBBLE_BODY_TEXT)
++              .SetExtendedProperties(CreateHelpBubbleExtendedProperties(
++                  HelpBubbleId::kWelcomeTourExploreApp,
++                  /*accessible_name=*/
++                  l10n_util::GetStringFUTF8(accessible_name_id,
++                                            base::UTF8ToUTF16(bazaar_step),
++                                            kTotalSteps),
++                  /*body_text=*/
++                  l10n_util::GetStringUTF8(body_text_id)))
++              .AddCustomNextButton(DefaultNextButtonCallback().Then(
++                  base::BindRepeating(
++                      &WelcomeTourController::SetCurrentStep,
++                      weak_ptr_factory_.GetMutableWeakPtr(),
++                      welcome_tour_metrics::Step::kExploreAppWindow)))
++              .InSameContext(),
++          user_education::TutorialDescription::EventStep(
++              user_education::kHelpBubbleNextButtonClickedEvent, anchor)
++              .InSameContext());
++    };
+     tutorial_description.steps.emplace_back(
+-        user_education::TutorialDescription::BubbleStep(
+-            kNickelBazaarAppElementId)
+-            .SetBubbleArrow(user_education::HelpBubbleArrow::kBottomLeft)
+-            .SetBubbleBodyText(IDS_ASH_WELCOME_TOUR_OVERRIDDEN_BUBBLE_BODY_TEXT)
+-            .SetExtendedProperties(CreateHelpBubbleExtendedProperties(
+-                HelpBubbleId::kWelcomeTourExploreApp,
+-                /*accessible_name=*/
+-                l10n_util::GetStringFUTF8(
+-                    IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME,
+-                    base::NumberToString16(current_step++), kTotalSteps),
+-                /*body_text=*/
+-                l10n_util::GetStringUTF8(
+-                    IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT)))
+-            .AddCustomNextButton(DefaultNextButtonCallback().Then(
+-                base::BindRepeating(
+-                    &WelcomeTourController::SetCurrentStep,
+-                    weak_ptr_factory_.GetMutableWeakPtr(),
+-                    welcome_tour_metrics::Step::kExploreAppWindow)))
+-            .InSameContext());
+-
+-    tutorial_description.steps.emplace_back(
+-        user_education::TutorialDescription::EventStep(
+-            user_education::kHelpBubbleNextButtonClickedEvent,
+-            kNickelBazaarAppElementId)
++        user_education::TutorialDescription::If(kNickelBazaarAppElementId)
++            .Then(bazaar_bubble(
++                kNickelBazaarAppElementId,
++                user_education::HelpBubbleArrow::kBottomLeft,
++                IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_ACCNAME,
++                IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_BUBBLE_BODY_TEXT))
++            .Else(bazaar_bubble(
++                kSearchBoxViewElementId,
++                user_education::HelpBubbleArrow::kTopCenter,
++                IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_INSTALLING_BUBBLE_ACCNAME,
++                IDS_ASH_WELCOME_TOUR_NICKEL_BAZAAR_INSTALLING_BUBBLE_BODY_TEXT))
+             .InSameContext());
+ 
+     // NickelOS: Waydroid, for Android apps (set up in Settings > Apps, Chrome

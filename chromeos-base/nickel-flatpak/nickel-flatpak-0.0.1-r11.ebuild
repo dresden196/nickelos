@@ -33,6 +33,12 @@ src_install() {
 	doins "${FILESDIR}"/init/nickel-flatpak-gpu.conf
 	dosbin "${FILESDIR}"/nickel-flatpak-gpu
 
+	# Default settings for Flathub apps, as their "unmaintained" Flatpak
+	# extensions (an extension point's directory in the installation, no
+	# ref): nickel-flatpak-defaults links them in at every boot.
+	insinto /usr/share/nickel-flatpak/extension/org.mozilla.firefox.systemconfig/x86_64/stable/defaults/pref
+	doins "${FILESDIR}"/extension/org.mozilla.firefox.systemconfig/defaults/pref/nickelos.js
+
 	# Flathub, added to the system installation the first time it is used.
 	insinto /usr/share/flatpak/remotes.d
 	doins "${FILESDIR}"/remotes/flathub.flatpakrepo

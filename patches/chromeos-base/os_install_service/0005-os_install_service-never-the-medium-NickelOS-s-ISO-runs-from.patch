@@ -1,0 +1,69 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] os_install_service: never the medium NickelOS's ISO runs from
+
+NickelOS's ISO starts a live session (scripts/iso/init in the NickelOS
+overlay): NickelOS itself, with setup's installer, running from the image
+on the stick, its writes kept in memory. Its root disk is then a loop
+device, so the stick isn't the root disk the candidate list leaves out,
+and it was offered as a place to install to, overwriting what is being
+installed from.
+
+The ISO's start-up reads the medium through a device-mapper device named
+"nickelos-medium"; a disk with that device among its holders (on the disk
+itself, or on the partition the ISO file is on) is never a candidate.
+
+---
+--- a/src/disk.rs	2026-11-09 14:52:34.479809793 -0500
++++ b/src/disk.rs	2026-11-09 14:52:34.492251337 -0500
+@@ -44,6 +44,39 @@
+     pub model: String,
+ }
+ 
++/// NickelOS: whether this disk holds the medium the ISO's live session
++/// runs from. The ISO's start-up (scripts/iso/init in the NickelOS overlay)
++/// reads the medium through a device-mapper device named "nickelos-medium",
++/// so the disk, or the partition with the ISO file on it, has that device
++/// among its holders. Installing there would overwrite what is being
++/// installed from.
++fn holds_nickelos_medium(kernel_name: &Path) -> bool {
++    let name = match kernel_name.file_name() {
++        Some(name) => name,
++        None => return false,
++    };
++    let disk = Path::new("/sys/class/block").join(name);
++    let mut devices = vec![disk.clone()];
++    if let Ok(entries) = std::fs::read_dir(&disk) {
++        for entry in entries.flatten() {
++            if entry.path().join("partition").exists() {
++                devices.push(entry.path());
++            }
++        }
++    }
++    devices.iter().any(|device| {
++        std::fs::read_dir(device.join("holders"))
++            .map(|holders| {
++                holders.flatten().any(|holder| {
++                    std::fs::read_to_string(holder.path().join("dm/name"))
++                        .map(|dm_name| dm_name.trim() == "nickelos-medium")
++                        .unwrap_or(false)
++                })
++            })
++            .unwrap_or(false)
++    })
++}
++
+ /// Get information about all disk devices.
+ pub fn get_disks() -> Result<Vec<Disk>, Error> {
+     let devices = get_lsblk_devices(None).context("failed to get block devices")?;
+@@ -61,6 +94,11 @@
+         if device.kernel_name.starts_with("/dev/zram") {
+             continue;
+         }
++        // NickelOS: never the USB stick (or disk) the ISO's live session
++        // runs from.
++        if holds_nickelos_medium(Path::new(&device.kernel_name)) {
++            continue;
++        }
+         disks.push(Disk {
+             device_path: Path::new(&device.name).into(),
+             is_removable: device.is_removable,

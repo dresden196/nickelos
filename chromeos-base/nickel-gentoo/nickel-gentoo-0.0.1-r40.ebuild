@@ -44,7 +44,10 @@ src_install() {
 	# default runlevel at startup, and what ChromeOS provides for their
 	# dependencies.
 	doins "${FILESDIR}"/init/nickel-openrc.conf
-	exeinto /etc/init.d
+	# Not in /etc/init.d: ChromeOS's install mask drops that directory from
+	# every board package, so services that need "net" (sshd, CUPS,
+	# Tailscale) found nothing to provide it. nickel-unify links it there.
+	exeinto /usr/libexec/nickel-gentoo
 	doexe "${FILESDIR}"/openrc/nickel-os
 	# Removing a Gentoo app from the launcher (nickel-appd, under pkexec).
 	exeinto /usr/libexec

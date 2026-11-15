@@ -196,6 +196,33 @@ __nickel_ln() {
 	command ln "${a[@]}"
 }
 
+# Tailscale's service (net-vpn/tailscale): ChromeOS's routing keeps each
+# network's default route in a table of its own and sends sockets there by
+# firewall marks; Tailscale marks its own connections (to its servers and
+# peers) to go around its tunnel, and its rules then look for them in the
+# main table, which has no default route here, and end in "unreachable":
+# tailscaled never reached its servers ("network is unreachable"). Bound to
+# the network's interface instead (Tailscale's own knob), they follow
+# ChromeOS's rule for that interface.
+__nickel_tailscale() {
+	[[ ${CATEGORY}/${PN} == net-vpn/tailscale ]] || return 0
+	local f fixed=0
+	for f in "${ED%/}"/etc/conf.d/tailscale*; do
+		[[ -f ${f} ]] || continue
+		grep -q '^export TS_FORCE_LINUX_BIND_TO_DEVICE=' "${f}" && continue
+		cat >> "${f}" <<-'CONF'
+
+		# NickelOS: tailscaled's own connections are bound to the network's
+		# interface; with Tailscale's firewall mark, ChromeOS's routing has
+		# no route for them ("network is unreachable").
+		export TS_FORCE_LINUX_BIND_TO_DEVICE=true
+		CONF
+		fixed=1
+	done
+	(( fixed )) && einfo "NickelOS: tailscaled binds its connections to the network's interface (/etc/conf.d)"
+	return 0
+}
+
 case ${EBUILD_PHASE} in
 preinst|postinst|prerm|postrm|config)
 	if [[ -d ${EROOT%/}/bin && ! -L ${EROOT%/}/bin && -r ${EROOT%/}/usr/share/nickel-gentoo/chromeos-files ]]; then
@@ -216,4 +243,5 @@ if [[ ${EBUILD_PHASE} == preinst ]]; then
 	__nickel_merged_usr
 	__nickel_os_files
 	__nickel_portage
+	__nickel_tailscale
 fi

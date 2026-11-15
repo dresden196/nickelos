@@ -1,11 +1,13 @@
 #!/bin/bash
 # In the SDK: the ISO's initramfs (scripts/iso/README.md) from the board's
 # root: busybox, util-linux's losetup (partitions of a loop device),
-# frecon-lite (ChromeOS's console as its own initramfs use it: it finds
-# keyboards in /dev/input, where frecon asks udev, which doesn't run here)
-# and their libraries (lddtree), the kernel's modules
-# for the filesystems boot media use (built as modules: the kernel's own
-# version, signed as the build signs them), init and the installer.
+# blockdev and switch_root, lvm2's dmsetup (the live session's
+# device-mapper devices), frecon-lite (ChromeOS's console as its own
+# initramfs use it: it finds keyboards in /dev/input, where frecon asks
+# udev, which doesn't run here) and their libraries (lddtree), the kernel's
+# modules for the filesystems boot media use if the kernel doesn't build
+# them in (the kernel's own version, signed as the build signs them;
+# NickelOS's kernel builds them in, so none), init and the installer.
 #   make-initramfs.sh OUT.cpio.xz
 set -euo pipefail
 out=${1:?output}
@@ -16,15 +18,18 @@ t=$(mktemp -d)
 trap 'rm -rf "$t"' EXIT
 mkdir -p "$t"/{bin,sbin,etc/nickelos,lib/modules,proc,sys,dev,run,tmp,media,nickelos}
 [ -x "$R/sbin/frecon-lite" ] || emerge-"$BOARD" --quiet --noreplace sys-apps/frecon-lite
-lddtree -R "$R" --copy-to-tree "$t" /bin/busybox /sbin/losetup /sbin/frecon-lite >/dev/null
+lddtree -R "$R" --copy-to-tree "$t" /bin/busybox /sbin/losetup /sbin/blockdev \
+	/sbin/switch_root /sbin/dmsetup /usr/bin/unshare /sbin/frecon-lite >/dev/null
 mv "$t/sbin/frecon-lite" "$t/sbin/frecon"
 # losetup as /sbin/losetup is the real one; busybox's applets go to /bin.
 kver=$(ls "$R/lib/modules" | head -1)
 md=$R/lib/modules/$kver
 : > "$t/etc/nickelos/modules"
-# Each module after the ones it needs (modules.dep), once.
+# Each module after the ones it needs (modules.dep), once; none for what
+# the kernel builds in (modules.builtin).
 add_mod() {
 	local name=$1 path dep
+	grep -q "/${name}\.ko\$" "$md/modules.builtin" 2>/dev/null && return 0
 	path=$(awk -F: -v m="/$name.ko" 'index($1, m) == length($1) - length(m) + 1 { print $1; exit }' "$md/modules.dep")
 	[ -n "$path" ] || { echo "no module $name in $kver" >&2; return 1; }
 	grep -qx "${path##*/}" "$t/etc/nickelos/modules" && return 0

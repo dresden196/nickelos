@@ -1,0 +1,29 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: window previews on the shelf
+
+Window previews on the shelf are on: hovering an app's shelf button shows
+a live preview of its window, and in the menu a click opens for an app
+with several windows, the highlighted window's preview shows beside the
+list of their titles. Dresden, 2026-11-09: "hovering over chromium or
+firefox or whatever app you have open gives no preview. Should be more
+like KDE with its window previews".
+
+ChromeOS has the code (ash/shelf/shelf_window_preview_bubble.cc, new in
+2026: a mirror of the window, as Overview's) behind kWindowPreviewOnShelf,
+off by default. Tried on a test PC with the feature turned on by hand:
+the menu's previews show for the browser's windows.
+
+diff --git a/ash/constants/ash_features.cc b/ash/constants/ash_features.cc
+index 280a031..2d46212 100644
+--- a/ash/constants/ash_features.cc
++++ b/ash/constants/ash_features.cc
+@@ -1812,7 +1812,8 @@ BASE_FEATURE(kWifiSyncUploadProxyConfigs, base::FEATURE_DISABLED_BY_DEFAULT);
+ BASE_FEATURE(kWifiSyncApplyProxyConfigs, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ // Enables window preview on hover for shelf app icons and menu items.
+-BASE_FEATURE(kWindowPreviewOnShelf, base::FEATURE_DISABLED_BY_DEFAULT);
++// NickelOS: on (Dresden 2026-11-09: window previews as on KDE).
++BASE_FEATURE(kWindowPreviewOnShelf, base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ // Enables an experimental feature that splits windows by dragging one window
+ // over another window.

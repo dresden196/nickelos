@@ -246,6 +246,10 @@ chown -R root:root "$R/etc/portage"
 # cgroups of OpenRC's: ChromeOS's own manage them.
 rm -rf "$R/etc/runlevels"
 mkdir -p "$R"/etc/runlevels/{sysinit,boot,default,shutdown,nickel-stop}
+# nickel-os itself is nickel-gentoo's, in /usr/libexec: ChromeOS's install
+# mask keeps /etc/init.d out of board packages.
+mkdir -p "$R/etc/init.d"
+ln -sfn /usr/libexec/nickel-gentoo/nickel-os "$R/etc/init.d/nickel-os"
 ln -s /etc/init.d/nickel-os "$R/etc/runlevels/boot/nickel-os"
 [ ! -f "$R/etc/rc.conf" ] || sed -i -E 's/^#?rc_controller_cgroups=.*/rc_controller_cgroups="NO"/' "$R/etc/rc.conf"
 # The OS's records keep only the dependencies the image meets (Google's

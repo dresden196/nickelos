@@ -1,0 +1,898 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: Exo data control, the clipboard for Linux apps without the focus
+
+Linux apps get data control: ext_data_control_manager_v1 (wayland-
+protocols, staging) and zwlr_data_control_manager_v1 (wlroots' protocol,
+the same requests and events, for apps that know only that one), as on KDE
+and wlroots desktops. A client sets ChromeOS's clipboard without the
+keyboard focus, and is offered the clipboard each time it changes.
+
+Dresden, 2026-11-09: copying in 1Password (Flatpak) did nothing. On
+NickelOS 1Password's window is Electron on Wayland, whose own clipboard
+works (GTK's does too), but 1Password copies through its Rust core: at
+Ctrl+C that opens a Wayland connection of its own, binds wl_seat, looks for
+a data-control manager, finds none, and gives up (WAYLAND_DEBUG on a test
+PC). Password managers copy this way, and so do wl-copy and wl-paste in a
+terminal.
+
+- components/exo/wayland/nickel_data_control.cc: sources are Exo
+  DataSources whose delegate accepts any surface, or none, as the focused
+  one; Seat::SetSelection reads them into ChromeOS's clipboard as it reads
+  a wl_data_source. Devices watch ChromeOS's clipboard
+  (ui::ClipboardMonitor) and send each new content as an offer (Exo's
+  DataOffer over the clipboard). set_selection with no source clears the
+  clipboard (a password manager clearing what it copied). The primary
+  selection stays with zwp_primary_selection (set_primary_selection is
+  ignored).
+- Seat::SetSelection: whether a source may set the selection is its
+  delegate's call (a wl_data_source still needs its client focused); with
+  no focused surface, the clipboard's source endpoint is the default one.
+- The protocols: GN targets for ext-data-control-v1.xml (in the tree) and
+  wlr-data-control-unstable-v1.xml (wlr-protocols, MIT, added under
+  third_party/wayland-protocols/wlr/); both on the standard list Linux
+  apps see (Chrome 0029).
+
+What any Linux app can now do, as on KDE: read the clipboard while it
+changes, without being in front.
+
+diff --git a/components/exo/seat.cc b/components/exo/seat.cc
+index 69d5a29..2358fc8 100644
+--- a/components/exo/seat.cc
++++ b/components/exo/seat.cc
+@@ -221,8 +221,11 @@ bool Seat::IsDragDropOperationInProgress() const {
+ 
+ void Seat::SetSelection(DataSource* source) {
+   Surface* focused_surface = GetFocusedSurface();
+-  if (!source || !focused_surface ||
+-      !source->CanBeDataSourceForCopy(focused_surface)) {
++  // NickelOS: whether the source may set the selection is its delegate's
++  // call, a focused surface or none: a wl_data_source needs its client to
++  // have the keyboard focus (and so a focused surface), a data-control one
++  // (wayland/nickel_data_control.cc) needs no focus.
++  if (!source || !source->CanBeDataSourceForCopy(focused_surface)) {
+     if (source)
+       source->Cancelled();
+     return;
+@@ -235,8 +238,9 @@ void Seat::SetSelection(DataSource* source) {
+   }
+   selection_source_ = std::make_unique<ScopedDataSource>(source, this);
+   ui::EndpointType endpoint_type =
+-      data_exchange_delegate_->GetDataTransferEndpointType(
+-          focused_surface->window());
++      focused_surface ? data_exchange_delegate_->GetDataTransferEndpointType(
++                            focused_surface->window())
++                      : ui::EndpointType::kDefault;
+   scoped_refptr<RefCountedScopedClipboardWriter> writer =
+       base::MakeRefCounted<RefCountedScopedClipboardWriter>(endpoint_type);
+ 
+diff --git a/components/exo/wayland/BUILD.gn b/components/exo/wayland/BUILD.gn
+index e5042cc..2585448 100644
+--- a/components/exo/wayland/BUILD.gn
++++ b/components/exo/wayland/BUILD.gn
+@@ -137,6 +137,8 @@ source_set("wayland") {
+     "zwp_pointer_constraints.h",
+     "zwp_pointer_gestures.cc",
+     "zwp_pointer_gestures.h",
++    "nickel_data_control.cc",
++    "nickel_data_control.h",
+     "zwp_primary_selection.cc",
+     "zwp_primary_selection.h",
+     "zwp_relative_pointer_manager.cc",
+@@ -193,6 +195,8 @@ source_set("wayland") {
+     "//third_party/wayland-protocols:pointer_gestures_protocol",
+     "//third_party/wayland-protocols:presentation_time_protocol",
+     "//third_party/wayland-protocols:primary_selection_protocol",
++    "//third_party/wayland-protocols:ext_data_control_protocol",
++    "//third_party/wayland-protocols:wlr_data_control_protocol",
+     "//third_party/wayland-protocols:relative_pointer_protocol",
+     "//third_party/wayland-protocols:remote_shell_protocol",
+     "//third_party/wayland-protocols:secure_output_protocol",
+diff --git a/components/exo/wayland/nickel_data_control.cc b/components/exo/wayland/nickel_data_control.cc
+new file mode 100644
+index 0000000..20415d4
+--- /dev/null
++++ b/components/exo/wayland/nickel_data_control.cc
+@@ -0,0 +1,397 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "components/exo/wayland/nickel_data_control.h"
++
++#include <ext-data-control-v1-server-protocol.h>
++#include <wayland-server-core.h>
++#include <wayland-server-protocol-core.h>
++#include <wlr-data-control-unstable-v1-server-protocol.h>
++
++#include <memory>
++#include <optional>
++#include <string>
++#include <utility>
++
++#include "base/containers/flat_set.h"
++#include "base/files/scoped_file.h"
++#include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++#include "components/exo/data_offer.h"
++#include "components/exo/data_offer_delegate.h"
++#include "components/exo/data_source.h"
++#include "components/exo/data_source_delegate.h"
++#include "components/exo/seat.h"
++#include "components/exo/wayland/server_util.h"
++#include "components/exo/wayland/wl_seat.h"
++#include "ui/base/clipboard/clipboard.h"
++#include "ui/base/clipboard/clipboard_buffer.h"
++#include "ui/base/clipboard/clipboard_monitor.h"
++#include "ui/base/clipboard/clipboard_observer.h"
++#include "ui/base/data_transfer_policy/data_transfer_endpoint.h"
++
++namespace exo::wayland {
++namespace {
++
++// The two protocols' interfaces and events, which are the same but for
++// their names.
++struct ExtDataControl {
++  static constexpr const wl_interface* kSourceInterface =
++      &ext_data_control_source_v1_interface;
++  static constexpr const wl_interface* kDeviceInterface =
++      &ext_data_control_device_v1_interface;
++  static constexpr const wl_interface* kOfferInterface =
++      &ext_data_control_offer_v1_interface;
++  static void SendSourceSend(wl_resource* source,
++                             const char* mime_type,
++                             int fd) {
++    ext_data_control_source_v1_send_send(source, mime_type, fd);
++  }
++  static void SendSourceCancelled(wl_resource* source) {
++    ext_data_control_source_v1_send_cancelled(source);
++  }
++  static void SendDataOffer(wl_resource* device, wl_resource* offer) {
++    ext_data_control_device_v1_send_data_offer(device, offer);
++  }
++  static void SendSelection(wl_resource* device, wl_resource* offer) {
++    ext_data_control_device_v1_send_selection(device, offer);
++  }
++  static void SendOffer(wl_resource* offer, const char* mime_type) {
++    ext_data_control_offer_v1_send_offer(offer, mime_type);
++  }
++};
++
++struct WlrDataControl {
++  static constexpr const wl_interface* kSourceInterface =
++      &zwlr_data_control_source_v1_interface;
++  static constexpr const wl_interface* kDeviceInterface =
++      &zwlr_data_control_device_v1_interface;
++  static constexpr const wl_interface* kOfferInterface =
++      &zwlr_data_control_offer_v1_interface;
++  static void SendSourceSend(wl_resource* source,
++                             const char* mime_type,
++                             int fd) {
++    zwlr_data_control_source_v1_send_send(source, mime_type, fd);
++  }
++  static void SendSourceCancelled(wl_resource* source) {
++    zwlr_data_control_source_v1_send_cancelled(source);
++  }
++  static void SendDataOffer(wl_resource* device, wl_resource* offer) {
++    zwlr_data_control_device_v1_send_data_offer(device, offer);
++  }
++  static void SendSelection(wl_resource* device, wl_resource* offer) {
++    zwlr_data_control_device_v1_send_selection(device, offer);
++  }
++  static void SendOffer(wl_resource* offer, const char* mime_type) {
++    zwlr_data_control_offer_v1_send_offer(offer, mime_type);
++  }
++};
++
++// A data-control source as an Exo DataSource: Seat::SetSelection reads it
++// into ChromeOS's clipboard. Unlike a wl_data_source, it needs no keyboard
++// focus (any surface, or none, may be focused).
++template <typename P>
++class DataControlSourceDelegate : public DataSourceDelegate {
++ public:
++  DataControlSourceDelegate(wl_client* client, wl_resource* resource)
++      : client_(client), resource_(resource) {}
++  DataControlSourceDelegate(const DataControlSourceDelegate&) = delete;
++  DataControlSourceDelegate& operator=(const DataControlSourceDelegate&) =
++      delete;
++
++  // DataSourceDelegate:
++  void OnDataSourceDestroying(DataSource* source) override { delete this; }
++  base::WeakPtr<DataSourceDelegate> GetWeakPtr() override {
++    return weak_factory_.GetWeakPtr();
++  }
++  void OnTarget(const std::optional<std::string>& mime_type) override {}
++  void OnSend(const std::string& mime_type, base::ScopedFD fd) override {
++    P::SendSourceSend(resource_, mime_type.c_str(), fd.get());
++    wl_client_flush(client_);
++  }
++  void OnCancelled() override {
++    P::SendSourceCancelled(resource_);
++    wl_client_flush(client_);
++  }
++  void OnDndDropPerformed() override {}
++  void OnDndFinished() override {}
++  void OnAction(DndAction dnd_action) override {}
++  bool CanAcceptDataEventsForSurface(Surface* surface) const override {
++    return true;
++  }
++  SecurityDelegate* GetSecurityDelegate() const override {
++    return ::exo::wayland::GetSecurityDelegate(client_);
++  }
++
++ private:
++  ~DataControlSourceDelegate() override = default;
++
++  const raw_ptr<wl_client> client_;
++  const raw_ptr<wl_resource> resource_;
++  base::WeakPtrFactory<DataControlSourceDelegate> weak_factory_{this};
++};
++
++// An offer of what ChromeOS's clipboard held when it was made.
++template <typename P>
++class DataControlOfferDelegate : public DataOfferDelegate {
++ public:
++  DataControlOfferDelegate(wl_client* client, wl_resource* resource)
++      : client_(client), resource_(resource) {}
++  DataControlOfferDelegate(const DataControlOfferDelegate&) = delete;
++  DataControlOfferDelegate& operator=(const DataControlOfferDelegate&) =
++      delete;
++
++  // DataOfferDelegate:
++  void OnDataOfferDestroying(DataOffer* offer) override { delete this; }
++  base::WeakPtr<DataOfferDelegate> GetWeakPtr() override {
++    return weak_factory_.GetWeakPtr();
++  }
++  void OnOffer(const std::string& mime_type) override {
++    P::SendOffer(resource_, mime_type.c_str());
++  }
++  void OnSourceActions(
++      const base::flat_set<DndAction>& source_actions) override {}
++  void OnAction(DndAction action) override {}
++  SecurityDelegate* GetSecurityDelegate() const override {
++    return ::exo::wayland::GetSecurityDelegate(client_);
++  }
++
++ private:
++  ~DataControlOfferDelegate() override = default;
++
++  const raw_ptr<wl_client> client_;
++  const raw_ptr<wl_resource> resource_;
++  base::WeakPtrFactory<DataControlOfferDelegate> weak_factory_{this};
++};
++
++template <typename P>
++void offer_receive(wl_client* client,
++                   wl_resource* resource,
++                   const char* mime_type,
++                   int32_t fd) {
++  GetUserDataAs<DataOffer>(resource)->Receive(mime_type, base::ScopedFD(fd));
++}
++
++void offer_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++constexpr struct ext_data_control_offer_v1_interface kExtOfferImplementation =
++    {offer_receive<ExtDataControl>, offer_destroy};
++constexpr struct zwlr_data_control_offer_v1_interface kWlrOfferImplementation =
++    {offer_receive<WlrDataControl>, offer_destroy};
++
++template <typename P>
++const void* OfferImplementation();
++template <>
++const void* OfferImplementation<ExtDataControl>() {
++  return &kExtOfferImplementation;
++}
++template <>
++const void* OfferImplementation<WlrDataControl>() {
++  return &kWlrOfferImplementation;
++}
++
++// A client's device: sets the clipboard, and is offered it each time it
++// changes (and once when made).
++template <typename P>
++class DataControlDevice : public ui::ClipboardObserver {
++ public:
++  DataControlDevice(wl_resource* resource, Seat* seat)
++      : resource_(resource), seat_(seat->GetWeakPtr()) {
++    ui::ClipboardMonitor::GetInstance()->AddObserver(this);
++    OfferClipboard();
++  }
++  DataControlDevice(const DataControlDevice&) = delete;
++  DataControlDevice& operator=(const DataControlDevice&) = delete;
++  ~DataControlDevice() override {
++    ui::ClipboardMonitor::GetInstance()->RemoveObserver(this);
++  }
++
++  void SetSelection(DataSource* source) {
++    if (!seat_) {
++      if (source) {
++        source->Cancelled();
++      }
++      return;
++    }
++    if (source) {
++      seat_->SetSelection(source);
++      return;
++    }
++    // No source: no selection (a password manager clearing what it copied).
++    ui::Clipboard::GetForCurrentThread()->Clear(
++        ui::ClipboardBuffer::kCopyPaste);
++  }
++
++ private:
++  // ui::ClipboardObserver:
++  void OnClipboardDataChanged() override { OfferClipboard(); }
++
++  void OfferClipboard() {
++    wl_client* client = wl_resource_get_client(resource_);
++    if (!seat_) {
++      P::SendSelection(resource_, nullptr);
++      wl_client_flush(client);
++      return;
++    }
++    wl_resource* offer_resource = wl_resource_create(
++        client, P::kOfferInterface, wl_resource_get_version(resource_), 0);
++    auto offer = std::make_unique<DataOffer>(
++        new DataControlOfferDelegate<P>(client, offer_resource));
++    DataOffer* data_offer = offer.get();
++    SetImplementation(offer_resource, OfferImplementation<P>(),
++                      std::move(offer));
++    // data_offer first, then the offer's types, then selection.
++    P::SendDataOffer(resource_, offer_resource);
++    data_offer->SetClipboardData(seat_->data_exchange_delegate(),
++                                 *ui::Clipboard::GetForCurrentThread(),
++                                 ui::EndpointType::kDefault);
++    P::SendSelection(resource_, offer_resource);
++    wl_client_flush(client);
++  }
++
++  const raw_ptr<wl_resource> resource_;
++  const base::WeakPtr<Seat> seat_;
++};
++
++////////////////////////////////////////////////////////////////////////////////
++// Sources:
++
++void source_offer(wl_client* client,
++                  wl_resource* resource,
++                  const char* mime_type) {
++  GetUserDataAs<DataSource>(resource)->Offer(mime_type);
++}
++
++void source_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++constexpr struct ext_data_control_source_v1_interface
++    kExtSourceImplementation = {source_offer, source_destroy};
++constexpr struct zwlr_data_control_source_v1_interface
++    kWlrSourceImplementation = {source_offer, source_destroy};
++
++////////////////////////////////////////////////////////////////////////////////
++// Devices:
++
++template <typename P>
++void device_set_selection(wl_client* client,
++                          wl_resource* resource,
++                          wl_resource* source_resource) {
++  GetUserDataAs<DataControlDevice<P>>(resource)->SetSelection(
++      source_resource ? GetUserDataAs<DataSource>(source_resource) : nullptr);
++}
++
++void device_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++// The primary selection stays with zwp_primary_selection (see the header).
++void device_set_primary_selection(wl_client* client,
++                                  wl_resource* resource,
++                                  wl_resource* source_resource) {}
++
++constexpr struct ext_data_control_device_v1_interface
++    kExtDeviceImplementation = {device_set_selection<ExtDataControl>,
++                                device_destroy, device_set_primary_selection};
++constexpr struct zwlr_data_control_device_v1_interface
++    kWlrDeviceImplementation = {device_set_selection<WlrDataControl>,
++                                device_destroy, device_set_primary_selection};
++
++////////////////////////////////////////////////////////////////////////////////
++// Managers:
++
++template <typename P>
++void manager_create_data_source(wl_client* client,
++                                wl_resource* resource,
++                                uint32_t id,
++                                const void* implementation) {
++  wl_resource* source_resource = wl_resource_create(
++      client, P::kSourceInterface, wl_resource_get_version(resource), id);
++  SetImplementation(source_resource, implementation,
++                    std::make_unique<DataSource>(
++                        new DataControlSourceDelegate<P>(client,
++                                                         source_resource)));
++}
++
++template <typename P>
++void manager_get_data_device(wl_client* client,
++                             wl_resource* resource,
++                             uint32_t id,
++                             wl_resource* seat_resource,
++                             const void* implementation) {
++  Seat* seat = GetUserDataAs<WaylandSeat>(seat_resource)->seat;
++  wl_resource* device_resource = wl_resource_create(
++      client, P::kDeviceInterface, wl_resource_get_version(resource), id);
++  SetImplementation(device_resource, implementation,
++                    std::make_unique<DataControlDevice<P>>(device_resource,
++                                                           seat));
++}
++
++void ext_manager_create_data_source(wl_client* client,
++                                    wl_resource* resource,
++                                    uint32_t id) {
++  manager_create_data_source<ExtDataControl>(client, resource, id,
++                                             &kExtSourceImplementation);
++}
++
++void ext_manager_get_data_device(wl_client* client,
++                                 wl_resource* resource,
++                                 uint32_t id,
++                                 wl_resource* seat) {
++  manager_get_data_device<ExtDataControl>(client, resource, id, seat,
++                                          &kExtDeviceImplementation);
++}
++
++void wlr_manager_create_data_source(wl_client* client,
++                                    wl_resource* resource,
++                                    uint32_t id) {
++  manager_create_data_source<WlrDataControl>(client, resource, id,
++                                             &kWlrSourceImplementation);
++}
++
++void wlr_manager_get_data_device(wl_client* client,
++                                 wl_resource* resource,
++                                 uint32_t id,
++                                 wl_resource* seat) {
++  manager_get_data_device<WlrDataControl>(client, resource, id, seat,
++                                          &kWlrDeviceImplementation);
++}
++
++void manager_destroy(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++constexpr struct ext_data_control_manager_v1_interface
++    kExtManagerImplementation = {ext_manager_create_data_source,
++                                 ext_manager_get_data_device, manager_destroy};
++constexpr struct zwlr_data_control_manager_v1_interface
++    kWlrManagerImplementation = {wlr_manager_create_data_source,
++                                 wlr_manager_get_data_device, manager_destroy};
++
++}  // namespace
++
++void bind_ext_data_control_manager(wl_client* client,
++                                   void* data,
++                                   uint32_t version,
++                                   uint32_t id) {
++  wl_resource* resource = wl_resource_create(
++      client, &ext_data_control_manager_v1_interface, version, id);
++  wl_resource_set_implementation(resource, &kExtManagerImplementation, data,
++                                 nullptr);
++}
++
++void bind_wlr_data_control_manager(wl_client* client,
++                                   void* data,
++                                   uint32_t version,
++                                   uint32_t id) {
++  wl_resource* resource = wl_resource_create(
++      client, &zwlr_data_control_manager_v1_interface, version, id);
++  wl_resource_set_implementation(resource, &kWlrManagerImplementation, data,
++                                 nullptr);
++}
++
++}  // namespace exo::wayland
+diff --git a/components/exo/wayland/nickel_data_control.h b/components/exo/wayland/nickel_data_control.h
+new file mode 100644
+index 0000000..f44b8cb
+--- /dev/null
++++ b/components/exo/wayland/nickel_data_control.h
+@@ -0,0 +1,34 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef COMPONENTS_EXO_WAYLAND_NICKEL_DATA_CONTROL_H_
++#define COMPONENTS_EXO_WAYLAND_NICKEL_DATA_CONTROL_H_
++
++#include <stdint.h>
++
++struct wl_client;
++
++namespace exo::wayland {
++
++// NickelOS: data control, for Linux apps: ext_data_control_manager_v1
++// (wayland-protocols, staging) and zwlr_data_control_manager_v1 (wlroots'
++// protocol, the same requests and events, for apps that know only that one).
++// A client sets ChromeOS's clipboard without the keyboard focus, and is
++// offered the clipboard whenever it changes, as on KDE and wlroots
++// desktops. Password managers copy that way (1Password's own connection has
++// no window), and so do wl-copy and wl-paste in a terminal. The primary
++// selection isn't part of it here (set_primary_selection is ignored, no
++// primary_selection events): it stays with zwp_primary_selection.h.
++void bind_ext_data_control_manager(wl_client* client,
++                                   void* data,
++                                   uint32_t version,
++                                   uint32_t id);
++void bind_wlr_data_control_manager(wl_client* client,
++                                   void* data,
++                                   uint32_t version,
++                                   uint32_t id);
++
++}  // namespace exo::wayland
++
++#endif  // COMPONENTS_EXO_WAYLAND_NICKEL_DATA_CONTROL_H_
+diff --git a/components/exo/wayland/server.cc b/components/exo/wayland/server.cc
+index 0240fea..dfaf4bd 100644
+--- a/components/exo/wayland/server.cc
++++ b/components/exo/wayland/server.cc
+@@ -12,6 +12,7 @@
+ #include <gaming-input-unstable-v2-server-protocol.h>
+ #include <grp.h>
+ #include <idle-inhibit-unstable-v1-server-protocol.h>
++#include <ext-data-control-v1-server-protocol.h>
+ #include <input-timestamps-unstable-v1-server-protocol.h>
+ #include <keyboard-extension-unstable-v1-server-protocol.h>
+ #include <keyboard-shortcuts-inhibit-unstable-v1-server-protocol.h>
+@@ -31,6 +32,7 @@
+ #include <touchpad-haptics-unstable-v1-server-protocol.h>
+ #include <viewporter-server-protocol.h>
+ #include <vsync-feedback-unstable-v1-server-protocol.h>
++#include <wlr-data-control-unstable-v1-server-protocol.h>
+ #include <xdg-activation-v1-server-protocol.h>
+ #include <xdg-decoration-unstable-v1-server-protocol.h>
+ #include <xdg-shell-server-protocol.h>
+@@ -98,6 +100,7 @@
+ #include "components/exo/wayland/zwp_pointer_constraints.h"
+ #include "components/exo/wayland/zwp_pointer_gestures.h"
+ #include "components/exo/wayland/zwp_relative_pointer_manager.h"
++#include "components/exo/wayland/nickel_data_control.h"
+ #include "components/exo/wayland/zwp_primary_selection.h"
+ #include "components/exo/wayland/zwp_text_input_manager.h"
+ #include "components/exo/wayland/zwp_text_input_v3.h"
+@@ -156,6 +159,7 @@ bool IsStandardGlobal(const wl_client* client,
+                       const wl_global* global,
+                       void* data) {
+   static constexpr auto kStandard = base::MakeFixedFlatSet<std::string_view>({
++      "ext_data_control_manager_v1",
+       "wl_compositor",
+       "wl_data_device_manager",
+       "wl_output",
+@@ -184,6 +188,9 @@ bool IsStandardGlobal(const wl_client* client,
+       "zwp_text_input_manager_v3",
+       "zxdg_decoration_manager_v1",
+       "zxdg_output_manager_v1",
++      // wlroots' (wlr-protocols), the same as ext_data_control_manager_v1,
++      // for apps that know only this one (nickel_data_control.h).
++      "zwlr_data_control_manager_v1",
+   });
+   return kStandard.contains(wl_global_get_interface(global)->name);
+ }
+@@ -419,6 +426,12 @@ void Server::Initialize() {
+                    &zwp_primary_selection_device_manager_v1_interface,
+                    /*version=*/1, display_,
+                    bind_primary_selection_device_manager);
++  // NickelOS: data control, for Linux apps: the clipboard without the
++  // keyboard focus (nickel_data_control.h).
++  wl_global_create(wl_display_.get(), &ext_data_control_manager_v1_interface,
++                   /*version=*/1, display_, bind_ext_data_control_manager);
++  wl_global_create(wl_display_.get(), &zwlr_data_control_manager_v1_interface,
++                   /*version=*/2, display_, bind_wlr_data_control_manager);
+ 
+   zcr_text_input_extension_data_ =
+       std::make_unique<WaylandTextInputExtension>();
+diff --git a/third_party/wayland-protocols/BUILD.gn b/third_party/wayland-protocols/BUILD.gn
+index 7beb117..cebba11 100644
+--- a/third_party/wayland-protocols/BUILD.gn
++++ b/third_party/wayland-protocols/BUILD.gn
+@@ -237,6 +237,18 @@ wayland_protocol("xdg_toplevel_icon_protocol") {
+   sources = [ "src/staging/xdg-toplevel-icon/xdg-toplevel-icon-v1.xml" ]
+ }
+ 
++# NickelOS: data control, for Linux apps (components/exo/wayland/
++# nickel_data_control.h).
++wayland_protocol("ext_data_control_protocol") {
++  sources = [ "src/staging/ext-data-control/ext-data-control-v1.xml" ]
++}
++
++# NickelOS: wlroots' data control (wlr-protocols, MIT license, as upstream),
++# the same requests and events, for apps that know only this one.
++wayland_protocol("wlr_data_control_protocol") {
++  sources = [ "wlr/wlr-data-control-unstable-v1.xml" ]
++}
++
+ # Experimental session management protocol shipped in Mutter 47/48.
+ # Will be replaced by upstream's version once it lands.
+ wayland_protocol("xx_session_management_protocol") {
+diff --git a/third_party/wayland-protocols/wlr/wlr-data-control-unstable-v1.xml b/third_party/wayland-protocols/wlr/wlr-data-control-unstable-v1.xml
+new file mode 100644
+index 0000000..75e8671
+--- /dev/null
++++ b/third_party/wayland-protocols/wlr/wlr-data-control-unstable-v1.xml
+@@ -0,0 +1,278 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<protocol name="wlr_data_control_unstable_v1">
++  <copyright>
++    Copyright © 2018 Simon Ser
++    Copyright © 2019 Ivan Molodetskikh
++
++    Permission to use, copy, modify, distribute, and sell this
++    software and its documentation for any purpose is hereby granted
++    without fee, provided that the above copyright notice appear in
++    all copies and that both that copyright notice and this permission
++    notice appear in supporting documentation, and that the name of
++    the copyright holders not be used in advertising or publicity
++    pertaining to distribution of the software without specific,
++    written prior permission.  The copyright holders make no
++    representations about the suitability of this software for any
++    purpose.  It is provided "as is" without express or implied
++    warranty.
++
++    THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS
++    SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
++    FITNESS, IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY
++    SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
++    AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
++    ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
++    THIS SOFTWARE.
++  </copyright>
++
++  <description summary="control data devices">
++    This protocol allows a privileged client to control data devices. In
++    particular, the client will be able to manage the current selection and take
++    the role of a clipboard manager.
++
++    Warning! The protocol described in this file is experimental and
++    backward incompatible changes may be made. Backward compatible changes
++    may be added together with the corresponding interface version bump.
++    Backward incompatible changes are done by bumping the version number in
++    the protocol and interface names and resetting the interface version.
++    Once the protocol is to be declared stable, the 'z' prefix and the
++    version number in the protocol and interface names are removed and the
++    interface version number is reset.
++  </description>
++
++  <interface name="zwlr_data_control_manager_v1" version="2">
++    <description summary="manager to control data devices">
++      This interface is a manager that allows creating per-seat data device
++      controls.
++    </description>
++
++    <request name="create_data_source">
++      <description summary="create a new data source">
++        Create a new data source.
++      </description>
++      <arg name="id" type="new_id" interface="zwlr_data_control_source_v1"
++        summary="data source to create"/>
++    </request>
++
++    <request name="get_data_device">
++      <description summary="get a data device for a seat">
++        Create a data device that can be used to manage a seat's selection.
++      </description>
++      <arg name="id" type="new_id" interface="zwlr_data_control_device_v1"/>
++      <arg name="seat" type="object" interface="wl_seat"/>
++    </request>
++
++    <request name="destroy" type="destructor">
++      <description summary="destroy the manager">
++        All objects created by the manager will still remain valid, until their
++        appropriate destroy request has been called.
++      </description>
++    </request>
++  </interface>
++
++  <interface name="zwlr_data_control_device_v1" version="2">
++    <description summary="manage a data device for a seat">
++      This interface allows a client to manage a seat's selection.
++
++      When the seat is destroyed, this object becomes inert.
++    </description>
++
++    <request name="set_selection">
++      <description summary="copy data to the selection">
++        This request asks the compositor to set the selection to the data from
++        the source on behalf of the client.
++
++        The given source may not be used in any further set_selection or
++        set_primary_selection requests. Attempting to use a previously used
++        source is a protocol error.
++
++        To unset the selection, set the source to NULL.
++      </description>
++      <arg name="source" type="object" interface="zwlr_data_control_source_v1"
++        allow-null="true"/>
++    </request>
++
++    <request name="destroy" type="destructor">
++      <description summary="destroy this data device">
++        Destroys the data device object.
++      </description>
++    </request>
++
++    <event name="data_offer">
++      <description summary="introduce a new wlr_data_control_offer">
++        The data_offer event introduces a new wlr_data_control_offer object,
++        which will subsequently be used in either the
++        wlr_data_control_device.selection event (for the regular clipboard
++        selections) or the wlr_data_control_device.primary_selection event (for
++        the primary clipboard selections). Immediately following the
++        wlr_data_control_device.data_offer event, the new data_offer object
++        will send out wlr_data_control_offer.offer events to describe the MIME
++        types it offers.
++      </description>
++      <arg name="id" type="new_id" interface="zwlr_data_control_offer_v1"/>
++    </event>
++
++    <event name="selection">
++      <description summary="advertise new selection">
++        The selection event is sent out to notify the client of a new
++        wlr_data_control_offer for the selection for this device. The
++        wlr_data_control_device.data_offer and the wlr_data_control_offer.offer
++        events are sent out immediately before this event to introduce the data
++        offer object. The selection event is sent to a client when a new
++        selection is set. The wlr_data_control_offer is valid until a new
++        wlr_data_control_offer or NULL is received. The client must destroy the
++        previous selection wlr_data_control_offer, if any, upon receiving this
++        event.
++
++        The first selection event is sent upon binding the
++        wlr_data_control_device object.
++      </description>
++      <arg name="id" type="object" interface="zwlr_data_control_offer_v1"
++        allow-null="true"/>
++    </event>
++
++    <event name="finished">
++      <description summary="this data control is no longer valid">
++        This data control object is no longer valid and should be destroyed by
++        the client.
++      </description>
++    </event>
++
++    <!-- Version 2 additions -->
++
++    <event name="primary_selection" since="2">
++      <description summary="advertise new primary selection">
++        The primary_selection event is sent out to notify the client of a new
++        wlr_data_control_offer for the primary selection for this device. The
++        wlr_data_control_device.data_offer and the wlr_data_control_offer.offer
++        events are sent out immediately before this event to introduce the data
++        offer object. The primary_selection event is sent to a client when a
++        new primary selection is set. The wlr_data_control_offer is valid until
++        a new wlr_data_control_offer or NULL is received. The client must
++        destroy the previous primary selection wlr_data_control_offer, if any,
++        upon receiving this event.
++
++        If the compositor supports primary selection, the first
++        primary_selection event is sent upon binding the
++        wlr_data_control_device object.
++      </description>
++      <arg name="id" type="object" interface="zwlr_data_control_offer_v1"
++        allow-null="true"/>
++    </event>
++
++    <request name="set_primary_selection" since="2">
++      <description summary="copy data to the primary selection">
++        This request asks the compositor to set the primary selection to the
++        data from the source on behalf of the client.
++
++        The given source may not be used in any further set_selection or
++        set_primary_selection requests. Attempting to use a previously used
++        source is a protocol error.
++
++        To unset the primary selection, set the source to NULL.
++
++        The compositor will ignore this request if it does not support primary
++        selection.
++      </description>
++      <arg name="source" type="object" interface="zwlr_data_control_source_v1"
++        allow-null="true"/>
++    </request>
++
++    <enum name="error" since="2">
++      <entry name="used_source" value="1"
++        summary="source given to set_selection or set_primary_selection was already used before"/>
++    </enum>
++  </interface>
++
++  <interface name="zwlr_data_control_source_v1" version="1">
++    <description summary="offer to transfer data">
++      The wlr_data_control_source object is the source side of a
++      wlr_data_control_offer. It is created by the source client in a data
++      transfer and provides a way to describe the offered data and a way to
++      respond to requests to transfer the data.
++    </description>
++
++    <enum name="error">
++      <entry name="invalid_offer" value="1"
++        summary="offer sent after wlr_data_control_device.set_selection"/>
++    </enum>
++
++    <request name="offer">
++      <description summary="add an offered MIME type">
++        This request adds a MIME type to the set of MIME types advertised to
++        targets. Can be called several times to offer multiple types.
++
++        Calling this after wlr_data_control_device.set_selection is a protocol
++        error.
++      </description>
++      <arg name="mime_type" type="string"
++        summary="MIME type offered by the data source"/>
++    </request>
++
++    <request name="destroy" type="destructor">
++      <description summary="destroy this source">
++        Destroys the data source object.
++      </description>
++    </request>
++
++    <event name="send">
++      <description summary="send the data">
++        Request for data from the client. Send the data as the specified MIME
++        type over the passed file descriptor, then close it.
++      </description>
++      <arg name="mime_type" type="string" summary="MIME type for the data"/>
++      <arg name="fd" type="fd" summary="file descriptor for the data"/>
++    </event>
++
++    <event name="cancelled">
++      <description summary="selection was cancelled">
++        This data source is no longer valid. The data source has been replaced
++        by another data source.
++
++        The client should clean up and destroy this data source.
++      </description>
++    </event>
++  </interface>
++
++  <interface name="zwlr_data_control_offer_v1" version="1">
++    <description summary="offer to transfer data">
++      A wlr_data_control_offer represents a piece of data offered for transfer
++      by another client (the source client). The offer describes the different
++      MIME types that the data can be converted to and provides the mechanism
++      for transferring the data directly from the source client.
++    </description>
++
++    <request name="receive">
++      <description summary="request that the data is transferred">
++        To transfer the offered data, the client issues this request and
++        indicates the MIME type it wants to receive. The transfer happens
++        through the passed file descriptor (typically created with the pipe
++        system call). The source client writes the data in the MIME type
++        representation requested and then closes the file descriptor.
++
++        The receiving client reads from the read end of the pipe until EOF and
++        then closes its end, at which point the transfer is complete.
++
++        This request may happen multiple times for different MIME types.
++      </description>
++      <arg name="mime_type" type="string"
++        summary="MIME type desired by receiver"/>
++      <arg name="fd" type="fd" summary="file descriptor for data transfer"/>
++    </request>
++
++    <request name="destroy" type="destructor">
++      <description summary="destroy this offer">
++        Destroys the data offer object.
++      </description>
++    </request>
++
++    <event name="offer">
++      <description summary="advertise offered MIME type">
++        Sent immediately after creating the wlr_data_control_offer object.
++        One event per offered MIME type.
++      </description>
++      <arg name="mime_type" type="string" summary="offered MIME type"/>
++    </event>
++  </interface>
++</protocol>

@@ -23,6 +23,10 @@ Installed to `/usr/local/bin`, `/etc/systemd/system` and `/etc/default`.
   `NICKEL_VMTEST_SSHPORT` select a second VM.
 - `nickel-binhost-sync`, `nickel-binhost.service`: the development Portage
   binhost (http://10.0.2.2:8090 as seen from a test VM).
+  `nickel-binhost-tailnet.service` serves the same on the build host's
+  tailnet address (BINHOST_ADDR in /etc/default/nickel-binhost-tailnet) for
+  the test PCs, whose /usr/local/etc/nickel/binhost names it (a test image's
+  /etc/nickel/binhost is the VMs' 10.0.2.2).
 - `nickel-mirror-*`: ChromiumOS and Chromium mirrors.
 - `nickel-verify.sh`: overlay checks run inside a booted image.
 

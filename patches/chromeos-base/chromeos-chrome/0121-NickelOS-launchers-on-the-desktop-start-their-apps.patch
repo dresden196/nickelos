@@ -1,0 +1,562 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: launchers on the desktop start their apps
+
+Launchers on the desktop (.desktop files in ~/Desktop: what Steam puts
+there for each game it installs, what Wine makes for Windows programs,
+"add to desktop" in other systems' menus) showed as plain files, with
+".desktop" in their names, and opening one did nothing. Plasma and GNOME
+show them as the app: its name, its icon, and opening starts it.
+
+The desktop now asks nickel-appd (DesktopEntry) about each .desktop file:
+whether it may be started (KDE's rule: an application entry only its
+owner can change that is executable, or one pointing into an
+applications folder), the app's name in the session's language, and its
+icon file. A launchable one shows the name and the icon, without the
+file-type tile, as other desktops show apps; the icon is read off the UI
+thread, an SVG drawn by Chrome's SVG icon transcoder, and the PNG decoded
+in the data decoder's sandbox. Opening it (double-click, Enter, Open in
+its menu) asks nickel-appd to start it (LaunchDesktopFile), as the
+launcher starts apps. Rename, Show in Files, Move to trash and dragging
+are as for files. A .desktop file that may not be started (downloaded,
+without the executable bit) stays a file; when its owner, permissions or
+contents change (chmod +x), the desktop asks again (the folder's listing
+carries a stamp of them; an answer still on its way is dropped). The
+desktop reads its folder as the session starts, before nickel-appd is on
+the bus: it waits for the service before asking, and a launcher whose
+icon didn't come asks twice more, a few seconds apart.
+
+---
+diff --git a/ash/nickel/desktop/nickel_desktop_view.cc b/ash/nickel/desktop/nickel_desktop_view.cc
+index 04c15b3..fca5ab6 100644
+--- a/ash/nickel/desktop/nickel_desktop_view.cc
++++ b/ash/nickel/desktop/nickel_desktop_view.cc
+@@ -104,6 +104,9 @@ constexpr int kThumbnailWidth = 68;
+ constexpr int kThumbnailHeight = 58;
+ constexpr float kThumbnailRadius = 6;
+ constexpr float kThumbnailScale = 2;
++// A launcher's app icon: as big as the tile, without it, as other desktops
++// show apps' icons.
++constexpr int kAppIconSize = 48;
+ 
+ // The files that get a preview, as in Files: pictures (HEIC/HEIF through the
+ // system's thumbnailers), RAW photos, videos and PDFs.
+@@ -123,6 +126,12 @@ bool IsVideo(const base::FilePath& path) {
+                              ".3gp", ".3gpp", ".ogv", ".mpg", ".mpeg"});
+ }
+ 
++// A launcher (a .desktop file): shown and opened as the app it names when
++// nickel-appd says it may be started.
++bool IsLauncher(const base::FilePath& path) {
++  return HasExtension(path, {".desktop"});
++}
++
+ bool HasPreview(const base::FilePath& path) {
+   return IsVideo(path) ||
+          HasExtension(path, {".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif",
+@@ -176,7 +185,14 @@ class NickelDesktopView::Lister {
+       if (path.BaseName().value().starts_with(".")) {
+         continue;
+       }
+-      entries.push_back({path, enumerator.GetInfo().IsDirectory()});
++      const base::FileEnumerator::FileInfo info = enumerator.GetInfo();
++      uint64_t stamp = 0;
++      if (!info.IsDirectory() && IsLauncher(path)) {
++        const auto& st = info.stat();
++        stamp = (static_cast<uint64_t>(st.st_ctime) << 32) ^
++                (static_cast<uint64_t>(st.st_uid) << 16) ^ st.st_mode;
++      }
++      entries.push_back({path, info.IsDirectory(), stamp});
+     }
+     std::ranges::sort(entries, [](const Entry& a, const Entry& b) {
+       return base::ToLowerASCII(NameOf(a.path)) <
+@@ -199,7 +215,8 @@ class NickelDesktopIconView : public views::View {
+                         const NickelDesktopView::Entry& entry)
+       : desktop_(desktop),
+         path_(entry.path),
+-        is_directory_(entry.is_directory) {
++        is_directory_(entry.is_directory),
++        launcher_stamp_(entry.launcher_stamp) {
+     image_view_ = AddChildView(std::make_unique<views::ImageView>());
+     UpdateImage();
+     if (!is_directory_ && HasPreview(path_)) {
+@@ -230,10 +247,39 @@ class NickelDesktopIconView : public views::View {
+     SetNotifyEnterExitOnChild(true);
+     GetViewAccessibility().SetRole(ax::mojom::Role::kListBoxOption);
+     GetViewAccessibility().SetName(name);
++    if (!is_directory_ && IsLauncher(path_)) {
++      LoadDesktopEntry();
++    }
+   }
+ 
+   const base::FilePath& path() const { return path_; }
+   bool is_directory() const { return is_directory_; }
++  // A launcher nickel-appd starts: opening it starts the app.
++  bool is_launcher() const { return is_launcher_; }
++
++  // The folder was read again: a launcher whose owner, permissions or
++  // contents changed is asked about again (made executable, it starts;
++  // no longer executable, it's a file again).
++  void Update(const NickelDesktopView::Entry& entry) {
++    if (is_directory_ || !IsLauncher(path_) ||
++        entry.launcher_stamp == launcher_stamp_) {
++      return;
++    }
++    launcher_stamp_ = entry.launcher_stamp;
++    is_launcher_ = false;
++    icon_retries_ = 0;
++    app_icon_ = gfx::ImageSkia();
++    image_view_->SetVisible(true);
++    const std::u16string name = path_.BaseName().LossyDisplayName();
++    label_->SetText(name);
++    label_->SetCustomTooltipText(name);
++    GetViewAccessibility().SetName(name);
++    InvalidateLayout();
++    SchedulePaint();
++    // An answer still on its way is about the file as it was.
++    entry_weak_factory_.InvalidateWeakPtrs();
++    LoadDesktopEntry();
++  }
+   bool selected() const { return selected_; }
+ 
+   // The icon as it looks (tile, glyph, name, selection), for dragging it.
+@@ -299,6 +345,10 @@ class NickelDesktopIconView : public views::View {
+       canvas->DrawRoundRect(gfx::RectF(GetLocalBounds()), kHighlightRadius,
+                             flags);
+     }
++    if (!app_icon_.isNull()) {
++      PaintAppIcon(canvas);
++      return;
++    }
+     if (!thumbnail_.isNull()) {
+       PaintThumbnail(canvas);
+       return;
+@@ -369,6 +419,63 @@ class NickelDesktopIconView : public views::View {
+                        weak_factory_.GetWeakPtr()));
+   }
+ 
++  void LoadDesktopEntry() {
++    NickelDesktopClient* client = NickelDesktopClient::Get();
++    if (!client) {
++      return;
++    }
++    client->LoadDesktopEntry(
++        path_, kAppIconSize * kThumbnailScale,
++        base::BindOnce(&NickelDesktopIconView::OnDesktopEntry,
++                       entry_weak_factory_.GetWeakPtr()));
++  }
++
++  // The app's name instead of the file's, and its icon instead of the
++  // file type's, as Plasma and GNOME show launchers.
++  void OnDesktopEntry(bool launchable,
++                      const std::u16string& name,
++                      const SkBitmap& icon) {
++    if (!launchable) {
++      return;
++    }
++    is_launcher_ = true;
++    if (!name.empty()) {
++      label_->SetText(name);
++      label_->SetCustomTooltipText(name);
++      GetViewAccessibility().SetName(name);
++    }
++    if (!icon.drawsNothing()) {
++      app_icon_ = gfx::ImageSkia::CreateFromBitmap(icon, kThumbnailScale);
++      image_view_->SetVisible(false);
++    } else if (icon_retries_ < 2) {
++      // No icon: the app may have none, or something was still starting
++      // with the session. Ask again a little later, twice at most.
++      ++icon_retries_;
++      base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
++          FROM_HERE,
++          base::BindOnce(&NickelDesktopIconView::LoadDesktopEntry,
++                         entry_weak_factory_.GetWeakPtr()),
++          base::Seconds(3 * icon_retries_));
++    }
++    InvalidateLayout();
++    SchedulePaint();
++  }
++
++  // The app's icon where the tile would be, in proportion.
++  void PaintAppIcon(gfx::Canvas* canvas) {
++    const gfx::Rect tile = GetTileBounds();
++    const float scale =
++        std::min(kAppIconSize / static_cast<float>(app_icon_.width()),
++                 kAppIconSize / static_cast<float>(app_icon_.height()));
++    const gfx::Size size = gfx::ToRoundedSize(
++        gfx::ScaleSize(gfx::SizeF(app_icon_.size()), scale));
++    canvas->DrawImageInt(app_icon_, 0, 0, app_icon_.width(),
++                         app_icon_.height(),
++                         tile.CenterPoint().x() - size.width() / 2,
++                         tile.CenterPoint().y() - size.height() / 2,
++                         size.width(), size.height(), /*filter=*/true);
++  }
++
+   void OnThumbnail(const SkBitmap& bitmap) {
+     if (bitmap.drawsNothing()) {
+       return;
+@@ -443,6 +550,14 @@ class NickelDesktopIconView : public views::View {
+   // The preview, once there is one.
+   gfx::ImageSkia thumbnail_;
+   bool is_video_ = false;
++  // A launcher's: whether nickel-appd starts it, and the app's icon; and
++  // the file's state when it was last asked.
++  bool is_launcher_ = false;
++  gfx::ImageSkia app_icon_;
++  uint64_t launcher_stamp_ = 0;
++  int icon_retries_ = 0;
++  // The launcher's answers, apart, so a new question drops the last one's.
++  base::WeakPtrFactory<NickelDesktopIconView> entry_weak_factory_{this};
+   base::WeakPtrFactory<NickelDesktopIconView> weak_factory_{this};
+ };
+ 
+@@ -483,6 +598,8 @@ void NickelDesktopView::OnEntries(std::vector<Entry> entries) {
+     if (!icons_.contains(entry.path)) {
+       icons_[entry.path] =
+           AddChildView(std::make_unique<NickelDesktopIconView>(this, entry));
++    } else {
++      icons_[entry.path]->Update(entry);
+     }
+   }
+   for (auto it = icons_.begin(); it != icons_.end();) {
+@@ -827,7 +944,11 @@ void NickelDesktopView::OpenSelection() {
+     return;
+   }
+   for (NickelDesktopIconView* icon : GetSelection()) {
+-    client->Open(icon->path(), icon->is_directory());
++    if (icon->is_launcher()) {
++      client->LaunchDesktopEntry(icon->path());
++    } else {
++      client->Open(icon->path(), icon->is_directory());
++    }
+   }
+ }
+ 
+diff --git a/ash/nickel/desktop/nickel_desktop_view.h b/ash/nickel/desktop/nickel_desktop_view.h
+index 3134c37..23a1bd9 100644
+--- a/ash/nickel/desktop/nickel_desktop_view.h
++++ b/ash/nickel/desktop/nickel_desktop_view.h
+@@ -49,6 +49,9 @@ class ASH_EXPORT NickelDesktopView : public views::View,
+   struct Entry {
+     base::FilePath path;
+     bool is_directory = false;
++    // A launcher's owner, permissions and change time: when they change
++    // (chmod +x), the desktop asks nickel-appd about it again.
++    uint64_t launcher_stamp = 0;
+   };
+ 
+   // A grid cell.
+diff --git a/ash/public/cpp/nickel_desktop_client.h b/ash/public/cpp/nickel_desktop_client.h
+index 3ea5064..991cea5 100644
+--- a/ash/public/cpp/nickel_desktop_client.h
++++ b/ash/public/cpp/nickel_desktop_client.h
+@@ -5,6 +5,7 @@
+ #ifndef ASH_PUBLIC_CPP_NICKEL_DESKTOP_CLIENT_H_
+ #define ASH_PUBLIC_CPP_NICKEL_DESKTOP_CLIENT_H_
+ 
++#include <string>
+ #include <vector>
+ 
+ #include "ash/public/cpp/ash_public_export.h"
+@@ -65,6 +66,21 @@ class ASH_PUBLIC_EXPORT NickelDesktopClient {
+                              int size,
+                              ThumbnailCallback callback) = 0;
+ 
++  // A launcher on the desktop (a .desktop file, as Steam, Wine and "add to
++  // desktop" make them), as nickel-appd sees it: whether it may be started,
++  // the app's name, and its icon at most `size` pixels on its longer side
++  // (null without one). One that may not be started stays a file.
++  using DesktopEntryCallback =
++      base::OnceCallback<void(bool launchable,
++                              const std::u16string& name,
++                              const SkBitmap& icon)>;
++  virtual void LoadDesktopEntry(const base::FilePath& path,
++                                int size,
++                                DesktopEntryCallback callback) = 0;
++
++  // Starts the app a launcher on the desktop names (nickel-appd).
++  virtual void LaunchDesktopEntry(const base::FilePath& path) = 0;
++
+  protected:
+   NickelDesktopClient();
+   virtual ~NickelDesktopClient();
+diff --git a/chrome/browser/ui/ash/nickel_desktop/BUILD.gn b/chrome/browser/ui/ash/nickel_desktop/BUILD.gn
+index a7dafe7..acbc251 100644
+--- a/chrome/browser/ui/ash/nickel_desktop/BUILD.gn
++++ b/chrome/browser/ui/ash/nickel_desktop/BUILD.gn
+@@ -17,9 +17,13 @@ static_library("nickel_desktop") {
+     "//ash/public/cpp",
+     "//base",
+     "//chrome/browser/ash/file_manager",
++    "//chrome/browser/icon_transcoder",
+     "//chrome/browser/profiles:profile",
+     "//chrome/browser/ui/ash/thumbnail_loader",
++    "//chromeos/ash/components/dbus",
+     "//components/user_manager",
++    "//dbus",
++    "//services/data_decoder/public/cpp",
+     "//skia",
+     "//storage/browser",
+     "//ui/gfx/geometry",
+diff --git a/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.cc b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.cc
+index e4fa478..2e24ae1 100644
+--- a/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.cc
++++ b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.cc
+@@ -8,7 +8,12 @@
+ #include <utility>
+ 
+ #include "base/files/file_path.h"
++#include "base/files/file_util.h"
++#include "base/functional/bind.h"
+ #include "base/functional/callback_helpers.h"
++#include "base/strings/string_util.h"
++#include "base/strings/utf_string_conversions.h"
++#include "base/task/thread_pool.h"
+ #include "chrome/browser/ash/file_manager/copy_or_move_io_task.h"
+ #include "chrome/browser/ash/file_manager/fileapi_util.h"
+ #include "chrome/browser/ash/file_manager/io_task.h"
+@@ -20,8 +25,15 @@
+ #include "chrome/browser/platform_util.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/profiles/profile_manager.h"
++#include "chrome/browser/icon_transcoder/svg_icon_transcoder.h"
+ #include "chrome/browser/ui/ash/thumbnail_loader/thumbnail_loader.h"
++#include "chromeos/ash/components/dbus/dbus_thread_manager.h"
+ #include "components/user_manager/user_manager.h"
++#include "dbus/bus.h"
++#include "dbus/message.h"
++#include "dbus/object_path.h"
++#include "dbus/object_proxy.h"
++#include "services/data_decoder/public/cpp/decode_image.h"
+ #include "storage/browser/file_system/file_system_context.h"
+ #include "storage/browser/file_system/file_system_url.h"
+ #include "third_party/skia/include/core/SkBitmap.h"
+@@ -30,6 +42,28 @@
+ 
+ namespace {
+ 
++// nickel-appd (chromeos-base/nickel-appd), which reads launchers and starts
++// Linux apps, on the system bus.
++constexpr char kNickelAppsServiceName[] = "org.nickelos.Apps";
++constexpr char kNickelAppsServicePath[] = "/org/nickelos/Apps";
++constexpr char kNickelAppsServiceInterface[] = "org.nickelos.Apps";
++constexpr int kDesktopEntryTimeoutMs = 5000;
++// A launcher's icon file: an icon, not a picture.
++constexpr int64_t kMaxIconFileSize = 4 * 1024 * 1024;
++
++dbus::ObjectProxy* NickelApps() {
++  return ash::DBusThreadManager::Get()->GetSystemBus()->GetObjectProxy(
++      kNickelAppsServiceName, dbus::ObjectPath(kNickelAppsServicePath));
++}
++
++std::optional<std::string> ReadIconFile(const base::FilePath& path) {
++  std::string data;
++  if (!base::ReadFileToStringWithMaxSize(path, &data, kMaxIconFileSize)) {
++    return std::nullopt;
++  }
++  return data;
++}
++
+ // The file system URLs of `paths` for Files' operations; those Files does not
+ // know are left out.
+ std::vector<storage::FileSystemURL> ToFileSystemUrls(
+@@ -175,3 +209,122 @@ void NickelDesktopClientImpl::LoadThumbnail(const base::FilePath& path,
+           },
+           std::move(callback)));
+ }
++
++void NickelDesktopClientImpl::LoadDesktopEntry(const base::FilePath& path,
++                                               int size,
++                                               DesktopEntryCallback callback) {
++  // The desktop reads its folder as the session starts, before nickel-appd
++  // is on the bus (the calls failed with ServiceUnknown on the NVIDIA test PC,
++  // 16852.17.19): ask once it is.
++  NickelApps()->WaitForServiceToBeAvailable(base::BindOnce(
++      &NickelDesktopClientImpl::AskDesktopEntry, weak_factory_.GetWeakPtr(),
++      path, size, std::move(callback)));
++}
++
++void NickelDesktopClientImpl::AskDesktopEntry(const base::FilePath& path,
++                                              int size,
++                                              DesktopEntryCallback callback,
++                                              bool available) {
++  if (!available) {
++    std::move(callback).Run(false, std::u16string(), SkBitmap());
++    return;
++  }
++  dbus::MethodCall method_call(kNickelAppsServiceInterface, "DesktopEntry");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(path.value());
++  NickelApps()->CallMethod(
++      &method_call, kDesktopEntryTimeoutMs,
++      base::BindOnce(&NickelDesktopClientImpl::OnDesktopEntry,
++                     weak_factory_.GetWeakPtr(), size, std::move(callback)));
++}
++
++void NickelDesktopClientImpl::OnDesktopEntry(int size,
++                                             DesktopEntryCallback callback,
++                                             dbus::Response* response) {
++  bool launchable = false;
++  std::string name;
++  std::string icon;
++  if (response) {
++    dbus::MessageReader reader(response);
++    if (!reader.PopBool(&launchable) || !reader.PopString(&name) ||
++        !reader.PopString(&icon)) {
++      launchable = false;
++    }
++  }
++  if (!launchable) {
++    std::move(callback).Run(false, std::u16string(), SkBitmap());
++    return;
++  }
++  std::u16string name16 = base::UTF8ToUTF16(name);
++  if (icon.empty()) {
++    std::move(callback).Run(true, name16, SkBitmap());
++    return;
++  }
++  const bool svg = base::EndsWith(icon, ".svg",
++                                  base::CompareCase::INSENSITIVE_ASCII);
++  base::ThreadPool::PostTaskAndReplyWithResult(
++      FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
++      base::BindOnce(&ReadIconFile, base::FilePath(icon)),
++      base::BindOnce(&NickelDesktopClientImpl::OnIconRead,
++                     weak_factory_.GetWeakPtr(), size, svg, std::move(name16),
++                     std::move(callback)));
++}
++
++void NickelDesktopClientImpl::OnIconRead(int size,
++                                         bool svg,
++                                         std::u16string name,
++                                         DesktopEntryCallback callback,
++                                         std::optional<std::string> data) {
++  if (!data || data->empty()) {
++    std::move(callback).Run(true, name, SkBitmap());
++    return;
++  }
++  if (!svg) {
++    DecodeIcon(size, std::move(name), std::move(callback), std::move(*data));
++    return;
++  }
++  Profile* profile = GetProfile();
++  if (!profile) {
++    std::move(callback).Run(true, name, SkBitmap());
++    return;
++  }
++  if (!svg_transcoder_ || svg_profile_ != profile) {
++    svg_transcoder_ = std::make_unique<apps::SvgIconTranscoder>(profile);
++    svg_profile_ = profile;
++  }
++  // No file for the PNG: it is only shown.
++  svg_transcoder_->Transcode(
++      *data, base::FilePath(), gfx::Size(size, size),
++      base::BindOnce(&NickelDesktopClientImpl::DecodeIcon,
++                     weak_factory_.GetWeakPtr(), size, std::move(name),
++                     std::move(callback)));
++}
++
++void NickelDesktopClientImpl::DecodeIcon(int size,
++                                         std::u16string name,
++                                         DesktopEntryCallback callback,
++                                         std::string png) {
++  if (png.empty()) {
++    std::move(callback).Run(true, name, SkBitmap());
++    return;
++  }
++  data_decoder::DecodeImageIsolated(
++      base::as_byte_span(png), data_decoder::mojom::ImageCodec::kDefault,
++      /*shrink_to_fit=*/true, static_cast<uint64_t>(size) * size * 4 * 4,
++      gfx::Size(size, size),
++      base::BindOnce(
++          [](std::u16string name, DesktopEntryCallback callback,
++             const SkBitmap& bitmap) {
++            std::move(callback).Run(true, name, bitmap);
++          },
++          std::move(name), std::move(callback)));
++}
++
++void NickelDesktopClientImpl::LaunchDesktopEntry(const base::FilePath& path) {
++  dbus::MethodCall method_call(kNickelAppsServiceInterface,
++                               "LaunchDesktopFile");
++  dbus::MessageWriter writer(&method_call);
++  writer.AppendString(path.value());
++  NickelApps()->CallMethod(&method_call, kDesktopEntryTimeoutMs,
++                           base::DoNothing());
++}
+diff --git a/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h
+index de54676..9835c5b 100644
+--- a/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h
++++ b/chrome/browser/ui/ash/nickel_desktop/nickel_desktop_client_impl.h
+@@ -6,15 +6,26 @@
+ #define CHROME_BROWSER_UI_ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_CLIENT_IMPL_H_
+ 
+ #include <memory>
++#include <optional>
++#include <string>
+ #include <vector>
+ 
+ #include "ash/public/cpp/nickel_desktop_client.h"
+ #include "base/memory/raw_ptr.h"
++#include "base/memory/weak_ptr.h"
++
++namespace apps {
++class SvgIconTranscoder;
++}  // namespace apps
+ 
+ namespace ash {
+ class ThumbnailLoader;
+ }  // namespace ash
+ 
++namespace dbus {
++class Response;
++}  // namespace dbus
++
+ class Profile;
+ 
+ // NickelOS: the desktop's way into the active user's profile (Files' open,
+@@ -38,15 +49,46 @@ class NickelDesktopClientImpl : public ash::NickelDesktopClient {
+   void LoadThumbnail(const base::FilePath& path,
+                      int size,
+                      ThumbnailCallback callback) override;
++  void LoadDesktopEntry(const base::FilePath& path,
++                        int size,
++                        DesktopEntryCallback callback) override;
++  void LaunchDesktopEntry(const base::FilePath& path) override;
+ 
+  private:
+   // The signed-in user's profile, or null.
+   Profile* GetProfile();
+ 
++  // A launcher: asked once nickel-appd is on the bus.
++  void AskDesktopEntry(const base::FilePath& path,
++                       int size,
++                       DesktopEntryCallback callback,
++                       bool available);
++  // A launcher's icon: nickel-appd's answer, the icon file read, an SVG
++  // made a PNG, the PNG decoded in the data decoder's sandbox.
++  void OnDesktopEntry(int size,
++                      DesktopEntryCallback callback,
++                      dbus::Response* response);
++  void OnIconRead(int size,
++                  bool svg,
++                  std::u16string name,
++                  DesktopEntryCallback callback,
++                  std::optional<std::string> data);
++  void DecodeIcon(int size,
++                  std::u16string name,
++                  DesktopEntryCallback callback,
++                  std::string png);
++
+   // Previews come from Files' image loader through this, for the profile it
+   // was made for.
+   std::unique_ptr<ash::ThumbnailLoader> thumbnail_loader_;
+   raw_ptr<Profile, DanglingUntriaged> thumbnail_profile_ = nullptr;
++
++  // Launchers' SVG icons become PNGs through this (a renderer draws them),
++  // for the profile it was made for.
++  std::unique_ptr<apps::SvgIconTranscoder> svg_transcoder_;
++  raw_ptr<Profile, DanglingUntriaged> svg_profile_ = nullptr;
++
++  base::WeakPtrFactory<NickelDesktopClientImpl> weak_factory_{this};
+ };
+ 
+ #endif  // CHROME_BROWSER_UI_ASH_NICKEL_DESKTOP_NICKEL_DESKTOP_CLIENT_IMPL_H_

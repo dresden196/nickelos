@@ -55,6 +55,7 @@ LOWER = '/run/nickel-gentoo/lower'      # the image's root, without overlays
 SRC = '/run/nickel-gentoo/src'          # G, mounted exec and suid
 STATE = os.path.join(G, '.os')          # the OS build the records match
 WAITING = os.path.join(G, '.rebuild')   # packages waiting to be rebuilt
+FETCHED = os.path.join(G, '.fetched')   # repositories whose first fetch finished
 ACCOUNTS = '/var/lib/nickel-gentoo/accounts'
 REPO = '/var/db/repos/gentoo'
 # Your layer over the OS's directories: /opt too, where Gentoo's binary
@@ -323,7 +324,8 @@ def sync_records():
                     cleared.append(mine.cpv())
                     del yours[key]
                 else:
-                    kept.append(mine.cpv())
+                    kept.append('%s (%s)' % (mine.cpv(), 'whole: the OS has part of it'
+                                           if partial else "newer than the OS's"))
                     continue
             # The image's own files show: nothing of your layer over them.
             clear_from_layer(r.paths())
@@ -760,8 +762,75 @@ def setup_lock(wait=True):
     return f
 
 
+def fetched(name):
+    """Whether repository NAME's first fetch finished (its mark)."""
+    return name in open_or(FETCHED).split()
+
+
+def mark_fetched(name):
+    if fetched(name):
+        return
+    try:
+        with open(FETCHED, 'a') as f:
+            f.write(name + '\n')
+    except OSError:
+        pass  # not root (status): the next run as root marks it
+
+
+def repo_whole():
+    """Every category Gentoo's tree names (profiles/categories) is there."""
+    cats = open_or(os.path.join(REPO, 'profiles', 'categories')).split()
+    return bool(cats) and all(os.path.isdir(os.path.join(REPO, c)) for c in cats)
+
+
 def have_repo():
-    return os.path.isdir(os.path.join(REPO, 'profiles'))
+    """Gentoo's repository, whole. emerge-webrsync copies the tree into place
+    with rsync, in name order, and the first startup's setup runs for minutes
+    after the first sign-in: a restart then left a tree cut off at
+    "sec-policy" (no sys-apps, virtual, www-*, x11-*), which this took for
+    Gentoo's, so the setup never came back to it (2026-11-12, a test VM's
+    reboot). A finished fetch leaves its mark; a tree from before the marks
+    counts once every category it names is there."""
+    if not os.path.isdir(os.path.join(REPO, 'profiles')):
+        return False
+    if fetched('gentoo'):
+        return True
+    if repo_whole():
+        mark_fetched('gentoo')
+        return True
+    return False
+
+
+def news_so_far_read():
+    """Gentoo's news so far was for installs older than this device: read,
+    so a new device's first emerge doesn't open with "23 news items need
+    reading". Each item the repository has now goes into Portage's read and
+    skip lists (skip: Portage never lists it as unread again); news that
+    later syncs bring shows as on Gentoo. Not eselect news read: it marks
+    only what Portage has already listed as unread, which it does at the
+    first emerge, after setup."""
+    news = os.path.join(REPO, 'metadata', 'news')
+    try:
+        items = sorted(i for i in os.listdir(news)
+                       if os.path.isdir(os.path.join(news, i)))
+    except OSError:
+        return
+    d = '/var/lib/gentoo/news'
+    os.makedirs(d, exist_ok=True)
+    try:
+        gid = grp.getgrnam('portage').gr_gid
+    except KeyError:
+        gid = -1
+    for kind in ('read', 'skip', 'unread'):
+        path = os.path.join(d, 'news-gentoo.%s' % kind)
+        have = [] if kind == 'unread' else open_or(path).split()
+        keep = have + [i for i in items if i not in have] if kind != 'unread' else \
+            [i for i in open_or(path).split() if i not in items]
+        with open(path + '.new', 'w') as f:
+            f.write(''.join(i + '\n' for i in keep))
+        os.chown(path + '.new', 0, gid)
+        os.chmod(path + '.new', 0o664)
+        os.replace(path + '.new', path)
 
 
 # What every build from source needs and the image leaves out, as a
@@ -794,10 +863,37 @@ def have_toolchain():
 EXTRA_REPOS = ('guru', 'steam-overlay')
 
 
+def extra_repo_whole(r):
+    """A git clone that finished: git knows its HEAD and nothing it tracks
+    is missing (a clone stopped partway leaves neither)."""
+    d = '/var/db/repos/%s' % r
+    git = ['git', '-C', d, '-c', 'safe.directory=*']
+    try:
+        if subprocess.run(git + ['rev-parse', '--verify', '-q', 'HEAD'],
+                          capture_output=True).returncode:
+            return False
+        st = subprocess.run(git + ['status', '--porcelain', '--untracked-files=no'],
+                            capture_output=True, text=True)
+    except OSError:
+        return os.path.isdir(os.path.join(d, 'profiles'))
+    return st.returncode == 0 and not st.stdout.strip()
+
+
 def extra_repos_missing():
-    return [r for r in EXTRA_REPOS
-            if os.path.exists('/etc/portage/repos.conf/%s.conf' % r)
-            and not os.path.isdir('/var/db/repos/%s/profiles' % r)]
+    """The extra repositories turned on and not yet whole: never fetched, or
+    a clone a restart cut off (the same as Gentoo's tree, have_repo())."""
+    missing = []
+    for r in EXTRA_REPOS:
+        if not os.path.exists('/etc/portage/repos.conf/%s.conf' % r):
+            continue
+        if not os.path.isdir('/var/db/repos/%s/profiles' % r):
+            missing.append(r)
+        elif not fetched(r):
+            if extra_repo_whole(r):
+                mark_fetched(r)
+            else:
+                missing.append(r)
+    return missing
 
 
 def fetch_extra_repos():
@@ -810,8 +906,14 @@ def fetch_extra_repos():
     # that can't find its https helper.
     env = dict(os.environ, PATH='/usr/bin:/usr/sbin:/bin:/sbin:' + os.environ.get('PATH', ''))
     for r in missing:
+        # A clone cut off partway goes: emaint sync would only pull into it.
+        d = '/var/db/repos/%s' % r
+        if os.path.isdir(d):
+            shutil.rmtree(d, ignore_errors=True)
         # One at a time: emaint sync takes only the last of several -r.
-        run('emaint', 'sync', '-r', r, check=False, env=env)
+        rc = run('emaint', 'sync', '-r', r, check=False, env=env).returncode
+        if rc == 0 and extra_repo_whole(r):
+            mark_fetched(r)
     got = [r for r in missing if r not in extra_repos_missing()]
     if got:
         log('fetched: %s' % ', '.join(got))
@@ -837,21 +939,35 @@ def cmd_setup(_):
     as_root()
     lock = setup_lock()
     if not have_repo():
+        # A tree cut off partway carries the snapshot's date, and
+        # emerge-webrsync skips a snapshot no newer than the tree's: without
+        # the dates it copies the whole snapshot over the remains.
+        for t in ('timestamp.x', 'timestamp.chk', 'timestamp.commit'):
+            try:
+                os.unlink(os.path.join(REPO, 'metadata', t))
+            except OSError:
+                pass
         rc = run('emerge-webrsync', '--quiet', check=False).returncode
-        if rc or not have_repo():
+        if rc or not repo_whole():
             die("Gentoo's repository could not be fetched (emerge-webrsync: %d)" % rc)
+        mark_fetched('gentoo')
         log("Gentoo's repository is there; emerge --sync brings it up to date.")
+        news_so_far_read()
     eix_index(force=fetch_extra_repos())
     if not have_toolchain():
         env = dict(os.environ, FEATURES='-news')
         rc = 0
         # Binary packages only: with no compiler yet there is nothing to build
         # with, and with --usepkg Portage prefers building over a binary
-        # package whose dependencies changed since it was made.
+        # package whose dependencies changed since it was made. Only one
+        # whose USE flags are yours: --usepkgonly alone takes the newest of
+        # a version's builds, and Gentoo's binhost has builds of one GCC for
+        # several profiles (one without multilib can't build 32-bit).
+        binonly = ('--usepkgonly', '--getbinpkg', '--binpkg-respect-use=y')
         if partial():
-            rc |= run('emerge', '--oneshot', '--quiet', '--usepkgonly', '--getbinpkg', *partial(),
+            rc |= run('emerge', '--oneshot', '--quiet', *binonly, *partial(),
                       check=False, env=env).returncode
-        rc |= run('emerge', '--oneshot', '--quiet', '--noreplace', '--usepkgonly', '--getbinpkg',
+        rc |= run('emerge', '--oneshot', '--quiet', '--noreplace', *binonly,
                   *TOOLCHAIN, check=False, env=env).returncode
         if rc or not have_toolchain():
             die('the compiler could not be installed (emerge: %d)' % rc)
@@ -956,7 +1072,7 @@ def cmd_mount(_):
             for c in sorted(done['cleared']):
                 log('the OS has %s now or newer: yours cleared' % c)
             for c in sorted(done['kept']):
-                log('yours stays (newer than the OS\'s): %s' % c)
+                log('yours stays: %s' % c)
             if done['waiting']:
                 log('waiting to be rebuilt (nickel-gentoo rebuild): %s' % ' '.join(done['waiting']))
     mount_overlays()

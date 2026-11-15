@@ -1,0 +1,26 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: setup's choices keep their text clear of the check mark
+
+On the setup screen that asks how to start (Full experience or Minimal),
+the check mark of the chosen card covered the end of its text: the
+screen's own padding for the cards (Chrome 0058) replaced the shared
+card styles' padding on the sides too, whose end side leaves room for the
+check mark. Only the cards' top and bottom padding is the screen's now.
+
+diff --git a/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.html b/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.html
+index 6a7ab47..c5ed0aa 100644
+--- a/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.html
++++ b/chrome/browser/resources/chromeos/login/screens/common/nickel_setup.html
+@@ -15,8 +15,11 @@ found in the LICENSE file.
+     margin-bottom: 12px;
+   }
+ 
++  /* Only the cards' height is ours: their sides keep the shared styles'
++     padding, whose end side leaves room for the check mark. */
+   .card-container {
+-    padding: 12px 16px;
++    padding-bottom: 12px;
++    padding-top: 12px;
+   }
+ 
+   .nickel-setup-either-way {

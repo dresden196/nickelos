@@ -27,6 +27,8 @@ This is nickel-appd's doing. Steam's Flatpak writes its own game shortcuts insid
 
 Proton, the Steam Linux Runtimes and Steamworks redistributables aren't games, so they're left out. nickel-appd follows Steam's libraries while you're signed in, so new games appear as they finish installing and leave when they're uninstalled.
 
+Each game you install also gets a shortcut on the desktop, as Steam makes on other Linux desktops. Delete it and it stays gone; uninstall the game and its shortcut goes too. Games that were already installed before NickelOS started doing this don't get one.
+
 **Uninstall** on a game in the launcher opens Steam's uninstall dialog. App info (Settings > Apps > Manage your apps) shows the game's size and the size of its Proton prefix.
 
 Steam installed from Gentoo gets the same treatment (see [Gentoo and Portage](/help/gentoo/#steam-from-gentoo)).

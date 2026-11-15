@@ -11,8 +11,10 @@ EAPI=7
 # with its private half (nickel-update-publish). On a release image
 # (official to update_engine: no cros_debug on the kernel command line) the
 # server's key is never used and without this file nothing could be
-# verified. It is NickelOS's PRODUCTION key (made 2026-10-12, SHA-256 of its
-# DER 3e4df953f2e947abb86f02d3dd005385301d6a0d71db696b8a61f86fdcf70420); its
+# verified. It is NickelOS's PRODUCTION key (made 2026-11-14, SHA-256 of its
+# DER 630c2afb4f15e4339e1bb117455aaa7ea5ed8240d16ed3a0f914b3a2244de3b2; it
+# replaced the 2026-10-12 key, whose passphrase was lost before any release
+# image carried it); its
 # private half is only on Dresden's removable media and laptop, and
 # nickel-update-sign signs with it there (docs/updates.md, "Keys").
 # update-payload-key-test.pub.pem is the TEST key, whose private half is on

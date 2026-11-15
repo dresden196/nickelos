@@ -1,6 +1,6 @@
 title: Getting help
 order: 130
-summary: Where to ask for help with NickelOS (the forum, Discord, GitHub), and how to write a bug report we can actually act on.
+summary: Where to ask for help with NickelOS (the forum at forum.nickelos.dev, Discord, GitHub), and how to write a bug report we can actually act on.
 ---
 # Getting help
 
@@ -10,7 +10,7 @@ NickelOS is a community project. Ask in the places below; someone may have hit t
 
 | Where | What it's for |
 |---|---|
-| **The NickelOS forum** | Questions, how-tos, hardware reports, and longer discussions that should stay findable. It runs on Discourse, and it's being set up now. Its link goes here when it opens. |
+| **[The NickelOS forum](https://forum.nickelos.dev/)** | Questions, how-tos, hardware reports, and longer discussions that should stay findable. It has a place for each (Installing, Help, Gentoo and Portage, Steam and games, Hardware reports, Feedback and ideas), and its Help and Hardware reports ask for what's needed to answer. |
 | **Discord** | Chatting, quick questions, and seeing what's being worked on. Coming soon. |
 | **GitHub** | Bug reports and the source code, once the repository goes public. |
 

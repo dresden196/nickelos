@@ -37,6 +37,8 @@ Files and Linux apps share one Trash: `~/.local/share/Trash`, the standard freed
 
 The files and folders in `~/Desktop` are the icons on your wallpaper. Right-click the wallpaper for **New folder**. Right-click an icon to **Open** it, **Show in Files**, **Rename** it or **Move to trash**. Drag icons to arrange them, and they stay put. Files you drop on the desktop from the Files app are moved into `~/Desktop`.
 
+App launchers on the desktop (`.desktop` files, like the shortcuts Steam makes for your games and Wine makes for Windows programs) show the app's name and icon, and opening one starts the app. As on KDE, a launcher only starts if it's executable: one you downloaded or copied in shows as a plain file until you make it executable (`chmod +x`).
+
 ## Moving files between Files and apps
 
 - **Drag and drop** works both ways. Drag from Files into an app and it gets the file. Drag a file out of an app into Files and it's copied there.

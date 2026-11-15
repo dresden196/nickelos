@@ -1,0 +1,250 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: KDE server decoration, ChromeOS frames for GTK 3 apps
+
+diff --git a/components/exo/wayland/BUILD.gn b/components/exo/wayland/BUILD.gn
+index 2585448..1a82cc0 100644
+--- a/components/exo/wayland/BUILD.gn
++++ b/components/exo/wayland/BUILD.gn
+@@ -139,6 +139,8 @@ source_set("wayland") {
+     "zwp_pointer_gestures.h",
+     "nickel_data_control.cc",
+     "nickel_data_control.h",
++    "nickel_server_decoration.cc",
++    "nickel_server_decoration.h",
+     "zwp_primary_selection.cc",
+     "zwp_primary_selection.h",
+     "zwp_relative_pointer_manager.cc",
+@@ -197,6 +199,7 @@ source_set("wayland") {
+     "//third_party/wayland-protocols:primary_selection_protocol",
+     "//third_party/wayland-protocols:ext_data_control_protocol",
+     "//third_party/wayland-protocols:wlr_data_control_protocol",
++    "//third_party/wayland-protocols:org_kde_kwin_server_decoration",
+     "//third_party/wayland-protocols:relative_pointer_protocol",
+     "//third_party/wayland-protocols:remote_shell_protocol",
+     "//third_party/wayland-protocols:secure_output_protocol",
+diff --git a/components/exo/wayland/nickel_server_decoration.cc b/components/exo/wayland/nickel_server_decoration.cc
+new file mode 100644
+index 0000000..063490e
+--- /dev/null
++++ b/components/exo/wayland/nickel_server_decoration.cc
+@@ -0,0 +1,127 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "components/exo/wayland/nickel_server_decoration.h"
++
++#include <server-decoration-server-protocol.h>
++#include <wayland-server-core.h>
++#include <wayland-server-protocol-core.h>
++
++#include <memory>
++
++#include "base/memory/raw_ptr.h"
++#include "components/exo/surface.h"
++#include "components/exo/surface_observer.h"
++#include "components/exo/wayland/server_util.h"
++
++namespace exo::wayland {
++namespace {
++
++constexpr uint32_t kDefaultMode = ORG_KDE_KWIN_SERVER_DECORATION_MODE_SERVER;
++
++// The decoration of one wl_surface: the frame of its shell surface (an
++// xdg_toplevel's; popups keep theirs, see ShellSurfaceBase::OnSetFrame).
++// The client asks for a mode before its toplevel's first commit, as Exo's
++// frames need.
++class ServerDecoration : public SurfaceObserver {
++ public:
++  ServerDecoration(wl_resource* resource, Surface* surface)
++      : resource_(resource), surface_(surface) {
++    surface_->AddSurfaceObserver(this);
++  }
++
++  ServerDecoration(const ServerDecoration&) = delete;
++  ServerDecoration& operator=(const ServerDecoration&) = delete;
++
++  ~ServerDecoration() override {
++    if (surface_) {
++      surface_->RemoveSurfaceObserver(this);
++    }
++  }
++
++  void SetMode(uint32_t mode) {
++    // The protocol has no error for an unknown mode: the default.
++    if (mode > ORG_KDE_KWIN_SERVER_DECORATION_MODE_SERVER) {
++      mode = kDefaultMode;
++    }
++    if (surface_) {
++      surface_->SetFrame(mode == ORG_KDE_KWIN_SERVER_DECORATION_MODE_SERVER
++                             ? SurfaceFrameType::NORMAL
++                             : SurfaceFrameType::NONE);
++    }
++    org_kde_kwin_server_decoration_send_mode(resource_, mode);
++  }
++
++  // SurfaceObserver:
++  void OnSurfaceDestroying(Surface* surface) override {
++    surface->RemoveSurfaceObserver(this);
++    surface_ = nullptr;
++  }
++
++ private:
++  const raw_ptr<wl_resource> resource_;
++  raw_ptr<Surface> surface_;
++};
++
++void server_decoration_release(wl_client* client, wl_resource* resource) {
++  wl_resource_destroy(resource);
++}
++
++void server_decoration_request_mode(wl_client* client,
++                                    wl_resource* resource,
++                                    uint32_t mode) {
++  GetUserDataAs<ServerDecoration>(resource)->SetMode(mode);
++}
++
++const struct org_kde_kwin_server_decoration_interface
++    server_decoration_implementation = {
++        .release = server_decoration_release,
++        .request_mode = server_decoration_request_mode,
++};
++
++void server_decoration_manager_create(wl_client* client,
++                                      wl_resource* resource,
++                                      uint32_t id,
++                                      wl_resource* surface_resource) {
++  wl_resource* decoration_resource =
++      wl_resource_create(client, &org_kde_kwin_server_decoration_interface,
++                         wl_resource_get_version(resource), id);
++  if (!decoration_resource) {
++    wl_client_post_no_memory(client);
++    return;
++  }
++  auto decoration = std::make_unique<ServerDecoration>(
++      decoration_resource, GetUserDataAs<Surface>(surface_resource));
++  ServerDecoration* decoration_ptr = decoration.get();
++  SetImplementation(decoration_resource, &server_decoration_implementation,
++                    std::move(decoration));
++  // As KWin: a new decoration is in the default mode until the client asks
++  // for another.
++  decoration_ptr->SetMode(kDefaultMode);
++}
++
++const struct org_kde_kwin_server_decoration_manager_interface
++    server_decoration_manager_implementation = {
++        .create = server_decoration_manager_create,
++};
++
++}  // namespace
++
++void bind_server_decoration_manager(wl_client* client,
++                                    void* data,
++                                    uint32_t version,
++                                    uint32_t id) {
++  wl_resource* resource = wl_resource_create(
++      client, &org_kde_kwin_server_decoration_manager_interface, version, id);
++  if (!resource) {
++    wl_client_post_no_memory(client);
++    return;
++  }
++  wl_resource_set_implementation(
++      resource, &server_decoration_manager_implementation, data, nullptr);
++  org_kde_kwin_server_decoration_manager_send_default_mode(resource,
++                                                           kDefaultMode);
++}
++
++}  // namespace exo::wayland
+diff --git a/components/exo/wayland/nickel_server_decoration.h b/components/exo/wayland/nickel_server_decoration.h
+new file mode 100644
+index 0000000..3d41d0e
+--- /dev/null
++++ b/components/exo/wayland/nickel_server_decoration.h
+@@ -0,0 +1,29 @@
++// Copyright 2026 The NickelOS Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef COMPONENTS_EXO_WAYLAND_NICKEL_SERVER_DECORATION_H_
++#define COMPONENTS_EXO_WAYLAND_NICKEL_SERVER_DECORATION_H_
++
++#include <stdint.h>
++
++struct wl_client;
++
++namespace exo::wayland {
++
++// NickelOS: KDE's server decoration protocol
++// (org_kde_kwin_server_decoration_manager), for Linux apps. GTK 3 asks for
++// the compositor's window frame only through this protocol (never through
++// xdg-decoration), so without it every GTK 3 window drew its own GTK title
++// bar instead of ChromeOS's frame. As KWin does, the default mode is the
++// server's: a window gets ChromeOS's frame unless the client asks to draw
++// its own (GTK 3 windows with their own header bar do, and so does Firefox
++// with its tabs in the title bar).
++void bind_server_decoration_manager(wl_client* client,
++                                    void* data,
++                                    uint32_t version,
++                                    uint32_t id);
++
++}  // namespace exo::wayland
++
++#endif  // COMPONENTS_EXO_WAYLAND_NICKEL_SERVER_DECORATION_H_
+diff --git a/components/exo/wayland/server.cc b/components/exo/wayland/server.cc
+index dfaf4bd..4cc4c72 100644
+--- a/components/exo/wayland/server.cc
++++ b/components/exo/wayland/server.cc
+@@ -24,6 +24,7 @@
+ #include <presentation-time-server-protocol.h>
+ #include <primary-selection-unstable-v1-server-protocol.h>
+ #include <relative-pointer-unstable-v1-server-protocol.h>
++#include <server-decoration-server-protocol.h>
+ #include <stylus-tools-unstable-v1-server-protocol.h>
+ #include <sys/socket.h>
+ #include <text-input-extension-unstable-v1-server-protocol.h>
+@@ -101,6 +102,7 @@
+ #include "components/exo/wayland/zwp_pointer_gestures.h"
+ #include "components/exo/wayland/zwp_relative_pointer_manager.h"
+ #include "components/exo/wayland/nickel_data_control.h"
++#include "components/exo/wayland/nickel_server_decoration.h"
+ #include "components/exo/wayland/zwp_primary_selection.h"
+ #include "components/exo/wayland/zwp_text_input_manager.h"
+ #include "components/exo/wayland/zwp_text_input_v3.h"
+@@ -160,6 +162,8 @@ bool IsStandardGlobal(const wl_client* client,
+                       void* data) {
+   static constexpr auto kStandard = base::MakeFixedFlatSet<std::string_view>({
+       "ext_data_control_manager_v1",
++      // KDE's, for GTK 3's window frames (nickel_server_decoration.h).
++      "org_kde_kwin_server_decoration_manager",
+       "wl_compositor",
+       "wl_data_device_manager",
+       "wl_output",
+@@ -432,6 +436,11 @@ void Server::Initialize() {
+                    /*version=*/1, display_, bind_ext_data_control_manager);
+   wl_global_create(wl_display_.get(), &zwlr_data_control_manager_v1_interface,
+                    /*version=*/2, display_, bind_wlr_data_control_manager);
++  // NickelOS: KDE's server decoration, for GTK 3's window frames
++  // (nickel_server_decoration.h).
++  wl_global_create(wl_display_.get(),
++                   &org_kde_kwin_server_decoration_manager_interface,
++                   /*version=*/1, display_, bind_server_decoration_manager);
+ 
+   zcr_text_input_extension_data_ =
+       std::make_unique<WaylandTextInputExtension>();
+diff --git a/third_party/wayland-protocols/BUILD.gn b/third_party/wayland-protocols/BUILD.gn
+index cebba11..a7a94b7 100644
+--- a/third_party/wayland-protocols/BUILD.gn
++++ b/third_party/wayland-protocols/BUILD.gn
+@@ -107,6 +107,12 @@ wayland_protocol("org_kde_kwin_idle") {
+   sources = [ "kde/src/protocols/idle.xml" ]
+ }
+ 
++# NickelOS: for GTK 3's window frames (components/exo/wayland/
++# nickel_server_decoration.h).
++wayland_protocol("org_kde_kwin_server_decoration") {
++  sources = [ "kde/src/protocols/server-decoration.xml" ]
++}
++
+ wayland_protocol("pointer_constraints_protocol") {
+   sources =
+       [ "src/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" ]

@@ -32,3 +32,5 @@ chromeos-base/crosh-extension nickel-patches.bashrc
 chromeos-base/vboot_reference nickel-patches.bashrc
 x11-libs/libva-intel-driver nickel-va-drivers.bashrc
 x11-libs/libva-intel-media-driver nickel-va-drivers.bashrc
+chromeos-base/chromeos-base nickel-ssh-config.bashrc
+sys-apps/rootdev nickel-patches.bashrc

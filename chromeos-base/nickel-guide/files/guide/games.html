@@ -22,11 +22,10 @@
       <span>NickelOS</span>
     </a>
     <nav aria-label="Site">
-      <a href="index.html">Guide</a>
+      <a href="index.html" aria-current="page">Guide</a>
       <a href="troubleshooting.html">Troubleshooting</a>
       <a href="community.html">Get help</a>
     </nav>
-    <span class="chip" title="NickelOS has not been released yet">Alpha</span>
   </div>
 </header>
 
@@ -68,6 +67,7 @@
 <p>This is nickel-appd's doing. Steam's Flatpak writes its own game shortcuts inside its sandbox, where nothing else looks. So nickel-appd reads Steam's libraries itself (<code>libraryfolders.vdf</code>, and each game's <code>appmanifest</code>), and writes a desktop file for each installed game:</p>
 <ul><li><code>~/.local/share/applications/steam_app_&lt;id&gt;.desktop</code></li><li>the game's name, and Steam's own icon for it</li><li><code>flatpak run com.valvesoftware.Steam steam://rungameid/&lt;id&gt;</code> to start it</li><li><code>StartupWMClass=steam_app_&lt;id&gt;</code>, the window class Proton gives every game, so the running game's window lands on the right shelf icon</li></ul>
 <p>Proton, the Steam Linux Runtimes and Steamworks redistributables aren't games, so they're left out. nickel-appd follows Steam's libraries while you're signed in, so new games appear as they finish installing and leave when they're uninstalled.</p>
+<p>Each game you install also gets a shortcut on the desktop, as Steam makes on other Linux desktops. Delete it and it stays gone; uninstall the game and its shortcut goes too. Games that were already installed before NickelOS started doing this don't get one.</p>
 <p><strong>Uninstall</strong> on a game in the launcher opens Steam's uninstall dialog. App info (Settings &gt; Apps &gt; Manage your apps) shows the game's size and the size of its Proton prefix.</p>
 <p>Steam installed from Gentoo gets the same treatment (see <a href="gentoo.html#steam-from-gentoo">Gentoo and Portage</a>).</p>
 <h2 id="controllers">Controllers</h2>

@@ -1,0 +1,18 @@
+[Unit]
+Description=NickelOS binary package server for the test PCs (development; the build host's tailnet address only)
+# The test PCs reach the build host over its tailnet, not as a QEMU VM's
+# 10.0.2.2: each one's /usr/local/etc/nickel/binhost (nickel-gentoo) names
+# this address. BINHOST_ADDR, in /etc/default/nickel-binhost-tailnet, is the
+# build host's own tailnet address: never a public interface.
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+User=nickel
+EnvironmentFile=/etc/default/nickel-binhost-tailnet
+ExecStart=/usr/bin/python3 -m http.server 8090 --bind ${BINHOST_ADDR} --directory /srv/nickel/binhost
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] sepolicy: rootdev may list a loop device's sysfs directory
+
+rootdev (sys-apps/rootdev 0001 in the NickelOS overlay) finds a loop
+device's partitions by listing its /sys/block directory: the root of
+NickelOS's ISO live session is one. cros_rootdev could only search
+sysfs_loop directories, so every listing was denied, and
+is_running_from_installer, run by os_install_service's upstart job,
+said no: setup's installer had no service to install with.
+
+---
+diff -ruN a/sepolicy/policy/chromeos/cros_rootdev.te b/sepolicy/policy/chromeos/cros_rootdev.te
+--- a/sepolicy/policy/chromeos/cros_rootdev.te
++++ b/sepolicy/policy/chromeos/cros_rootdev.te
+@@ -21,4 +21,7 @@
+ allow cros_rootdev sysfs_dm:dir r_dir_perms;
+ allow cros_rootdev sysfs_dm:file { open read };
+ allow cros_rootdev sysfs_loop:dir search;
++# NickelOS: a loop device's partitions are found by listing its directory
++# (rootdev 0001): the ISO's live session runs from one.
++allow cros_rootdev sysfs_loop:dir { open read };
+ allow cros_rootdev sysfs_loop:file { open read };

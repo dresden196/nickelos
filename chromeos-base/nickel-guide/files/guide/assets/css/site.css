@@ -327,3 +327,55 @@ h3 { font-size: 1.15rem; }
 .download-button:hover { background: var(--ink); }
 .hero .download-row { margin-top: 26px; }
 .guide td code.fpr { white-space: normal; overflow-wrap: anywhere; }
+
+/* ---- The top bar's Download button ------------------------------------ */
+
+.masthead-download {
+  display: inline-flex; align-items: center; gap: 7px; flex: none;
+  padding: 8px 16px 8px 13px; border-radius: 999px;
+  background: var(--teal-ink); color: var(--paper); text-decoration: none;
+  font-weight: 600; font-size: 0.93rem; line-height: 1;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.masthead-download svg { width: 16px; height: 16px; }
+.masthead-download:hover { background: var(--ink); }
+.masthead-download:active { transform: translateY(1px); }
+.masthead-download[aria-current="page"] { background: var(--ink); }
+.masthead nav a[aria-current="page"] { color: var(--ink); font-weight: 600; }
+@media (max-width: 760px) { .masthead-download { margin-left: auto; } }
+
+/* ---- The front page's announcement ------------------------------------ */
+
+.announce {
+  display: inline-flex; align-items: center; gap: 10px; margin: 0 0 22px;
+  padding: 5px 12px 5px 5px; border: 1px solid var(--rule); border-radius: 999px;
+  background: var(--paper-2); color: var(--ink-2); text-decoration: none;
+  font-size: 0.93rem; transition: border-color 0.15s ease, color 0.15s ease;
+}
+.announce-tag {
+  background: var(--teal-ink); color: var(--paper); border-radius: 999px;
+  padding: 4px 10px; font: 600 0.72rem/1 var(--mono);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.announce svg { width: 14px; height: 14px; flex: none; }
+.announce:hover { border-color: var(--teal-ink); color: var(--ink); }
+
+/* ---- The blog ----------------------------------------------------------- */
+
+.blog { padding: clamp(32px, 5vw, 56px) 0 clamp(64px, 9vw, 120px); }
+.blog-page { max-width: 72ch; }
+.blog-list { list-style: none; margin: 32px 0 0; padding: 0; border-top: 1px solid var(--rule); }
+.blog-list li { padding: 22px 0; border-bottom: 1px solid var(--rule); }
+.blog-list h2 { font-size: clamp(1.3rem, 1.1rem + 0.8vw, 1.6rem); margin: 6px 0 8px; }
+.blog-list h2 a { color: var(--ink); text-decoration: none; }
+.blog-list h2 a:hover { color: var(--teal-ink); }
+.blog-list p { margin: 0; color: var(--ink-2); }
+.blog-meta { font: 500 0.78rem/1.4 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.blog-cta {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px;
+  margin: 40px 0 0; padding: 22px 24px; border-radius: var(--radius); background: var(--plate);
+}
+.blog-cta p { margin: 0; color: var(--ink-2); }
+.blog-cta strong { display: block; color: var(--ink); font-size: 1.1rem; margin-bottom: 4px; }
+.blog-feed { margin-top: 28px; }

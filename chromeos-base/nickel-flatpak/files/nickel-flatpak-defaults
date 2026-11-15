@@ -17,11 +17,12 @@
 # flatpak resumes it.
 #
 # Its progress goes to ${state} for the session (nickel-apps-progress tells
-# the user): waiting (for the network), installing, done or failed.
+# the user): waiting (for the network), installing DONE TOTAL NAME (the apps
+# ready so far, how many there are, the one downloading now), done or failed.
 marker=/var/lib/nickel/flatpak-defaults
 log=/var/log/nickel-flatpak-defaults.log
 state=/run/nickel/flatpak-defaults
-all_apps="io.github.kolunmi.Bazaar org.gnome.Loupe org.gnome.Showtime
+base_apps="io.github.kolunmi.Bazaar org.gnome.Loupe org.gnome.Showtime
 org.gnome.Papers io.bassi.Amberol"
 # Full experience (Dresden, 2026-10-23): office, screen recording and
 # streaming, photo, video and audio editing, YouTube without tracking,
@@ -31,24 +32,70 @@ full_apps="org.libreoffice.LibreOffice com.obsproject.Studio org.gimp.GIMP
 org.kde.kdenlive org.audacityteam.Audacity io.freetubeapp.FreeTube
 org.localsend.localsend_app io.missioncenter.MissionCenter
 com.github.tchx84.Flatseal"
-experience=$(python3 -c '
+
+# The name the user knows an app by, for nickel-apps-progress.
+app_name() {
+  case "$1" in
+    io.github.kolunmi.Bazaar) echo Bazaar ;;
+    org.gnome.Loupe) echo "Image Viewer" ;;
+    org.gnome.Showtime) echo "Video Player" ;;
+    org.gnome.Papers) echo "Document Viewer" ;;
+    io.bassi.Amberol) echo Amberol ;;
+    org.libreoffice.LibreOffice) echo LibreOffice ;;
+    com.obsproject.Studio) echo "OBS Studio" ;;
+    org.gimp.GIMP) echo GIMP ;;
+    org.kde.kdenlive) echo Kdenlive ;;
+    org.audacityteam.Audacity) echo Audacity ;;
+    io.freetubeapp.FreeTube) echo FreeTube ;;
+    org.localsend.localsend_app) echo LocalSend ;;
+    io.missioncenter.MissionCenter) echo "Mission Center" ;;
+    com.github.tchx84.Flatseal) echo Flatseal ;;
+    *) echo "${1##*.}" ;;
+  esac
+}
+
+# The apps still to install: the base ones, and the Full experience's once
+# setup chose it (Chrome's local state; read again each round, since setup
+# may choose while the first boot's round runs).
+pending_apps() {
+  local all_apps="${base_apps}" experience app
+  experience=$(python3 -c '
 import json
 try:
     s = json.load(open("/home/chronos/Local State"))
     print(s.get("nickel", {}).get("setup", {}).get("pending_experience", ""))
 except Exception:
     pass' 2>/dev/null)
-case "${experience}" in
-full|default|privacy) all_apps="${all_apps} ${full_apps}" ;;
-esac
+  case "${experience}" in
+  full|default|privacy) all_apps="${all_apps} ${full_apps}" ;;
+  esac
+  for app in ${all_apps}; do
+    grep -qx "${app}" "${marker}" 2>/dev/null || echo "${app}"
+  done
+}
+
+# NickelOS's default settings for Flathub apps (Firefox in ChromeOS's window
+# frame, its tabs under the title bar), as "unmaintained" Flatpak extensions:
+# Flatpak mounts extension/<id>/<arch>/<branch> of the installation at the
+# app's extension point. Links to the image's copies, so an update brings
+# the new settings. At every boot, before anything below can exit (here
+# rather than in an upstart job: ChromeOS's lint allows no mkdir there).
+link_extensions() {
+  src=/usr/share/nickel-flatpak/extension
+  for dir in "${src}"/*/*/*; do
+    [ -d "${dir}" ] || continue
+    dst=/var/lib/flatpak/extension/${dir#"${src}"/}
+    [ -L "${dst}" ] || rm -rf "${dst}"
+    mkdir -p "${dst%/*}" && ln -sfn "${dir}" "${dst}"
+  done
+}
+link_extensions
+
 # The marker of NickelOS before 2026-10-10 held only a date: Bazaar was in.
 if [ -e "${marker}" ] && ! grep -q '^[a-z]' "${marker}"; then
   echo io.github.kolunmi.Bazaar > "${marker}"
 fi
-apps=
-for app in ${all_apps}; do
-  grep -qx "${app}" "${marker}" 2>/dev/null || apps="${apps} ${app}"
-done
+apps=$(pending_apps)
 [ -z "${apps}" ] && exit 0
 # Not on the live/installer USB stick: its small stateful partition is not
 # where software belongs, and the work would be lost when NickelOS is installed.
@@ -76,28 +123,47 @@ until curl -sf --max-time 10 -o /dev/null https://dl.flathub.org/repo/config; do
   sleep 30
 done
 
-set_state installing
 mkdir -p "${marker%/*}"
 failed=
+tried=
+ready=0
+total=$(echo ${apps} | wc -w)
 # One app at a time, so one that will not install does not hold back the
 # others; --or-update, so an app already there (installed by hand) counts.
-# The flathub remote comes from /usr/share/flatpak/remotes.d.
-for app in ${apps}; do
-  attempt=1
-  ok=1
-  until flatpak install --system -y --noninteractive --or-update flathub \
-      "${app}" >> "${log}" 2>&1; do
-    if [ "${attempt}" -ge 5 ]; then
-      ok=
-      failed=1
-      break
+# The flathub remote comes from /usr/share/flatpak/remotes.d. Rounds until
+# nothing new is pending: setup's choice may add the Full experience's apps
+# while the first boot's round runs (the session's start, which runs this
+# again, comes while it is still running and starts nothing).
+while [ -n "${apps}" ]; do
+  for app in ${apps}; do
+    tried="${tried} ${app}"
+    set_state "installing ${ready} ${total} $(app_name "${app}")"
+    attempt=1
+    ok=1
+    until flatpak install --system -y --noninteractive --or-update flathub \
+        "${app}" >> "${log}" 2>&1; do
+      if [ "${attempt}" -ge 5 ]; then
+        ok=
+        failed=1
+        break
+      fi
+      echo "nickel-flatpak-defaults: ${app}: attempt ${attempt} failed, retrying" \
+        >> "${log}"
+      sleep $((attempt * 60))
+      attempt=$((attempt + 1))
+    done
+    if [ -n "${ok}" ]; then
+      echo "${app}" >> "${marker}"
+      ready=$((ready + 1))
     fi
-    echo "nickel-flatpak-defaults: ${app}: attempt ${attempt} failed, retrying" \
-      >> "${log}"
-    sleep $((attempt * 60))
-    attempt=$((attempt + 1))
   done
-  [ -n "${ok}" ] && echo "${app}" >> "${marker}"
+  # What is pending now and wasn't tried in this run (an app that failed
+  # waits for the next boot).
+  apps=
+  for app in $(pending_apps); do
+    case " ${tried} " in *" ${app} "*) ;; *) apps="${apps} ${app}" ;; esac
+  done
+  total=$((total + $(echo ${apps} | wc -w)))
 done
 if [ -n "${failed}" ]; then
   set_state failed
