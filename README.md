@@ -1,9 +1,9 @@
 # NickelOS
 
-NickelOS is a fork of ChromiumOS that opens up the Linux underneath it. You
-get ChromeOS's desktop, and Linux apps run right on it: Flatpak, AppImages,
-Steam and anything in Gentoo, with no Crostini and no virtual machine.
-Underneath, the whole system is a current Gentoo.
+NickelOS is a modified "de-googled" fork of ChromiumOS that comes with many quality of life improvements, multiple new features
+and allows you to run native Linux applications like any other Linux distribution without any containerization (Crostini). 
+The whole system is based on current Gentoo, instead of using Google's modified version, which allows
+you to run anything on the Gentoo ebuild repository. Flatpaks and appimages are supported right out of the box. 
 
 - Website and download: https://nickelos.dev
 - The guide (installing, apps, Gentoo, troubleshooting): https://nickelos.dev/help/
