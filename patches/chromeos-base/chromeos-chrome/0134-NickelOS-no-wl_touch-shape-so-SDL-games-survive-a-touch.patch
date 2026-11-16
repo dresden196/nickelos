@@ -1,0 +1,22 @@
+From: dresden196 <50474030+dresden196@users.noreply.github.com>
+Subject: [PATCH] NickelOS: no wl_touch.shape, so SDL games survive a touch
+
+diff --git a/components/exo/wayland/wayland_touch_delegate.cc b/components/exo/wayland/wayland_touch_delegate.cc
+--- a/components/exo/wayland/wayland_touch_delegate.cc
++++ b/components/exo/wayland/wayland_touch_delegate.cc
+@@ -59,11 +59,10 @@
+                        wl_fixed_from_double(location.y()));
+ }
+ void WaylandTouchDelegate::OnTouchShape(int id, float major, float minor) {
+-  if (wl_resource_get_version(touch_resource_) >=
+-      WL_TOUCH_SHAPE_SINCE_VERSION) {
+-    wl_touch_send_shape(touch_resource_, id, wl_fixed_from_double(major),
+-                        wl_fixed_from_double(minor));
+-  }
++  // NickelOS: no wl_touch.shape. It is optional, GNOME and KDE never send it,
++  // and SDL (SuperTuxKart, many games) binds wl_seat 6 or newer with no shape
++  // handler: libwayland then aborts the app at the first touch ("listener
++  // function for opcode 5 of wl_touch is NULL").
+ }
+ void WaylandTouchDelegate::OnTouchFrame() {
+   if (wl_resource_get_version(touch_resource_) >=

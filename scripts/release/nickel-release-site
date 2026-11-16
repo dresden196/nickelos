@@ -23,11 +23,17 @@ sums=$(ssh "$HOST" "cat $R/SHA256SUMS")
 bytes=$(ssh "$HOST" "stat -c %s $R/$ISO")
 sha=$(awk -v f="$ISO" '$2 == f || $2 == "*" f { print $1 }' <<<"$sums")
 [ ${#sha} = 64 ] || { echo "no SHA-256 for $ISO in $HOST:$R/SHA256SUMS" >&2; exit 1; }
-# The milestone (NickelOS 157), from the image directory's name (R157-...).
+# NickelOS's own version (NickelOS 1.0, 1.0.1...), as nickel-release prepare
+# read it from the image (Dresden, 2026-11-16: our own number, not Chrome's).
+# shellcheck disable=SC2029
+name=$(ssh "$HOST" "sed -n 's/^NICKELOS_VERSION=//p' $R/release.env")
+[ -n "$name" ] || { echo "no NICKELOS_VERSION in $HOST:$R/release.env" >&2; exit 1; }
+# And the ChromiumOS milestone it's built on, from the image directory's name
+# (R157-...): the download page says "on ChromiumOS 157".
 # shellcheck disable=SC2029
 dir=$(ssh "$HOST" "sed -n 's/^IMAGE_DIR=//p' $R/release.env")
-name=$(basename "$dir" | sed -n 's/^R\([0-9]*\)-.*/\1/p')
-[ -n "$name" ] || { echo "no milestone in $dir" >&2; exit 1; }
+chromium=$(basename "$dir" | sed -n 's/^R\([0-9]*\)-.*/\1/p')
+[ -n "$chromium" ] || { echo "no milestone in $dir" >&2; exit 1; }
 # MokManager shows the SHA-1 as spaced pairs ("75 9E 0D ..."): the site too.
 fp() { openssl x509 -in "$cert" -noout -fingerprint "-$1" | cut -d= -f2; }
 python3 - "$site/release.json" <<PY
@@ -35,6 +41,7 @@ import json, sys
 base = "https://update.nickelos.dev/download/"
 json.dump({
     "name": "$name",
+    "chromium": "$chromium",
     "version": "$VERSION",
     "date": "$DATE",
     "iso": "$ISO",

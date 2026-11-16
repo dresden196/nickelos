@@ -8,6 +8,13 @@
 # A post starts with "key: value" lines up to "---":
 #   title, slug, summary, date (YYYY-MM-DD, or "release": the release's date)
 #   release: yes   only once there is a release (release.json)
+#   draft: yes     not on the site (the blog editor's drafts)
+# Pictures in a post are in blog-src/media/ and go to blog/media/.
+#
+# The blog's editor keeps the posts on the web server and builds with this
+# file there: NICKEL_BLOG_SRC and NICKEL_BLOG_OUT
+# say where the posts are and where the blog goes; post_page() is its
+# preview.
 # In a post, {{NAME}}, {{VERSION}}, {{SIZE}} and {{DATE}} are the release's.
 # Without any post to show, there is no blog/ (and the header has no link to
 # it before a release anyway).
@@ -21,8 +28,8 @@ import sys
 from masthead import masthead, release
 
 here = os.path.dirname(os.path.abspath(__file__))
-src = os.path.join(here, "blog-src")
-out = os.path.join(here, "blog")
+src = os.environ.get("NICKEL_BLOG_SRC") or os.path.join(here, "blog-src")
+out = os.environ.get("NICKEL_BLOG_OUT") or os.path.join(here, "blog")
 SITE = "https://nickelos.dev"
 AUTHOR = "dresden196"
 
@@ -42,14 +49,14 @@ HEAD = """<!doctype html>
 <meta name="theme-color" content="#1c1b18" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{summary}">
-<meta property="og:image" content="https://nickelos.dev/assets/shots/desktop-store-terminal-v2.webp">
+<meta property="og:image" content="https://nickelos.dev/assets/shots/desktop-gimp-kart-terminal-v2.webp">
 <meta property="og:url" content="{url}">
 <link rel="icon" href="/favicon.png?v=3" type="image/png" sizes="64x64">
 <link rel="icon" href="/favicon.ico?v=3" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
 <link rel="alternate" type="application/atom+xml" title="NickelOS blog" href="/blog/feed.xml">
 <link rel="preload" href="/assets/fonts/GoogleSansFlex-nickelos.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/css/site.css?v=3">
+<link rel="stylesheet" href="/assets/css/site.css?v=5">
 </head>
 <body>
 
@@ -94,10 +101,36 @@ def cta(rel):
     if not rel:
         return ""
     return ("""      <div class="blog-cta">
-        <p><strong>Download NickelOS %s</strong>One ISO for any 64-bit Intel or AMD PC: install it, or try it from a USB stick first. %s.</p>
+        <p><strong>Download NickelOS %s</strong>One ISO for any 64-bit Intel or AMD PC, with Intel, AMD or NVIDIA graphics: install it, or try it from a USB stick first. %s.</p>
         <a class="download-button" href="/download/">Download NickelOS</a>
       </div>
 """ % (html.escape(rel["name"]), html.escape(rel["size"])))
+
+
+def post_date(meta, rel):
+    if meta.get("date") == "release":
+        return datetime.datetime.strptime(rel["date"], "%d %B %Y").date()
+    return datetime.date.fromisoformat(meta["date"])
+
+
+def post_lines(lines, rel):
+    text = "".join(lines)
+    for k, v in (rel or {}).items():
+        text = text.replace("{{%s}}" % k.upper(), str(v))
+    return text.splitlines(keepends=True)
+
+
+def post_page(date, meta, lines, rel):
+    """A post's page, and its body (for the listing and the feed)."""
+    body, _ = build_help.convert(lines)
+    url = "/blog/%s/" % meta["slug"]
+    # The date and the author over the title.
+    byline = '      <p class="blog-meta">%s &middot; %s</p>\n' % (long_date(date), AUTHOR)
+    page = HEAD.format(title=html.escape(meta["title"] + " · NickelOS blog"),
+                       summary=html.escape(meta.get("summary", "")),
+                       url=SITE + url, masthead=masthead("Blog"),
+                       body=byline + body + "\n" + cta(rel))
+    return page, body
 
 
 def main():
@@ -109,14 +142,9 @@ def main():
         meta, lines = build_help.read_page(os.path.join(src, name))
         if meta.get("release") == "yes" and not rel:
             continue
-        if meta.get("date") == "release":
-            date = datetime.datetime.strptime(rel["date"], "%d %B %Y").date()
-        else:
-            date = datetime.date.fromisoformat(meta["date"])
-        text = "".join(lines)
-        for k, v in (rel or {}).items():
-            text = text.replace("{{%s}}" % k.upper(), str(v))
-        posts.append((date, meta, text.splitlines(keepends=True)))
+        if meta.get("draft") == "yes":
+            continue
+        posts.append((post_date(meta, rel), meta, post_lines(lines, rel)))
     posts.sort(key=lambda p: p[0], reverse=True)
 
     shutil.rmtree(out, ignore_errors=True)
@@ -125,15 +153,12 @@ def main():
         return 0
     os.makedirs(out)
     items = []
+    media = os.path.join(src, "media")
+    if os.path.isdir(media):
+        shutil.copytree(media, os.path.join(out, "media"))
     for date, meta, lines in posts:
-        body, _ = build_help.convert(lines)
+        page, body = post_page(date, meta, lines, rel)
         url = "/blog/%s/" % meta["slug"]
-        # The date and the author over the title.
-        byline = '      <p class="blog-meta">%s &middot; %s</p>\n' % (long_date(date), AUTHOR)
-        page = HEAD.format(title=html.escape(meta["title"] + " · NickelOS blog"),
-                           summary=html.escape(meta.get("summary", "")),
-                           url=SITE + url, masthead=masthead("Blog"),
-                           body=byline + body + "\n" + cta(rel))
         os.makedirs(os.path.join(out, meta["slug"]))
         with open(os.path.join(out, meta["slug"], "index.html"), "w", encoding="utf-8") as f:
             f.write(page)

@@ -37,6 +37,19 @@ cros_pre_src_prepare_nickel_patches() {
 	[[ -n ${PLATFORM_SUBDIR} ]] && root="${S%/"${PLATFORM_SUBDIR}"}"
 	pushd "${root}" >/dev/null || die
 	eapply "${dir}"
+	# The kernel names itself from its git tree (scripts/setlocalversion), and
+	# changes not committed make it "-dirty" (6.12.100-01493-g5e3b3561121e-dirty
+	# in 157). A commit can't be made here: the work tree borrows Google's
+	# objects (git clone --shared), and git touches those packs, which the
+	# sandbox refuses. So the files our patches changed are marked
+	# assume-unchanged in the work tree's own index: setlocalversion's
+	# `git status -uno` doesn't list them, the version is Google's base commit
+	# without -dirty, and nothing outside the work dir is written. (Which
+	# patches went in: /usr/share/nickel/patched.)
+	if [[ ${CATEGORY} == sys-kernel ]] && git -C "${root}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		git -C "${root}" ls-files -z -m -d | xargs -0 -r git -C "${root}" update-index --assume-unchanged -- || die
+		[[ -z $(git -C "${root}" --no-optional-locks status -uno --porcelain) ]] || die "the kernel tree still looks changed"
+	fi
 	popd >/dev/null || die
 }
 
@@ -48,7 +61,10 @@ cros_post_src_install_nickel_patches() {
 	local dir LC_ALL=C
 	dir=$(nickel_patch_dir)
 	[[ -d ${dir} ]] || return 0
-	cat "${dir}"/*.patch | sha256sum | cut -c1-16 > "${T}/nickel-patched" || die
+	# The kernel's also says its version is clean (no -dirty), so kernels
+	# patched before that are rebuilt (nickel-build-stock: the same).
+	{ cat "${dir}"/*.patch; [[ ${CATEGORY} == sys-kernel ]] && echo "clean version"; } |
+		sha256sum | cut -c1-16 > "${T}/nickel-patched" || die
 	insinto /usr/share/nickel/patched
 	newins "${T}/nickel-patched" "${CATEGORY}__${PN}"
 }

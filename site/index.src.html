@@ -10,13 +10,13 @@
 <meta name="theme-color" content="#1c1b18" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="NickelOS: ChromiumOS, pried open">
 <meta property="og:description" content="A fork of ChromiumOS that opens up the Linux underneath it. Every Linux app just works, no Crostini, no virtual machine.">
-<meta property="og:image" content="https://nickelos.dev/assets/shots/desktop-store-terminal-v2.webp">
+<meta property="og:image" content="https://nickelos.dev/assets/shots/desktop-gimp-kart-terminal-v2.webp">
 <meta property="og:url" content="https://nickelos.dev/">
 <link rel="icon" href="/favicon.png?v=3" type="image/png" sizes="64x64">
 <link rel="icon" href="/favicon.ico?v=3" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
 <link rel="preload" href="/assets/fonts/GoogleSansFlex-nickelos.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/css/site.css?v=3">
+<link rel="stylesheet" href="/assets/css/site.css?v=5">
 </head>
 <body>
 
@@ -46,14 +46,14 @@
       <path d="{{HERO_STROKE}}" fill="url(#hs)"/>
     </svg>
     <figure class="frame frame-hero">
-      <img src="/assets/shots/desktop-store-terminal-v2.webp"
-           srcset="/assets/shots/desktop-store-terminal-v2-960.webp 960w, /assets/shots/desktop-store-terminal-v2.webp 1920w"
+      <img src="/assets/shots/desktop-gimp-kart-terminal-v2.webp"
+           srcset="/assets/shots/desktop-gimp-kart-terminal-v2-960.webp 960w, /assets/shots/desktop-gimp-kart-terminal-v2.webp 1920w"
            sizes="(max-width: 1240px) 92vw, 1180px"
            width="1920" height="1080"
-           alt="The NickelOS desktop: Bazaar, the Flatpak app store, on the left, showing Firefox, Discord, Steam and VLC; a terminal on the right; the shelf at the bottom.">
+           alt="The NickelOS desktop: GIMP on the left with the NickelOS logo open; the Terminal at the top right, where fastfetch shows NickelOS's logo and NickelOS 1.0; SuperTuxKart racing in the bottom right corner; the shelf at the bottom.">
     </figure>
    </div>
-    <p class="caption">The Bazaar app store and a terminal on the NickelOS desktop.</p>
+    <p class="caption">GIMP, SuperTuxKart and fastfetch in the Terminal, on the NickelOS desktop.</p>
   </div>
 </section>
 
@@ -72,7 +72,7 @@
       </article>
       <article class="feature">
         <h3><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 8h10a4 4 0 0 1 4 4v2.5a3 3 0 0 1-5.4 1.8L14.5 15h-5l-1.1 1.3A3 3 0 0 1 3 14.5V12a4 4 0 0 1 4-4z"/><path d="M8 10.5v3M6.5 12h3"/><circle cx="15.5" cy="11" r="0.6"/><circle cx="17.5" cy="13" r="0.6"/></svg>Games and GPUs</h3>
-        <p>NVIDIA cards run on NVIDIA's own driver, AMD and Intel on Mesa. Steam, Proton and Wine run as they do on other distros, and controllers work. ChromeOS normally blocks pointer lock for Linux apps; NickelOS allows it, so mouse look works in games, and Discord's push-to-talk works while you play.</p>
+        <p>NVIDIA cards run on NVIDIA's own driver, AMD and Intel on Mesa. Steam, Proton and Wine run as they do on other distros, and controllers work. ChromeOS normally blocks pointer lock for Linux apps; NickelOS allows it, so mouse look works in games, and push-to-talk keys keep working while you play.</p>
       </article>
       <article class="feature">
         <h3><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><rect x="6" y="7" width="3" height="3" rx="0.6"/><rect x="6" y="12" width="3" height="2" rx="0.6"/></svg>New on the desktop</h3>
@@ -151,7 +151,7 @@
       </div>
       <div>
         <dt>Google services</dt>
-        <dd>None built in: no Google AI features, no Privacy Sandbox, no promotions, no content recommendations. Search suggestions stay off unless you turn them on.</dd>
+        <dd>None built in: no Google AI features, no promotions, no content recommendations, and Privacy Sandbox's ad features are switched off. Search suggestions stay off unless you turn them on.</dd>
       </div>
       <div>
         <dt>Cloud storage</dt>
@@ -191,48 +191,6 @@
       <li><span class="layer">ChromiumOS base</span><span class="what">Booting, updates and encryption</span><span class="from">ChromiumOS</span></li>
       <li><span class="layer">Linux kernel</span><span class="what">ChromiumOS's kernel</span><span class="from">ChromiumOS</span></li>
     </ol>
-  </div>
-</section>
-
-<section id="status" class="section section-plated">
-  <div class="wrap">
-<!--pre-->    <p class="eyebrow">Status &middot; updated 29 October 2026</p>
-<!--/pre--><!--rel-->    <p class="eyebrow">Status &middot; updated {{DATE}}</p>
-<!--/rel-->
-    <h2>Where it stands</h2>
-    <div class="board">
-      <div class="col col-done">
-        <h3>Works today</h3>
-        <ul>
-          <li>Wayland and X11 apps, with the GPU</li>
-          <li>Flatpak, AppImage, Gentoo packages and Android apps</li>
-          <li>Local accounts and a Terminal with <code>sudo</code></li>
-          <li>Steam, Wine and controllers</li>
-          <li>Desktop icons, with picture and video previews</li>
-          <li>Cloud storage in Files</li>
-          <li>A screen saver of your own pictures, with the weather if you want it</li>
-          <li>NickelOS's own screens in every language ChromeOS has</li>
-          <li>An installer that lets you pick the disk</li>
-<!--rel-->          <li>Secure Boot, with NickelOS's own key</li>
-          <li>Updates from NickelOS's own server</li>
-<!--/rel-->        </ul>
-      </div>
-      <div class="col col-doing">
-        <h3>Being built</h3>
-        <ul>
-          <li>Phones through KDE Connect</li>
-        </ul>
-      </div>
-      <div class="col col-not">
-        <h3>Not yet</h3>
-        <ul>
-<!--pre-->          <li>A public release and a download</li>
-<!--/pre-->          <li>A recovery key for a forgotten password</li>
-<!--pre-->          <li>Updates from NickelOS's server, which start with the first release</li>
-<!--/pre--><!--rel-->          <li>Using the PC's TPM</li>
-<!--/rel-->        </ul>
-      </div>
-    </div>
   </div>
 </section>
 

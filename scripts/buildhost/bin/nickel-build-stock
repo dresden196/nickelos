@@ -133,7 +133,9 @@ patch_record_stale() {
     atom=${d#"$OVL"/patches/}
     case " ${HOOKFILES[$atom]} " in *"/nickel-patches.bashrc "*) ;; *) continue ;; esac
     [ -n "$(installed "$atom")" ] || continue
-    want=$(export LC_ALL=C; cat "$d"/*.patch | sha256sum | cut -c1-16)
+    # The same as nickel-patches.bashrc's record (the kernel's says its
+    # version is clean).
+    want=$(export LC_ALL=C; { cat "$d"/*.patch; case $atom in sys-kernel/*) echo "clean version" ;; esac; } | sha256sum | cut -c1-16)
     [ "$(cat "out/build/$BOARD/usr/share/nickel/patched/${atom//\//__}" 2>/dev/null)" = "$want" ] || echo "$atom"
   done
 }

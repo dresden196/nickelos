@@ -53,7 +53,7 @@ release_dir() {
 production() { [ "$(fpr "$CERT")" = "$(fpr "$PROD_CERT")" ]; }
 
 prepare() {
-	local dir img l m version track btype debug=no keyok=yes
+	local dir img l m version nver track btype debug=no keyok=yes
 	dir=$(readlink -f "${1:?the image directory}")
 	img=$dir/chromiumos_base_image.bin
 	[ -f "$img" ] || die "$dir has no base image (NICKEL_IMAGE=base)"
@@ -62,12 +62,15 @@ prepare() {
 	version=$(sed -n 's/^CHROMEOS_RELEASE_VERSION=//p' "$m/etc/lsb-release")
 	track=$(sed -n 's/^CHROMEOS_RELEASE_TRACK=//p' "$m/etc/lsb-release")
 	btype=$(sed -n 's/^CHROMEOS_RELEASE_BUILD_TYPE=//p' "$m/etc/lsb-release")
+	# NickelOS's own version (1.0, 1.0.1...), which the site and the blog show.
+	nver=$(sed -n 's/^NICKELOS_VERSION=//p' "$m/etc/os-release" | tr -d '"')
 	cmp -s "$m/usr/share/update_engine/update-payload-key.pub.pem" "$PROD_PUB" || keyok=no
 	umount "$m"
 	mount -o ro "${l}p12" "$m"
 	grep -q cros_debug "$m/efi/boot/grub.cfg" && debug=yes
 	umount "$m"; rmdir "$m"; losetup -d "$l"
 	[ -n "$version" ] || die "no version in the image"
+	[ -n "$nver" ] || die "no NICKELOS_VERSION in the image's os-release (scripts/release/nickelos-version, nickel-unify)"
 	[ "$keyok" = yes ] || die "the image's update key isn't the production key (built with NICKEL_TEST_KEY=1?)"
 	[ "$debug" = no ] || die "the image boots with cros_debug (a test image?)"
 	[ "$track" = stable-channel ] || die "the image is on $track, not stable-channel"
@@ -76,7 +79,7 @@ prepare() {
 	R=$SRC/.nickel/release/$version
 	[ -e "$R" ] && die "$R exists already (remove it to start again)"
 	install -d -o nickel -g nickel "$SRC/.nickel/release" "$R" "$R/tosign"
-	printf 'VERSION=%q\nIMAGE_DIR=%q\n' "$version" "$dir" > "$R/release.env"
+	printf 'VERSION=%q\nNICKELOS_VERSION=%q\nIMAGE_DIR=%q\n' "$version" "$nver" "$dir" > "$R/release.env"
 	stage "a copy of the base image ($version)"
 	cp --sparse=always "$img" "$R/chromiumos_base_image.bin"
 	stage "shim, MokManager and the Secure Boot GRUB into it"

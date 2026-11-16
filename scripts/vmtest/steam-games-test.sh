@@ -192,8 +192,12 @@ vm "rm -f /tmp/nickel-launcher-ran"
 # the desktop asks again and shows its app's icon (17.18 kept its first
 # answer).
 cell2() {   # the magenta pixels in the second cell
-  # As above: the pointer over the icons and away first.
-  nickel-vmctl move 60 150; sleep 1; nickel-vmctl move 900 500; sleep 1
+  # The VM's display shows a change on the desktop only with the next frame
+  # something else draws: the shelf's clock each minute (17.20's runs and
+  # 17.36's: the same build passed or failed by where the minute fell; 1.0
+  # took 18 to 43 s, as did 1.0.1). Selecting the first icon and clearing
+  # it again draws one (then about 7 s after a chmod, on both).
+  nickel-vmctl click 60 46; sleep 1; nickel-vmctl click 900 500; sleep 1
   nickel-vmctl shot "$V/flow/steam-games-desktop-$1.png" >/dev/null
   python3 - "$V/flow/steam-games-desktop-$1.png" <<'PY'
 import subprocess, sys
@@ -226,9 +230,14 @@ done
   echo "  nickel-appd now: $(apps DesktopEntry "$D/Not Trusted.desktop")"
   vm "stat -c '%a %U %Z' '$D/Not Trusted.desktop'; grep -a -E 'DesktopEntry|nickel_desktop' /var/log/chrome/chrome | tail -5 | cut -c1-160" | sed 's/^/  /'
 }
-vm "chmod 644 '$D/Not Trusted.desktop'"; sleep 4
-n=$(cell2 file-again)
-[ "$n" -lt 100 ] && echo "not executable again: a file again" || echo "not executable again: FAILED, $n magenta pixels"
+# Back (the desktop reads the folder again within about 7 s, as above).
+vm "chmod 644 '$D/Not Trusted.desktop'"
+for try in 1 2 3; do
+  sleep 4
+  n=$(cell2 file-again)
+  [ "$n" -lt 100 ] && break
+done
+[ "$n" -lt 100 ]&& echo "not executable again: a file again" || echo "not executable again: FAILED, $n magenta pixels"
 vm "rm -f '$D/Marker App.desktop' '$D/Not Trusted.desktop'"
 
 vm "rm -rf $H/.var/app/com.valvesoftware.Steam '$A/Test Game.desktop' /usr/local/bin/steam"

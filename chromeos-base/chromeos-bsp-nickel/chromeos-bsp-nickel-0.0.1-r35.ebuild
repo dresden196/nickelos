@@ -116,6 +116,16 @@ src_install() {
 	insinto /usr/share/chromeos-assets
 	doins "${FILESDIR}"/boot-splash/splash_background
 
+	# fastfetch's NickelOS logo, made from the flat logo (branding/fastfetch,
+	# make-logo.py), and a system-wide setting that uses it: whoever installs
+	# fastfetch sees NickelOS's logo, with fastfetch's own modules (r35: the
+	# list must be in the file, or fastfetch shows the logo alone). A config
+	# of their own still wins.
+	insinto /usr/share/nickelos/fastfetch
+	doins "${FILESDIR}"/fastfetch/nickelos.txt
+	insinto /etc/xdg/fastfetch
+	doins "${FILESDIR}"/fastfetch/config.jsonc
+
 	# NickelOS's own Omaha app ID, so update_engine asks *our* update server
 	# for *our* payloads (reven's is ChromeOS Flex's). DEVICETYPE OTHER: these
 	# are generic PCs, not Chromebooks.

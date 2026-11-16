@@ -4,19 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Download NickelOS</title>
-<meta name="description" content="Download NickelOS {{NAME}}: one ISO for USB sticks, with Secure Boot, for 64-bit Intel and AMD PCs.">
+<meta name="description" content="Download NickelOS {{NAME}}: one ISO for USB sticks, with Secure Boot, for 64-bit Intel and AMD PCs, with Intel, AMD or NVIDIA graphics.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1c1b18" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Download NickelOS">
 <meta property="og:description" content="NickelOS {{NAME}}: ChromiumOS with the Linux underneath opened up.">
-<meta property="og:image" content="https://nickelos.dev/assets/shots/desktop-store-terminal-v2.webp">
+<meta property="og:image" content="https://nickelos.dev/assets/shots/desktop-gimp-kart-terminal-v2.webp">
 <meta property="og:url" content="https://nickelos.dev/download/">
 <link rel="icon" href="/favicon.png?v=3" type="image/png" sizes="64x64">
 <link rel="icon" href="/favicon.ico?v=3" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
 <link rel="preload" href="/assets/fonts/GoogleSansFlex-nickelos.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/css/site.css?v=3">
+<link rel="stylesheet" href="/assets/css/site.css?v=5">
 </head>
 <body>
 
@@ -29,7 +29,7 @@
     <div class="guide-page">
       <p class="eyebrow">Released {{DATE}}</p>
       <h1>Download NickelOS</h1>
-      <p>NickelOS {{NAME}} (build {{VERSION}}), on ChromiumOS {{NAME}}. One ISO for every PC: write it to a USB stick, start from it, then install NickelOS or try it from the stick first.</p>
+      <p>NickelOS {{NAME}} (build {{VERSION}}), on ChromiumOS {{CHROMIUM}}. One ISO for every PC: write it to a USB stick, start from it, then install NickelOS or try it from the stick first.</p>
 
       <p class="download-row">
         <a class="download-button" href="{{ISO_URL}}">Download the ISO</a>
@@ -50,7 +50,8 @@
 
       <h2 id="need">What you need</h2>
       <ul>
-        <li>A 64-bit Intel or AMD PC with UEFI firmware, and 4 GB of memory or more (8 GB is better).</li>
+        <li>A 64-bit PC with an Intel or AMD processor and UEFI firmware, and 4 GB of memory or more (8 GB is better).</li>
+        <li>Intel, AMD or NVIDIA graphics. NVIDIA cards from the GeForce GTX 16 and RTX 20 series on use NVIDIA's own driver; older ones get nouveau.</li>
         <li>A disk of 32 GB or more that NickelOS can have to itself: installing erases it.</li>
         <li>A USB stick of 4 GB or more (16 GB or more to try NickelOS from the stick).</li>
       </ul>
@@ -73,7 +74,7 @@
         <li>Laptops with two GPUs (Intel or AMD with NVIDIA) haven't been tested yet.</li>
         <li>NVIDIA cards older than the GeForce GTX 16 series run on nouveau, which is slow for games.</li>
       </ul>
-      <p>What works today is on the <a href="/#status">status board</a>. To report a problem, see <a href="/help/community/">Getting help</a>.</p>
+      <p>To report a problem, see <a href="/help/community/">Getting help</a>.</p>
 
       <h2 id="updates">Updates</h2>
       <p>Once installed, NickelOS updates itself from its own server, signed with NickelOS's key, on the Stable channel. <a href="/help/updates/">Updates</a> has how it works.</p>

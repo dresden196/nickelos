@@ -220,6 +220,22 @@ for f in /etc/python-exec/python-exec.conf; do
 	fi
 done
 note "Gentoo's /etc files left out where the image has its own: $(find "$R/etc" -name '._cfg[0-9][0-9][0-9][0-9]_*' -print -delete | wc -l)"
+
+# NickelOS's name and its own version wherever a program looks for them.
+# ChromiumOS's /etc/os-release has no PRETTY_NAME (its VERSION is Chrome's
+# milestone, which ChromeOS's own programs read, so it stays), and Gentoo's
+# baselayout puts its own /usr/lib/os-release ("Gentoo Linux") next to it:
+# programs that fill in from there (fastfetch) said Gentoo Linux. One file:
+# PRETTY_NAME "NickelOS <our version>" (scripts/release/nickelos-version:
+# 1.0 was the first release, 1.0.1 its first update) and NICKELOS_VERSION,
+# and /usr/lib/os-release a link to it, as os-release(5) has them.
+nver=$(tr -d '[:space:]' < "$HERE/../release/nickelos-version" 2>/dev/null || true)
+sed -i '/^PRETTY_NAME=/d; /^NICKELOS_VERSION=/d' "$R/etc/os-release"
+name=$(sed -n 's/^NAME=//p' "$R/etc/os-release" | tr -d '"')
+echo "PRETTY_NAME=\"${name:-NickelOS}${nver:+ $nver}\"" >> "$R/etc/os-release"
+[ -n "$nver" ] && echo "NICKELOS_VERSION=$nver" >> "$R/etc/os-release"
+ln -sfn ../../etc/os-release "$R/usr/lib/os-release"
+note "os-release: $(sed -n 's/^PRETTY_NAME=//p' "$R/etc/os-release"), /usr/lib/os-release -> $(readlink "$R/usr/lib/os-release")"
 chroot "$R" /usr/bin/fc-cache -s -f >/dev/null 2>&1 && note "font cache made"
 # The module caches from the image's own modules: Portage's install steps
 # ran in the Unified root and listed the root's (gdk-pixbuf's named a JPEG

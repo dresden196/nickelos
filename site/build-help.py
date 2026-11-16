@@ -36,6 +36,11 @@ def inline(text):
 
     t = re.sub(r"`([^`]+)`", keep, text)
     t = html.escape(t, quote=False)
+    # Pictures (the blog's: ![what it shows](/blog/media/name.webp)), before
+    # links, which have the same brackets.
+    t = re.sub(r"!\[([^\]]*)\]\(([^)\s]+)\)",
+               lambda m: '<img src="%s" alt="%s" loading="lazy">' % (
+                   html.escape(m.group(2)), m.group(1).replace('"', "&quot;")), t)
     t = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)",
                lambda m: '<a href="%s">%s</a>' % (html.escape(m.group(2)), m.group(1)), t)
     t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
@@ -159,7 +164,7 @@ LAYOUT = """<!doctype html>
 <link rel="icon" href="/favicon.ico?v=3" sizes="16x16 32x32 48x48">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3">
 <link rel="preload" href="/assets/fonts/GoogleSansFlex-nickelos.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/css/site.css?v=3">
+<link rel="stylesheet" href="/assets/css/site.css?v=5">
 </head>
 <body>
 
@@ -213,6 +218,21 @@ OFFLINE_NOTE = ('      <p>This copy of the guide came with NickelOS and works of
                 'The newest is at <a href="%s/help/">nickelos.dev/help</a>.</p>\n' % SITE)
 
 
+# {{EMAIL}} in a page: a link that shows Dresden's address only when clicked
+# (assets/js/contact.js), so bots reading the page, or this file, never see
+# it: the address is kept here reversed and in base64.
+EMAIL = "bW9jLmxpYW1nQDY5MW5lZHNlcmQ="
+EMAIL_LINK = ('<a class="email-reveal" href="#" data-e="%s">Show the email address</a>' % EMAIL)
+EMAIL_SCRIPT = '<script src="/assets/js/contact.js?v=1" defer></script>\n'
+
+
+def with_email(page):
+    if "{{EMAIL}}" not in page:
+        return page
+    page = page.replace("{{EMAIL}}", EMAIL_LINK)
+    return page.replace("</body>", EMAIL_SCRIPT + "</body>", 1)
+
+
 def offline_links(page):
     def help_link(m):
         key, frag = m.group(1), m.group(2) or ""
@@ -231,7 +251,7 @@ def write_offline(dest, rendered):
     import shutil
     if os.path.isdir(dest):
         shutil.rmtree(dest)
-    for sub in ("css", "fonts", "img"):
+    for sub in ("css", "fonts", "img", "js"):
         os.makedirs(os.path.join(dest, "assets", sub))
     for key, page in rendered:
         name = "index.html" if key == "index" else key + ".html"
@@ -242,7 +262,7 @@ def write_offline(dest, rendered):
     with open(os.path.join(dest, "assets", "css", "site.css"), "w", encoding="utf-8") as f:
         f.write(css)
     for rel in ("fonts/GoogleSansFlex-nickelos.woff2", "fonts/GoogleSansCode-nickelos.woff2",
-                "fonts/OFL.txt", "img/nickelos-logo-v3.png"):
+                "fonts/OFL.txt", "img/nickelos-logo-v3.png", "js/contact.js"):
         shutil.copy(os.path.join(here, "assets", rel), os.path.join(dest, "assets", rel))
     print("guide, offline: %d pages in %s" % (len(rendered), dest))
 
@@ -285,13 +305,13 @@ def main():
         fields = dict(title=html.escape(title),
                       summary=html.escape(meta.get("summary", "")),
                       nav=nav, toc=toc_html, body=body)
-        page = LAYOUT.format(masthead=masthead("Guide"), **fields)
+        page = with_email(LAYOUT.format(masthead=masthead("Guide"), **fields))
         dest = out if key == "index" else os.path.join(out, key)
         os.makedirs(dest, exist_ok=True)
         with open(os.path.join(dest, "index.html"), "w", encoding="utf-8") as f:
             f.write(page)
         # The copy NickelOS carries: the guide's own links, no Download.
-        rendered.append((key, LAYOUT.format(masthead=masthead("Guide", offline=True), **fields)))
+        rendered.append((key, with_email(LAYOUT.format(masthead=masthead("Guide", offline=True), **fields))))
     print("guide: %d pages" % len(pages))
     if offline_dir:
         write_offline(offline_dir, rendered)
